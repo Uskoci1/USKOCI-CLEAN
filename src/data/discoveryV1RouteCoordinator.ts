@@ -290,7 +290,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     screen.retire();overlay.retire();search.retire();};
 
   return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
-    snapshot,refreshOverlay:()=>refreshOverlay(generation),attach,detach,warm,retire};
+    snapshot,peekNow:()=>screen.peekNow(),refreshOverlay:()=>refreshOverlay(generation),attach,detach,warm,retire};
 }
 
 export type DiscoveryV1RouteCoordinator=ReturnType<typeof createDiscoveryV1RouteCoordinator>;

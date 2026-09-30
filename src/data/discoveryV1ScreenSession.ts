@@ -208,8 +208,9 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   }
   async function nextPlaces(){const result=await owner.nextPlaces();return {kind:result.kind,snapshot:snapshot()};}
   const clearPeek=()=>{selectionSequence++;peek=null;owner.clearSelectionReads();};
+  const peekNow=()=>peek;
   const suspend=()=>{selectionSequence++;owner.suspend();};
   const retire=()=>{selectionSequence++;peek=null;view=null;owner.retire();};
 
-  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,suspend,retire,snapshot};
+  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,peekNow,suspend,retire,snapshot};
 }

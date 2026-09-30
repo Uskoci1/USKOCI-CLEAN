@@ -49,6 +49,7 @@ ap.add_argument('--write-baseline', default=None, help='write the count and ever
 ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
+ap.add_argument('--quiet-pins', action='store_true', help='EX-03: the pin timing without a single UI dump while a card is open (an accessibility dump walks the views of the app on its UI thread and can itself make a slow frame): tap, wait, read the frame ring, Back; the touch count is confirmed from the trace')
 ap.add_argument('--only-pins', action='store_true', help='launch and run the pin timing step alone')
 ap.add_argument('--focused', action='store_true', help='the short physical measurement (owner, 2026-09-30, a 6-minute window on a quiet database): cold start, pin timing (--taps), FULL->detail->Back cycles (--cycles), health and the runbook verdict; no pan/zoom, flings, search or filters')
 ap.add_argument('--only-flows', action='store_true', help='launch, read the list, then run only the flows asked for (--filters, --search, --visible-return) and stop')
@@ -502,6 +503,15 @@ def time_pins():
     shown, moved = 0, []
     slow_frames, seen_vsyncs = [], set()
     for i in range(ARGS.taps):
+        if ARGS.quiet_pins:
+            tap(target['x'], target['y'], 140)
+            time.sleep(2.2)
+            for frame in framestats_slow(seen_vsyncs):
+                slow_frames.append({'tap': i + 1, **frame})
+            back()                                                     # Android Back closes the card
+            time.sleep(1.4)
+            shown += 1
+            continue
         tap(target['x'], target['y'], 140)
         root, _ = None, None
         got, root = poll(lambda r: peek_title(r), 20, 0.3)
@@ -534,7 +544,10 @@ def time_pins():
     REPORT['pinTiming'] = summary
     check('PIN_TIMING_MEASURED', len(pairs) >= max(3, int(ARGS.taps * .9)), **summary)
     measured = [m for m in moved if m is not None]
-    check('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', len(measured) >= 2 and max(measured) <= 4, movedPx=moved)
+    if ARGS.quiet_pins:
+        skip('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', 'quiet pins: no UI dump while a card is open, so its place is not read')
+    else:
+        check('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', len(measured) >= 2 and max(measured) <= 4, movedPx=moved)
 
 
 SETTLED = re.compile(r'\[USKOCI_P6_TRACE\] \["settled","(OWN_CLUSTER|OWN_MOVE|QUIET_MOVE)"\]')

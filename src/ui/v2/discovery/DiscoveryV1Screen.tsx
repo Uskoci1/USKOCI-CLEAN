@@ -35,6 +35,8 @@ export type DiscoveryV1ScreenProps = {
 };
 
 const SEARCH_SETTLE_MS = 250;
+/** The next frame (or the next turn where there is no frame clock, as in a test): what must not share a commit with the work that came first. */
+const nextFrame = (work: () => void) => { if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => work()); else setTimeout(work, 0); };
 
 export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const initialViewRef = useRef(props.initialView);
@@ -153,12 +155,16 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     tap.current = record;
     if (marker.kind !== 'CLUSTER') setPendingKey(marker.key);
     let applied = false;
-    // EX-03: a task the list already holds sets its card in this very call (before the exact read's first await), so the card is published in the same turn as the touch
-    // instead of when the read lands; the read goes on and only confirms or refreshes it. A new card object in the snapshot is the sign that one was set.
-    const shown = coordinator.snapshot().screen.peek;
+    // EX-03: a task or place the list already holds sets its card in this very call (before the read's first await), so the card is handed over in the touch's own turn instead
+    // of when the read lands; the read goes on and only confirms or refreshes it. A new card object is the sign that one was set (the cheap look: no snapshot of the list and
+    // the map). The halo is the first thing the person sees, so it commits alone and the card follows one frame later (the BEFORE/AFTER on the HONOR showed the halo slipping
+    // from 63 to 140 ms when both shared one commit). A newer touch takes over its own frame.
+    const shown = coordinator.peekNow();
     const reading = coordinator.selectMarker(marker);
-    const now = coordinator.snapshot().screen.peek;
-    if (marker.kind !== 'CLUSTER' && now && now !== shown) { record.cardAt = Date.now(); commit(); }
+    if (marker.kind !== 'CLUSTER') {
+      const known = coordinator.peekNow();
+      if (known && known !== shown) nextFrame(() => { if (tap.current === record) { record.cardAt = Date.now(); commit(); } });
+    }
     void execute(async () => {
       const result = await reading;
       applied = (result.kind === 'TASK' || result.kind === 'PLACE') && result.applied;
