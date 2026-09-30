@@ -31,7 +31,8 @@ begin
   for pin in select * from (values
     ('private.support_auth_v5(uuid)'), ('private.closure_assert_open(uuid,uuid)'), ('private.safety_assert_pair(uuid,uuid)'),
     ('private.push_session_valid(uuid,uuid)'), ('private.media_evidence_key_v5(uuid)'), ('private.closure_account_key(uuid)'),
-    ('private.closure_assert_current_v5(private.closure_executions_v5)'), ('public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])')
+    ('private.closure_assert_current_v5(private.closure_executions_v5)'), ('public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])'),
+    ('private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)')
   ) p(signature) loop
     if to_regprocedure(pin.signature) is null then raise exception 'VOICE_B1A_PREDECESSOR_MISSING: %', pin.signature using errcode = '55000'; end if;
   end loop;
@@ -140,6 +141,13 @@ create function private.agreement_voice_transfer_v1(a private.agreement_voice_up
 create function private.agreement_voice_message_guard_v1() returns trigger language plpgsql security definer set search_path = pg_catalog as $f$
 declare a private.agreement_voice_uploads_v1;
 begin
+  -- The account-closure erasure certificate (one locked row, one fixed patch, inside the service-owned SQL transaction) is the only way past this guard.
+  if auth.role() = 'service_role' then
+    if tg_op in ('UPDATE', 'DELETE') and private.closure_redaction_allowed_v5(tg_relid, tg_op, to_jsonb(old), case when tg_op = 'UPDATE' then to_jsonb(new) else null end) then
+      if tg_op = 'DELETE' then return old; end if;
+      return new;
+    end if;
+  end if;
   if tg_op = 'UPDATE' then
     if old.voice_asset_id is distinct from new.voice_asset_id
        or (old.voice_asset_id is not null and (new.id, new.agreement_id, new.agreement_version, new.sender_account_id, new.client_message_id, new.body, new.photo_asset_ids)
@@ -175,6 +183,13 @@ create constraint trigger agreement_voice_link_guard_v1 after insert on public.a
   deferrable initially deferred for each row execute function private.agreement_voice_link_guard_v1();
 create function private.agreement_voice_asset_guard_v1() returns trigger language plpgsql security definer set search_path = pg_catalog as $f$
 begin
+  -- The account-closure erasure certificate (one locked row, one fixed patch, inside the service-owned SQL transaction) is the only way past this guard.
+  if auth.role() = 'service_role' then
+    if tg_op in ('UPDATE', 'DELETE') and private.closure_redaction_allowed_v5(tg_relid, tg_op, to_jsonb(old), case when tg_op = 'UPDATE' then to_jsonb(new) else null end) then
+      if tg_op = 'DELETE' then return old; end if;
+      return new;
+    end if;
+  end if;
   perform pg_advisory_xact_lock(private.media_evidence_key_v5(old.account_id));
   if tg_op = 'DELETE' then raise exception 'MEDIA_ASSET_IMMUTABLE' using errcode = '55000'; end if;
   if (new.id, new.account_id, new.agreement_id, new.agreement_version, new.client_request_id, new.attempt_id, new.input_sha256, new.input_bytes, new.input_type, new.admitted_at, new.created_at)
@@ -216,7 +231,8 @@ begin
   if not found then raise exception 'MEDIA_ASSET_IMMUTABLE' using errcode = '55000'; end if;
   perform private.closure_assert_current_v5(e);
   perform pg_advisory_xact_lock(private.media_evidence_key_v5(a.account_id));
-  if exists(select 1 from private.retention_holds where account_id = a.account_id and active) then
+  -- Only an account-wide hold refuses (it is also a hard closure blocker); a hold scoped to one AI conversation never protects a voice object.
+  if exists(select 1 from private.retention_holds where account_id = a.account_id and active and conversation_id is null) then
     raise exception 'MEDIA_EVIDENCE_POLICY_NOT_READY' using errcode = '55000';
   end if;
   return old;

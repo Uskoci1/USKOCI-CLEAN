@@ -3,7 +3,7 @@ import { only, row, uuid, hash, instant, objectAbsent, parseJSON, type Row } fro
 export type ClosureAction = {
  accountId:string;requestId:string;generation:string;actionId:string;attemptId:string;
  kind:'STORAGE_DELETE'|'RELATIONAL_REDACT'|'AUTH_IDENTITY_ERASE';state:'PENDING'|'DISPATCHED'|'VERIFIED';
- bucket:'profile-media'|'data-export-artifacts'|null;objectPath:string|null;policySha256:string;
+ bucket:'profile-media'|'data-export-artifacts'|'agreement-voice'|null;objectPath:string|null;policySha256:string;
 };
 export type ClosureTransport = {
  signal:AbortSignal;
@@ -19,9 +19,11 @@ export function decodeAction(value:unknown,accountId:string,generation:string):C
   ||a.accountId!==accountId||a.generation!==generation||!uuid(a.accountId)||!uuid(a.requestId)||!uuid(a.generation)||!uuid(a.actionId)||!uuid(a.attemptId)||!hash(a.policySha256)
   ||!['PENDING','DISPATCHED','VERIFIED'].includes(String(a.state)))throw failure();
  if(a.kind==='STORAGE_DELETE'){
-  if(!['profile-media','data-export-artifacts'].includes(String(a.bucket))||typeof a.objectPath!=='string'||a.objectPath.length>1024
+  if(!['profile-media','data-export-artifacts','agreement-voice'].includes(String(a.bucket))||typeof a.objectPath!=='string'||a.objectPath.length>1024
    ||!a.objectPath.startsWith(accountId+'/')||!a.objectPath.split('/').every(part=>/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]*$/.test(part)&&part!=='.'&&part!=='..'))throw failure();
   if(a.bucket==='data-export-artifacts'&&!new RegExp('^'+accountId+'/[a-f0-9-]{36}/[a-f0-9-]{36}\\.json$').test(a.objectPath))throw failure();
+  // A voice object has exactly one shape: <account>/agreement-voice-v1/<asset id>/<validated sha256>.m4a.
+  if(a.bucket==='agreement-voice'&&!new RegExp('^'+accountId+'/agreement-voice-v1/[a-f0-9-]{36}/[a-f0-9]{64}\\.m4a$').test(a.objectPath))throw failure();
  }else if(!['AUTH_IDENTITY_ERASE','RELATIONAL_REDACT'].includes(String(a.kind))||a.bucket!==null||a.objectPath!==null)throw failure();
  return a as ClosureAction;
 }

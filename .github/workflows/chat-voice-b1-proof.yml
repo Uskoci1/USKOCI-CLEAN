@@ -1,6 +1,8 @@
-name: Chat voice B1 disposable feature-chain proof
-# Voice messages B1-a: the exact admitted chain through B3b is replayed on a disposable local Supabase stack, the B1-a candidate is applied to it
-# (UNCERTIFIED by design) and the real upload / send / read paths are driven with real sessions and a real Storage round trip.
+name: Chat voice B1 disposable feature-chain, closure, export and recertification proof
+# Voice messages B1-a and B1-b: the exact admitted chain through the B3c application is replayed on a disposable local Supabase stack, the B1-a candidate is applied to it
+# (UNCERTIFIED by design) and the real upload / send / read paths are driven with real sessions and a real Storage round trip; then the B1-b candidate (closure, export,
+# retention, support) is applied, the certificate is bound in its three places DISPOSABLY, later drift is proved to fail closed, and two full canonical closures run
+# through the actual closure worker source against real Storage.
 # No DEV, provider or device access. Narrow branch/path push registration permits subsequent manual dispatch without changing the default branch.
 # Every outcome destroys the disposable stack.
 on:
@@ -103,15 +105,20 @@ jobs:
           run_stage 19-a1-preparation node supabase/proofs/chat/prepare_notification_a1.mjs
           run_stage 20-b3a node supabase/proofs/chat/private_history_read_proof.mjs
           run_stage 21-b3b node supabase/proofs/chat/message_window_proof.mjs
+          # The packages applied to DEV before B3c, then the exact B3c application file: the closure surface is then the one DEV has.
+          run_stage 22-p0 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/discovery_p0_exact_public_landing.sql
+          run_stage 23-p4 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_p4_exact_message_event_resolver.sql
+          run_stage 24-p5 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/worker_profile_licenses_owned_projection.sql
+          run_stage 25-b3c-application psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_b3c_private_invalidation_dev_application.sql
       - name: Apply the B1-a candidate and run the voice feature proof
         run: |
           set -euo pipefail
           umask 077
           proof_exit=0
-          node supabase/proofs/chat/voice_b1_feature_proof.mjs > "$PRE_V3_ARTIFACT_DIR/22-voice-b1a.log" 2>&1 || proof_exit=$?
-          printf '22-voice-b1a exit=%s\n' "$proof_exit" | tee -a "$VOICE_ARTIFACT_DIR/stages.txt"
+          node supabase/proofs/chat/voice_b1_feature_proof.mjs > "$PRE_V3_ARTIFACT_DIR/26-voice-b1a.log" 2>&1 || proof_exit=$?
+          printf '26-voice-b1a exit=%s\n' "$proof_exit" | tee -a "$VOICE_ARTIFACT_DIR/stages.txt"
           # The proof prints only check names and failure messages (no keys); show it so one run reports every broken assertion.
-          cat "$PRE_V3_ARTIFACT_DIR/22-voice-b1a.log"
+          cat "$PRE_V3_ARTIFACT_DIR/26-voice-b1a.log"
           cp "$PRE_V3_ARTIFACT_DIR/chat-voice-b1a-report.json" "$VOICE_ARTIFACT_DIR/chat-voice-b1a-report.json" || true
           exit "$proof_exit"
       - name: Admit only the bounded feature-chain result
@@ -129,6 +136,44 @@ jobs:
             assert.ok(report.checks.length>=15); assert.ok(report.checks.every(check=>check.result==='PASS'));
             console.log('PASS CHAT_VOICE_B1A_FEATURE_CHAIN_ONLY');
           } catch { console.error('FAIL CHAT_VOICE_B1A_RESULT_ADMISSION'); process.exit(1); }
+          NODE
+      - name: Apply the B1-b candidate, bind the certificate disposably and prove closure, export and support
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          umask 077
+          proof_exit=0
+          timeout --signal=TERM --kill-after=10s 1500s node supabase/proofs/chat/voice_b1b_closure_proof.mjs > "$PRE_V3_ARTIFACT_DIR/27-voice-b1b.log" 2>&1 || proof_exit=$?
+          printf '27-voice-b1b exit=%s\n' "$proof_exit" | tee -a "$VOICE_ARTIFACT_DIR/stages.txt"
+          cat "$PRE_V3_ARTIFACT_DIR/27-voice-b1b.log"
+          cp "$PRE_V3_ARTIFACT_DIR/chat-voice-b1b-report.json" "$VOICE_ARTIFACT_DIR/chat-voice-b1b-report.json" || true
+          exit "$proof_exit"
+      - name: Admit only the bounded B1-b result
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          try {
+            const report=JSON.parse(readFileSync(process.env.VOICE_ARTIFACT_DIR+'/chat-voice-b1b-report.json','utf8'));
+            assert.equal(report.result,'PASS'); assert.equal(report.sourceSha,process.env.GITHUB_SHA);
+            for (const key of ['actualAuth','actualDatabase','disposableCertificateMoved','certifiedErasureProven','finalReadiness','finalCatalogUnchangedSinceRecertification']) assert.equal(report[key],true);
+            for (const key of ['liveAccess','providerCalled','deviceProven','devAccess','devCertificateMoved']) assert.equal(report[key],false);
+            assert.equal(report.providerCalls,0); assert.ok(report.storageCalls>10); assert.deepEqual(report.failures,[]);
+            assert.equal(report.checks.length,20); assert.ok(report.checks.every(check=>check.result==='PASS'));
+            assert.equal(report.refusals.length,10); assert.ok(report.refusals.every(item=>item.refused&&item.completeCatalogUnchanged));
+            assert.equal(report.laterDriftChecks.length,9); assert.ok(report.laterDriftChecks.every(item=>item.readinessFalse&&item.bindingNull&&item.rollbackUnchanged));
+            assert.equal(report.recertification.placesChanged,3); assert.equal(report.recertification.ready,true);
+            assert.deepEqual(report.closures.map(item=>item.role),['REQUESTER','WORKER']);
+            for (const item of report.closures) {
+              assert.equal(item.result,'CLOSED'); assert.equal(item.voiceObjectsDeleted,3); assert.equal(item.voiceUploadRowsDeleted,4); assert.equal(item.ownVoiceMessagesErased,2);
+              for (const key of ['peerVoiceObjectRowAndMessagePreserved','peerTextPreserved','authIdentitySoftErased','unrelatedAgreementUnchanged']) assert.equal(item[key],true);
+              assert.equal(item.sessionsRemaining,0);
+            }
+            assert.equal(report.catalogRecertifiedSha256,report.catalogFinalSha256);
+            console.log('PASS CHAT_VOICE_B1B_CLOSURE_EXPORT_SUPPORT_AND_RECERTIFICATION_ONLY');
+          } catch { console.error('FAIL CHAT_VOICE_B1B_RESULT_ADMISSION'); process.exit(1); }
           NODE
       - name: Always discard the disposable database
         if: always()
@@ -153,5 +198,6 @@ jobs:
             /tmp/chat-voice-artifacts/source-manifest-sha256.txt
             /tmp/chat-voice-artifacts/stages.txt
             /tmp/chat-voice-artifacts/chat-voice-b1a-report.json
+            /tmp/chat-voice-artifacts/chat-voice-b1b-report.json
           if-no-files-found: error
           retention-days: 30
