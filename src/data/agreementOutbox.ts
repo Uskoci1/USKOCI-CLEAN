@@ -1,4 +1,4 @@
-import { AgreementMessageError, validMessagePhotos, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort } from '../contracts/agreementMessages';
+import { AgreementMessageError, validMessagePhotos, validMessageVoice, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort } from '../contracts/agreementMessages';
 
 export type OutboxError = AgreementMessageErrorCode | 'STORAGE_UNAVAILABLE' | 'STORAGE_INVALID' | 'CAPACITY' | 'NOT_READY';
 export type OutboxEntry = Readonly<{
@@ -17,7 +17,8 @@ export type OutboxSnapshot = Readonly<{
   error: OutboxError | null;
 }>;
 export type ReadOwnMessage = Readonly<{ senderAccountId: string; clientMessageId: string; messageId: string; body: string;
-  photos?: Readonly<{ agreementVersion: number; assetIds: readonly string[] }> }>;
+  photos?: Readonly<{ agreementVersion: number; assetIds: readonly string[] }>;
+  voice?: Readonly<{ agreementVersion: number; assetId: string }> }>;
 export type AgreementOutboxOptions = {
   accountId: string;
   agreementId: string;
@@ -27,6 +28,8 @@ export type AgreementOutboxOptions = {
   isCurrent(): boolean;
   canSendNew(): boolean;
   maxPending?: number;
+  /** `voice` keeps the voice-message intents in their OWN journal keys, so a build that only knows the text journal never reads a voice entry. */
+  namespace?: 'text' | 'voice';
 };
 type Stored = { version: 1; accountId: string; agreementId: string; revision: number; entries: OutboxEntry[] };
 type StoredDraft = { version: 1; accountId: string; agreementId: string; revision: number; text: string; capturedClientMessageId?: string };
@@ -35,15 +38,19 @@ const MAX_DRAFT_LENGTH = 32_000;
 class Fault extends Error { constructor(readonly code: OutboxError) { super(code); } }
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) && v.length === 36;
 const clientKey = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{7,199}$/.test(v) && !/\s/.test(v);
-const bodyValid = (body: unknown, photos?: AgreementMessageCommand['photos']): body is string => typeof body === 'string' && (body.length > 0 || !!photos) && !body.includes('\0') &&
+const bodyValid = (body: unknown, photos?: AgreementMessageCommand['photos'], voice?: AgreementMessageCommand['voice']): body is string => typeof body === 'string' && (body.length > 0 || !!photos || !!voice) && !body.includes('\0') &&
   Array.from(body).length <= 2000 && !Array.from(body).some(point => { const code = point.codePointAt(0)!; return code >= 0xd800 && code <= 0xdfff; });
 const errorCodes = new Set<OutboxError>(['AUTH_CONTEXT_CHANGED', 'INVALID_MESSAGE', 'READ_ONLY', 'NOT_AVAILABLE', 'CONFLICT', 'UNAVAILABLE', 'INVALID_RESPONSE', 'STORAGE_UNAVAILABLE', 'STORAGE_INVALID', 'CAPACITY', 'NOT_READY']);
 const immutable = (entry: OutboxEntry): OutboxEntry => Object.freeze({ ...entry, command: Object.freeze({ ...entry.command,
   ...(entry.command.photos ? { photos: Object.freeze({ agreementVersion: entry.command.photos.agreementVersion,
-    assetIds: Object.freeze([...entry.command.photos.assetIds]) }) } : {}) }) });
+    assetIds: Object.freeze([...entry.command.photos.assetIds]) }) } : {}),
+  ...(entry.command.voice ? { voice: Object.freeze({ agreementVersion: entry.command.voice.agreementVersion, assetId: entry.command.voice.assetId }) } : {}) }) });
 export const sameMessagePhotos = (a: AgreementMessageCommand['photos'], b: AgreementMessageCommand['photos']) => !a && !b || !!a && !!b
   && a.agreementVersion === b.agreementVersion && a.assetIds.length === b.assetIds.length && a.assetIds.every((id, i) => id === b.assetIds[i]);
-const sameCommand = (a: AgreementMessageCommand, b: AgreementMessageCommand) => a.accountId === b.accountId && a.agreementId === b.agreementId && a.clientMessageId === b.clientMessageId && a.body === b.body && sameMessagePhotos(a.photos, b.photos);
+export const sameMessageVoice = (a: AgreementMessageCommand['voice'], b: AgreementMessageCommand['voice']) => !a && !b || !!a && !!b
+  && a.agreementVersion === b.agreementVersion && a.assetId === b.assetId;
+const sameCommand = (a: AgreementMessageCommand, b: AgreementMessageCommand) => a.accountId === b.accountId && a.agreementId === b.agreementId && a.clientMessageId === b.clientMessageId && a.body === b.body
+  && sameMessagePhotos(a.photos, b.photos) && sameMessageVoice(a.voice, b.voice);
 
 // One read/merge/write queue per durable account+Agreement key, including across
 // remounted instances with different storage wrapper objects. No network awaits
@@ -67,7 +74,8 @@ export async function forgetAgreementOutboxes(accountId: string, storage: {
   getAllKeys(): Promise<readonly string[]>; multiRemove(keys: readonly string[]): Promise<void>;
 }): Promise<number> {
   if (!uuid(accountId)) return 0;
-  const prefixes = [`uskoci:agreement-outbox:v1:${accountId}:`, `uskoci:agreement-draft:v1:${accountId}:`];
+  const prefixes = [`uskoci:agreement-outbox:v1:${accountId}:`, `uskoci:agreement-draft:v1:${accountId}:`,
+    `uskoci:agreement-voice-outbox:v1:${accountId}:`, `uskoci:agreement-voice-draft:v1:${accountId}:`];
   const scoped = (key: string) => prefixes.some(prefix => key.startsWith(prefix));
   // Logout has retired the account. Let already-issued local writes finish before
   // removing keys, including a draft key that was absent when logout began.
@@ -82,8 +90,9 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   if (!uuid(options.accountId) || !uuid(options.agreementId)) throw new Fault('AUTH_CONTEXT_CHANGED');
   const limit = options.maxPending ?? 50;
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new Fault('CAPACITY');
-  const storageKey = `uskoci:agreement-outbox:v1:${options.accountId}:${options.agreementId}`;
-  const draftKey = `uskoci:agreement-draft:v1:${options.accountId}:${options.agreementId}`;
+  const voiceJournal = options.namespace === 'voice';
+  const storageKey = `uskoci:agreement-${voiceJournal ? 'voice-outbox' : 'outbox'}:v1:${options.accountId}:${options.agreementId}`;
+  const draftKey = `uskoci:agreement-${voiceJournal ? 'voice-draft' : 'draft'}:v1:${options.accountId}:${options.agreementId}`;
   let snapshot: OutboxSnapshot = Object.freeze({ phase: 'idle', draft: '', capturing: false, entries: [], error: null });
   let active = false, generation = 0, draftRevision = 0, appliedRevision = -1;
   let starting: Promise<void> | null = null;
@@ -177,8 +186,11 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       for (const entry of data.entries) {
         const command = entry.command;
         if (!command || command.accountId !== options.accountId || command.agreementId !== options.agreementId ||
-          !clientKey(command.clientMessageId) || keys.has(command.clientMessageId) || !bodyValid(command.body, command.photos) || command.body !== command.body.trim() ||
+          !clientKey(command.clientMessageId) || keys.has(command.clientMessageId) || !bodyValid(command.body, command.photos, command.voice) || command.body !== command.body.trim() ||
           (command.photos !== undefined && !validMessagePhotos(command.photos)) ||
+          // The voice journal holds only voice intents (empty body, no photos) and the text journal never holds one.
+          (command.voice !== undefined && (!voiceJournal || !validMessageVoice(command.voice) || command.body !== '' || command.photos !== undefined)) ||
+          (voiceJournal && command.voice === undefined) ||
           !['sending', 'unknown', 'failed', 'confirmed'].includes(entry.state) || entry.persisted !== true ||
           !Number.isSafeInteger(entry.attempt) || entry.attempt < 1 ||
           (entry.error !== undefined && !errorCodes.has(entry.error)) ||
@@ -374,6 +386,37 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
         } finally { if (inFlight.get(id) === request) inFlight.delete(id); }
       })();
     },
+    /** A voice message: no text draft is involved. The intent is persisted first, then sent with the same key on every retry. */
+    sendVoice(voice: NonNullable<AgreementMessageCommand['voice']>): Promise<void> {
+      if (!current()) return Promise.resolve();
+      if (!voiceJournal || !validMessageVoice(voice)) { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
+      if (snapshot.capturing) return Promise.resolve();
+      if (snapshot.phase !== 'ready') { publish({ error: 'NOT_READY' }); return Promise.resolve(); }
+      if (!maySendNew()) { publish({ error: 'READ_ONLY' }); return Promise.resolve(); }
+      if (snapshot.entries.filter(entry => entry.state !== 'confirmed').length >= limit) { publish({ error: 'CAPACITY' }); return Promise.resolve(); }
+      const admitted = generation;
+      let id: string;
+      try { id = options.newId(); } catch { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
+      if (!clientKey(id)) { publish({ error: 'INVALID_MESSAGE' }); return Promise.resolve(); }
+      if (snapshot.entries.some(entry => entry.command.clientMessageId === id)) { publish({ error: 'CONFLICT' }); return Promise.resolve(); }
+      const command = Object.freeze({ accountId: options.accountId, agreementId: options.agreementId, clientMessageId: id, body: '',
+        voice: Object.freeze({ agreementVersion: voice.agreementVersion, assetId: voice.assetId }) });
+      const request = Symbol(); inFlight.set(id, request); publish({ capturing: true, error: null });
+      return (async () => {
+        try {
+          const record = await update(record => add(record, command), true, admitted);
+          if (admitted === generation) publish({ capturing: false });
+          await dispatch(command, record.entries.find(entry => entry.command.clientMessageId === id)!.attempt, true, admitted);
+        } catch (error) {
+          // A journal that cannot be written keeps the intent as a retryable local row instead of losing it.
+          if (current() && admitted === generation && failureCode(error) === 'STORAGE_UNAVAILABLE') {
+            const entry = immutable({ command, state: 'failed', persisted: false, error: 'STORAGE_UNAVAILABLE', attempt: 1 });
+            unsaved.set(id, entry); publish({ entries: Object.freeze([...snapshot.entries, entry]) });
+          }
+          if (admitted === generation) publish({ error: failureCode(error), capturing: false });
+        } finally { if (inFlight.get(id) === request) inFlight.delete(id); }
+      })();
+    },
     async retry(clientMessageId: string): Promise<void> {
       if (!current() || snapshot.phase !== 'ready' || inFlight.has(clientMessageId)) return;
       const entry = snapshot.entries.find(item => item.command.clientMessageId === clientMessageId);
@@ -398,9 +441,10 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       if (!current() || snapshot.phase !== 'ready' || readOwn.length === 0) return;
       const admitted = generation;
       // Capture external reads before awaiting storage or accepting another account.
-      const reads = readOwn.filter(row => row.senderAccountId === options.accountId && clientKey(row.clientMessageId) && uuid(row.messageId) && bodyValid(row.body, row.photos)
-        && (row.photos === undefined || validMessagePhotos(row.photos))).map(row => ({ ...row,
-          ...(row.photos ? { photos: { agreementVersion: row.photos.agreementVersion, assetIds: [...row.photos.assetIds] } } : {}) }));
+      const reads = readOwn.filter(row => row.senderAccountId === options.accountId && clientKey(row.clientMessageId) && uuid(row.messageId) && bodyValid(row.body, row.photos, row.voice)
+        && (row.photos === undefined || validMessagePhotos(row.photos)) && (row.voice === undefined || validMessageVoice(row.voice))).map(row => ({ ...row,
+          ...(row.photos ? { photos: { agreementVersion: row.photos.agreementVersion, assetIds: [...row.photos.assetIds] } } : {}),
+          ...(row.voice ? { voice: { agreementVersion: row.voice.agreementVersion, assetId: row.voice.assetId } } : {}) }));
       if (reads.length === 0) return;
       try {
         let matched = false;
@@ -409,7 +453,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
             const matches = reads.filter(row => row.clientMessageId === entry.command.clientMessageId);
             if (matches.length === 0) return entry;
             matched = true;
-            if (matches.some(row => row.body !== entry.command.body || !sameMessagePhotos(row.photos, entry.command.photos) || row.messageId !== matches[0].messageId ||
+            if (matches.some(row => row.body !== entry.command.body || !sameMessagePhotos(row.photos, entry.command.photos) || !sameMessageVoice(row.voice, entry.command.voice) || row.messageId !== matches[0].messageId ||
               (entry.messageId !== undefined && row.messageId !== entry.messageId))) throw new Fault('CONFLICT');
             return immutable({ command: entry.command, state: 'confirmed', messageId: matches[0].messageId, persisted: true, attempt: entry.attempt });
           });

@@ -4,7 +4,17 @@ export type AgreementMessageCommand = Readonly<{
   clientMessageId: string;
   body: string;
   photos?: Readonly<{ agreementVersion: number; assetIds: readonly string[] }>;
+  /** A voice message: ONE ready voice asset, an empty body and no photos. The asset is the one the private upload settled READY. */
+  voice?: Readonly<{ agreementVersion: number; assetId: string }>;
 }>;
+
+const MESSAGE_ASSET_ID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+export function validMessageVoice(value: unknown): value is NonNullable<AgreementMessageCommand['voice']> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return Object.keys(v).length === 2 && Number.isInteger(v.agreementVersion) && (v.agreementVersion as number) >= 1 && (v.agreementVersion as number) <= 2147483647
+    && typeof v.assetId === 'string' && v.assetId.length === 36 && MESSAGE_ASSET_ID.test(v.assetId);
+}
 
 export function validMessagePhotos(value: unknown): value is NonNullable<AgreementMessageCommand['photos']> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
