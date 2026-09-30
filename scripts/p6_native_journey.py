@@ -342,10 +342,11 @@ def cards(root):
     return sorted(out, key=lambda c: c['bounds'][1])
 
 
-# ------------------------------------------------------------------------------------------------ map pills (visual)
-# MapLibre renders a ViewAnnotation into a bitmap on the GL surface, so a pill has no accessibility node and its label never
-# reaches uiautomator. Every pill carries the brand mark, and the mark's orange (#FF7908) is the only saturated orange the base
-# map ever draws: the pill is found on the screenshot, and tapped where its mark is.
+# ------------------------------------------------------------------------------------------------ map markers (visual)
+# The server buckets are drawn on the map's GL surface (a ring or a disc in the brand green #076E4E, with a count or the USKOCI mark), so
+# a marker has no accessibility node and its count never reaches uiautomator. The base map draws only pale greens, so the marker is found
+# on the screenshot by the brand green and tapped at the middle of what was found. (Bitmap view annotations were tried first and never
+# drew on the emulator; see DiscoveryV1ServerMarkerLayer.)
 def raw_screen():
     out = subprocess.run(['adb', 'exec-out', 'screencap'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=90).stdout
     w, h, _fmt = struct.unpack('<III', out[:12])
@@ -371,7 +372,7 @@ def map_band(root):
 
 
 def pills(root=None, step_px=3, cell=24, gap=2):
-    """Map pills as [{x, y, w, h, samples, merged}] (x, y on the brand mark), top to bottom."""
+    """Map markers as [{x, y, w, h, samples, merged}] (x, y at the middle of the ring or disc), top to bottom."""
     root = root if root is not None else dump()[0]
     top, bottom = map_band(root)
     w, h, px = raw_screen()
@@ -380,7 +381,7 @@ def pills(root=None, step_px=3, cell=24, gap=2):
         row = y * w * 4
         for x in range(0, w, step_px):
             i = row + x * 4
-            if px[i] >= 235 and 95 <= px[i + 1] <= 145 and px[i + 2] <= 50:
+            if abs(px[i] - 7) <= 30 and abs(px[i + 1] - 110) <= 30 and abs(px[i + 2] - 78) <= 30:
                 key = (x // cell, y // cell)
                 cells[key] = cells.get(key, 0) + 1
     seen, found = set(), []
@@ -404,7 +405,7 @@ def pills(root=None, step_px=3, cell=24, gap=2):
         xs, ys = [m[0] for m in members], [m[1] for m in members]
         left, right, upper, lower = min(xs) * cell, max(xs) * cell + cell, min(ys) * cell, max(ys) * cell + cell
         found.append({'x': (left + right) // 2, 'y': (upper + lower) // 2, 'w': right - left, 'h': lower - upper, 'samples': samples,
-                      'merged': (right - left) > 130 or (lower - upper) > 150})
+                      'merged': (right - left) > 200 or (lower - upper) > 220})
     found.sort(key=lambda p: (p['y'], p['x']))
     return found
 
@@ -444,6 +445,18 @@ def sheet_state(root):
     words = bool(nodes(root, rid_='list-count-words'))
     button = bool(nodes(root, rid_='list-count'))
     return {'full': words and not button, 'button': button, 'mapPill': bool(nodes(root, desc='Mapa'))}
+
+
+def sheet_top(root):
+    """Top edge of the list sheet on screen (its background is in the tree), or None while it is not there."""
+    found = nodes(root, rid_='discovery-sheet-background')
+    return parse_bounds(found[0].attrib.get('bounds'))[1] if found else None
+
+
+def is_full(root):
+    """The header says "full" AND the sheet really stands in the upper part of the screen (React alone can be ahead of the native sheet)."""
+    top = sheet_top(root)
+    return sheet_state(root)['full'] and top is not None and top < screen_size()[1] * 0.4
 
 
 def peek_task_title(root):
@@ -636,14 +649,14 @@ def ensure_list():
 
 def ensure_full():
     root = ensure_list()
-    if sheet_state(root)['full']:
+    if is_full(root):
         return root
     root, parent = dump()
     target = nodes(root, rid_='list-count')
     if not target:
         raise RuntimeError('list-count control not found')
     tap_visible(target[0], parent)
-    _, root, _p = poll(lambda r, p: sheet_state(r)['full'], 20, what='list at full height')
+    _, root, _p = poll(lambda r, p: is_full(r), 25, what='list at full height (the sheet standing at the top of the screen)')
     return root
 
 
@@ -846,7 +859,7 @@ def s_detail_and_back():
     if same is not None:
         drift = abs(same['bounds'][1] - REPORT['opened']['y1'])
         check('BACK_RESTORES_SCROLL_POSITION', drift <= 60, before_y=REPORT['opened']['y1'], after_y=same['bounds'][1], drift=drift)
-    check('BACK_KEEPS_FULL_LIST', sheet_state(root)['full'], sheet=sheet_state(root))
+    check('BACK_KEEPS_FULL_LIST', is_full(root), sheet=sheet_state(root), top=sheet_top(root))
     check('BACK_KEEPS_EXACT_COUNT', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
     REPORT['backRequests'] = [brief(r) for r in since(m)[:6]]
 
@@ -865,7 +878,7 @@ def s_repeat_cycles(n=10):
         tap_visible(pick['node'], parent)
         time.sleep(2.5)
         root, _p = back_to_list()
-        check(f'CYCLE_{i:02d}_LIST_RESTORED', any(c['title'] == pick['title'] for c in cards(root)) and sheet_state(root)['full'], title=pick['title'])
+        check(f'CYCLE_{i:02d}_LIST_RESTORED', any(c['title'] == pick['title'] for c in cards(root)) and is_full(root), title=pick['title'])
         if i in (1, n // 2, n):
             REPORT['mem'].append({'tag': f'cycle_{i}', 'kb': mem_kb(), 'pid': app_pid()})
     snapshot('P6_07_after_cycles')
