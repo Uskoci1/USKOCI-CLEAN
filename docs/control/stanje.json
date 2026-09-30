@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T12:01:40Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "5257675c",
-  "head_poruka": "docs(p6+c0): P6 rollout v3 APPLIED on canonical DEV (ledger 212, readback = proof expectation, receipt) + the read-only cleanup inventory (C0 proposal, not an authorisation)",
+  "osvezeno": "2026-09-30T14:58:51Z",
+  "grana": "HEAD",
+  "head": "0b2d296e",
+  "head_poruka": "chore(control): P6 outcome in the one status registry (B04/B05, carried rows, blockers B22 RNR-01 and B23 P6-FIZ), the LIVE master plan regenerated and checked, the P6 closure entry and the standing QA and model rules at the top of AGENTS.md; client final check marker",
   "server": {
    "snimljeno": "2026-09-30T12:01:15Z",
    "migracije": 212,
@@ -399,7 +399,8 @@
     "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
     "status": "KOD I CILJANE PROVERE PROŠLI / NOVI HOME NATIVE ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
-    "device": "Novi Home retry nije u instaliranom f526a736; native još čeka."
+    "device": "Novi Home retry nije u instaliranom f526a736; native još čeka.",
+    "round73": "P6 obuhvat: zbirni rpc_home_attention postoji i klijent ga koristi; provere ocena (RC-03) su ublažene (4 paralelne, rok 4 s), ali broj i dalje zavisi od stranica Dogovora. Granica ugovora: zbirna projekcija ocena je P2 paket."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1133,7 +1134,8 @@
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-    "device": "Nova izmena nije u APK36339245682/f526a736; native čeka sledeći objedinjeni paket."
+    "device": "Nova izmena nije u APK36339245682/f526a736; native čeka sledeći objedinjeni paket.",
+    "round73": "P6 obuhvat: klijent i dalje čita celu ličnu listu (rpc_list_my_tasks); serverski straničeni čitač rpc_list_my_needs_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim je ograničen brojem zadataka jednog naloga; povezivanje straničenja je red EX-04."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1305,7 +1307,8 @@
     "test": "Round15: četiri različite ciljane grupe / 141 test PASS; integracioni TypeScript PASS.",
     "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
+    "round73": "P6 obuhvat: kandidati po zadatku (rpc_list_need_candidates) ostaju kakvi su; obim po jednom zadatku je ograničen brojem prijava. Nije novo P6 programiranje."
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -2173,7 +2176,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "29 test fajl(ova)"
+    "test": "30 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "FULL-return source fix i postojeći map/list UX ostaju. Round41 dodaje stroge PAGE/EXACT/MAP/PLACES wire decodere i CI guard, ali bounded Discovery još nije serverski kompletan niti produkciono povezan; zato scale/performance nije zatvoren.",
@@ -2197,13 +2200,13 @@
     "flow": "Mapa i lista prilika",
     "ux": "Round33 preserves logical FULL, offset, viewport and selection across a fresh native mount. Round39 adds optional saved work-area initial camera; explicit user intent/publication/remembered viewport wins. These are source/CI facts, not current native acceptance. Personal locality and GPS remain separate.",
     "ui": "Beli pin i narandžasti izbor ostaju; male zelene oznake razlikuju moj zadatak i postojeću prijavu. Grupa ne dobija pojedinačni status. TaskCard/Peek nepromenjeni.",
-    "backend": "Round56 freezes exact deployable P6 bytes and proves body/ACL/certificate equivalence on disposable PKG045b target. Current DEV ledger210 has no P6 and no PKG045b; no live apply.",
+    "backend": "P6 primenjen na kanonski DEV 2026-09-30: PKG045b P0 (ledger 211, 10:28:45Z) i rollout v3 (ledger 212, 11:06:18Z); tekst kandidata bajt po bajt, readback jednak očekivanju dokaza, sertifikat 86ba3751… i Need ACL nepromenjeni rolloutom, revert kandidati postoje; anonimni negativni smoke na DEV-u 5/5 odbijeno (HTTP 401 / 42501). Receipt-i: supabase/operations/dev-alpha/ledger/20260930_pkg045b_p0_application.receipt.json i 20260930_p6_rollout_v3_application.receipt.json.",
     "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen. Round39: postojeći viewport/objava/izbor i nova radnja imaju prednost; stari nalog/poseta/timeout ne primenjuju zakasnelu kameru.",
-    "performance": "Round49: three blocks x30 x8 cases on one runner, same RLS/identity/payload guards; 720 timings. RPC1000ms all blocks: True. Other distributions/concurrency/native remain OPEN.",
-    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS. Round53 fc385a67 / run36491627955: focused 2/9, existing 7/210, full 353/7347 PASS. Round54 340c2b0e / run36493289095: focused 2/7, existing 10/311, full 354/7351 PASS. Round55 af0d14bc / run36521748674: focused 5/63, existing 9/258, full 356/7370 PASS. Round56 3b2e828d / run36539721158: 11 real local Auth/PostgREST/current-decoder groups; exact seven-function rollout equivalence, idempotent refusal, certificate/ACL no-drift PASS. Round55 685810fc / run36552906782: focused 5/65, existing 9/258, full 357/7374 PASS. Round58 176dddda / run36560382420: guarded proof route TypeScript/focused/full Jest PASS; ARM64 APK 3e933f37096a built, not device-tested.",
-    "device_proof": "Round39 nije instaliran ili proveravan na uređaju; istorijski dokazi ostaju vezani za svoje verzije.",
-    "status": "P6 GUARDED NATIVE BUILD PASS / DEVICE+SERVER CUTOVER+FULL RETURN+MEMORY OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD_CHECKS.json",
+    "performance": "SQL (jedan backend, toplo, 30 000 sintetičkih Need-ova): screening ZELEN pri jit=on (Round67; Round71 A/B: primenjeni v3 najgori p95 983/984/976 ms, bez odstupanja). Hosted-like jit=off NIJE ispod 1000 ms u MAP_DENSE 1011 ms i MAP_SPARSE 1032 ms (+1,1 %/+3,2 %): granica L4, „scale PASS” se ne tvrdi. Bez testa konkurentnosti (L5). Native, CI emulator (ne telefon): journey #12 12/12 koraka i 92/92 provere PASS; evidence gate pao zbog jednog ANR-a (Reanimated poplava neuspelih native izmena, počinje pri prijavi pre P6 koda, RNR-01, granica L2). Lokalni AVD protiv DEV-a: 8 od 8 zadataka, 20/20 povrataka (Back → vraćen ekran p50 0,745 s / p95 1,054 s), memorija 320→453→426 MB, bez ANR. Telefon HONOR (stari čitač, ROUND58 build): 20/20 povrataka, ANR 0, najduži frejm 919 ms; P6 kandidat NIJE na telefonu. Ciljevi 100/200/350 ms i <5 % sporih frejmova NISU ispunjeni na emulatoru (229/296 ms, 692/1040 ms, 745/1054 ms, 31,6 %) i NISU mereni na telefonu: granica L1, red P6-FIZ; nije ublažen cilj.",
+    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS. Round53 fc385a67 / run36491627955: focused 2/9, existing 7/210, full 353/7347 PASS. Round54 340c2b0e / run36493289095: focused 2/7, existing 10/311, full 354/7351 PASS. Round55 af0d14bc / run36521748674: focused 5/63, existing 9/258, full 356/7370 PASS. Round56 3b2e828d / run36539721158: 11 real local Auth/PostgREST/current-decoder groups; exact seven-function rollout equivalence, idempotent refusal, certificate/ACL no-drift PASS. Round55 685810fc / run36552906782: focused 5/65, existing 9/258, full 357/7374 PASS. Round58 176dddda / run36560382420: guarded proof route TypeScript/focused/full Jest PASS; ARM64 APK 3e933f37096a built, not device-tested. Round70–73: CI client final check (tsc + ceo Jest) PASS na 650d340d; reproduktori koji padaju pre popravke za nadzornik povratka, rok čitanja 15 s, zadržanu sliku, najnoviji izbor, trag i kontrolu kolona; zatvaranje P6: obnova isteklog sidra (7 testova, 6 padaju pre), zadržavanje overlay-a pri ponovnom učitavanju (6 testova, 5 padaju pre), pin spušta sheet (4 testa, 2 padaju pre); 18 fokusiranih P6 grupa / 186 testova i 158 testova prezentacije prolaze; CI provera završnog izvora u P6_CLOSURE_RECEIPT.md.",
+    "device_proof": "Emulator: CI x86_64 API-35 (APK 36702278038, journey #12) i lokalni AVD protiv DEV-a (APK f16ef079…a748). Telefon HONOR VKP-NX9 (Android 16, arm64): SAMO stari čitač (ROUND58 build 176dddda, SHA 3e933f37…): osnovna linija 20 povrataka i smoke starog klijenta protiv DEV-a 6/6 PASS (docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md). P6 kandidat NIJE instaliran na telefon: ARM64 build je odbio auto-mode klasifikator, čeka vlasnika. iOS NIJE proveren.",
+    "status": "P6 ZAVRŠEN SA GRANICAMA (docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md L1–L10); TELEFON (KANDIDAT), iOS, RNR-01 (Reanimated ANR) I LIČNE LISTE OTVORENI",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_34_P0_PUBLICATION_ROUTE_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_71_P6_30K_V3_CONFIRMATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2426,6 +2429,41 @@
      "serverApplied": false,
      "productionWired": false,
      "p6Finished": false
+    },
+    "round73": {
+     "date": "2026-09-30",
+     "record": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md",
+     "outcome": "P6_ZAVRSEN_SA_GRANICAMA",
+     "tag": "p6-closed-20260930",
+     "cutover": "EXPO_PUBLIC_P6_DISCOVERY_READER=1 u .github/workflows/build-android-dev-apk.yml; kill switch = ukloniti liniju i rekompajlirati; eas.json nepromenjen",
+     "fixedInClosure": [
+      "obnova isteklog sidra (P6_ANCHOR_EXPIRED)",
+      "overlay zadržava poznato pri ponovnom učitavanju",
+      "pin spušta sheet kao stari pin"
+     ],
+     "limits": {
+      "L1": "Ciljevi 100/200/350 ms, <5 % sporih frejmova, Home cold/warm, >=30 ponavljanja na referentnom telefonu: NE MERE SE za kandidata (nema ARM64 builda; emulator ne sertifikuje telefon). Red P6-FIZ.",
+      "L2": "Bez ANR-a u emulator dokazu: NIJE ispunjeno na CI emulatoru (1 ANR u journey #12, zastoji do 10,1 s); uzrok RNR-01 (Reanimated 4.5.1, počinje pri prijavi); ispunjeno na lokalnom AVD-u i na telefonu (stari čitač).",
+      "L3": "Tačan native dokaz završnog builda: poslednji native journey pokriva 650d340d; tri kasnija klijentska commit-a (obnova sidra, overlay, pin) pokrivena Jest-om i CI-jem.",
+      "L4": "P6-01 scale gate: prolazi pri jit=on, ne pri hosted-like jit=off (MAP_DENSE 1011 ms, MAP_SPARSE 1032 ms).",
+      "L5": "P6-04 ograničen dogovoreni konkurentni test: nije pokrenut (čeka parametre vlasnika ili odricanje).",
+      "L6": "P6-03 REAL/TEST granica end-to-end sa mešovitim pravim redovima i kriva cene helpera: dokaz pripremljen, nije pokrenut (QAD-04).",
+      "L7": "Lične liste A09/A11/B10 bez straničenja u klijentu: eksplicitan sledeći red EX-04, van P6 obima po odluci vlasnika (ii).",
+      "L8": "iOS nije proveren.",
+      "L9": "Stari čitač ostaje kao rezerva i za publication handoff; eas.json profili se ne menjaju (nema produkcionog backenda); ništa nije uklonjeno.",
+      "L10": "RC-03 (ocene) ublaženo, ne zbirno: P2 paket."
+     },
+     "qaDebt": [
+      "QAD-01 pojačanja drajvera (grana qa/p6-native-driver-hardening-20260930, 6 commit-a, nije spojena jer je putanja drajvera CI okidač)",
+      "QAD-02 swipe za straničenje van zone sistemskog Back gesta",
+      "QAD-03 drajver koristi qa_device.py; workflow_dispatch za FOCUSED bez commit-a pokazivača",
+      "QAD-04 dokaz granice sveta i kriva cene helpera (pripremljen, ručni start)",
+      "QAD-05 dvouređajni E2E (HONOR=A, AVD=B), faze E2E-0..E2E-4"
+     ],
+     "blockersCarried": {
+      "RNR-01": "Reanimated dead-tag poplava (ANR/zastoji): odluka vlasnika o zavisnosti",
+      "P6-FIZ": "merenje kandidata na telefonu: ARM64 build čeka vlasnika"
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -2492,7 +2530,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "22 test fajl(ova)"
+    "test": "23 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filter UX/source postoji; Round41 sada ima strogi bounded PAGE/PLACES contract, ali server facets/counts i paging owner još nisu povezani. Aktuelni filteri i dalje zavise od sadašnjeg kompletnog collection čitanja.",
@@ -2516,13 +2554,13 @@
     "flow": "Pretraga i filteri",
     "ux": "Odobreno: jedna otvorena sekcija, ostale pokazuju stvarni izbor; jedna zajednička primena i zatvaranje bez primene.",
     "ui": "Bele odvojene sekcije i blur zadržani; poslednji red kalendara sada ostaje u prirodnoj visini panela.",
-    "backend": "Round56 freezes exact deployable P6 bytes and proves body/ACL/certificate equivalence on disposable PKG045b target. Current DEV ledger210 has no P6 and no PKG045b; no live apply.",
+    "backend": "P6 primenjen na kanonski DEV 2026-09-30: PKG045b P0 (ledger 211, 10:28:45Z) i rollout v3 (ledger 212, 11:06:18Z); tekst kandidata bajt po bajt, readback jednak očekivanju dokaza, sertifikat 86ba3751… i Need ACL nepromenjeni rolloutom, revert kandidati postoje; anonimni negativni smoke na DEV-u 5/5 odbijeno (HTTP 401 / 42501). Receipt-i: supabase/operations/dev-alpha/ledger/20260930_pkg045b_p0_application.receipt.json i 20260930_p6_rollout_v3_application.receipt.json.",
     "state_sync": "Round33: FULL native mount se više ne zadržava preko odlaska sa rute; logički sheet/listOffset/viewport/filteri/selectedId ostaju, a svež native mount mora sopstvenim readiness/geometry dokazom da obnovi offset. Rejected 2b2cf4d7/global Reanimated flag nije vraćen.",
-    "performance": "Round49: three blocks x30 x8 cases on one runner, same RLS/identity/payload guards; 720 timings. RPC1000ms all blocks: True. Other distributions/concurrency/native remain OPEN.",
-    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS. Round53 fc385a67 / run36491627955: focused 2/9, existing 7/210, full 353/7347 PASS. Round54 340c2b0e / run36493289095: focused 2/7, existing 10/311, full 354/7351 PASS. Round55 af0d14bc / run36521748674: focused 5/63, existing 9/258, full 356/7370 PASS. Round56 3b2e828d / run36539721158: 11 real local Auth/PostgREST/current-decoder groups; exact seven-function rollout equivalence, idempotent refusal, certificate/ACL no-drift PASS. Round55 685810fc / run36552906782: focused 5/65, existing 9/258, full 357/7374 PASS. Round58 176dddda / run36560382420: guarded proof route TypeScript/focused/full Jest PASS; ARM64 APK 3e933f37096a built, not device-tested.",
-    "device_proof": "Novi Round33 kod nije instaliran/proveren na emulatoru ili telefonu u ovoj sesiji. Poslednji native dokaz ostaje Round32 rollback/stariji failure; ne prenosi se na b0648051.",
-    "status": "P6 GUARDED NATIVE BUILD PASS / DEVICE+SERVER CUTOVER+FULL RETURN+MEMORY OPEN",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD_CHECKS.json",
+    "performance": "SQL (jedan backend, toplo, 30 000 sintetičkih Need-ova): screening ZELEN pri jit=on (Round67; Round71 A/B: primenjeni v3 najgori p95 983/984/976 ms, bez odstupanja). Hosted-like jit=off NIJE ispod 1000 ms u MAP_DENSE 1011 ms i MAP_SPARSE 1032 ms (+1,1 %/+3,2 %): granica L4, „scale PASS” se ne tvrdi. Bez testa konkurentnosti (L5). Native, CI emulator (ne telefon): journey #12 12/12 koraka i 92/92 provere PASS; evidence gate pao zbog jednog ANR-a (Reanimated poplava neuspelih native izmena, počinje pri prijavi pre P6 koda, RNR-01, granica L2). Lokalni AVD protiv DEV-a: 8 od 8 zadataka, 20/20 povrataka (Back → vraćen ekran p50 0,745 s / p95 1,054 s), memorija 320→453→426 MB, bez ANR. Telefon HONOR (stari čitač, ROUND58 build): 20/20 povrataka, ANR 0, najduži frejm 919 ms; P6 kandidat NIJE na telefonu. Ciljevi 100/200/350 ms i <5 % sporih frejmova NISU ispunjeni na emulatoru (229/296 ms, 692/1040 ms, 745/1054 ms, 31,6 %) i NISU mereni na telefonu: granica L1, red P6-FIZ; nije ublažen cilj.",
+    "test": "Round43 c43c0781 / run36439653581: 8 RED-before; TypeScript PASS; focused 347/7299; full Jest 347/7299. Quarantine only; no native/server proof. Round44 7b75631b / run36443089843: 11 SQL groups PASS; 208 client vectors; 1004-row PAGE and 3000-row spatial fixtures. SQL roles are not real Auth/PostgREST. Round45 bf4008d6 / run36444393395: 11 real local Auth/PostgREST/wire groups PASS, 3 distinct password sessions, no N02 email/provider or native acceptance. Round46 2b04f863 / run36451155987: 11 SQL groups, 10 parser checks, 120 samples, 3 internal plans; correctness PASS is not performance acceptance. Round47 1af01119 / run36454436800: 13 SQL groups PASS; 240 paired timings; helper/filter/nonzero coverage parity; nested plans retained. Round48 0fe9e47c / run36458016326: 13 SQL groups + explicit-range/text/locality parity; 240 samples; nested plans/rollback PASS. Round49 b9dd6231 / run36476575335: original11 SQL groups + repeatability guards;720 samples. No new native/HTTP acceptance. Round50 5d8f6461 / run36484218203: owner 12 focused tests; wire contracts 31; full Jest 348/7311 PASS. Round51 e457ca73 / run36485542213: focused 2/25, existing 4/117, full 349/7324 PASS. Round52 7e9520bf / run36487046625: focused 4/39, existing 5/257, full 351/7338 PASS. Round53 fc385a67 / run36491627955: focused 2/9, existing 7/210, full 353/7347 PASS. Round54 340c2b0e / run36493289095: focused 2/7, existing 10/311, full 354/7351 PASS. Round55 af0d14bc / run36521748674: focused 5/63, existing 9/258, full 356/7370 PASS. Round56 3b2e828d / run36539721158: 11 real local Auth/PostgREST/current-decoder groups; exact seven-function rollout equivalence, idempotent refusal, certificate/ACL no-drift PASS. Round55 685810fc / run36552906782: focused 5/65, existing 9/258, full 357/7374 PASS. Round58 176dddda / run36560382420: guarded proof route TypeScript/focused/full Jest PASS; ARM64 APK 3e933f37096a built, not device-tested. Round70–73: CI client final check (tsc + ceo Jest) PASS na 650d340d; reproduktori koji padaju pre popravke za nadzornik povratka, rok čitanja 15 s, zadržanu sliku, najnoviji izbor, trag i kontrolu kolona; zatvaranje P6: obnova isteklog sidra (7 testova, 6 padaju pre), zadržavanje overlay-a pri ponovnom učitavanju (6 testova, 5 padaju pre), pin spušta sheet (4 testa, 2 padaju pre); 18 fokusiranih P6 grupa / 186 testova i 158 testova prezentacije prolaze; CI provera završnog izvora u P6_CLOSURE_RECEIPT.md.",
+    "device_proof": "Emulator: CI x86_64 API-35 (APK 36702278038, journey #12) i lokalni AVD protiv DEV-a (APK f16ef079…a748). Telefon HONOR VKP-NX9 (Android 16, arm64): SAMO stari čitač (ROUND58 build 176dddda, SHA 3e933f37…): osnovna linija 20 povrataka i smoke starog klijenta protiv DEV-a 6/6 PASS (docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md). P6 kandidat NIJE instaliran na telefon: ARM64 build je odbio auto-mode klasifikator, čeka vlasnika. iOS NIJE proveren.",
+    "status": "P6 ZAVRŠEN SA GRANICAMA (docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md L1–L10); TELEFON (KANDIDAT), iOS, RNR-01 (Reanimated ANR) I LIČNE LISTE OTVORENI",
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_33_FULL_RETURN_SOURCE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_41_P6_CLIENT_WIRE_QUARANTINE_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_43_P6_SPATIAL_GUARDS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_SQL.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_44_P6_FOUR_MODE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_BOUNDARY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_45_P6_HTTP_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_CURRENT_DEPENDENCY_AND_COST.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_46_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_OPTIMIZATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_47_P6_COST_COMPARE.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_LAZY_LOCALITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_48_P6_COST_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_REPEATABILITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_49_P6_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_50_P6_CLIENT_OWNER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_51_P6_VIEW_ADAPTER_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_52_P6_QUARANTINED_SCREEN_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_53_P6_BOUNDED_OVERLAYS_AND_MAP_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_54_P6_PRESENTATION_SEAM_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_56_P6_DEPLOYABLE_SERVER_CANDIDATE_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_55_P6_SEARCH_AND_ROUTE_COORDINATOR_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_71_P6_30K_V3_CONFIRMATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md",
     "round30": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_30_DISCOVERY_AND_CATALOG.md",
      "status": "SOURCE_IMPLEMENTED_NATIVE_PENDING"
@@ -2724,6 +2762,41 @@
      "serverApplied": false,
      "productionWired": false,
      "p6Finished": false
+    },
+    "round73": {
+     "date": "2026-09-30",
+     "record": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md",
+     "outcome": "P6_ZAVRSEN_SA_GRANICAMA",
+     "tag": "p6-closed-20260930",
+     "cutover": "EXPO_PUBLIC_P6_DISCOVERY_READER=1 u .github/workflows/build-android-dev-apk.yml; kill switch = ukloniti liniju i rekompajlirati; eas.json nepromenjen",
+     "fixedInClosure": [
+      "obnova isteklog sidra (P6_ANCHOR_EXPIRED)",
+      "overlay zadržava poznato pri ponovnom učitavanju",
+      "pin spušta sheet kao stari pin"
+     ],
+     "limits": {
+      "L1": "Ciljevi 100/200/350 ms, <5 % sporih frejmova, Home cold/warm, >=30 ponavljanja na referentnom telefonu: NE MERE SE za kandidata (nema ARM64 builda; emulator ne sertifikuje telefon). Red P6-FIZ.",
+      "L2": "Bez ANR-a u emulator dokazu: NIJE ispunjeno na CI emulatoru (1 ANR u journey #12, zastoji do 10,1 s); uzrok RNR-01 (Reanimated 4.5.1, počinje pri prijavi); ispunjeno na lokalnom AVD-u i na telefonu (stari čitač).",
+      "L3": "Tačan native dokaz završnog builda: poslednji native journey pokriva 650d340d; tri kasnija klijentska commit-a (obnova sidra, overlay, pin) pokrivena Jest-om i CI-jem.",
+      "L4": "P6-01 scale gate: prolazi pri jit=on, ne pri hosted-like jit=off (MAP_DENSE 1011 ms, MAP_SPARSE 1032 ms).",
+      "L5": "P6-04 ograničen dogovoreni konkurentni test: nije pokrenut (čeka parametre vlasnika ili odricanje).",
+      "L6": "P6-03 REAL/TEST granica end-to-end sa mešovitim pravim redovima i kriva cene helpera: dokaz pripremljen, nije pokrenut (QAD-04).",
+      "L7": "Lične liste A09/A11/B10 bez straničenja u klijentu: eksplicitan sledeći red EX-04, van P6 obima po odluci vlasnika (ii).",
+      "L8": "iOS nije proveren.",
+      "L9": "Stari čitač ostaje kao rezerva i za publication handoff; eas.json profili se ne menjaju (nema produkcionog backenda); ništa nije uklonjeno.",
+      "L10": "RC-03 (ocene) ublaženo, ne zbirno: P2 paket."
+     },
+     "qaDebt": [
+      "QAD-01 pojačanja drajvera (grana qa/p6-native-driver-hardening-20260930, 6 commit-a, nije spojena jer je putanja drajvera CI okidač)",
+      "QAD-02 swipe za straničenje van zone sistemskog Back gesta",
+      "QAD-03 drajver koristi qa_device.py; workflow_dispatch za FOCUSED bez commit-a pokazivača",
+      "QAD-04 dokaz granice sveta i kriva cene helpera (pripremljen, ručni start)",
+      "QAD-05 dvouređajni E2E (HONOR=A, AVD=B), faze E2E-0..E2E-4"
+     ],
+     "blockersCarried": {
+      "RNR-01": "Reanimated dead-tag poplava (ANR/zastoji): odluka vlasnika o zavisnosti",
+      "P6-FIZ": "merenje kandidata na telefonu: ARM64 build čeka vlasnika"
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -3158,7 +3231,8 @@
     "test": "Round15: četiri različite ciljane grupe / 141 test PASS; integracioni TypeScript PASS.",
     "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
+    "round73": "P6 obuhvat: klijent čita celu listu (rpc_list_my_applications); straničeni čitač rpc_list_my_applications_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim po nalogu; povezivanje je red EX-04."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3418,7 +3492,8 @@
     "test": "Round12: tipovi čisti; 11 različitih ciljanih grupa / 317 testova prolazi. Tačan opseg i početni nalazi: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
     "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
     "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
+    "round73": "P6 obuhvat: lista Dogovora je već straničena (rpc_list_my_agreements_page); RC-03 (provere ocena po završenom Dogovoru) ostaje ublažen, ne zbirni (L10)."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3619,7 +3694,8 @@
      "full": "342 suites / 7214 PASS",
      "device": "PENDING",
      "voice": "B1/B2 UNSHIPPED"
-    }
+    },
+    "round73": "P6 obuhvat: čitanje poruka ograničeno na 50 po čitanju i 200 u klijentskom prozoru (B3), ACK do 50 ID-eva; pretplata ima vlasnika. Nema novog P6 programiranja ni velikog SQL opterećenja."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3805,7 +3881,8 @@
      "full": "342 suites / 7214 PASS",
      "device": "PENDING",
      "voice": "B1/B2 UNSHIPPED"
-    }
+    },
+    "round73": "P6 obuhvat: grupne poruke koriste postojeći ograničeni ugovor; red potvrde ograničen na 50 ID-eva. Nema novog P6 programiranja."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -4618,7 +4695,8 @@
      "full": "342 suites / 7214 PASS",
      "exact_transport": "OFF per canonical repository evidence",
      "device": "CURRENT ARTIFACT PENDING"
-    }
+    },
+    "round73": "P6 obuhvat: Inbox koristi postojeće straničenje (rpc_list_inbox); sačuvano bez izmene."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -6166,7 +6244,8 @@
     "test": "TypeScript PASS; Round07 12/337 + Round08 8/183 = 20 različitih ciljanih grupa / 520 testova. Nije full suite, uređaj ili opšti offline dokaz.",
     "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
     "status": "OGRANIČENE RECOVERY REGRESIJE PROŠLE / CEO TOK I UREĐAJ ČEKAJU",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json",
+    "round73": "P6 obuhvat: svako P6 čitanje ima rok od 15 s koji zaustavlja sopstveni zahtev; blur/background/promena naloga povlače čitanja (retire); dupli dodir pina/zatvaranje rešava brojač izbora; isteklo serversko sidro se obnavlja jednim novim otvaranjem. Ceo offline/reconnect sistem nije potvrđen ovim paketom."
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -6233,7 +6312,8 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+    "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -7176,6 +7256,20 @@
    "nalaz_16_09": "Konačni potpisani paket nije pregledan",
    "sada": "OTVORENO",
    "dokaz": ""
+  },
+  {
+   "id": "B22",
+   "oblast": "Reanimated poplava (ANR / zastoji)",
+   "nalaz_16_09": "Reanimated 4.5.1 ponavlja neuspele native izmene za poglede koji nisu montirani; počinje pri prijavi, pre P6 koda; CI emulator: 111 623 neuspele izmene, zastoji do 10,1 s i jedan ANR; telefon (stari čitač): 17 637 linija, najduži frejm 919 ms, bez ANR-a. Pri dugim listama na telefonu nepoznato.",
+   "sada": "OTVORENO — RNR-01: popravka traži odluku vlasnika o zavisnosti (zakrpa ili verzija) ili redizajn životnog veka animiranih pogleda; blokira izlazak, ne P6",
+   "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md"
+  },
+  {
+   "id": "B23",
+   "oblast": "Merenje P6 kandidata na telefonu",
+   "nalaz_16_09": "Ciljevi 100/200/350 ms, <5 % sporih frejmova, Home cold/warm nisu mereni za kandidata; instaliran je ROUND58 build sa starim čitačem.",
+   "sada": "OTVORENO — P6-FIZ: ARM64 build kandidata (build-android-dev-apk.yml, target=phone) je odbio auto-mode klasifikator; posle dozvole: adb install -r i jedno merenje od ~10 min (p6_dev_emulator_check.py --device physical --reader p6)",
+   "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md"
   }
  ],
  "prodavnice": [
@@ -7443,102 +7537,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36710783500,
-   "ime": "Build Android development APK",
-   "sha": "5257675c",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-30T11:48:18Z"
-  },
-  {
-   "id": 36705406044,
-   "ime": "P6 rollout v3 candidate proof",
-   "sha": "97ed4e3a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T10:55:54Z"
-  },
-  {
-   "id": 36705117786,
-   "ime": "Build Android development APK",
-   "sha": "42371918",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T10:53:02Z"
-  },
-  {
-   "id": 36704925178,
-   "ime": "P6 rollout v3 candidate proof",
-   "sha": "0698fdac",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T10:51:07Z"
-  },
-  {
-   "id": 36704063863,
-   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
-   "sha": "c9071a2f",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-09-30T10:42:40Z"
-  },
-  {
-   "id": 36702278038,
-   "ime": "P6 native proof APK (x86_64, disposable local endpoint)",
-   "sha": "650d340d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T10:24:58Z"
-  },
-  {
-   "id": 36702278011,
-   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
-   "sha": "650d340d",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-09-30T10:24:58Z"
-  },
-  {
-   "id": 36702277919,
-   "ime": "P6 client final check",
-   "sha": "650d340d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T10:24:58Z"
-  },
-  {
-   "id": 36702277902,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "650d340d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T10:24:58Z"
-  },
-  {
-   "id": 36693983178,
-   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
-   "sha": "fc58f411",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-30T09:06:41Z"
-  },
-  {
-   "id": 36691839653,
-   "ime": "Build Android development APK",
-   "sha": "fdedabdb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T08:46:45Z"
-  },
-  {
-   "id": 36691742548,
-   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
-   "sha": "aaba428b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T08:45:49Z"
-  }
- ]
+ "ci": null
 }
