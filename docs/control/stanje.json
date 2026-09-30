@@ -1,16 +1,16 @@
 {
  "meta": {
-  "osvezeno": "2026-09-29T11:29:09Z",
-  "grana": "HEAD",
-  "head": "176dddda",
-  "head_poruka": "test(p6): restore exact tracked source before native evidence",
+  "osvezeno": "2026-09-30T12:01:40Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "5257675c",
+  "head_poruka": "docs(p6+c0): P6 rollout v3 APPLIED on canonical DEV (ledger 212, readback = proof expectation, receipt) + the read-only cleanup inventory (C0 proposal, not an authorisation)",
   "server": {
-   "snimljeno": "2026-09-27T20:20:25Z",
-   "migracije": 210,
-   "dev_alpha": 62,
-   "poslednja": "dev_alpha_chat_p4_push_event_transport",
+   "snimljeno": "2026-09-30T12:01:15Z",
+   "migracije": 212,
+   "dev_alpha": 64,
+   "poslednja": "dev_alpha_p6_discovery_rollout_v3",
    "sertifikat_ok": null,
-   "privatni_status": "VERIFIED_IN_EXACT_P4_APPLICATION_TRANSACTION; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+   "privatni_status": "VERIFIED_IN_EXACT_PKG045B_AND_P6_V3_APPLICATION_TRANSACTIONS; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
    "privatni_istorijski": null,
    "cron": [
     {
@@ -827,7 +827,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "5 test fajl(ova)"
+    "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Pregled i ispravka naslova probnog zadatka prošli. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: ",
    "problem": "",
@@ -920,7 +920,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objava prošla; drugi nalog vidi zadatak. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu.",
    "problem": "P0 klijentski lanac objava→potvrđen Need ID/revizija→exact public read→Discovery focus je već implementiran i objedinjenim source dokazom potvrđen; nema nove source rupe. Novi native dokaz objava→izabrani pin/Peek ili truthful list group i dalje nedostaje. P6 obična kolekcija ostaje serverski neograničena.",
@@ -2962,7 +2962,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -5987,7 +5987,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "124 test fajl(ova)"
+    "test": "126 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -6320,9 +6320,7 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [
-  "rpc_discovery_v1"
- ],
+ "aplikacija_zove_a_server_nema": [],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
   "stavke": [
@@ -7028,9 +7026,7 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [
-   "rpc_discovery_v1"
-  ],
+  "novo_slomljeno": [],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [
@@ -7447,5 +7443,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36710783500,
+   "ime": "Build Android development APK",
+   "sha": "5257675c",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-30T11:48:18Z"
+  },
+  {
+   "id": 36705406044,
+   "ime": "P6 rollout v3 candidate proof",
+   "sha": "97ed4e3a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T10:55:54Z"
+  },
+  {
+   "id": 36705117786,
+   "ime": "Build Android development APK",
+   "sha": "42371918",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T10:53:02Z"
+  },
+  {
+   "id": 36704925178,
+   "ime": "P6 rollout v3 candidate proof",
+   "sha": "0698fdac",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T10:51:07Z"
+  },
+  {
+   "id": 36704063863,
+   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
+   "sha": "c9071a2f",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-09-30T10:42:40Z"
+  },
+  {
+   "id": 36702278038,
+   "ime": "P6 native proof APK (x86_64, disposable local endpoint)",
+   "sha": "650d340d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T10:24:58Z"
+  },
+  {
+   "id": 36702278011,
+   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
+   "sha": "650d340d",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-30T10:24:58Z"
+  },
+  {
+   "id": 36702277919,
+   "ime": "P6 client final check",
+   "sha": "650d340d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T10:24:58Z"
+  },
+  {
+   "id": 36702277902,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "650d340d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T10:24:58Z"
+  },
+  {
+   "id": 36693983178,
+   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
+   "sha": "fc58f411",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T09:06:41Z"
+  },
+  {
+   "id": 36691839653,
+   "ime": "Build Android development APK",
+   "sha": "fdedabdb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T08:46:45Z"
+  },
+  {
+   "id": 36691742548,
+   "ime": "P6 native journey (disposable restricted server + x86_64 emulator)",
+   "sha": "aaba428b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T08:45:49Z"
+  }
+ ]
 }
