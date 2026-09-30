@@ -50,6 +50,7 @@ ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
 ap.add_argument('--only-pins', action='store_true', help='launch and run the pin timing step alone')
+ap.add_argument('--focused', action='store_true', help='the short physical measurement (owner, 2026-09-30, a 6-minute window on a quiet database): cold start, pin timing (--taps), FULL->detail->Back cycles (--cycles), health and the runbook verdict; no pan/zoom, flings, search or filters')
 ap.add_argument('--only-flows', action='store_true', help='launch, read the list, then run only the flows asked for (--filters, --search, --visible-return) and stop')
 ap.add_argument('--only-list', action='store_true', help='launch, read (and with --write-baseline record) the list, and stop')
 ap.add_argument('--smoke', action='store_true', help='only look at the app the way an older client uses it (Home, Zadaci, Moji zadaci with a task and back, Moje prijave, Dogovori) and report any error text')
@@ -1091,18 +1092,20 @@ def main():
             return
         with Recording('pins'):
             time_pins()
-        gestures()
-        if ARGS.restart:
-            adb('shell', 'am', 'force-stop', PACKAGE)
-            launch()
+        if not ARGS.focused:
+            gestures()
+            if ARGS.restart:
+                adb('shell', 'am', 'force-stop', PACKAGE)
+                launch()
         read_list()
-        scroll_feel()
-        if ARGS.visible_return:
-            visible_return()
-        if ARGS.filters:
-            filters_flow()
-        if ARGS.search:
-            search_flow()
+        if not ARGS.focused:
+            scroll_feel()
+            if ARGS.visible_return:
+                visible_return()
+            if ARGS.filters:
+                filters_flow()
+            if ARGS.search:
+                search_flow()
         with Recording('cycles'):
             cycles()
         health()
