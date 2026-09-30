@@ -1,7 +1,8 @@
 # Round71 — P6-02 drift confirmation: the 30000-Need SQL screening on the DEPLOYED rollout v3
 
-Status: **PASS (drift confirmation).** The deployed composition stays under the 1000 ms screening ceiling in all six RPC cases and does not drift from the tested composition. It is an SQL-only screening on a
-disposable target; it does not replace or re-open the earlier 30k screening and it is not a production or end-to-end performance claim.
+Status: **PASS (drift confirmation, harness default `jit=on`); the hosted-like supplement (`jit=off`) is NOT under the screening ceiling in two cases, so no "scale PASS" is claimed.** With the harness's default `jit=on` the deployed
+composition stays under the 1000 ms screening ceiling in all six RPC cases and does not drift from the tested composition. The supplementary run with `jit=off` (the setting canonical DEV reports) puts MAP_DENSE at 1011 ms and MAP_SPARSE at 1032 ms
+worst-block p95 (+1.1 % and +3.2 % over the ceiling; the other four RPC cases pass). It is an SQL-only screening on a disposable target; it does not replace or re-open the earlier 30k screening and it is not a production or end-to-end performance claim.
 
 ## Why this exists
 Master plan P6-02: "compare the exactly tested source hashes with the current candidate … drift or unexplained changes: do not combine different packages as the same proof". The earlier 30k screening (Round67, run
@@ -72,11 +73,30 @@ Gates: deployed composition under 1000 ms in all six RPC cases: **yes** (worst 9
 ## What this does NOT say (read before quoting it)
 - **The margin is thin, and it is the harness's setting more than the code.** Three cases (PAGE_PEOPLE2, MAP_DENSE, MAP_SPARSE) sit at a constant p50 of about 940 ms in Round67 and in both Round71 compositions, i.e. 95–99 % of the 1000 ms ceiling.
   The harness ran with `jit = on` (environment block of the receipts); a read-only `show jit` on canonical DEV (2026-09-30) answers `off` (Postgres 17.6, work_mem 2184 kB, shared_buffers 224 MB; the harness: 4 MB / 128 MB). A per-execution JIT
-  compilation would produce exactly this kind of constant. That is a hypothesis about how pessimistic the CI numbers are for the hosted project, NOT a measured result; the supplementary run below measures it once.
+  compilation would produce exactly this kind of constant. That was a hypothesis; the supplementary run below measured it and **did not confirm it**: with `jit=off` the three heavy cases are 0–5 % SLOWER, not faster (the ~940 ms constant is the plan's own cost at this size on this runner, not a JIT artefact).
 - One backend, warm cache, 30 000 rows owned by one account, SQL only: no network, no PostgREST, no rendering, no concurrent users (see the concurrency row of the P6 closure record), no cold-cache claim, not an SLA.
 - The lineage table has 5 rows (canonical DEV's shape); cost that depends on a large number of TEST-world accounts is not revealed by this harness (the helper is evaluated once per statement over that table).
 
 ## Supplementary fidelity run (jit off)
-Workflow `.github/workflows/p6-round72-load-v3-jit-off.yml` measures the DEPLOYED rollout v3 once more with the same harness and `PGOPTIONS='-c jit=off'` (hosted-like). Its result is recorded below when the run ends.
+Workflow `.github/workflows/p6-round72-load-v3-jit-off.yml` measures the DEPLOYED rollout v3 once more with the same harness and `PGOPTIONS='-c jit=off'` (hosted-like), run 36721652455 at 216b8387 (SUCCESS as a harness run; its own `performanceScreeningPass` is **false**).
 
-(pending)
+**Round 72 B — the DEPLOYED rollout v3, `jit=off`, lineage table shaped like canonical DEV** (run 216b8387, runner GitHub Actions 1000004043, AMD EPYC 7763 64-Core Processor × 4, Postgres 17.6, jit=off, work_mem 4MB, shared_buffers 128MB, 30 000 Needs, RLS on, one backend, warm)
+
+| Case | blocks 1/2/3: p50·p95·max ms | worst p95 ms | spread | max response bytes | max result size |
+| --- | --- | --- | --- | --- | --- |
+| PAGE_ALL | 495·528·529 / 492·528·541 / 492·527·534 | **528** | 1.003 | 50611 | 50 |
+| PAGE_PEOPLE2 | 934·991·1003 / 942·993·1003 / 949·980·988 | **993** | 1.013 | 50611 | 50 |
+| MAP_DENSE | 964·1011·1040 / 968·1011·1031 / 972·1009·1011 | **1011** | 1.002 | 703 | 1 |
+| MAP_SPARSE | 969·1032·1052 / 981·1006·1008 / 969·1018·1030 | **1032** | 1.026 | 42417 | 241 |
+| PLACES_SPARSE | 178·206·217 / 179·198·205 / 178·193·195 | **206** | 1.068 | 5206 | 30 |
+| EXACT_PUBLIC | 17·18·26 / 17·18·27 / 17·20·29 | **20** | 1.138 | 1184 | 1 |
+| SCAN | 21·25·28 / 21·30·31 / 21·22·22 | **30** | 1.375 | 15 | 30000 |
+| COVERAGE_SCAN | 309·334·343 / 310·341·353 / 309·340·341 | **341** | 1.020 | 32 | 30000 |
+
+Same harness, same composition, only `jit`: the worst p95 of the three heavy cases moves from 983 / 984 / 976 ms (`jit=on`, Round 71 B) to 993 / 1011 / 1032 ms (`jit=off`), i.e. +1.0 %, +2.7 %, +5.7 %; the light cases are within noise.
+Block-to-block spread is 1.002–1.026 for the heavy cases, so the difference is a setting effect, not runner noise. **Reading, without softening it:**
+- `allRpcUnder1000Ms` is **false** in this run (MAP_DENSE +1.1 %, MAP_SPARSE +3.2 %); the screening gate the plan's P6-01 rests on was green at `jit=on` (Round 67 / Round 71), and P6-01 says a gate that does not pass is to be solved at exactly that deficiency, not reported as scale PASS.
+- What is and is not affected: the drift confirmation (v3 against the tested composition at one setting) stands; the claim "under the 1000 ms screening ceiling at 30 000 Needs" holds for the harness default and does not hold for the hosted-like setting. Canonical DEV holds 8 published tasks; the figure concerns scale, not today's data.
+- The ceiling is the screening's own figure (the runbook states the ordinary paged API read as p95 up to 1 s in an agreed network/load with SQL and transfer separated), so this is neither a production SLA breach nor a proof of one.
+- Options that are not mine to pick: (a) a further cost reduction of the two MAP bucket paths (a new server candidate: new proofs, an owner-gated DEV apply); (b) the owner records the hosted-like MAP screening figure (≈1.0–1.03 s SQL-only at 30 000 Needs, one backend) as an explicit limit of the P6 acceptance and lets the end-to-end HTTP/native p95 on DEV decide; (c) keep the item OPEN until a measurement on the real hosted project (real cache, network) exists. Until a decision, the P6 closure record carries it as OPEN, not as PASS.
+Receipts: `round71-load/receipt-B-jitoff.json`, `round71-load/samples-B-jitoff.json` (720 timings).
