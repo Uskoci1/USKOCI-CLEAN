@@ -15,6 +15,9 @@ TAIL = ROOT / 'supabase/proofs/chat/voice_b1_dev_application.tail.sql'
 OUT = ROOT / 'supabase/candidates/chat_voice_b1_dev_application.sql'
 PREFLIGHT_TEMPLATE = ROOT / 'supabase/proofs/chat/voice_b1_dev_preflight.template.sql'
 PREFLIGHT_OUT = ROOT / 'supabase/proofs/chat/voice_b1_dev_preflight.readonly.sql'
+POSTFLIGHT_TEMPLATE = ROOT / 'supabase/proofs/chat/voice_b1_dev_postflight.template.sql'
+POSTFLIGHT_OUT = ROOT / 'supabase/proofs/chat/voice_b1_dev_postflight.readonly.sql'
+VOICE_FUNCTION_COLUMNS = 'body_md5,language_name,volatility,definer,strict_function,result_type,acl'
 CRLF = chr(13) + chr(10)
 LF = chr(10)
 
@@ -68,8 +71,19 @@ def build_preflight():
     return built
 
 
+def build_postflight():
+    """The read-only check of the applied state, from the application's own post-state pins (13 rewritten bodies) and the 15 new function pins."""
+    tail, template = read(TAIL), read(POSTFLIGHT_TEMPLATE)
+    built = (template.replace('{{APPLIED_BODY_PINS}}', pin_table(tail, 'body_md5', 13))
+             .replace('{{VOICE_FUNCTION_PINS}}', pin_table(tail, VOICE_FUNCTION_COLUMNS, 15)))
+    if '{{' in built:
+        raise SystemExit('the postflight template has an unreplaced placeholder')
+    return built
+
+
 def main():
-    outputs = [(OUT, build(), 'DEV application candidate'), (PREFLIGHT_OUT, build_preflight(), 'read-only DEV preflight')]
+    outputs = [(OUT, build(), 'DEV application candidate'), (PREFLIGHT_OUT, build_preflight(), 'read-only DEV preflight'),
+               (POSTFLIGHT_OUT, build_postflight(), 'read-only DEV postflight')]
     if '--check' in sys.argv:
         for path, built, label in outputs:
             current = read(path) if path.exists() else ''

@@ -13,6 +13,8 @@ on:
       - 'supabase/proofs/chat/voice_b1_dev_preflight.template.sql'
       - 'supabase/proofs/chat/voice_b1_dev_preflight.readonly.sql'
       - 'supabase/proofs/chat/voice_b1_preimage_capture.readonly.sql'
+      - 'supabase/proofs/chat/voice_b1_dev_postflight.template.sql'
+      - 'supabase/proofs/chat/voice_b1_dev_postflight.readonly.sql'
       - 'supabase/proofs/chat/build_voice_b1_dev_application.py'
   workflow_dispatch:
 permissions:
@@ -161,6 +163,22 @@ jobs:
           cat "$PRE_V3_ARTIFACT_DIR/27-voice-b1-dev.log"
           cp "$PRE_V3_ARTIFACT_DIR/chat-voice-b1-dev-report.json" "$VOICE_ARTIFACT_DIR/chat-voice-b1-dev-report.json" || true
           exit "$proof_exit"
+      - name: Read-only DEV postflight on the chain the application produced
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          umask 077
+          psql "$DB_URL" -X -A -t -q -v ON_ERROR_STOP=1 -f supabase/proofs/chat/voice_b1_dev_postflight.readonly.sql > "$VOICE_ARTIFACT_DIR/voice-b1-postflight.json"
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          try {
+            const flight=JSON.parse(readFileSync(process.env.VOICE_ARTIFACT_DIR+'/voice-b1-postflight.json','utf8'));
+            assert.deepEqual(flight.problems,[]); assert.equal(flight.appliedBodyPinsChecked,13); assert.equal(flight.voiceFunctionPinsChecked,15); assert.equal(flight.triggerPinsChecked,4);
+            assert.equal(flight.ready,true); assert.equal(flight.erasureBindingMatches,true); assert.equal(flight.certifiedSource,flight.liveDigest); assert.equal(flight.exportDatasets,52);
+            console.log('PASS CHAT_VOICE_B1_POSTFLIGHT');
+          } catch (error) { console.error('FAIL CHAT_VOICE_B1_POSTFLIGHT'); process.exit(1); }
+          NODE
       - name: Admit only the bounded DEV application result
         if: ${{ !cancelled() }}
         run: |
@@ -214,6 +232,7 @@ jobs:
             /tmp/chat-voice-dev-artifacts/chat-voice-b24-fidelity.json
             /tmp/chat-voice-dev-artifacts/voice-b1-preflight.json
             /tmp/chat-voice-dev-artifacts/voice-b1-preimage.json
+            /tmp/chat-voice-dev-artifacts/voice-b1-postflight.json
             /tmp/chat-voice-dev-artifacts/chat-voice-b1-dev-report.json
           if-no-files-found: error
           retention-days: 30
