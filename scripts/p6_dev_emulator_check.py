@@ -25,7 +25,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--out', required=True)
 ap.add_argument('--serial', default='emulator-5554')
 ap.add_argument('--expect-count', type=int, default=None)
-ap.add_argument('--baseline', default=None, help='JSON list of the legacy list\'s card labels, compared as a set of titles')
+ap.add_argument('--baseline', default=None, help='JSON written by --write-baseline on the previous build (or a list of card labels): every task title must be listed again')
+ap.add_argument('--write-baseline', default=None, help='write the count and every task title of the list (all of it, scrolled) to this JSON file')
 ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
@@ -269,6 +270,26 @@ def ensure_full_list():
     return root
 
 
+def collect_titles(root, max_swipes=14):
+    """Every task title in the list: the list is scrolled from its top a screen at a time until nothing new appears (a title can repeat: tasks are told apart by their whole label)."""
+    labels = {}
+    for _ in range(max_swipes):
+        fresh = 0
+        for c in cards(root):
+            if c['label'] not in labels:
+                labels[c['label']] = c['title']
+                fresh += 1
+        if fresh == 0 and labels:
+            break
+        adb('shell', 'input', 'touchscreen', 'swipe', '540', '1750', '540', '850', '450')
+        time.sleep(1.4)
+        root = dump()
+    for _ in range(max_swipes):                                    # back to the top, so the steps after this one start where a person would
+        adb('shell', 'input', 'touchscreen', 'swipe', '540', '700', '540', '1900', '350')
+        time.sleep(0.8)
+    return sorted(labels.values()), root
+
+
 def read_list():
     root = ensure_full_list()
     for _ in range(8):
@@ -276,15 +297,26 @@ def read_list():
             break
         time.sleep(1.5)
         root = dump()
-    titles = sorted({c['title'] for c in cards(root)})
-    REPORT['list'] = {'count': count_shown(root), 'visibleTitles': titles}
+    shown_count = count_shown(root)
     png('01_list')
+    titles, root = collect_titles(root)
+    REPORT['list'] = {'count': shown_count, 'titles': titles}
     if ARGS.expect_count is not None:
-        check('LIST_COUNT_MATCHES_EXPECTED', count_shown(root) == ARGS.expect_count, shown=count_shown(root), expected=ARGS.expect_count)
+        check('LIST_COUNT_MATCHES_EXPECTED', shown_count == ARGS.expect_count, shown=shown_count, expected=ARGS.expect_count)
+    check('LIST_SHOWS_AS_MANY_CARDS_AS_ITS_COUNT', shown_count is not None and len(titles) == shown_count, cards=len(titles), count=shown_count)
+    if ARGS.write_baseline:
+        Path(ARGS.write_baseline).write_text(json.dumps({'count': shown_count, 'titles': titles}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if ARGS.baseline:
         base = json.loads(Path(ARGS.baseline).read_text(encoding='utf-8'))
-        base_titles = {ITEM.match(x).group(1).split(',')[0].strip() for x in base if ITEM.match(x)}
-        check('LIST_TITLES_MATCH_LEGACY_BASELINE', set(titles) >= base_titles or set(titles) == base_titles, shown=titles, baseline=sorted(base_titles))
+        base_titles = sorted(base['titles']) if isinstance(base, dict) else sorted(ITEM.match(x).group(1).split(',')[0].strip() for x in base if ITEM.match(x))
+        listed = list(titles)
+        missing = []
+        for t in base_titles:                                       # a multiset test: every earlier title is listed again (the list may hold more)
+            if t in listed:
+                listed.remove(t)
+            else:
+                missing.append(t)
+        check('LIST_KEEPS_EVERY_TITLE_OF_THE_BASELINE', not missing, missing=missing, baseline=len(base_titles), now=len(titles))
     return root
 
 
@@ -421,22 +453,41 @@ def health():
     REPORT['gfx'] = {'frames': int(m[0].group(1)) if m[0] else None, 'janky': int(m[1].group(1)) if m[1] else None, 'jankyPercent': float(m[1].group(2)) if m[1] else None}
 
 
-def main():
-    video = None
-    try:
+class Recording:
+    """A screen recording of one phase (the device's recorder stops after 170 s, so a long phase shows its first minutes): pulled to OUT/video_<name>.mp4."""
+    def __init__(self, name):
+        self.name, self.proc = name, None
+
+    def __enter__(self):
         if ARGS.video:
-            video = subprocess.Popen(ADB + ['shell', 'screenrecord', '--time-limit', '180', '--bit-rate', '3000000', '--size', '540x1212', '/sdcard/p6chk_a.mp4'],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.proc = subprocess.Popen(ADB + ['shell', 'screenrecord', '--time-limit', '170', '--bit-rate', '3000000', '--size', '540x1212', f'/sdcard/p6chk_{self.name}.mp4'],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(1.5)
+        return self
+
+    def __exit__(self, *_exc):
+        if self.proc is not None:
+            adb('shell', 'pkill', '-2', 'screenrecord')
+            time.sleep(2.5)
+            subprocess.run(ADB + ['pull', f'/sdcard/p6chk_{self.name}.mp4', str(OUT / f'video_{self.name}.mp4')], capture_output=True)
+            adb('shell', 'rm', '-f', f'/sdcard/p6chk_{self.name}.mp4')
+        return False
+
+
+def main():
+    try:
         REPORT['device'] = {'sdk': adb('shell', 'getprop', 'ro.build.version.sdk').strip(), 'size': adb('shell', 'wm', 'size').strip(),
                             'build': adb('shell', 'dumpsys', 'package', PACKAGE).split('versionName=')[1].split()[0] if 'versionName=' in adb('shell', 'dumpsys', 'package', PACKAGE) else '?'}
         adb('logcat', '-G', '64M')            # the whole run stays in the device log (the default ring is 2 MiB)
         launch()
         root = read_list()
-        time_pins()
+        with Recording('pins'):
+            time_pins()
         adb('shell', 'am', 'force-stop', PACKAGE)
         launch()
         read_list()
-        cycles()
+        with Recording('cycles'):
+            cycles()
         health()
         REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
     except BaseException as exc:                                          # noqa: BLE001 - always leave a report behind
@@ -444,11 +495,6 @@ def main():
         REPORT['result'] = 'FAIL'
         raise
     finally:
-        if video is not None:
-            adb('shell', 'pkill', '-2', 'screenrecord')
-            time.sleep(2)
-            subprocess.run(ADB + ['pull', '/sdcard/p6chk_a.mp4', str(OUT / 'video_part1.mp4')], capture_output=True)
-            adb('shell', 'rm', '-f', '/sdcard/p6chk_a.mp4')
         (OUT / 'report.json').write_text(json.dumps(REPORT, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         log('RESULT', REPORT['result'])
 
