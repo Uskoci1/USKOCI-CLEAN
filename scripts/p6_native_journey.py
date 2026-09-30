@@ -1042,8 +1042,16 @@ def s_filters():
         raise RuntimeError(f'quick filter chips not visible: clickable={[n["desc"] for n in ui_inventory(root) if n["click"]][:12]}')
     exp_remote, exp_onsite = EXPECTED.get('remote'), EXPECTED.get('onsite')
     m = mark()
+    note('FILTER_TAP', at=list(center_of(remote, parent)), chip=remote.attrib.get('bounds'), sheet=sheet_state(root))
+    began = time.time()
     tap_visible(remote, parent)
-    _, root, parent = wait_count(exp_remote)
+    try:
+        _, root, parent = wait_count(exp_remote, 90)         # a slow answer on the CI emulator is recorded with its latency; an answer that never comes still fails
+    except RuntimeError:
+        REPORT['filtersFailure'] = {'afterTapS': round(time.time() - began, 1), 'requestsSinceTap': [brief(r) for r in since(m)[:8]], 'trace': app_trace_tail(60)}
+        snapshot('FAIL_filters_detail')
+        raise
+    REPORT['filterRemoteAnswerS'] = round(time.time() - began, 1)
     reqs = since(m, 'PAGE')
     check('FILTER_REMOTE_COUNT_EQUALS_SERVER', count_value(root)[0] == exp_remote, ui=count_value(root)[0], expected=exp_remote)
     check('FILTER_REMOTE_SENT_TO_SERVER', any((r.get('filter') or {}).get('where') == 'remote' for r in reqs), requests=[brief(r) for r in reqs[:4]])
@@ -1102,6 +1110,16 @@ def close_card():
 
 
 PIN_TRACE = re.compile(r'\[USKOCI_P6_TRACE\] \["pin","(\d+)/(\d+)"\]')
+
+
+def app_trace_tail(limit=80):
+    """The app's own DEV trace lines (Discovery / P6) from the device log's ring buffer, newest last: bounded evidence at the moment of a failure (JS console only, so the native warning flood cannot fill it)."""
+    try:
+        out = subprocess.run(['adb', 'logcat', '-d', '-t', '6000', '-s', 'ReactNativeJS:I'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                             text=True, errors='replace', timeout=60).stdout
+    except Exception:                                         # noqa: BLE001
+        return []
+    return [line[:170] for line in out.splitlines() if 'USKOCI_' in line][-limit:]
 
 
 def pin_trace_since(size):
@@ -1513,13 +1531,19 @@ def main():
     return 0 if (REPORT['result'] == 'PASS' or MODE == 'probe') else 1
 
 
-try:
-    sys.exit(main())
-except SystemExit:
-    raise
-except BaseException as exc:                                  # noqa: BLE001 - always leave a report behind
-    REPORT['result'] = 'FAIL'
-    REPORT['error'] = f'{type(exc).__name__}: {str(exc)[:800]}'
-    (ARTIFACT_DIR / 'p6-native-report.json').write_text(json.dumps(REPORT, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    print(f'FAIL P6_NATIVE_JOURNEY {REPORT["error"]}', flush=True)
-    sys.exit(1)
+if __name__ == '__main__':
+    # The journey clears the app's data (launch_clean) on the attached device: it runs only as a script, and only in CI unless the caller says otherwise
+    # (an import of this module once ran it on a local emulator and wiped a signed-in session).
+    if os.environ.get('GITHUB_ACTIONS') != 'true' and os.environ.get('P6N_ALLOW_LOCAL_CLEAR') != '1':
+        print('REFUSED: the P6 native journey clears the app data of the attached device; run it in CI, or set P6N_ALLOW_LOCAL_CLEAR=1 for a disposable emulator', flush=True)
+        sys.exit(3)
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except BaseException as exc:                              # noqa: BLE001 - always leave a report behind
+        REPORT['result'] = 'FAIL'
+        REPORT['error'] = f'{type(exc).__name__}: {str(exc)[:800]}'
+        (ARTIFACT_DIR / 'p6-native-report.json').write_text(json.dumps(REPORT, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+        print(f'FAIL P6_NATIVE_JOURNEY {REPORT["error"]}', flush=True)
+        sys.exit(1)
