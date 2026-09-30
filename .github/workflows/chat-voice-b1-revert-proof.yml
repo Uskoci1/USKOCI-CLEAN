@@ -154,11 +154,11 @@ jobs:
             for (const key of ['actualAuth','actualDatabase']) assert.equal(report[key],true);
             for (const key of ['liveAccess','providerCalled','deviceProven','devAccess','devCertificateMoved']) assert.equal(report[key],false);
             assert.equal(report.providerCalls,0); assert.deepEqual(report.failures,[]);
-            assert.equal(report.checks.length,15); assert.ok(report.checks.every(check=>check.result==='PASS'));
-            assert.deepEqual(report.refusals.map(item=>item.name),['NOT_APPLIED','VOICE_UPLOAD_ROW_PRESENT','BUCKET_OBJECT_PRESENT','VOICE_FUNCTION_BODY_DRIFT','APPLIED_BODY_DRIFT','ROSTER_BODY_DRIFT_BREAKS_THE_CERTIFICATE','CERTIFICATES_DISAGREE','STRUCTURE_DRIFT','SECOND_REVERT']);
+            assert.equal(report.checks.length,16); assert.ok(report.checks.every(check=>check.result==='PASS'));
+            assert.deepEqual(report.refusals.map(item=>item.name),['NOT_APPLIED','VOICE_UPLOAD_ROW_PRESENT','BUCKET_OBJECT_PRESENT','VOICE_FUNCTION_BODY_DRIFT','APPLIED_BODY_DRIFT','ROSTER_BODY_DRIFT_BREAKS_THE_CERTIFICATE','CERTIFICATES_DISAGREE','STORAGE_POLICY_DROP_BREAKS_THE_CERTIFICATE','STRUCTURE_DRIFT','SECOND_REVERT']);
             assert.ok(report.refusals.every(item=>item.refused&&item.completeCatalogUnchanged));
             const d=report.digests;
-            assert.notEqual(d.chainApplied,d.chainBefore); assert.equal(d.chainReverted,d.chainBefore); assert.equal(d.chainReapplied,d.chainApplied);
+            assert.notEqual(d.chainApplied,d.chainBefore); assert.equal(d.chainReverted,d.chainBefore); assert.notEqual(d.chainReapplied,d.chainBefore);
             assert.equal(report.revertedCatalogSha256,report.baselineCatalogSha256);
             console.log('PASS CHAT_VOICE_B1_REVERT_ONLY');
           } catch { console.error('FAIL CHAT_VOICE_B1_REVERT_RESULT_ADMISSION'); process.exit(1); }

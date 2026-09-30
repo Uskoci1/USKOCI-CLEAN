@@ -48,8 +48,10 @@ function differences(left, right, ignore = []) {
   return out;
 }
 const equalSnapshots = (left, right, label, ignore = []) => assert.deepEqual(differences(left, right, ignore), [], label);
-// An object created a second time has a new oid: the two oid-keyed lists are the only parts that may differ between two applications of the same file.
+// An object created a second time has a new oid, and the erasure program digest hashes type oids (a function over the voice table's row type carries the table's type oid in its arguments), so two
+// applications of the same file bind two different digests. Everything that embeds an oid or a digest may differ between them; everything else must be equal.
 const OID_KEYED = ['state.other_function_metadata', 'state.table_authority'];
+const DIGEST_KEYED = ['state.source', 'state.erasure', 'state.digest', 'state.erasure_program_digest', 'state.readiness_definition', 'state.readiness_metadata', 'state.readiness_metadata_md5', 'state.binding'];
 
 await check('SOURCE_BYTES_EQUAL_THE_TESTED_COMMIT', async () => {
   for (const path of sources) {
@@ -147,9 +149,13 @@ await refusedAndRestored('ROSTER_BODY_DRIFT_BREAKS_THE_CERTIFICATE', /VOICE_B1_R
 await refusedAndRestored('CERTIFICATES_DISAGREE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/,
   () => sql("update private.closure_erasure_source_v5 set sha256=repeat('0',64) where singleton"),
   () => sql(`update private.closure_erasure_source_v5 set sha256=${q(appliedState.live)} where singleton`));
-await refusedAndRestored('STRUCTURE_DRIFT', /VOICE_B1_REVERT_APPLIED_STRUCTURE_DRIFT/,
+// The bucket policy is part of the digested voice surface, so dropping it breaks the certificate first; the retention catalog row is not digested, so it reaches the structure check.
+await refusedAndRestored('STORAGE_POLICY_DROP_BREAKS_THE_CERTIFICATE', /VOICE_B1_REVERT_APPLIED_STATE_NOT_CERTIFIED/,
   () => sql('drop policy agreement_voice_no_client_v1 on storage.objects'),
   () => sql("create policy agreement_voice_no_client_v1 on storage.objects as restrictive for all to authenticated using(bucket_id <> 'agreement-voice') with check(bucket_id <> 'agreement-voice')"));
+await refusedAndRestored('STRUCTURE_DRIFT', /VOICE_B1_REVERT_APPLIED_STRUCTURE_DRIFT/,
+  () => sql("update private.closure_dataset_catalog_v5 set relations = array_remove(relations, 'private.agreement_voice_uploads_v1') where data_class = 'MEDIA_OBJECTS'"),
+  () => sql("update private.closure_dataset_catalog_v5 set relations = relations || array['private.agreement_voice_uploads_v1'] where data_class = 'MEDIA_OBJECTS'"));
 await check('THE_REVERT_RESTORES_THE_COMPLETE_CATALOG_THE_CERTIFICATE_AND_THE_DIGEST_EXACTLY', async () => {
   assert.ok(baseline && afterApply);
   sql(chainRevert);
@@ -168,12 +174,12 @@ await check('A_SECOND_REVERT_IS_REFUSED_AND_CHANGES_NOTHING', async () => {
   equalSnapshots(snapshot(), before, 'CATALOG_CHANGED_BY_THE_SECOND_REVERT');
   report.refusals.push({ name: 'SECOND_REVERT', refused: true, completeCatalogUnchanged: true });
 });
-await check('THE_APPLICATION_CAN_BE_APPLIED_AGAIN_AFTER_A_REVERT_AND_REACHES_THE_SAME_STATE', async () => {
+await check('THE_APPLICATION_CAN_BE_APPLIED_AGAIN_AFTER_A_REVERT_AND_REACHES_THE_SAME_CATALOG_WITH_A_NEWLY_BOUND_DIGEST', async () => {
   sql(application);
   await new Promise(resolve => setTimeout(resolve, 1500));
   const state = closureState();
-  assert.equal(state.ready, true); assert.equal(state.live, appliedState.live, 'THE_DIGEST_AFTER_APPLY_REVERT_APPLY_DIFFERS_FROM_THE_FIRST_APPLICATION');
-  equalSnapshots(snapshot(), afterApply, 'RE_APPLIED_CATALOG_DIFFERS_FROM_THE_FIRST_APPLICATION', OID_KEYED);
+  assert.equal(state.ready, true); assert.equal(state.live, state.certified); assert.equal(state.binding.sourceSha256, state.live); assert.notEqual(state.live, baselineState.live);
+  equalSnapshots(snapshot(), afterApply, 'RE_APPLIED_CATALOG_DIFFERS_FROM_THE_FIRST_APPLICATION', [...OID_KEYED, ...DIGEST_KEYED]);
   report.digests.chainReapplied = state.live;
 });
 
