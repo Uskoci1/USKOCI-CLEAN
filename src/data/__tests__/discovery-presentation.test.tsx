@@ -980,6 +980,55 @@ test('a P6 restore that stops short of the saved offset asks again, then for the
     expect(scrollToOffset).toHaveBeenCalledTimes(2); expect(scrollToEnd).toHaveBeenCalledTimes(1); expect(snapshot.listOffset).toBe(1800);
   } finally { jest.useRealTimers(); }
 });
+const acks = () => nativeTrace.mock.calls.filter(call => call[0] === 'ack').map(call => call.slice(1));
+// Journey #8 (cycles 13-20): the last exact request of a deep restore (the target is reachable: the content is as long as the saved offset needs) can land while the native
+// list is still shorter than React Native's layout says. It clamps to where it already is, no offset event follows, and the restore waited for that event for ever. The watchdog
+// covers every P6 restore request: the same request again, never the tail while the target is reachable (that would overshoot the saved offset), then it settles on the saved offset.
+test('a P6 restore whose exact request the native list does not acknowledge asks again, never for the tail, and settles on the saved offset', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`exact${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    p6Seam = p6Seam_(); tracing = true;
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 8000);
+    expect(scrollToOffset).toHaveBeenCalledTimes(1); expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS - 1); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(2); expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: 8000, animated: false });
+    expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(3); expect(scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS + OFFSET_SETTLE_MS); });
+    expect(stalls().map(call => call[0])).toEqual([1, 2, 3]);
+    expect(acks().at(-1)).toEqual([8000, 8000, 8000, false]);
+    expect(snapshot.listOffset).toBe(8000);
+    await act(async () => { jest.advanceTimersByTime(60_000); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(3); expect(scrollToEnd).not.toHaveBeenCalled();
+  } finally { jest.useRealTimers(); }
+});
+test('a P6 restore acknowledged after its exact request was asked again is complete: nothing more is asked', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 80 }, (_, i) => row(`exact${i}`));
+    initial = { ...initial, sheet: 'full', listOffset: 8000 };
+    p6Seam = p6Seam_(); tracing = true;
+    await render(); await layOutBody();
+    const frame = StyleSheet.flatten(list().props.style).height;
+    await readyList(frame + 8000);
+    await measureEnd(frame + 8000);
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(2);
+    // The native list has caught up with the layout: the same request now lands, and it says so.
+    await act(async () => { list().props.onScroll({ nativeEvent: { contentOffset: { y: 8000 } } }); jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
+    await act(async () => { jest.advanceTimersByTime(RESTORE_STALL_MS * 5); });
+    expect(scrollToOffset).toHaveBeenCalledTimes(2); expect(scrollToEnd).not.toHaveBeenCalled();
+    expect(stalls().map(call => call[0])).toEqual([1]);
+    expect(snapshot.listOffset).toBe(8000);
+  } finally { jest.useRealTimers(); }
+});
 test('growth of the list restarts the wait, dragging ends the restore, and the legacy reader never runs the watchdog', async () => {
   jest.useFakeTimers();
   try {

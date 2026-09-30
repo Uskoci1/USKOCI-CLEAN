@@ -114,9 +114,10 @@ const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
 const SHEET_KICKS_MS = [400, 1_200, 2_600, 5_000, 8_000, 12_000] as const;
 const SHEET_KICK_PX = 0.01;
 /**
- * A restore that has asked for more than the list has rendered is given this long to see it grow. Then, in this order: the same request again (React Native's layout can be
- * ahead of the native content, and a scroll past the native end lands there without any later event), the tail (`scrollToEnd` renders the rows the estimate stops short
- * of), and finally it settles where the list is.
+ * A restore that has not been acknowledged is given this long to see the list grow or to hear the native list. Then, in this order: the same request again (React Native's
+ * layout can be ahead of the native content, and a scroll past the native end lands there without any later event, also for the last exact request), the tail (`scrollToEnd`
+ * renders the rows the estimate stops short of; asked only while the target is NOT reachable, since it would overshoot a reachable saved offset), and finally it settles: on
+ * the saved offset when it was reachable, else where the list is.
  */
 export const RESTORE_STALL_MS = 4_000;
 const RESTORE_STALL_RETRIES = 2;
@@ -838,7 +839,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     restoreCommand.current = sheetCommand.current.sequence;
     trace('request', at, target, contentHeight.current, listWindow);
     listRef.current.scrollToOffset({ offset: target, animated: false });
-    if (target < at && props.p6Seam) armStallRef.current();
+    if (props.p6Seam) armStallRef.current();
   }, [currentSheet, currentList, hasRows, loading, error, listWindow, hasMeasuredEnd, writeOffset, trace, sheetIndex]);
   const retryRestore = useRef(tryRestore); retryRestore.current = tryRestore;
   const armStall = useCallback(() => {
@@ -846,15 +847,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     stallTimer.current = setTimeout(() => {
       stallTimer.current = null;
       if (!currentList() || restore.current === null || !listRef.current) return;
+      const wanted = restore.current;
+      const reachable = restoreTarget.current !== null && restoreTarget.current >= wanted;
       stalls.current += 1;
-      trace('stall', stalls.current, restore.current, restoreTarget.current ?? -1, contentHeight.current, observedY.current, extent.bottom ?? -1, extent.footer ?? -1);
+      trace('stall', stalls.current, wanted, restoreTarget.current ?? -1, contentHeight.current, observedY.current, extent.bottom ?? -1, extent.footer ?? -1);
       if (stalls.current <= RESTORE_STALL_RETRIES) {
         restoreAttempted.current = false;
-        if (stalls.current === 1) retryRestore.current(); else listRef.current.scrollToEnd?.({ animated: false });
+        if (stalls.current === 1 || reachable) retryRestore.current(); else listRef.current.scrollToEnd?.({ animated: false });
         armStallRef.current();
         return;
       }
-      const reached = Math.round(observedY.current);
+      const reached = reachable ? wanted : Math.round(observedY.current);
       restore.current = null; restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false;
       trace('ack', reached, reached, reached, false);
       offset.current = reached; writeOffset();
