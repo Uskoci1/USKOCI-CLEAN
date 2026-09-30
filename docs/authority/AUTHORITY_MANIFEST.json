@@ -2839,14 +2839,14 @@
       "authority_level": "AUTHORITATIVE",
       "status": "CURRENT_HANDOFF_SNAPSHOT_READMIT_BEFORE_MUTATION",
       "version_date": "2026-09-30",
-      "sha256": "650f2b79eb2359348b004e9c0ccc9f16533f836673528adfd4ccc69f165c3be4",
-      "bytes": 30679,
+      "sha256": "706891d6a091fbb5341808a4f81179d418a3735f73f8dc4dbd5a5f8502d6d2c2",
+      "bytes": 31171,
       "supersedes": [
         "docs/authority/history/AGENTS_PRE_HANDOFF_20260911.md",
         "docs/authority/history/AGENTS_PRE_SLIM_20260930.md"
       ],
       "superseded_by": [],
-      "last_physically_validated": "2026-09-30T18:40:00.000Z",
+      "last_physically_validated": "2026-09-30T20:37:17.000Z",
       "notes": "The binding rulebook since 2026-09-30 (rules and conditional rules, no dated log); the dated log is archived byte-exact. Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
       "hash_basis": "raw_repo_file"
     },
