@@ -45,7 +45,7 @@ V1 target encoder settings are voice-oriented:
 - minimum accepted duration **300 ms**;
 - maximum admitted bytes **4 MiB**.
 
-The proposed recorder/player uses `expo-audio` for Android/iOS. That dependency is not installed or approved; implementation and native compatibility remain pending. Background recording must remain disabled.
+The proposed recorder/player uses `expo-audio` for Android/iOS. The owner approved that dependency **conditionally** on 2026-09-30, after a compatibility check against the installed Expo SDK 57 (pinned `expo-audio ~57.0.4`) and the existing audio code, and with no parallel audio stack if the existing one can be safely migrated: see `VOICE_AUDIO_STACK_DECISION_20260930.md` (compatible; the existing Android-only `UskociVoice` speech capture is to be migrated to `useAudioStream` behind the same adapter interface). It is NOT installed yet; implementation and native/device compatibility remain pending. Background recording must remain disabled (`enableBackgroundRecording: false`, and `enableBackgroundPlayback: false` so no foreground-service permission is added).
 
 ## Storage
 
