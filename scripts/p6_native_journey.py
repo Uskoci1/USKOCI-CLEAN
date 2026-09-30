@@ -10,6 +10,22 @@ P6N_JOURNEY=probe : record the real UI structure at every step; failures are rec
 P6N_JOURNEY=full  : the acceptance journey; every recorded failure fails the run (the steps still all execute so one
                     run yields the whole evidence).
 
+Steps, in order (P6N_STEPS names a focused subset; `login` always runs):
+  login            real sign-in through the app's sheet (the only step that clears the app's data: launch_clean)
+  ordinary_route   the ordinary Zadaci tab: legacy reader in the proof flavour, P6 without any parameter in the production flavour
+  route            the P6 list: exact count, PAGE/MAP bodies, markers with the sheet at its top line, a map
+  open_full        the list at full height: cards, newest first, exact count, the "Mapa" pill
+  paging           to the last task by swipes in the gutter: every task seen, cursors in one scope, no runaway, no stray open
+  detail_back      one card -> its detail (title shown) -> Back: same card, same offset, full list, exact count
+  cycles           twenty open/Back cycles: restored list each time, tap/Back times, one process, memory rules (idle sample)
+  filters          quick chips against the server's counts, the two-tap race with a measured touch gap
+  map_pins         cold start, cluster tap, task Peek (pin timing), place Peek, point list
+  search_places    place facets, typed text, a place applied and shown on the map
+  map_gestures     pan and zoom read the map (and the list) for the new area
+  final            process alive, request log, every return showed the sheet (at most two blank first looks)
+  flood_compare    proof flavour only: the same open/Back flood on the legacy reader and on the P6 reader (gfxinfo, Davey, dead-tag
+                   lines, reader calls, times) under rules declared before measuring; production flavour records a skip note
+
 Server-side evidence: the disposable database logs every statement (workflow step), so the driver reads back the exact
 rpc_discovery_v1 request bodies the app sent (mode, filter, scope, cursor, bounds) and compares the UI with them and
 with the counts the server itself returns for the same filters (fixture.json `expected`). Nothing is read from the
@@ -83,6 +99,12 @@ IDLE_AFTER_CYCLES_S = 20
 # (journey #10) began ON the card and was read as a press. 0.985 * 1080 = 1063.8 px leaves ~15 px of gutter and is still 16 px inside the
 # screen edge (the emulator runs 3-button navigation: no edge gesture zone takes the touch).
 PAGING_SWIPE_X = 0.985
+# Flood comparison (proof flavour only): the SAME open/Back scenario on the legacy reader (the ordinary Zadaci tab) and on the P6 reader (the
+# proof deep link), same build, same emulator session, same log harvest, so "no new freeze" is settled with numbers instead of an argument.
+FLOOD_CYCLES = 10                     # open the second visible card -> its detail -> Back -> the list again, per phase
+FLOOD_REPEAT_BUDGET_S = 45 * 60       # a second legacy phase (run-to-run drift, recorded, never gated) runs only while the driver has run less than this: the workflow has 90 min in all
+LEGACY_ROUTE = 'uskociapp://zadaci'   # the ordinary Zadaci route without the proof parameter: the legacy reader in the proof flavour (P6 in the production flavour)
+DRIVER_STARTED = time.time()
 
 
 def note(kind, **fields):
@@ -1684,6 +1706,294 @@ def s_final():
           slowest=max((x['s'] for x in returns), default=None))
 
 
+# ------------------------------------------------------------------------------------------------ flood comparison (legacy reader vs P6 reader)
+GFX_LINE = {'frames': r'^Total frames rendered:\s+(\d+)', 'p50Ms': r'^50th percentile:\s+(\d+)ms', 'p90Ms': r'^90th percentile:\s+(\d+)ms',
+            'p95Ms': r'^95th percentile:\s+(\d+)ms', 'p99Ms': r'^99th percentile:\s+(\d+)ms'}
+LOGCAT_PID = re.compile(rb'^\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+\d+\s+[A-Z]\s')      # `logcat -v threadtime`: date time PID TID level tag: message
+DAVEY_MS = re.compile(rb'Davey! duration=(\d+)ms')
+DEAD_TAG = b'synchronouslyUpdateUIProps failed'
+
+
+def parse_gfxinfo(text):
+    """`dumpsys gfxinfo <package>`: the frame statistics block (frames rendered, janky frames and their percentage, the 50/90/95/99th percentile
+    frame times). The `... gpu percentile` lines are another block and do not match. A missing line stays None, and a verdict on None fails."""
+    out = {}
+    for key, pattern in GFX_LINE.items():
+        m = re.search(pattern, text or '', re.M)
+        out[key] = int(m.group(1)) if m else None
+    janky = re.search(r'^Janky frames:\s+(\d+)\s+\(([\d.]+)%\)', text or '', re.M)
+    out['janky'] = int(janky.group(1)) if janky else None
+    out['jankyPercent'] = float(janky.group(2)) if janky else None
+    return out
+
+
+def scan_logcat_chunks(chunks, app_pids=()):
+    """Streaming scan of `logcat -v threadtime` bytes, chunk by chunk (a line may span two chunks; only one chunk and one partial line are ever
+    held, so a phase of hundreds of MB costs nothing in memory): `Davey!` frames (count, count of 700 ms and longer, the longest) for every
+    process and for the app's own pids, and Reanimated dead-tag lines. Davey lines come from several processes on the emulator (the system UI and
+    the launcher log them too), so the app's own pids are what a reader comparison uses; the all-process numbers stay as data."""
+    pids = {str(p).encode() for p in app_pids if p}
+    davey, davey_app = {'count': 0, 'over700': 0, 'maxMs': 0}, {'count': 0, 'over700': 0, 'maxMs': 0}
+    out = {'davey': davey, 'daveyApp': davey_app, 'deadTagLines': 0, 'deadTagLinesApp': 0, 'lines': 0, 'bytes': 0, 'pidFilter': sorted(p.decode() for p in pids)}
+
+    def one_line(raw):
+        out['lines'] += 1
+        pid = LOGCAT_PID.match(raw)
+        mine = bool(pid) and pid.group(1) in pids
+        m = DAVEY_MS.search(raw)
+        if m:
+            ms = int(m.group(1))
+            for bucket, wanted in ((davey, True), (davey_app, mine)):
+                if wanted:
+                    bucket['count'] += 1
+                    bucket['over700'] += 1 if ms >= 700 else 0
+                    bucket['maxMs'] = max(bucket['maxMs'], ms)
+        if DEAD_TAG in raw:
+            out['deadTagLines'] += 1
+            out['deadTagLinesApp'] += 1 if mine else 0
+
+    tail = b''
+    for chunk in chunks:
+        out['bytes'] += len(chunk)
+        parts = (tail + chunk).split(b'\n')
+        tail = parts.pop()
+        for raw in parts:
+            one_line(raw)
+    if tail:
+        one_line(tail)
+    return out
+
+
+def read_file_span_chunks(path, start, end, chunk=8 << 20):
+    """The bytes [start, end) of a file another process keeps appending to (the background logcat writer), 8 MB at a time."""
+    with open(path, 'rb') as fh:
+        fh.seek(start)
+        left = max(0, end - start)
+        while left > 0:
+            data = fh.read(min(chunk, left))
+            if not data:
+                break
+            left -= len(data)
+            yield data
+
+
+def verdict_counts(scan):
+    """Which of the scanned counts a verdict uses: the app's own pids when they were known (daveySource appPids), else every process."""
+    app = bool(scan.get('pidFilter'))
+    return {**scan, 'daveySource': 'appPids' if app else 'allProcesses', 'daveyForVerdict': scan['daveyApp'] if app else scan['davey'],
+            'deadTagLinesForVerdict': scan['deadTagLinesApp'] if app else scan['deadTagLines']}
+
+
+def flood_verdicts(legacy, p6):
+    """The no-new-freeze rules, declared before any measurement, with P6 as the candidate against the legacy reader of the SAME session:
+    longest Davey <= max(1.25 * legacy, legacy + 1000 ms); Davey events of 700 ms and longer per cycle <= 1.25 * legacy + 1; janky frame
+    percentage <= legacy + 5 points; dead-tag lines per cycle <= 1.5 * legacy + 100. Plus: each phase completed all its cycles and used only
+    its own reader. Missing numbers fail: nothing passes on a measurement that was not taken. Returns (check name, ok, facts) per rule."""
+    def cycles(phase):
+        return phase.get('cyclesCompleted') or 0
+
+    def per_cycle(phase, value):
+        return (value / cycles(phase)) if value is not None and cycles(phase) else None
+
+    def rnd(value):
+        return round(value, 3) if value is not None else None
+
+    def davey(phase):
+        return (phase.get('log') or {}).get('daveyForVerdict') or {}
+
+    out = []
+    for name, phase, reader, other in (('LEGACY', legacy, 'rpc_list_open_tasks_v3', 'rpc_discovery_v1'), ('P6', p6, 'rpc_discovery_v1', 'rpc_list_open_tasks_v3')):
+        delta = (phase.get('readers') or {}).get('delta') or {}
+        out.append((f'FLOOD_COMPARE_{name}_COMPLETED_ALL_CYCLES', cycles(phase) > 0 and cycles(phase) == phase.get('cyclesPlanned'),
+                    {'completed': cycles(phase), 'planned': phase.get('cyclesPlanned'), 'route': phase.get('route'), 'routeFallback': phase.get('routeFallback')}))
+        out.append((f'FLOOD_COMPARE_{name}_USED_THE_{name}_READER_ONLY', delta.get(reader, 0) >= 1 and delta.get(other, 0) == 0,
+                    {'readerCallsSinceRoute': delta, 'expectedReader': reader}))
+    l_max, p_max = davey(legacy).get('maxMs'), davey(p6).get('maxMs')
+    allowed_max = max(1.25 * l_max, l_max + 1000) if l_max is not None else None
+    out.append(('FLOOD_COMPARE_P6_LONGEST_FREEZE_NOT_LONGER_THAN_LEGACY', allowed_max is not None and p_max is not None and p_max <= allowed_max,
+                {'legacyMaxMs': l_max, 'p6MaxMs': p_max, 'allowedMs': rnd(allowed_max), 'rule': 'p6 longest Davey ms <= max(1.25 * legacy, legacy + 1000)'}))
+    l_pc, p_pc = per_cycle(legacy, davey(legacy).get('over700')), per_cycle(p6, davey(p6).get('over700'))
+    allowed_pc = 1.25 * l_pc + 1 if l_pc is not None else None
+    out.append(('FLOOD_COMPARE_P6_FREEZES_PER_CYCLE_NOT_MORE_THAN_LEGACY', allowed_pc is not None and p_pc is not None and p_pc <= allowed_pc,
+                {'legacyOver700': davey(legacy).get('over700'), 'p6Over700': davey(p6).get('over700'), 'legacyPerCycle': rnd(l_pc), 'p6PerCycle': rnd(p_pc),
+                 'allowedPerCycle': rnd(allowed_pc), 'rule': 'p6 Davey events >= 700 ms per cycle <= 1.25 * legacy + 1'}))
+    l_j, p_j = (legacy.get('gfx') or {}).get('jankyPercent'), (p6.get('gfx') or {}).get('jankyPercent')
+    out.append(('FLOOD_COMPARE_P6_JANKY_FRAMES_NOT_MORE_THAN_LEGACY', l_j is not None and p_j is not None and p_j <= l_j + 5,
+                {'legacyJankyPercent': l_j, 'p6JankyPercent': p_j, 'allowedPercent': rnd(l_j + 5) if l_j is not None else None,
+                 'legacyFrames': (legacy.get('gfx') or {}).get('frames'), 'p6Frames': (p6.get('gfx') or {}).get('frames'), 'rule': 'p6 janky frame % <= legacy + 5 points'}))
+    l_d, p_d = per_cycle(legacy, (legacy.get('log') or {}).get('deadTagLinesForVerdict')), per_cycle(p6, (p6.get('log') or {}).get('deadTagLinesForVerdict'))
+    allowed_d = 1.5 * l_d + 100 if l_d is not None else None
+    out.append(('FLOOD_COMPARE_P6_DEAD_TAG_LINES_PER_CYCLE_NOT_MORE_THAN_LEGACY', allowed_d is not None and p_d is not None and p_d <= allowed_d,
+                {'legacyDeadTagLines': (legacy.get('log') or {}).get('deadTagLinesForVerdict'), 'p6DeadTagLines': (p6.get('log') or {}).get('deadTagLinesForVerdict'),
+                 'legacyPerCycle': rnd(l_d), 'p6PerCycle': rnd(p_d), 'allowedPerCycle': rnd(allowed_d), 'rule': 'p6 dead-tag lines per cycle <= 1.5 * legacy + 100'}))
+    return out
+
+
+def zadaci_tab_press():
+    """The ordinary Zadaci tab as a person reaches it (the bottom-most control named Zadaci, like s_ordinary_route); the ordinary deep link when
+    the bar is not on screen."""
+    root, parent = dump()
+    tabs = sorted(nodes(root, desc='Zadaci'), key=lambda x: parse_bounds(x.attrib.get('bounds'))[1])
+    if tabs:
+        tap_visible(tabs[-1], parent)
+        time.sleep(3)
+        return 'tab'
+    open_deep_link(LEGACY_ROUTE)
+    return 'deep_link'
+
+
+def flood_route(phase):
+    """Bring up the phase's Zadaci screen: the P6 proof deep link, or the ordinary tab (the legacy reader in the proof flavour)."""
+    if phase == 'p6':
+        open_deep_link(LIST_URL)
+        return 'deep_link_p6Proof'
+    return zadaci_tab_press()
+
+
+def flood_list_ready(r, _p):
+    return bool(count_nodes(r) or nodes(r, contains='Nema zadataka') or nodes(r, contains='nisu učitani'))
+
+
+def flood_ensure_list(phase, timeout=90):
+    """Like ensure_list, but a recovery re-opens the PHASE's own route (never the proof deep link from a legacy phase)."""
+    for _ in range(4):
+        root, _p = dump()
+        if count_nodes(root):
+            return root
+        back()
+    flood_route(phase)
+    _, root, _p = poll(lambda r, p: count_nodes(r), timeout, what=f'{phase} list after recovery')
+    return root
+
+
+def flood_ensure_full(phase):
+    root = flood_ensure_list(phase)
+    if is_full(root):
+        return root
+    root, parent = dump()
+    target = nodes(root, rid_='list-count')
+    if not target:
+        raise RuntimeError('list-count control not found')
+    tap_visible(target[0], parent)
+    _, root, _p = poll(lambda r, p: is_full(r), 25, what='list at full height (the sheet standing at the top of the screen)')
+    return root
+
+
+def reader_deltas(before, after=None):
+    after = after or reader_calls()
+    return {k: after.get(k, 0) - before.get(k, 0) for k in ('rpc_discovery_v1', 'rpc_list_open_tasks_v3')}
+
+
+def wait_reader_delta(before, name, timeout=45):
+    """Wait until the named reader was called since `before` (the screen's own first read); the deltas seen at the end either way."""
+    end = time.time() + timeout
+    while True:
+        delta = reader_deltas(before)
+        if delta.get(name, 0) >= 1 or time.time() >= end:
+            return delta
+        time.sleep(2.0)
+
+
+def flood_phase(phase, n):
+    """One phase of the flood comparison: the route, then n open/Back cycles with frame statistics (gfxinfo reset before, read after), the device
+    log appended meanwhile scanned streaming (Davey frames, dead-tag lines), reader calls from the route on, PSS before/after, per-cycle times.
+    A stray detail or a lost list is recovered like s_paging does (Back, then the phase's own route); launch_clean is never called."""
+    started = time.time()
+    readers0 = reader_calls()
+    via = flood_route(phase)
+    poll(flood_list_ready, 90, what=f'{phase} Zadaci screen')
+    wanted = 'rpc_discovery_v1' if phase == 'p6' else 'rpc_list_open_tasks_v3'
+    route_delta = wait_reader_delta(readers0, wanted)
+    fallback = None
+    if phase != 'p6' and route_delta.get(wanted, 0) < 1:
+        # The tab may still carry the proof parameter of an earlier deep link (route params are route state); the ordinary deep link without
+        # the parameter mounts the legacy screen. Recorded; the reader check below judges the phase by what was really called.
+        fallback = LEGACY_ROUTE
+        open_deep_link(LEGACY_ROUTE)
+        poll(flood_list_ready, 90, what='legacy Zadaci screen after the ordinary deep link')
+        route_delta = wait_reader_delta(readers0, wanted)
+    time.sleep(3)
+    flood_ensure_full(phase)
+    pss0, pid0 = mem_kb(), app_pid()
+    adb('shell', 'dumpsys', 'gfxinfo', PACKAGE, 'reset', check=False)
+    log = ARTIFACT_DIR / 'logcat.txt'
+    size0 = log.stat().st_size if log.exists() else 0
+    cycles = []
+    for i in range(1, n + 1):
+        root, parent = dump()
+        if not count_nodes(root) or not cards(root):
+            flood_ensure_full(phase)
+            root, parent = dump()
+        cs = cards(root)
+        if not cs:
+            cycles.append({'cycle': i, 'error': 'no card on the list'})
+            break
+        pick = cs[min(1, len(cs) - 1)]
+        tapped = time.time()
+        tap_visible(pick['node'], parent)
+        try:
+            poll(lambda r, p: looks_like_task_detail(r) and any(pick['title'] in label_of(x) for x in r.iter() if x.attrib.get('package') == PACKAGE),
+                 45, interval=0.5, what='task detail')
+            to_detail = round(time.time() - tapped, 1)
+        except RuntimeError:
+            to_detail = None
+        time.sleep(1.0)
+        back_started = time.time()
+        try:
+            root, _p = back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
+            to_list = round(time.time() - back_started, 1)
+        except RuntimeError:
+            to_list, root = None, dump()[0]
+        again, held = (None, False)
+        if to_list is not None:
+            root, again, held = settled_card(pick['title'])
+        cycles.append({'cycle': i, 'title': pick['title'], 'tapToDetailS': to_detail, 'backToListS': to_list, 'cardBack': again is not None,
+                       'settled': held, 'fullAfterReturn': is_full(root)})
+    size1 = log.stat().st_size if log.exists() else size0
+    gfx_text = adb('shell', 'dumpsys', 'gfxinfo', PACKAGE, check=False).stdout or ''
+    (ARTIFACT_DIR / f'flood_{phase}_gfxinfo.txt').write_text(gfx_text[:40000], encoding='utf-8')
+    pid1 = app_pid()
+    scan = verdict_counts(scan_logcat_chunks(read_file_span_chunks(log, size0, size1) if log.exists() else [], app_pids={pid0, pid1}))
+    readers1 = reader_calls()
+    completed = sum(1 for c in cycles if c.get('tapToDetailS') is not None and c.get('backToListS') is not None and c.get('cardBack'))
+    detail_s = sorted(c['tapToDetailS'] for c in cycles if c.get('tapToDetailS') is not None)
+    list_s = sorted(c['backToListS'] for c in cycles if c.get('backToListS') is not None)
+    return {'phase': phase, 'route': via, 'routeFallback': fallback, 'routeReaderDelta': route_delta, 'cyclesPlanned': n, 'cyclesCompleted': completed,
+            'cycles': cycles, 'tapToDetailS': {'median': percentile(detail_s, 0.5), 'max': max(detail_s, default=None)},
+            'backToListS': {'median': percentile(list_s, 0.5), 'max': max(list_s, default=None)}, 'gfx': parse_gfxinfo(gfx_text), 'log': scan,
+            'readers': {'before': readers0, 'after': readers1, 'delta': reader_deltas(readers0, readers1)}, 'pssKb': {'before': pss0, 'after': mem_kb()},
+            'pids': sorted({pid0, pid1} - {''}), 'logBytes': size1 - size0, 'seconds': round(time.time() - started, 1)}
+
+
+def s_flood_compare():
+    """Flood comparison (proof flavour): the same open/Back flood on the legacy reader and then on the P6 reader in one session, judged by the
+    declared rules; a second legacy phase, while the driver still has time, exposes run-to-run drift and is recorded, never gated."""
+    if ROUTE != 'proof':
+        REPORT['floodCompare'] = {'skipped': 'production flavour: the ordinary Zadaci tab is the P6 reader too, so this build has no legacy reader to compare with'}
+        note('FLOOD_COMPARE_SKIPPED', route=ROUTE)
+        return
+    legacy = flood_phase('legacy', FLOOD_CYCLES)
+    p6 = flood_phase('p6', FLOOD_CYCLES)
+    result = {'cyclesPerPhase': FLOOD_CYCLES, 'order': ['legacy', 'p6', 'legacyRepeat'], 'legacy': legacy, 'p6': p6,
+              'conditions': "CI x86_64 emulator, software rendering, disposable local server; same build, same session, same log harvest; Davey and dead-tag "
+                            "counts from the app's own pids (all-process counts kept as data); timings are CI emulator bounds, not phone measurements"}
+    REPORT['floodCompare'] = result
+    for name, ok, facts in flood_verdicts(legacy, p6):
+        check(name, ok, **facts)
+    elapsed = round(time.time() - DRIVER_STARTED)
+    if elapsed < FLOOD_REPEAT_BUDGET_S:
+        try:
+            result['legacyRepeat'] = flood_phase('legacy', FLOOD_CYCLES)
+            # Run-to-run drift: the repeat judged by the same rules as if it were the candidate. Information only.
+            result['legacyDrift'] = {name: {'ok': ok, **facts} for name, ok, facts in flood_verdicts(legacy, result['legacyRepeat']) if '_NOT_' in name}
+        except Exception as exc:                              # noqa: BLE001 - drift is information, never a gate
+            if getattr(exc, 'native_surface_fatal', False):
+                raise
+            result['legacyRepeat'] = {'error': f'{type(exc).__name__}: {str(exc)[:300]}'}
+    else:
+        result['legacyRepeat'] = {'skipped': f'driver running {elapsed} s, over the {FLOOD_REPEAT_BUDGET_S} s budget for a third phase'}
+
+
 def main():
     note('START', mode=MODE, route=ROUTE, total=TOTAL, expected=EXPECTED)
     try:
@@ -1695,7 +2005,8 @@ def main():
     for name, fn in (('login', s_login), ('ordinary_route', s_ordinary_route), ('route', s_route), ('open_full', s_open_full),
                      ('paging', s_paging), ('detail_back', s_detail_and_back), ('cycles', s_repeat_cycles),
                      ('filters', s_filters), ('map_pins', s_map_pins),
-                     ('search_places', s_search_places), ('map_gestures', s_map_gestures), ('final', s_final)):
+                     ('search_places', s_search_places), ('map_gestures', s_map_gestures), ('final', s_final),
+                     ('flood_compare', s_flood_compare)):     # after `final` so the existing order is unchanged; proof flavour only (skip note otherwise)
         if FOCUS and name != 'login' and name not in FOCUS:
             continue
         step(name, fn)
