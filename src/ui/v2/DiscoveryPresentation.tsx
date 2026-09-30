@@ -39,7 +39,7 @@ import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 /** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
 export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
   | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
-  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh',
+  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh' | 'kick',
   ...values: (number | boolean)[]) => void;
 
 export type DiscoveryV1PresentationSeam = {
@@ -110,6 +110,9 @@ const keyOf = (item: MarketplaceItem) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 const INDEX = { peek: SNAP.peek, half: SNAP.half, full: SNAP.full } as const;
+/** When the P6 sheet is nudged after it mounts (the last one is an even count, so it rests on its exact snap points), and by how much. */
+const SHEET_KICKS_MS = [400, 1_200, 2_600, 5_000, 8_000, 12_000] as const;
+const SHEET_KICK_PX = 0.01;
 const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
@@ -569,6 +572,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // A chosen pin's card: the list's top line steps out of sight behind it, and the map's zoom and credits step up above it.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
   const [cardHeight, setCardHeight] = useState(0);
+  // Android: Reanimated writes a view's opacity and transform by a synchronous update that is lost when Fabric has not mounted the view yet, and nothing
+  // writes it again: a freshly mounted Gorhom body then stays at its hidden mount props (opacity 0 / off-screen) while the shared index and position already
+  // report the requested stop (found on the CI emulator after returns from a task: a dimmed empty screen with only the "Mapa" pill). The P6 screen is rebuilt
+  // on every return, so its sheet is nudged by a hundredth of a pixel a few times after it mounts: Gorhom re-evaluates the position and Reanimated writes
+  // the body's style again, this time to a view that is there. The other logic of this screen reads the unnudged snap points.
+  const [kick, setKick] = useState(0);
   const snapPoints = useMemo(() => {
     const collapsed = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
     const low = cardShown ? HIDDEN : collapsed;
@@ -576,6 +585,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const full = availableSheet;
     return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
   }, [bodyHeight, availableSheet, mapClearSheet, scrollHeader, headerLeadHeight, peek, cardShown]);
+  const sheetSnapPoints = useMemo(() => kick % 2 === 1
+    ? snapPoints.map((value, at) => at === sheetIndex && typeof value === 'number' ? value - SHEET_KICK_PX : value) : snapPoints, [snapPoints, kick, sheetIndex]);
   // Empty results use the same full-height recovery surface, with a secondary map return.
   const highest = SNAP.full;
   // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
@@ -645,6 +656,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     sheetMount.current.layout = layoutMountSignature;
   }
   const nativeMountKey = sheetMount.current.key;
+  const kickable = !!props.p6Seam && Platform.OS === 'android' && focused && bodyHeight > 0;
+  useEffect(() => {
+    if (!kickable) return;
+    const timers = SHEET_KICKS_MS.map((ms, at) => setTimeout(() => { trace('kick', at + 1, ms); setKick(at + 1); }, ms));
+    return () => { timers.forEach(clearTimeout); setKick(0); };
+  }, [kickable, nativeMountKey, trace]);
   const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
@@ -1083,7 +1100,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
-      <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={snapPoints} position={position} reduced={reduced}
+      <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} reduced={reduced}
         // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
         // sets `didAnimateOnMount`), and nothing re-runs it: a later request for another detent is lost, React says FULL and the native sheet stays
         // where it is (a dimmed empty screen with only the "Mapa" pill; found on the emulator, on the first open of the list and after a return).

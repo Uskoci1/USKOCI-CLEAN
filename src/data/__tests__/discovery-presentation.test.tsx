@@ -1306,6 +1306,73 @@ test.each([
   expect(listSheet().props).toMatchObject({ index, animateOnMount: false });
 });
 
+// Android: a lost synchronous style write can leave a freshly mounted Gorhom body at its hidden mount props (opacity 0 / off-screen) while index and
+// position already report the stop (found on the CI emulator after returns from a task). The P6 sheet is nudged by a hundredth of a pixel a few times
+// after it mounts, so that Gorhom evaluates its position and Reanimated writes the body's style again, and it rests on its exact snap points.
+const asPlatform = async (os: string, run: () => Promise<void>) => {
+  const { Platform } = jest.requireActual('react-native');
+  const before = Platform.OS; Platform.OS = os;
+  try { await run(); } finally { Platform.OS = before; }
+};
+const kicks = () => nativeTrace.mock.calls.filter(call => call[0] === 'kick').map(call => call.slice(1));
+test('the P6 sheet is nudged by a hundredth of a pixel after it mounts on Android, and rests on its exact snap points', async () => {
+  await asPlatform('android', async () => {
+    jest.useFakeTimers();
+    try {
+      rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+      initial = { ...initial, sheet: 'full', listOffset: 0 };
+      p6Seam = p6Seam_(); tracing = true;
+      await render(); await layOutBody();
+      const exact = [...listSheet().props.snapPoints] as number[];
+      expect(typeof exact[2]).toBe('number');
+      const advance = async (ms: number) => act(async () => { jest.advanceTimersByTime(ms); });
+      const resting = () => expect(listSheet().props.snapPoints).toEqual(exact);
+      const nudged = () => {
+        const now = listSheet().props.snapPoints as number[];
+        expect(now[2]).toBeCloseTo(exact[2] - 0.01, 6); expect(now[0]).toBe(exact[0]); expect(now[1]).toBe(exact[1]);
+      };
+      await advance(399); resting();
+      await advance(1); nudged();
+      await advance(800); resting();
+      await advance(1_400); nudged();
+      await advance(2_400); resting();
+      await advance(3_000); nudged();
+      await advance(4_000); resting();
+      await advance(60_000); resting();
+      expect(kicks()).toEqual([[1, 400], [2, 1_200], [3, 2_600], [4, 5_000], [5, 8_000], [6, 12_000]]);
+    } finally { jest.useRealTimers(); }
+  });
+});
+test('the nudge follows the stop the sheet rests at, and the rest of the screen never reads the nudged points', async () => {
+  await asPlatform('android', async () => {
+    jest.useFakeTimers();
+    try {
+      rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+      initial = { ...initial, sheet: 'half', listOffset: 0 };
+      p6Seam = p6Seam_();
+      await render(); await layOutBody();
+      const exact = [...listSheet().props.snapPoints] as number[];
+      await act(async () => { jest.advanceTimersByTime(400); });
+      const now = listSheet().props.snapPoints as number[];
+      expect(now[1]).toBeCloseTo(exact[1] - 0.01, 6); expect(now[2]).toBe(exact[2]);
+      // Mounted once: nudging is not a new native mount.
+      expect(sheets().filter(node => !node.props.detached)).toHaveLength(1);
+    } finally { jest.useRealTimers(); }
+  });
+});
+test('the legacy reader, another platform and a screen that is not in front never nudge the sheet', async () => {
+  jest.useFakeTimers();
+  try {
+    rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+    initial = { ...initial, sheet: 'full', listOffset: 0 }; tracing = true;
+    const settle = async () => { await layOutBody(); const exact = [...listSheet().props.snapPoints]; await act(async () => { jest.advanceTimersByTime(30_000); });
+      expect(listSheet().props.snapPoints).toEqual(exact); expect(kicks()).toEqual([]); };
+    await asPlatform('android', async () => { p6Seam = undefined; await render(); await settle(); await act(async () => tree.unmount()); });
+    await asPlatform('ios', async () => { p6Seam = p6Seam_(); await render(); await settle(); await act(async () => tree.unmount()); });
+    await asPlatform('android', async () => { p6Seam = p6Seam_(); mockFocused = false; await render(); await settle(); });
+  } finally { jest.useRealTimers(); }
+});
+
 test('while reading, the sheet is half open over breathing placeholders; the start is chosen once the read lands', async () => {
   loading = true; rows = []; await render();
   expect(listSheet().props.index).toBe(1); expect(texts()).toContain('Učitavamo zadatke…');

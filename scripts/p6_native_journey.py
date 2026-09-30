@@ -240,18 +240,30 @@ def back():
     time.sleep(2.5)
 
 
-def back_to_list(need_cards=True, need_peek=False, timeout=60):
+def is_blank_sheet(root):
+    """The failure of journey #5: the sheet's dim is drawn and the "Mapa" pill stands, but the sheet itself (count, cards) is not there."""
+    return bool(nodes(root, rid_='discovery-sheet-dim')) and bool(nodes(root, desc='Mapa')) and not count_nodes(root) and not cards(root)
+
+
+def back_to_list(need_cards=True, need_peek=False, timeout=90, wait_for=None):
     """Android Back from a pushed screen. The P6 Discovery screen is rebuilt from its saved view (placeholder, reads, list),
-    so wait for the real list (and cards / Peek), then give the saved list offset time to be restored before measuring."""
+    so wait for the real list (and cards / Peek; a Peek covers the list, so it has no count line), then give the saved list offset time to be
+    restored before measuring. `wait_for(root)` names one more thing that must be back (the card that was opened). Every return is recorded:
+    whether the sheet was blank when first looked at, and how long it took."""
     back()
+    started, blank = time.time(), {'seen': False}
 
     def ready(r, p):
+        if need_peek:
+            return bool(peek_task_title(r))
         if not count_nodes(r):
+            blank['seen'] = blank['seen'] or is_blank_sheet(r)
             return False
         if need_cards and not cards(r):
             return False
-        return bool(peek_task_title(r)) if need_peek else True
+        return wait_for(r) if wait_for else True
     poll(ready, timeout, what='Discovery list after Back')
+    REPORT.setdefault('returns', []).append({'blank': blank['seen'], 's': round(time.time() - started, 1)})
     time.sleep(2.5)
     return dump()
 
@@ -858,7 +870,7 @@ def s_detail_and_back():
     _, root, _p = poll(lambda r, p: not count_nodes(r) and any(pick['title'] in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30, what='task detail')
     snapshot('P6_05_detail')
     check('DETAIL_SHOWS_TITLE', True, title=pick['title'])
-    back_to_list()
+    back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
     root = snapshot('P6_06_after_back')
     cs = cards(root)
     same = next((c for c in cs if c['title'] == pick['title']), None)
@@ -884,8 +896,12 @@ def s_repeat_cycles(n=10):
         pick = cs[min(1, len(cs) - 1)]
         tap_visible(pick['node'], parent)
         time.sleep(2.5)
-        root, _p = back_to_list()
-        check(f'CYCLE_{i:02d}_LIST_RESTORED', any(c['title'] == pick['title'] for c in cards(root)) and is_full(root), title=pick['title'])
+        # The list is judged once the opened card is back: the CI emulator draws a rebuilt 100-row list seconds late, and a return that never gets
+        # there fails the wait itself (90 s), with the blank sheet recorded.
+        root, _p = back_to_list(wait_for=lambda r: any(c['title'] == pick['title'] for c in cards(r)))
+        again = next((c for c in cards(root) if c['title'] == pick['title']), None)
+        drift = abs(again['bounds'][1] - pick['bounds'][1]) if again else None
+        check(f'CYCLE_{i:02d}_LIST_RESTORED', again is not None and is_full(root), title=pick['title'], drift=drift)
         if i in (1, n // 2, n):
             REPORT['mem'].append({'tag': f'cycle_{i}', 'kb': mem_kb(), 'pid': app_pid()})
     snapshot('P6_07_after_cycles')
@@ -1143,9 +1159,14 @@ def s_search_places():
     tap_visible(show[-1], parent)
     _, root, parent = wait_count(dense_expected, 30)
     check('SEARCH_PLACE_RESULT_COUNT_EQUALS_SERVER', count_value(root)[0] == dense_expected, ui=count_value(root)[0], expected=dense_expected)
-    time.sleep(5)
+    # The place's marker arrives with the MAP read for it (the buckets are emptied while it is read).
+    end, applied = time.time() + 25, []
+    while time.time() < end:
+        time.sleep(2)
+        applied = pills()
+        if applied:
+            break
     root = snapshot('P6_23_search_applied')
-    applied = pills(root)
     check('SEARCH_PLACE_SHOWS_ITS_PILL_ON_THE_MAP', len(applied) >= 1, pills=len(applied), boxes=pill_boxes(applied))
     clear = nodes(root, desc='Prikaži sve zadatke') or nodes(root, rid_='clear-where')
     if clear:
@@ -1182,6 +1203,10 @@ def s_final():
     if not reqs and 'logSamples' not in REPORT:
         REPORT['logSamples'] = log_samples()
     check('SERVER_REQUEST_LOG_AVAILABLE', bool(reqs), total=len(reqs), modes=modes)
+    # Every return to the list showed the sheet (a blank first look is recorded, not fatal: the sheet heals itself), and none took longer than this.
+    returns = REPORT.get('returns', [])
+    check('EVERY_RETURN_SHOWED_THE_SHEET', bool(returns) and all(x['s'] <= 45 for x in returns), returns=len(returns),
+          blankAtFirstLook=sum(1 for x in returns if x['blank']), slowest=max((x['s'] for x in returns), default=None))
 
 
 def main():

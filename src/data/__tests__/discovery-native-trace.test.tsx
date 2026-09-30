@@ -46,3 +46,21 @@ it('is bounded: samples per high-rate event, and a total limit', async () => {
   for (let i = 0; i < NATIVE_TRACE_LIMIT + 50; i++) trace!('index', i);
   expect(lines()).toHaveLength(NATIVE_TRACE_LIMIT);
 });
+
+it('gives every visit its own allowance: route-focus starts a visit, so a return is diagnosed like the first visit', async () => {
+  const { trace } = await mount();
+  for (let i = 0; i < NATIVE_TRACE_LIMIT + 10; i++) trace!('index', i);
+  for (let i = 0; i < NATIVE_TRACE_SAMPLE_LIMIT + 10; i++) trace!('scroll', i);
+  expect(lines()).toHaveLength(NATIVE_TRACE_LIMIT);
+  trace!('route-focus'); trace!('index', 1); trace!('scroll', 2); trace!('kick', 1, 400);
+  expect(lines().slice(-4)).toEqual(['[USKOCI_DISCOVERY_TRACE] [1,"route-focus"]', '[USKOCI_DISCOVERY_TRACE] [2,"index",1]',
+    '[USKOCI_DISCOVERY_TRACE] [3,"scroll",2]', '[USKOCI_DISCOVERY_TRACE] [4,"kick",1,400]']);
+});
+
+it('samples the persisted view, so that scrolling a long list cannot spend the allowance of the visit', async () => {
+  const { trace } = await mount();
+  for (let i = 0; i < NATIVE_TRACE_SAMPLE_LIMIT + 60; i++) trace!('route-view', i, 2);
+  expect(lines()).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT);
+  trace!('index', 0);
+  expect(lines()).toHaveLength(NATIVE_TRACE_SAMPLE_LIMIT + 1);
+});
