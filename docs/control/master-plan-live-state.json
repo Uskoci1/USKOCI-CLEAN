@@ -4,7 +4,7 @@
   },
   "p6": {
     "status": "OPEN",
-    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Rollout v2 (frozen ce1dab6b… + visibility + PLACES) dokazan na disposable PKG045b meti (run 36640264441, da01a4f1…); PKG045b P0 forma dokazana (run 36641388832). Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili: drift granica mape (extra_float_digits), anotacije koje se ne crtaju (sad native GeoJSON slojevi), Gorhom animateOnMount koji gubi detent, petlju pretrage, čitanje mesta koje se gubi, kameru klastera i kasni settle. Journey #3: 53/57 provera (dve greške drivera, jedna spora mapa, jedna pretraga već popravljena). Klijent: tipovi + 362 grupe / 7436 testova zeleno na 7ca4ead6. PKG045b kompatibilnost klijenta zapisana + čuvar test. Preostalo: FULL journey na APK(6) (run 36668520023 u toku), DEV primena PKG045b pa rollout v2 (preflight + readback + receipt), cutover čitača + provera na emulatoru protiv DEV-a, završni receipt. P6 RPC još nije na DEV-u (ledger 210)."
+    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Rollout v2 (frozen ce1dab6b… + visibility + PLACES) dokazan na disposable PKG045b meti (run 36640264441, da01a4f1…); PKG045b P0 forma dokazana (run 36641388832). Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili oko 13 stvarnih grešaka (drift granica mape, nacrtane anotacije, Gorhom animateOnMount, petlja pretrage, čitanje mesta, kamera klastera, prazan sheet posle povratka, restore dubokog položaja, zadržana poslednja kompletna slika, odziv pina). Journey #8: 78/80 provera; pali ciklusi 14/16/20 zbog restore-a čiji poslednji tačni zahtev nikad ne dobije nativni događaj (uzrok nađen u tragu, reproduktor pada pre popravke, popravka u 21dc70c6). Fokusirani native run (28 provera) PASS: 30 dodira na pin (CI emulator: prvi odgovor p50 0,42 s / p95 0,53 s, kartica p50 1,2 s / p95 1,5 s), pan, zoom, mesto i tačka. Klijent: Discovery paket 32 suite / 614 testova + tsc zeleno lokalno. Preostalo: pun journey #9 (u toku, APK 36690201482), DEV primena PKG045b pa rollout v2 (preflight + readback + receipt), cutover čitača i provera na emulatoru protiv DEV-a (APK 36691839653 izgrađen), završni receipt. P6 RPC još nije na DEV-u (ledger 210)."
   },
   "release": {
     "status": "NOT READY",
@@ -19,7 +19,7 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "FULL nativno prihvatanje (u toku), pa PKG045b + rollout v2 na DEV uz preflight/readback, pa cutover čitača i provera na emulatoru",
+    "title": "Pun nativni acceptance #9 (u toku), pa PKG045b + rollout v2 na DEV uz preflight/readback, pa cutover čitača i provera na emulatoru, pa P6 ZAVRŠEN i STOP",
     "note": "Bez novih performance eksperimenata i bez P7. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ipak ide sa svežim preflight-om i readback-om. P6 se proglašava završenim tek kad svi gejtovi prođu."
   },
   "evidence": [
@@ -75,7 +75,37 @@
       "id": "P6-NATIVE-APK-6",
       "run": 36667474012,
       "sha": "f6a8eab12f1eaec649f635c1ad7b54ca94ceba2c",
-      "result": "BUILT (production reader flag, cluster settle fix); acceptance journey 36668520023 running"
+      "result": "BUILT (production reader flag, cluster settle fix); superseded by later APKs"
+    },
+    {
+      "id": "P6-NATIVE-JOURNEY-8",
+      "run": 36684528902,
+      "sha": "e45652c9638266729d9ccbf7ef8d8bfcde9817b5",
+      "result": "FAIL 78/80 on APK 36682742913 (source 37ab97bc): cycles 14/16/20 + derived timing check; root cause = last exact restore request never acknowledged by the native list; fixed in 21dc70c6 with two reproducers that fail before the fix"
+    },
+    {
+      "id": "P6-NATIVE-APK-13",
+      "run": 36690201482,
+      "sha": "21dc70c6",
+      "result": "BUILT (production reader flag; exact-restore fix + pin halo + trace budget)"
+    },
+    {
+      "id": "P6-NATIVE-FOCUSED",
+      "run": 36691742548,
+      "sha": "aaba428bbf01e2363e8fa97d7ea675aa66a24595",
+      "result": "PASS 28 checks (focused steps: map_pins, map_gestures, final): 30 pin touches all traced, peek does not move, pan/zoom read the new area, place and point lists match the server"
+    },
+    {
+      "id": "P6-DEV-EMULATOR-APK",
+      "run": 36691839653,
+      "sha": "fdedabdb (tmp/cutover-apk2 = aaba428b + reader flag)",
+      "result": "BUILT, sha256 6e0edc25… verified, attestations PASS; not installed (DEV has no rpc_discovery_v1 yet)"
+    },
+    {
+      "id": "P6-NATIVE-JOURNEY-9",
+      "run": 36693983178,
+      "sha": "fc58f411",
+      "result": "FULL acceptance run on APK 36690201482: in progress"
     }
   ]
 }
