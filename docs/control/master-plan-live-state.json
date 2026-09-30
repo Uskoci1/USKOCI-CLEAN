@@ -4,7 +4,7 @@
   },
   "p6": {
     "status": "OPEN",
-    "note": "30k SQL screening ZELEN (Round67, run 36632921473, 67ffd458); to nije HTTP/native/concurrency dokaz. Round68 (2026-09-30): deployable rollout v2 = frozen ce1dab6b… + visibility + PLACES sloj, sastavljen deterministički i dokazan na disposable PKG045b meti (run 36640264441, sha256 da01a4f1…): isti body/policy/helper kao proveren stack, sertifikat i Need ACL nepromenjeni, ponovna primena odbijena. x86_64 proof APK izgrađen (run 36638658459); nativni prolaz na disposable restricted serveru u toku. Preostalo: nativno prihvatanje FULL→detalj→Back + memorija/ANR, PKG045b zapis kompatibilnosti pa DEV primena (preflight + readback), primena rollout v2, cutover čitača, završni P6 receipt. P6 RPC još nije na DEV-u (ledger 210). Round69: PKG045b imao jedan zastareo otisak (rpc_list_open_tasks_v3 posle P0) — napravljena P0-kompatibilna verzija (jedan otisak) i dokazana na disposable meti (run 36641388832 PASS, rollout v2 PASS i tu); preflight baze: 5/5 politika, 5/6 funkcija i sve 41 kolona se poklapaju."
+    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Rollout v2 (frozen ce1dab6b… + visibility + PLACES) dokazan na disposable PKG045b meti (run 36640264441, da01a4f1…); PKG045b P0 forma dokazana (run 36641388832). Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili: drift granica mape (extra_float_digits), anotacije koje se ne crtaju (sad native GeoJSON slojevi), Gorhom animateOnMount koji gubi detent, petlju pretrage, čitanje mesta koje se gubi, kameru klastera i kasni settle. Journey #3: 53/57 provera (dve greške drivera, jedna spora mapa, jedna pretraga već popravljena). Klijent: tipovi + 362 grupe / 7436 testova zeleno na 7ca4ead6. PKG045b kompatibilnost klijenta zapisana + čuvar test. Preostalo: FULL journey na APK(6) (run 36668520023 u toku), DEV primena PKG045b pa rollout v2 (preflight + readback + receipt), cutover čitača + provera na emulatoru protiv DEV-a, završni receipt. P6 RPC još nije na DEV-u (ledger 210)."
   },
   "release": {
     "status": "NOT READY",
@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "P6 native prihvatanje na disposable restricted serveru (probe → full), pa PKG045b + rollout v2 na DEV uz preflight/readback, pa cutover čitača",
-    "note": "Bez novih performance eksperimenata i bez P7. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ipak ide sa svežim preflight-om i readback-om."
+    "title": "FULL nativno prihvatanje (u toku), pa PKG045b + rollout v2 na DEV uz preflight/readback, pa cutover čitača i provera na emulatoru",
+    "note": "Bez novih performance eksperimenata i bez P7. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ipak ide sa svežim preflight-om i readback-om. P6 se proglašava završenim tek kad svi gejtovi prođu."
   },
   "evidence": [
     {
@@ -58,6 +58,24 @@
       "run": 36641388832,
       "sha": "dc6aca569bce34352301dfa36fffded7db9bf2c7",
       "result": "PASS (P0-aware preparation + rollout v2 on the P0-aware disposable target)"
+    },
+    {
+      "id": "P6-CLIENT-FINAL-CHECK",
+      "run": 36664648329,
+      "sha": "55f98d324a8ea8c9998909da0ad726b4073ba998",
+      "result": "PASS (tsc + 31 focused suites/591 tests + full Jest 362 suites/7436 tests; source 7ca4ead6)"
+    },
+    {
+      "id": "P6-NATIVE-JOURNEY-3",
+      "run": 36663812678,
+      "sha": "4fc0b6f048934b5d7e6d3739091153359435c434",
+      "result": "PROBE 53/57 checks; 4 failures analysed and fixed (driver x2, cluster settle, search fixed in later APK)"
+    },
+    {
+      "id": "P6-NATIVE-APK-6",
+      "run": 36667474012,
+      "sha": "f6a8eab12f1eaec649f635c1ad7b54ca94ceba2c",
+      "result": "BUILT (production reader flag, cluster settle fix); acceptance journey 36668520023 running"
     }
   ]
 }
