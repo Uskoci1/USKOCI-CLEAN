@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T17:43:42Z",
+  "osvezeno": "2026-09-30T18:19:12Z",
   "grana": "HEAD",
-  "head": "92f2c770",
-  "head_poruka": "docs(control): B24 remediation prepared and proven on a disposable PostgREST 14.5 stand-in (not applied), EX-03 baseline and EX-03a recorded in the registry, live plan and entry map",
+  "head": "f1aeaae5",
+  "head_poruka": "chore(c0): AGENTS.md becomes the 30 KB rulebook (was 130 KB); the dated log is archived byte-exact; the writers and push triggers that would re-inflate it are retired in the same commit",
   "server": {
    "snimljeno": "2026-09-30T12:01:15Z",
    "migracije": 212,
@@ -7259,7 +7259,7 @@
    "oblast": "AI verzija",
    "nalaz_16_09": "Na serveru stara verzija AI funkcije",
    "sada": "ZATVORENO: intake v50 bajt-proveren (PKG-044)",
-   "dokaz": "AGENTS.md PKG-044"
+   "dokaz": "docs/authority/history/AGENTS_PRE_SLIM_20260930.md (PKG-044 paragraph); docs/implementation/v5-ai-first/pkg044/PKG044_CONTEXTUAL_INTAKE_QUESTIONS.md"
   },
   {
    "id": "B07",
