@@ -23,7 +23,8 @@ declare
         from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace
         where n.nspname in('public','private','rls_private') and c.oid is distinct from to_regclass('private.agreement_voice_uploads_v1')
           and not(x.conrelid='public.agreement_messages'::regclass and x.conname in('agreement_messages_body_photo_check','agreement_messages_body_media_check'))
-          and not(x.conrelid='private.closure_actions_v5'::regclass and x.conname='closure_action_shape146')),
+          and not(x.conrelid='private.closure_actions_v5'::regclass and x.conname='closure_action_shape146')
+          and not(x.conrelid='public.agreement_messages'::regclass and x.conname='agreement_voice_link_guard_v1' and x.contype='t')),
       'triggers',(select jsonb_agg(to_jsonb(t) order by t.oid)
         from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
         where (n.nspname in('public','private','rls_private') or c.oid='storage.objects'::regclass) and not t.tgisinternal
@@ -1074,6 +1075,11 @@ $voice_b1b_install$;
       and tgdeferrable=pin.deferred and tginitdeferred=pin.deferred and tgoldtable is null and tgnewtable is null and tgparentid=0 and tgattr::text='') then
       raise exception 'VOICE_B1_APPLICATION_NEW_TRIGGER_DELTA: %',pin.trigger_name using errcode='55000';end if;
   end loop;
+  -- The deferred constraint trigger is also a pg_constraint row: exactly this one, deferrable and initially deferred, local, bound to its own trigger.
+  if (select count(*) from pg_constraint x where x.conrelid='public.agreement_messages'::regclass and x.conname='agreement_voice_link_guard_v1' and x.contype='t'
+      and x.condeferrable and x.condeferred and x.convalidated and x.conparentid=0 and x.conislocal and x.coninhcount=0 and x.contypid=0 and x.conindid=0 and x.confrelid=0
+      and exists(select 1 from pg_trigger t where t.tgconstraint=x.oid and t.tgname='agreement_voice_link_guard_v1' and t.tgrelid=x.conrelid))<>1 then
+    raise exception 'VOICE_B1_APPLICATION_NEW_CONSTRAINT_DELTA' using errcode='55000';end if;
   -- Delta accounting 4/4: the retention catalog changed only by the new relation, publications and migration history are untouched, the certificate is bound in its three places and nothing else.
   if (select jsonb_agg(to_jsonb(c) order by data_class) from private.closure_dataset_catalog_v5 c) is distinct from expected_datasets then
     raise exception 'VOICE_B1_APPLICATION_CATALOG_DELTA' using errcode='55000';end if;

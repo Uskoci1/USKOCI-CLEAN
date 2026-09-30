@@ -23,7 +23,8 @@ declare
         from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace
         where n.nspname in('public','private','rls_private') and c.oid is distinct from to_regclass('private.agreement_voice_uploads_v1')
           and not(x.conrelid='public.agreement_messages'::regclass and x.conname in('agreement_messages_body_photo_check','agreement_messages_body_media_check'))
-          and not(x.conrelid='private.closure_actions_v5'::regclass and x.conname='closure_action_shape146')),
+          and not(x.conrelid='private.closure_actions_v5'::regclass and x.conname='closure_action_shape146')
+          and not(x.conrelid='public.agreement_messages'::regclass and x.conname='agreement_voice_link_guard_v1' and x.contype='t')),
       'triggers',(select jsonb_agg(to_jsonb(t) order by t.oid)
         from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
         where (n.nspname in('public','private','rls_private') or c.oid='storage.objects'::regclass) and not t.tgisinternal
