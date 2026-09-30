@@ -30,6 +30,7 @@ ap.add_argument('--write-baseline', default=None, help='write the count and ever
 ap.add_argument('--taps', type=int, default=30)
 ap.add_argument('--cycles', type=int, default=20)
 ap.add_argument('--video', action='store_true')
+ap.add_argument('--only-list', action='store_true', help='launch, read (and with --write-baseline record) the list, and stop')
 ARGS = ap.parse_args()
 OUT = Path(ARGS.out)
 OUT.mkdir(parents=True, exist_ok=True)
@@ -259,14 +260,16 @@ def launch():
 def ensure_full_list():
     """The list at full height: the top line's own button opens it (the count line is a button while the sheet is low)."""
     root = dump()
-    if cards(root):
-        return root
-    button = by_id(root, 'list-count')
-    if button:
-        tap_node(button[0])
-        got, root = poll(lambda r: cards(r), 25, 0.5)
-        if got:
-            return root
+    for _ in range(3):
+        button = by_id(root, 'list-count')
+        if not button and by_id(root, 'list-count-words'):
+            return root                                             # the count is plain words (not a button) only while the sheet stands full
+        if button:
+            tap_node(button[0])
+            got, root = poll(lambda r: by_id(r, 'list-count-words') and cards(r), 25, 0.5)
+            if got:
+                return root
+        root = dump()
     return root
 
 
@@ -388,6 +391,51 @@ def time_pins():
     check('PEEK_DOES_NOT_MOVE_AFTER_IT_APPEARS', len(measured) >= 2 and max(measured) <= 4, movedPx=moved)
 
 
+SETTLED = re.compile(r'\[USKOCI_P6_TRACE\] \["settled","(OWN_CLUSTER|OWN_MOVE|QUIET_MOVE)"\]')
+
+
+def map_rows(root):
+    """The rows of the map no chrome covers (under the quick chips, above the list sheet): the band a drag can start in."""
+    _w, h, _px = screen()
+    top, bottom = int(h * 0.18), int(h * 0.76)
+    chips = by_desc(root, exact='Brzi filteri')
+    if chips:
+        top = bounds(chips[0]['bounds'])[3] + 6
+    sheet = by_id(root, 'discovery-sheet-background')
+    if sheet:
+        bottom = bounds(sheet[0]['bounds'])[1] - 6
+    return top, max(top + 1, bottom)
+
+
+def gestures():
+    """P6-11 pan and zoom on the real map (a pinch cannot be sent through adb): a drag and each zoom button settle to the reader's own trace line, and the screen keeps its
+    list line and shows no error."""
+    root = to_map(dump())
+    png('04_before_gestures')
+    top, bottom = map_rows(root)
+    y = (top + bottom) // 2
+    steps = [('PAN', lambda: adb('shell', 'input', 'touchscreen', 'swipe', '820', str(y), '300', str(y - 60), '700')),
+             ('ZOOM_OUT', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Umanji mapu'))),
+             ('ZOOM_IN', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Uvećaj mapu')))]
+    for name, act in steps:
+        adb('logcat', '-c')
+        act()
+        time.sleep(6)
+        text = adb('logcat', '-d', '-v', 'threadtime', '-s', 'ReactNativeJS:I', timeout=120)
+        LOG_PARTS.append(text)
+        settled = SETTLED.findall(text)
+        root = dump()
+        png('05_after_' + name.lower())
+        check(f'{name}_SETTLES_TO_A_READ', bool(settled), settled=settled)
+        check(f'{name}_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR', bool(by_id(root, 'list-count') or by_id(root, 'list-count-words'))
+              and not by_desc(root, contains='nisu dostupni') and not [a for a in attrs(root) if 'nisu dostupni' in (a.get('text') or '')])
+    # The map's area is the person's own move and is remembered with the view: take it away, so the next phase starts from the whole list.
+    clear = by_id(dump(), 'clear-where')
+    if clear:
+        tap_node(clear[0])
+        time.sleep(4)
+
+
 def cycles():
     root = dump()
     if not cards(root):
@@ -481,8 +529,12 @@ def main():
         adb('logcat', '-G', '64M')            # the whole run stays in the device log (the default ring is 2 MiB)
         launch()
         root = read_list()
+        if ARGS.only_list:
+            REPORT['result'] = 'PASS' if all(c['ok'] for c in REPORT['checks']) else 'FAIL'
+            return
         with Recording('pins'):
             time_pins()
+        gestures()
         adb('shell', 'am', 'force-stop', PACKAGE)
         launch()
         read_list()
