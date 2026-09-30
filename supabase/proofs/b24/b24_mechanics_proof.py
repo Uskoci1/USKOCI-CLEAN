@@ -157,6 +157,22 @@ def activity(window=2.0, step=0.1):
     return {'samplesBusy': samples, 'samples': n, 'commits': c1 - c0}
 
 
+def settle(timeout=45):
+    """Wait until PostgREST answers a plain request again and the pooled connections have been quiet for two consecutive seconds (terminating a looping backend makes it reconnect and reload its schema cache)."""
+    t_end = time.time() + timeout
+    quiet = 0
+    while time.time() < t_end:
+        if ping() == 200:
+            a = activity(window=1.0)
+            quiet = quiet + 1 if a['samplesBusy'] == 0 and a['commits'] <= 2 else 0
+            if quiet >= 2:
+                return True
+        else:
+            quiet = 0
+            time.sleep(1)
+    return False
+
+
 def stop_runaway(_fn=None):
     return q("select coalesce(sum((pg_terminate_backend(pid))::int), 0) from pg_stat_activity where usename = 'authenticator' and query not like 'LISTEN%' and pid <> pg_backend_pid()")
 
@@ -220,7 +236,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         check('POSTGREST_READY', ready, version=next((l for l in rest_log.splitlines() if 'Starting PostgREST' in l), '')[-60:])
         if not ready:
             raise RuntimeError('PostgREST did not become ready')
-        stop_runaway()
+        check('POSTGREST_SETTLED_BEFORE_THE_DEFECT_IS_MEASURED', settle())
 
         # 1. BEFORE: the defect, one function outside the certified set and one inside it
         before = {}
@@ -230,7 +246,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
             before[fn] = {'answer': r, 'activityAfterTheClientLeft': act}
             check(f'BEFORE_{fn}_NEVER_ANSWERS_AND_KEEPS_RUNNING', r.get('status') is None and (act['samplesBusy'] >= 3 or act['commits'] >= 5), **before[fn])
             stop_runaway()
-            time.sleep(1)
+            check(f'POSTGREST_SETTLED_AFTER_ENDING_THE_LOOP_{fn}', settle())
 
         # 2. part 1
         ok, p = run_candidate('b24_nonretried_conflicts_part1.sql')
