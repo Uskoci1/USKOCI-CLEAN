@@ -75,6 +75,9 @@ ITEM_DESC = re.compile(r'^Otvori (?:priliku|Zadatak) (P6N (\d{3}) (DENSE|SPARSE|
 ROUTE = os.environ.get('P6N_ROUTE', 'proof')
 assert ROUTE in ('proof', 'production')
 LIST_URL = 'uskociapp://zadaci?p6Proof=1' if ROUTE == 'proof' else 'uskociapp://zadaci'
+# After the twenty open/Back cycles the app stands untouched for this long before the last memory sample: a transient peak (a rebuilt
+# list not yet collected) is released by then, a leak is not. The runbook asks for warm baseline, peak and the level after idle.
+IDLE_AFTER_CYCLES_S = 20
 
 
 def note(kind, **fields):
@@ -298,6 +301,37 @@ def mem_kb():
 def app_pid():
     out = adb('shell', 'pidof', PACKAGE, check=False).stdout.strip()
     return out.split()[0] if out else ''
+
+
+# ------------------------------------------------------------------------------------------------ memory rules (pure)
+# The runbook rule: no accumulating listeners/timers or monotonic post-idle memory increase over 20 repeat cycles; record warm baseline,
+# peak and final. The former single rule (last <= first * 1.35 + 20 MB) passed a strictly monotonic 470 -> 568 MB curve (journey #9),
+# so it is replaced by two rules that together say what a leak is: memory that does NOT come back after idle, and growth that does NOT
+# flatten. Both are pure functions of the samples (KB, as `dumpsys meminfo` TOTAL PSS reports them) so they can be tested on real curves.
+def memory_returns_to_baseline_after_idle(before_kb, idle_kb, ratio=1.15, slack_kb=20_000):
+    """Rule (a): the level after the app stood idle (IDLE_AFTER_CYCLES_S after the last cycle) must be back near the level before the cycles:
+    idle <= before * 1.15 + 20 MB (20,000 KB). A transient peak is released by then, a leak stays. A missing sample fails: nothing passes on a
+    measurement that was not taken."""
+    allowed = round(before_kb * ratio + slack_kb) if before_kb else None
+    ok = bool(before_kb and before_kb > 0 and idle_kb and idle_kb > 0 and idle_kb <= allowed)
+    return {'ok': ok, 'before_kb': before_kb, 'idle_kb': idle_kb, 'allowed_kb': allowed, 'rule': f'idle <= before * {ratio} + {slack_kb} KB'}
+
+
+def memory_growth_flattens(warm_kb, mid_kb, second_half_peak_kb, idle_kb=None, ratio=0.6, slack_kb=15_000):
+    """Rule (b): the curve must flatten. First-half growth = mid (cycle 10) - warm (cycle 1: the WARM baseline, after the first cycle has
+    allocated what a visit needs; the runbook's "warm baseline"). Second-half growth = end - mid, where end is the higher of the cycle 15 and
+    cycle 20 samples (the second half's peak), but no higher than the post-idle sample when there is one: growth that idle releases has not
+    persisted, and the peak itself stays in the report as data. Pass iff second <= 0.6 * max(0, first) + 15 MB (15,000 KB). A leak grows as
+    fast in the second half as in the first (journey #9: 31.7 MB then 40.0 MB -> FAIL); a warm-up flattens or is released after idle."""
+    if None in (warm_kb, mid_kb, second_half_peak_kb) or min(warm_kb, mid_kb, second_half_peak_kb) <= 0:
+        return {'ok': False, 'reason': 'missing sample', 'warm_kb': warm_kb, 'mid_kb': mid_kb, 'second_half_peak_kb': second_half_peak_kb, 'idle_kb': idle_kb}
+    first = max(0, mid_kb - warm_kb)
+    end = min(second_half_peak_kb, idle_kb) if idle_kb and idle_kb > 0 else second_half_peak_kb
+    second = end - mid_kb
+    allowed = round(ratio * first + slack_kb)
+    return {'ok': second <= allowed, 'warm_kb': warm_kb, 'mid_kb': mid_kb, 'second_half_peak_kb': second_half_peak_kb, 'idle_kb': idle_kb,
+            'first_half_growth_kb': first, 'second_half_persisting_growth_kb': second, 'allowed_second_half_kb': allowed,
+            'rule': f'min(peak, idle) - mid <= {ratio} * max(0, mid - warm) + {slack_kb} KB'}
 
 
 def dismiss_permission_dialogs():
@@ -1003,6 +1037,9 @@ def s_repeat_cycles(n=20):
         if i in (1, 5, n // 2, 15, n):
             REPORT['mem'].append({'tag': f'cycle_{i}', 'kb': mem_kb(), 'pid': app_pid()})
     snapshot('P6_07_after_cycles')
+    # The explicit idle sample: nothing is touched for IDLE_AFTER_CYCLES_S, then the level is read once more (rule (a) below judges it).
+    time.sleep(IDLE_AFTER_CYCLES_S)
+    REPORT['mem'].append({'tag': 'after_cycles_idle', 'kb': mem_kb(), 'pid': app_pid(), 'idleS': IDLE_AFTER_CYCLES_S})
     times = REPORT['cycleTimings']
     got = sorted(t['tapToDetailS'] for t in times if t['tapToDetailS'] is not None)
     back = sorted(t['backToListS'] for t in times if t['backToListS'] is not None)
@@ -1018,9 +1055,14 @@ def s_repeat_cycles(n=20):
           dbCallsDelta=(calls_after - calls_before) if calls_before >= 0 and calls_after >= 0 else None)
     pids = {x['pid'] for x in REPORT['mem'] if x['pid']}
     check('APP_PROCESS_SURVIVED_CYCLES', len(pids) == 1, pids=sorted(pids))
-    kb = [x['kb'] for x in REPORT['mem'] if x['kb'] > 0]
-    if len(kb) >= 2:
-        check('NO_OBVIOUS_MEMORY_GROWTH', kb[-1] <= kb[0] * 1.35 + 20000, first_kb=kb[0], last_kb=kb[-1])
+    # Memory: every sample stays in REPORT['mem'] (before, cycles 1/5/10/15/20, after idle); the peak is data, the two rules decide.
+    kb = {x['tag']: x['kb'] for x in REPORT['mem'] if x['kb'] > 0}
+    peak = max(kb.values()) if kb else None
+    after_mid = [kb[f'cycle_{i}'] for i in (15, n) if f'cycle_{i}' in kb]
+    baseline = memory_returns_to_baseline_after_idle(kb.get('before_cycles'), kb.get('after_cycles_idle'))
+    check('MEMORY_RETURNS_TO_BASELINE_AFTER_IDLE', baseline['ok'], **baseline, peak_kb=peak, idleS=IDLE_AFTER_CYCLES_S, samples=kb)
+    flattens = memory_growth_flattens(kb.get('cycle_1'), kb.get(f'cycle_{n // 2}'), max(after_mid) if after_mid else None, kb.get('after_cycles_idle'))
+    check('MEMORY_GROWTH_FLATTENS_OVER_THE_CYCLES', flattens['ok'], **flattens, peak_kb=peak, samples=kb)
 
 
 def wait_count(expected, timeout=25):
