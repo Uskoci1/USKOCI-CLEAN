@@ -75,7 +75,9 @@ export async function forgetAgreementOutboxes(accountId: string, storage: {
 }): Promise<number> {
   if (!uuid(accountId)) return 0;
   const prefixes = [`uskoci:agreement-outbox:v1:${accountId}:`, `uskoci:agreement-draft:v1:${accountId}:`,
-    `uskoci:agreement-voice-outbox:v1:${accountId}:`, `uskoci:agreement-voice-draft:v1:${accountId}:`];
+    `uskoci:agreement-voice-outbox:v1:${accountId}:`, `uskoci:agreement-voice-draft:v1:${accountId}:`,
+    // The upload journals hold identities only, but they are this account's local trace of what it tried to send: they go with the rest.
+    `uskoci.agreement.photos.v1.${accountId}.`, `uskoci.agreement.voice.v1.${accountId}.`];
   const scoped = (key: string) => prefixes.some(prefix => key.startsWith(prefix));
   // Logout has retired the account. Let already-issued local writes finish before
   // removing keys, including a draft key that was absent when logout began.
