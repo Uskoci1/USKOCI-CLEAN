@@ -1,15 +1,10 @@
 name: P6 bounded overlays and server map seam
+# HISTORICAL (2026-09-30): this workflow proved the Round53 overlay and server-marker seam while P6 was quarantined. Its final step asserts
+# that the server marker layer is unreachable from DiscoveryMap, which the production reader cutover made obsolete, and it commits evidence to
+# the branch. It no longer runs on pushes; run it manually only to reproduce the historical evidence. Current proofs: p6-native-apk.yml,
+# p6-native-journey.yml, p6-client-final-check.yml.
 on:
-  push:
-    branches: [work/uskoci-ui-unification-20260924]
-    paths:
-      - 'src/data/discoveryV1OverlayOwner.ts'
-      - 'src/ui/v2/discovery/DiscoveryV1ServerMarkerLayer.tsx'
-      - 'src/data/discoveryV1ServerMarkerPresentation.ts'
-      - 'src/data/__tests__/discovery-v1-overlay-owner.test.ts'
-      - 'src/data/__tests__/discovery-v1-server-marker-layer.test.tsx'
-      - 'scripts/proofs/p6-round53-record.cjs'
-      - '.github/workflows/p6-round53-proof.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:

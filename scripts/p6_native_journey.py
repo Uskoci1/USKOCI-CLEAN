@@ -20,6 +20,7 @@ import json
 import math
 import os
 import re
+import struct
 import subprocess
 import sys
 import time
@@ -66,7 +67,6 @@ exec(compile(_defs, str(_source), 'exec'), globals())
 
 REPORT = {'mode': MODE, 'route': os.environ.get('P6N_ROUTE', 'proof'), 'sourceSha': os.environ.get('GITHUB_SHA'), 'steps': [], 'checks': [], 'result': 'FAIL'}
 ITEM_DESC = re.compile(r'^Otvori (?:priliku|Zadatak) (P6N (\d{3}) (DENSE|SPARSE|REMOTE|NOPOINT))\b')   # the label continues with the card's spoken facts
-MARKER_DESC = re.compile(r'^(?:(\d+) zadat\w+ (na ovom mestu|u ovoj oblasti)|Jedan zadatak na mapi)')
 # proof: the guarded proof APK (route parameter + compile flag + DEV package); production: an APK compiled with the production
 # reader flag, where the ordinary Zadaci tab IS the P6 route and no parameter exists.
 ROUTE = os.environ.get('P6N_ROUTE', 'proof')
@@ -315,6 +315,20 @@ def snapshot(name):
     return root
 
 
+def view_probe(name):
+    """What the accessibility tree cannot show: the native view hierarchy lines that name a map or an annotation (bounded), so a map pin
+    that exists but is not exposed to uiautomator is told apart from one that was never created."""
+    try:
+        out = adb('shell', 'dumpsys', 'activity', 'top', check=False).stdout or ''
+    except Exception:                                         # noqa: BLE001
+        return {'error': True}
+    keep = [line.strip()[:220] for line in out.splitlines() if re.search(r'Annotation|MapView|maplibre|MLRN|Pill', line, re.I)]
+    (ARTIFACT_DIR / f'{name}.views.txt').write_text('\n'.join(keep[:300]), encoding='utf-8')
+    summary = {'lines': len(out.splitlines()), 'matched': len(keep), 'annotation': sum(1 for line in keep if re.search('Annotation', line, re.I))}
+    REPORT.setdefault('viewProbe', {})[name] = summary
+    return summary
+
+
 def cards(root):
     out = []
     for n in root.iter():
@@ -328,23 +342,84 @@ def cards(root):
     return sorted(out, key=lambda c: c['bounds'][1])
 
 
-def markers(root):
-    out = []
-    for n in root.iter():
-        if n.attrib.get('package') != PACKAGE:
-            continue
-        d = n.attrib.get('content-desc', '') or ''
-        m = MARKER_DESC.match(d)
-        if not m:
-            continue
-        kind = 'TASK' if d.startswith('Jedan') else ('PLACE' if m.group(2) == 'na ovom mestu' else 'CLUSTER')
-        out.append({'kind': kind, 'count': 1 if kind == 'TASK' else int(m.group(1)), 'desc': d,
-                    'bounds': parse_bounds(n.attrib.get('bounds')), 'node': n})
-    return out
+# ------------------------------------------------------------------------------------------------ map pills (visual)
+# MapLibre renders a ViewAnnotation into a bitmap on the GL surface, so a pill has no accessibility node and its label never
+# reaches uiautomator. Every pill carries the brand mark, and the mark's orange (#FF7908) is the only saturated orange the base
+# map ever draws: the pill is found on the screenshot, and tapped where its mark is.
+def raw_screen():
+    out = subprocess.run(['adb', 'exec-out', 'screencap'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=90).stdout
+    w, h, _fmt = struct.unpack('<III', out[:12])
+    extra = len(out) - w * h * 4
+    offset = extra if extra in (12, 16) else 12          # Android 13+ adds a 4-byte colour-space word to the header
+    return w, h, memoryview(out)[offset:offset + w * h * 4]
 
 
-def marker_summary(ms):
-    return [{'kind': m['kind'], 'count': m['count'], 'bounds': list(m['bounds'])} for m in ms]
+def map_band(root):
+    """The rows of the map no chrome covers: under the quick-filter chips, above the list sheet and above an open card."""
+    w, h = screen_size()
+    top, bottom = int(h * 0.18), int(h * 0.76)
+    chips = nodes(root, desc='Brzi filteri')
+    if chips:
+        top = parse_bounds(chips[0].attrib.get('bounds'))[3] + 6
+    sheet = nodes(root, rid_='discovery-sheet-background')
+    if sheet:
+        bottom = parse_bounds(sheet[0].attrib.get('bounds'))[1] - 6
+    card = nodes(root, prefix='Otvori zadatak: ') + nodes(root, prefix='Pogledaj zadatak ') + nodes(root, prefix='Zatvori pregled')
+    if card:
+        bottom = min(bottom, min(parse_bounds(n.attrib.get('bounds'))[1] for n in card) - 170)
+    return top, max(top + 1, bottom)
+
+
+def pills(root=None, step_px=3, cell=24, gap=2):
+    """Map pills as [{x, y, w, h, samples, merged}] (x, y on the brand mark), top to bottom."""
+    root = root if root is not None else dump()[0]
+    top, bottom = map_band(root)
+    w, h, px = raw_screen()
+    cells = {}
+    for y in range(max(0, top), min(h, bottom), step_px):
+        row = y * w * 4
+        for x in range(0, w, step_px):
+            i = row + x * 4
+            if px[i] >= 235 and 95 <= px[i + 1] <= 145 and px[i + 2] <= 50:
+                key = (x // cell, y // cell)
+                cells[key] = cells.get(key, 0) + 1
+    seen, found = set(), []
+    for start in cells:
+        if start in seen:
+            continue
+        stack, members = [start], []
+        seen.add(start)
+        while stack:
+            cx, cy = stack.pop()
+            members.append((cx, cy))
+            for dx in range(-gap, gap + 1):
+                for dy in range(-gap, gap + 1):
+                    nb = (cx + dx, cy + dy)
+                    if nb in cells and nb not in seen:
+                        seen.add(nb)
+                        stack.append(nb)
+        samples = sum(cells[m] for m in members)
+        if samples < 12:
+            continue
+        xs, ys = [m[0] for m in members], [m[1] for m in members]
+        left, right, upper, lower = min(xs) * cell, max(xs) * cell + cell, min(ys) * cell, max(ys) * cell + cell
+        found.append({'x': (left + right) // 2, 'y': (upper + lower) // 2, 'w': right - left, 'h': lower - upper, 'samples': samples,
+                      'merged': (right - left) > 130 or (lower - upper) > 150})
+    found.sort(key=lambda p: (p['y'], p['x']))
+    return found
+
+
+def pill_boxes(ps):
+    return [[p['x'], p['y'], p['w'], p['h']] for p in ps][:16]
+
+
+def pill_signature(ps):
+    """Where the pills are, coarse enough that a redraw of the same map compares equal."""
+    return sorted((round(p['x'] / 48), round(p['y'] / 48)) for p in ps)
+
+
+def tap_pill(p):
+    press_at(p['x'], p['y'], 140)
 
 
 def count_nodes(root):
@@ -401,7 +476,7 @@ def _bodies_from(text):
     decoder = json.JSONDecoder()
     out = []
     for line in text.splitlines():
-        at = line.find('parameters: $')
+        at = line.lower().find('parameters: $')      # PostgreSQL 15+ writes `Parameters:` with a capital P
         if at < 0:
             continue
         for marker in ("$1 = '", "$2 = '"):
@@ -423,7 +498,7 @@ def _bodies_from(text):
 def harvest():
     """Every rpc_discovery_v1 request (the parsed p_request body) the disposable database logged since the capture window opened.
 
-    log_statement=all makes each bound PostgREST call appear in a `parameters: $n = '...'` detail line. Only bodies with a P6
+    log_statement=all makes each bound PostgREST call appear in a `Parameters: $n = '...'` detail line. Only bodies with a P6
     mode are kept, in log order. The container log is read first; a database that logs to files is read from its log directory."""
     name = _db_container()
     if not name:
@@ -444,7 +519,7 @@ def log_samples(limit=8):
     text = _docker_logs(name, START_ISO)
     lines = text.splitlines()
     hits = [l[:360] for l in lines if 'rpc_discovery_v1' in l][:limit]
-    params = [l[:360] for l in lines if 'parameters:' in l][:limit]
+    params = [l[:360] for l in lines if 'parameters:' in l.lower()][:limit]
     return {'container': name, 'lines': len(lines), 'rpcLines': hits, 'parameterLines': params}
 
 
@@ -674,6 +749,7 @@ def s_route():
     _, root, _p = poll(lambda r, p: count_value(r)[0] == TOTAL, 45, what=f'count {TOTAL} from the P6 reader')
     time.sleep(3)
     root = snapshot('P6_02_route_initial')
+    view_probe('P6_02_route_initial')
     value, label = count_value(root)
     calls = since(m)
     REPORT['initialCount'] = [value, label]
@@ -688,9 +764,9 @@ def s_route():
         check('WITHOUT_POINT_COUNT_MATCHES_SERVER', (without in nums[1:]) if without else len(nums) == 1, ui=nums, expected=without)
     st = sheet_state(root)
     REPORT['initialSheet'] = st
-    ms = markers(root)
-    REPORT['initialMarkers'] = marker_summary(ms)
-    check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ms) or st['full'], markers=len(ms), sheet=st)
+    ps = pills(root) if not st['full'] else []
+    REPORT['initialPills'] = pill_boxes(ps)
+    check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ps) or st['full'], pills=len(ps), boxes=pill_boxes(ps), sheet=st)
     if not st['full']:
         check('P6_MAP_READER_CALLED', any(c.get('mode') == 'MAP' for c in calls), modes=sorted({c.get('mode') for c in calls}))
     check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Umanji mapu')) or bool(nodes(root, contains='Izvori mape')) or st['full'],
@@ -856,54 +932,66 @@ def s_filters():
     check('FILTERS_CLEARED_AFTER_RACE', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
 
 
-def map_zoom(label, times=1):
-    for _ in range(times):
-        root, parent = dump()
-        control = nodes(root, desc=label)
-        if not control:
-            raise RuntimeError(f'{label!r} control not visible')
-        tap_visible(control[0], parent)
-        time.sleep(3)
+def relaunch():
+    """A cold start of the app process (the sign-in survives): the route rebuilds from nothing, exactly as a first visit."""
+    adb('shell', 'am', 'force-stop', PACKAGE, check=False)
+    time.sleep(2)
+    open_deep_link(LIST_URL)
+    _, root, _p = poll(lambda r, p: count_value(r)[0] == TOTAL, 90, what='the list after a cold start')
+    time.sleep(6)
+    return root
 
 
-def zoom_to_marker(pred, what, prefer='largest', max_taps=6):
-    """Tap clusters (largest or smallest first) until a marker satisfying `pred` is on screen."""
-    _, root, parent = poll(lambda r, p: markers(r), 40, what='map markers')
-    for _ in range(max_taps + 1):
-        ms = markers(root)
-        hit = next((mk for mk in ms if pred(mk)), None)
-        if hit is not None:
-            return hit, root, parent
-        clusters = [mk for mk in ms if mk['kind'] == 'CLUSTER' and mk['count'] >= 2]
-        if not clusters:
-            break
-        clusters.sort(key=lambda mk: mk['count'], reverse=(prefer == 'largest'))
-        tap_visible(clusters[0]['node'], parent)
-        time.sleep(5)
-        root, parent = dump()
-    raise RuntimeError(f'{what} not reachable; markers={marker_summary(markers(root))}')
+def classify_after_tap():
+    root, parent = dump()
+    title = peek_task_title(root)
+    place = bool(nodes(root, contains='Prikaži sve u listi'))
+    return root, parent, ('TASK' if title else 'PLACE' if place else 'NONE'), title
 
 
-def s_map_place():
-    ensure_peek()
-    map_zoom('Umanji mapu', 2)
-    dense_expected = EXPECTED.get('dense', 30)
-    dense, root, parent = zoom_to_marker(lambda mk: mk['kind'] == 'PLACE' and mk['count'] >= 10, 'dense place marker', 'largest')
-    REPORT['denseMarker'] = {'count': dense['count'], 'bounds': list(dense['bounds'])}
-    check('DENSE_PLACE_MARKER_COUNT_EQUALS_SERVER', dense['count'] == dense_expected, marker=dense['count'], expected=dense_expected)
-    m = mark()
-    tap_visible(dense['node'], parent)
-    _, root, parent = poll(lambda r, p: nodes(r, contains='Pogledaj zadatak') and nodes(r, contains='Prikaži sve u listi'), 25, what='place Peek')
-    snapshot('P6_12_place_peek')
-    rows = nodes(root, prefix='Pogledaj zadatak ')
-    check('PLACE_PEEK_SHOWS_THREE_ROWS', len(rows) == 3, rows=len(rows))
+def close_card():
+    root, parent = dump()
+    close = nodes(root, desc='Zatvori pregled zadatka') or nodes(root, prefix='Zatvori pregled')
+    if close:
+        tap_visible(close[0], parent)
+    else:
+        back()
+    time.sleep(2)
+
+
+def verify_task_peek(root, parent, title, m):
     reqs = since(m)
-    REPORT['placePeekRequests'] = [brief(r) for r in reqs[:6]]
+    check('TASK_MARKER_OPENS_PEEK', bool(title) and any(r.get('mode') == 'EXACT_PUBLIC' for r in reqs), title=title,
+          modes=sorted({r.get('mode') for r in reqs}))
+    REPORT['taskMarkerRequests'] = [brief(r) for r in reqs[:6]]
+    snapshot('P6_15_task_peek')
+    before = pill_signature(pills(root))
+    tap_visible(nodes(root, prefix='Otvori zadatak: ')[0], parent)
+    poll(lambda r, p: not count_nodes(r) and any((title or '@@') in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30,
+         what='task detail from Peek')
+    snapshot('P6_16_detail_from_peek')
+    back_to_list(need_cards=False, need_peek=True)
+    root = snapshot('P6_17_after_back_peek')
+    check('BACK_RESTORES_PEEK_SAME_TASK', peek_task_title(root) == title, wanted=title, got=peek_task_title(root))
+    now = pill_signature(pills(root))
+    same = len(now) == len(before) and all(abs(a[0] - b[0]) <= 1 and abs(a[1] - b[1]) <= 1 for a, b in zip(now, before))
+    check('BACK_RESTORES_MAP_VIEWPORT_AND_PINS', same, before=len(before), after=len(now))
+
+
+def verify_place_peek(root, parent, m):
+    dense_expected = EXPECTED.get('dense', 30)
+    rows = nodes(root, prefix='Pogledaj zadatak ')
+    reqs = since(m)
+    check('PLACE_PEEK_SHOWS_ROWS', len(rows) >= 1, rows=len(rows))
+    check('PLACE_TAP_READS_POINT_MEMBERS', any(r.get('mode') == 'PAGE' and brief(r)['scope'] == 'POINT_MEMBERS' for r in reqs),
+          requests=[brief(r) for r in reqs[:6]])
+    snapshot('P6_12_place_peek')
+    m2 = mark()
     tap_visible(nodes(root, contains='Prikaži sve u listi')[0], parent)
-    _, root, parent = wait_count(dense['count'], 25)
-    reqs = since(m, 'PAGE')
-    check('POINT_MEMBERS_LIST_COUNT_MATCHES_MARKER', count_value(root)[0] == dense['count'], ui=count_value(root)[0], marker=dense['count'])
-    check('POINT_SCOPE_SENT_TO_SERVER', any(brief(r)['scope'] not in (None, 'ALL') for r in reqs), requests=[brief(r) for r in reqs[:5]])
+    _, root, parent = wait_count(dense_expected, 25)
+    check('POINT_MEMBERS_LIST_COUNT_MATCHES_SERVER', count_value(root)[0] == dense_expected, ui=count_value(root)[0], expected=dense_expected)
+    check('POINT_SCOPE_SENT_TO_SERVER', any(brief(r)['scope'] == 'POINT_LIST' for r in since(m2, 'PAGE')),
+          requests=[brief(r) for r in since(m2)[:5]])
     snapshot('P6_13_point_members')
     clear = nodes(root, desc='Prikaži sve zadatke') or nodes(root, rid_='clear-where')
     if not clear:
@@ -913,46 +1001,60 @@ def s_map_place():
     check('POINT_SCOPE_CLEARS_TO_ALL', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
 
 
-def s_map_cluster_and_task():
-    ensure_peek()
-    map_zoom('Umanji mapu', 2)
-    _, root, parent = poll(lambda r, p: markers(r), 40, what='map markers')
-    before = marker_summary(markers(root))
-    REPORT['clusterStart'] = before
-    clusters = [mk for mk in markers(root) if mk['kind'] == 'CLUSTER' and mk['count'] >= 2]
-    if clusters:
-        cluster = min(clusters, key=lambda mk: mk['count'])
-        m = mark()
-        tap_visible(cluster['node'], parent)
-        time.sleep(6)
-        root, parent = dump()
-        after = marker_summary(markers(root))
-        check('CLUSTER_SELECTION_REFINES_MAP', bool(since(m, 'MAP')) and after != before, mapRequests=len(since(m, 'MAP')), before=before, after=after)
-        snapshot('P6_14_cluster_zoomed')
-    task, root, parent = zoom_to_marker(lambda mk: mk['kind'] == 'TASK', 'single-task marker', 'smallest')
-    positions = sorted(mk['bounds'] for mk in markers(root))
+def s_map_pins():
+    """Cold start, country-scale pills, a cluster opened by the camera, then every pill tapped until a task and a place have been seen."""
+    relaunch()
+    root = ensure_peek()
+    root = snapshot('P6_10_cold_map')
+    view_probe('P6_10_cold_map')
+    ps = pills(root)
+    REPORT['coldPills'] = pill_boxes(ps)
+    check('COLD_START_MAP_SHOWS_PILLS', len(ps) >= 1, pills=len(ps), boxes=pill_boxes(ps))
+    if not ps:
+        raise RuntimeError('no map pill on the cold-start map')
+    # At country scale every pill is a cluster. Novi Sad (the dense place and five single tasks) is the second from the north.
+    target = ps[1] if len(ps) > 1 else ps[0]
+    before = pill_signature(ps)
     m = mark()
-    tap_visible(task['node'], parent)
-    _, root, parent = poll(lambda r, p: peek_task_title(r), 25, what='task Peek')
-    title = peek_task_title(root)
-    reqs = since(m)
-    REPORT['taskMarkerRequests'] = [brief(r) for r in reqs[:6]]
-    check('TASK_MARKER_OPENS_PEEK', bool(title), title=title, modes=sorted({r.get('mode') for r in reqs}))
-    snapshot('P6_15_task_peek')
-    tap_visible(nodes(root, prefix='Otvori zadatak: ')[0], parent)
-    _, root, _p = poll(lambda r, p: not count_nodes(r) and any((title or '@@') in label_of(n) for n in r.iter() if n.attrib.get('package') == PACKAGE), 30, what='task detail from Peek')
-    snapshot('P6_16_detail_from_peek')
-    back_to_list(need_cards=False, need_peek=True)
-    root = snapshot('P6_17_after_back_peek')
-    check('BACK_RESTORES_PEEK_SAME_TASK', peek_task_title(root) == title, wanted=title, got=peek_task_title(root))
-    now = sorted(mk['bounds'] for mk in markers(root))
-    same_map = len(now) == len(positions) and all(abs(a[0] - b[0]) <= 8 and abs(a[1] - b[1]) <= 8 for a, b in zip(now, positions))
-    check('BACK_RESTORES_MAP_VIEWPORT_AND_PINS', same_map, before=len(positions), after=len(now))
-    close = nodes(root, desc='Zatvori pregled zadatka')
-    if close:
-        _r, parent2 = dump()
-        tap_visible(close[0], parent2)
-        time.sleep(1.5)
+    tap_pill(target)
+    time.sleep(7)
+    root, parent = dump()
+    after = pills(root)
+    reads = since(m)
+    check('CLUSTER_TAP_MOVES_THE_CAMERA', pill_signature(after) != before, before=len(ps), after=len(after), boxes=pill_boxes(after))
+    check('CLUSTER_TAP_READS_LIST_AND_MAP_FOR_THE_AREA',
+          any(r.get('mode') == 'MAP' for r in reads) and any(r.get('mode') == 'PAGE' and brief(r)['scope'] == 'AREA' for r in reads),
+          requests=[brief(r) for r in reads[:6]])
+    snapshot('P6_11_cluster_opened')
+    view_probe('P6_11_cluster_opened')
+    tried, taps, seen = [], [], {'TASK': False, 'PLACE': False}
+    for _attempt in range(10):
+        root, parent = dump()
+        candidates = [p for p in pills(root) if not any(abs(p['x'] - t['x']) < 40 and abs(p['y'] - t['y']) < 40 for t in tried)]
+        if not candidates:
+            break
+        p = candidates[0]
+        tried.append(p)
+        m = mark()
+        tap_pill(p)
+        time.sleep(5)
+        root, parent, kind, title = classify_after_tap()
+        taps.append({'at': [p['x'], p['y']], 'kind': kind, 'title': title, 'pillsAfter': len(pills(root))})
+        if kind == 'TASK' and not seen['TASK']:
+            seen['TASK'] = True
+            verify_task_peek(root, parent, title, m)
+        elif kind == 'PLACE' and not seen['PLACE']:
+            seen['PLACE'] = True
+            verify_place_peek(root, parent, m)
+        elif kind == 'NONE':
+            tried.clear()                     # the camera moved: the pills are others now
+        if all(seen.values()):
+            break
+        if kind != 'NONE':
+            close_card()
+    REPORT['pillTaps'] = taps
+    check('PILL_TAPS_REACHED_A_TASK_PEEK', seen['TASK'], taps=taps[-6:])
+    check('PILL_TAPS_REACHED_A_PLACE_PEEK', seen['PLACE'], taps=taps[-6:])
 
 
 def s_search_places():
@@ -998,7 +1100,10 @@ def s_search_places():
     tap_visible(show[-1], parent)
     _, root, parent = wait_count(dense_expected, 30)
     check('SEARCH_PLACE_RESULT_COUNT_EQUALS_SERVER', count_value(root)[0] == dense_expected, ui=count_value(root)[0], expected=dense_expected)
-    snapshot('P6_23_search_applied')
+    time.sleep(5)
+    root = snapshot('P6_23_search_applied')
+    applied = pills(root)
+    check('SEARCH_PLACE_SHOWS_ITS_PILL_ON_THE_MAP', len(applied) >= 1, pills=len(applied), boxes=pill_boxes(applied))
     clear = nodes(root, desc='Prikaži sve zadatke') or nodes(root, rid_='clear-where')
     if clear:
         tap_visible(clear[0], parent)
@@ -1044,7 +1149,7 @@ def main():
         note('CAPTURE_SELF_TEST_ERROR', error=str(exc)[:200])
     for name, fn in (('login', s_login), ('ordinary_route', s_ordinary_route), ('route', s_route), ('open_full', s_open_full),
                      ('paging', s_paging), ('detail_back', s_detail_and_back), ('cycles', s_repeat_cycles),
-                     ('filters', s_filters), ('map_place', s_map_place), ('map_cluster_task', s_map_cluster_and_task),
+                     ('filters', s_filters), ('map_pins', s_map_pins),
                      ('search_places', s_search_places), ('final', s_final)):
         step(name, fn)
         if name == 'login' and not REPORT['steps'][-1]['ok']:
