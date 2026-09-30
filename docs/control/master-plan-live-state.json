@@ -3,8 +3,8 @@
     "repo": "Uskoci1/USKOCI-CLEAN"
   },
   "p6": {
-    "status": "OPEN",
-    "note": "30k SQL screening ZELEN (Round67, run 36632921473); to nije HTTP/native/concurrency dokaz. Round70 (2026-09-30): nativni prolazi na disposable restricted serveru našli i popravili ~19 stvarnih nalaza (tabela u ROUND_70). Journey #9 (APK 21dc70c6): 12/12 koraka, 20/20 povrataka sa vraćenom listom bez praznog panela, memorija 470→568 MB, bez pada i ANR-a; pale samo 3 provere pokreta mape zbog greške test-vozača (jedno čitanje loga duže od čekanja; aplikacija je za sva 3 pokreta čitala i listu i mapu), popravljeno. Nezavisni pregled restore/coordinator koda: 6 stvarnih nalaza popravljeno, svaki sa reproduktorom koji pada pre popravke (nadzornik povratka, rok čitanja 15 s, zadržana slika, najnoviji izbor, trag, kontrola kolona koja sada parsira upite; stara je propuštala 7 oblika). CI client final check (tsc + ceo Jest) PASS na 650d340d; APK 36702278038 izgrađen. Journey #10 (36704063863, ceo, APK 36702278038): 12/12 koraka, 88 od 91 provera; 3 su pale u koraku straničenja i uzrok je test-vozač, ne proizvod (poravnati host log i trag aplikacije: strana 2 je stigla za oko 4 s, a spor swipe na CI emulatoru koji se zaglavljuje stigao je do aplikacije kao pritisak, otvorio je zadatak P6N 051 i vozač je potom deset minuta skrolovao po detalju; povratak je vratio svih 100 redova). Vozač popravljen (swipe iz margine, povratak iz slučajnog detalja uz brojanje, inkrementalno čitanje loga umesto 16–75 s po čitanju) i journey #11 (36714178256) radi na istom APK-u. DEV: PKG045b P0 PRIMENJEN 2026-09-30 10:28:45Z (ledger 211, tačan tekst, readback, receipt). Smoke starog klijenta na emulatoru NIJE pokrenut (auto-mode dozvole su odbile skriptu); zamena je statički dokaz (telefon preview35 i emulatorski build čitaju samo dozvoljene kolone). Rollout v2 na DEV ODBIJEN atomski, ništa primenjeno (P6_VISIBILITY_SEMANTIC_MISMATCH:16): vlasnikovi nalozi su u TEST svetu (PKG-029e), a helper je imao fiksnu listu. Rollout v3 (TEST skup izveden iz klasifikatora): disposable dokaz sa DEV oblikom naloga u CI PASS (36705406044: v2 odbija, v3 primenjuje, tačan revert) i PRIMENJEN NA DEV 2026-09-30 11:06:18Z (ledger 212, tekst kandidata tačan bajt po bajt, readback jednak očekivanju dokaza za svih 7 funkcija/pomoćnu funkciju/2 politike, sertifikat i ACL nepromenjeni, advisors isti kao pre, čitač na pravim DEV podacima: 8 zadataka/4 pina kao osnovna provera). Lokalni emulator protiv DEV-a (vlasnik je dozvolio 30.09): 8 od 8 zadataka, pan/zoom 3/3 čitanja, 20 od 20 povrataka (Back → vraćen ekran p50 0,745 s, p95 1,054 s), memorija 320→453→426 MB bez rasta, bez ANR/pada, 30 dodira na pin (prva povratna informacija p50 229 ms / p95 296 ms, upotrebljiv sadržaj p50 692 ms / p95 1040 ms; ciljevi runbooka 100/200/350 ms nisu ispunjeni na emulatoru, biće navedeno u ugovoru). Preostalo: rezultat journey #11, nezavisni pregled (dva kritičara u toku), cutover build, ugovor o prihvatanju sa granicama i registar. Sesija prijave na lokalnom emulatoru je obrisana mojom greškom (uvoz vozača pokrenuo je njegov start); ponovna provera čeka vlasnikovu prijavu."
+    "status": "ZAVRŠEN (sa granicama)",
+    "note": "P6 je zatvoren 2026-09-30 po odluci vlasnika: na postojećim dokazima, uz eksplicitne granice; QA robot je zaseban paket i nije uslov. Zatvoreno: server rpc_discovery_v1 (PAGE/MAP/PLACES/EXACT_PUBLIC + POINT_MEMBERS) primenjen na DEV (PKG045b ledger 211, rollout v3 ledger 212, receipt-i), 30k SQL screening zelen pri jit=on (Round67/71), klijent (owner, fencing, koordinator, ekran, most, marker sloj, overlay, rok čitanja, DEV trag) sa CI dokazom, cutover: EXPO_PUBLIC_P6_DISCOVERY_READER=1 u DEV APK workflow-u (kill switch = ukloniti liniju), pravo čitanja sačuvano (anonimni negativni smoke 5/5). Tri stvarna nalaza pregleda popravljena test-prvo (obnova isteklog sidra, overlay ne trepće, pin spušta sheet). Native: CI emulator journey #12 12/12 koraka i 92/92 provere; lokalni AVD protiv DEV-a: 8=8, 20/20 povrataka, bez ANR; telefon HONOR: samo stari čitač (20 povrataka, ANR 0, smoke starog klijenta 6/6). GRANICE (tačno, P6_CLOSURE_RECEIPT.md): L1 ciljevi 100/200/350 ms i frejmovi NISU mereni za kandidata na telefonu (ARM64 build odbio klasifikator); L2 ANR na CI emulatoru (1, Reanimated poplava, počinje pri prijavi, RNR-01, van P6); L3 tri kasnija klijentska commit-a bez native dokaza; L4 hosted-like jit=off MAP 1011/1032 ms iznad 1000 ms; L5 bez testa konkurentnosti; L6 dokaz granice REAL/TEST sveta pripremljen, nije pokrenut; L7 lične liste A09/A11/B10 bez straničenja (red EX-04); L8 iOS; L9-L10 rezerva starog čitača, RC-03."
   },
   "release": {
     "status": "NOT READY",
@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Rezultat journey #11 + nezavisni pregled → cutover (P6 čitač uključen u DEV APK) → ugovor o prihvatanju sa granicama i registar → P6 ZAVRŠEN, pa nastavak po planu",
-    "note": "Bez novih performance eksperimenata i bez P7 dok je P6 otvoren. Vlasnikovo opšte odobrenje od 2026-09-30 važi za P6 put; svaki paket ide sa svežim preflight-om i readback-om. Vlasnik je 2026-09-30 poručio da se uzde otpuste: posle P6 ZAVRŠEN ne stajem nego nastavljam redom po planu (uvezivanje, dizajn, poliranje, priprema objave) uz izveštaj po paketu, osim ako kaže „stani”; njegovo ostaje: pravi novac i cene, plaćeni ključevi i nalozi, pravni tekstovi i podaci firme, brisanje podataka na produkciji, sama objava u prodavnice. Lokalna provera protiv DEV-a je dozvoljena (vlasnik, 30.09) i jednom je pokrenuta; ponavljanje čeka ponovnu prijavu na emulatoru (sesija obrisana greškom vozača pri probi, nikad ne unosim lozinku sama)."
+    "title": "Posle P6: stabilni checkpoint (tag p6-closed-20260930) → bezbedni C0 → Discovery polish → ostali V1 tokovi → UI/UX → priprema objave; QA robot paralelno (FAST / FOCUSED / FULL / PHYSICAL DEVICE)",
+    "note": "Otvoreni redovi iz P6: P6-FIZ (merenje kandidata na telefonu, čeka ARM64 build), RNR-01 (Reanimated ANR, odluka vlasnika o zavisnosti), EX-04 (lične liste, straničenje), QAD-01..05 (QA dug). TRAJNI QA PRAVAC (vlasnik, 2026-09-30): fizički HONOR je PRIMARNI lokalni Android QA uređaj gde je tehnički bezbedno, AVD USKOCI_V5_TEST sekundarni; FAST/FOCUSED P6 provere prvo na HONOR-u; FULL disposable cloud journey samo za velike checkpoint/release dokaze; uređaj se bira po ADB serial-u (scripts/qa_device.py, ne hardkodovati); postojeći QA robot se razvija, ne pravi se drugi harness; kasnije dvouređajni E2E (HONOR = korisnik A, emulator = korisnik B, dva test naloga: Zadatak → Discovery → Prijava → Izbor → Dogovor → Chat → Push → Completion → Ocena); realne latencije samo sa telefona, CI emulator odvojeno; bez brisanja podataka/sesije na HONOR-u bez njegovog OK, ažuriranja samo adb install -r, svaka destruktivna radnja traži prethodni OK (docs/implementation/qa-robot/README.md, odeljak 5). Agenti rade na modelu roditelja (Sonnet 5.5); Fable 5.1 samo uz prethodni vlasnikov OK. Vlasnikovo: pravi novac i cene, plaćeni ključevi i nalozi, pravni tekstovi i podaci firme, brisanje podataka na produkciji, objava u prodavnice, odluka o zavisnosti za RNR-01."
   },
   "evidence": [
     {
@@ -147,7 +147,7 @@
       "id": "P6-DEV-EMULATOR-APK-2",
       "run": 36705117786,
       "sha": "42371918 (tmp/cutover-apk3 = 0698fdac + reader flag)",
-      "result": "u toku (izvor sa popravkama pregleda)"
+      "result": "BUILT i instaliran na lokalni AVD (SHA f16ef079…a748, izvor 42371918 = 650d340d + zastavica); lokalna provera protiv DEV-a u ROUND_70"
     },
     {
       "id": "P6-ROLLOUT-V3-DEV-APPLIED",
@@ -159,7 +159,37 @@
       "id": "P6-NATIVE-JOURNEY-11",
       "run": 36714178256,
       "sha": "c157710a",
-      "result": "FULL acceptance run na APK 36702278038 sa ispravljenim vozačem: u toku"
+      "result": "11/12 koraka, 85 provera bez pada, straničenje PASS (100/100, 5 min); korak filters isteklo čekanje od 25 s na sporom runneru, vozač tada dobio dijagnostiku i čekanje 90 s"
+    },
+    {
+      "id": "P6-NATIVE-JOURNEY-12",
+      "run": 36721005694,
+      "sha": "56a84df09f09945fd2ebc1497a2155ac4eaef7bd",
+      "result": "12/12 koraka, 92/92 provere PASS na APK 36702278038 (izvor 650d340d); evidence gate pao zbog jednog ANR-a (Reanimated poplava, počinje pri prijavi; RNR-01, granica L2)"
+    },
+    {
+      "id": "P6-30K-V3-DRIFT",
+      "run": 36719140030,
+      "sha": "2a191374",
+      "result": "PASS: primenjeni rollout v3 nasuprot testiranom v2 na istom runneru, bez odstupanja (najgori p95 983/984/976 ms)"
+    },
+    {
+      "id": "P6-30K-HOSTED-LIKE",
+      "run": 36721652455,
+      "sha": "216b83873f0f0a195392be8b5f700bad68ae0952",
+      "result": "harness SUCCESS, screening gate NIJE prošao pri jit=off: MAP_DENSE 1011 ms, MAP_SPARSE 1032 ms (+1,1 %/+3,2 %); granica L4"
+    },
+    {
+      "id": "P6-PHONE-HONOR-BASELINE",
+      "run": null,
+      "sha": "176dddda79f1818f5b8f728a5762277148201bf1",
+      "result": "HONOR VKP-NX9, ROUND58 build (SHA 3e933f37…), STARI čitač: 20 povrataka, ANR 0, najduži frejm 919 ms, smoke starog klijenta protiv DEV-a 6/6; kandidat nije na telefonu (ROUND_73)"
+    },
+    {
+      "id": "P6-CLOSURE",
+      "run": null,
+      "sha": "p6-closed-20260930",
+      "result": "P6 ZAVRŠEN sa granicama L1–L10, tag p6-closed-20260930, P6_CLOSURE_RECEIPT.md"
     }
   ]
 }
