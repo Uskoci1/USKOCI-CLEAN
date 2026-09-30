@@ -143,8 +143,8 @@ def ping():
 
 
 def activity(window=2.0, step=0.1):
-    """What the database does for PostgREST's pooled connections over a short window: how many samples found one of them running (not idle, the LISTEN connection excluded)
-    and how many transactions committed meanwhile. A request that is finished leaves both near zero; an endless retry leaves both high (the first proof run saw about 6 commits a second)."""
+    """What the database does for PostgREST's pooled connections over a short window: in how many samples one of them was running (not idle, the LISTEN connection excluded), and the
+    commits that happened meanwhile (informational only: the sampler's own queries commit too). A finished request leaves no busy sample; an endless retry leaves every sample busy."""
     c0 = int(q("select xact_commit from pg_stat_database where datname = 'postgres'"))
     samples = 0
     t_end = time.time() + window
@@ -164,7 +164,7 @@ def settle(timeout=45):
     while time.time() < t_end:
         if ping() == 200:
             a = activity(window=1.0)
-            quiet = quiet + 1 if a['samplesBusy'] == 0 and a['commits'] <= 2 else 0
+            quiet = quiet + 1 if a['samplesBusy'] == 0 else 0
             if quiet >= 2:
                 return True
         else:
@@ -244,7 +244,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
             r = call(fn, timeout=3.0)
             act = activity()
             before[fn] = {'answer': r, 'activityAfterTheClientLeft': act}
-            check(f'BEFORE_{fn}_NEVER_ANSWERS_AND_KEEPS_RUNNING', r.get('status') is None and (act['samplesBusy'] >= 3 or act['commits'] >= 5), **before[fn])
+            check(f'BEFORE_{fn}_NEVER_ANSWERS_AND_KEEPS_RUNNING', r.get('status') is None and act['samplesBusy'] >= 3, **before[fn])
             stop_runaway()
             check(f'POSTGREST_SETTLED_AFTER_ENDING_THE_LOOP_{fn}', settle())
 
@@ -263,7 +263,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         r = call('rpc_apply_profile_avatar', timeout=3.0)
         check('AFTER_PART1_CONFLICT_ANSWERS_409_AT_ONCE', r.get('status') == 409 and 'MEDIA_VERSION_CONFLICT' in r.get('body', '') and '"PT409"' in r.get('body', '') and r['ms'] < 1500, **r)
         act = activity()
-        check('AFTER_PART1_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0 and act['commits'] <= 2, **act)
+        check('AFTER_PART1_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0, **act)
 
         # 3. part 2
         ok, p = run_candidate('b24_nonretried_conflicts_part2_certified.sql')
@@ -278,7 +278,7 @@ revoke all on function private.retention_ai_source_ready() from public;""")
         r = call('rpc_send_agreement_photo_message_v5', timeout=3.0)
         check('AFTER_PART2_CERTIFIED_CONFLICT_ANSWERS_409_AT_ONCE', r.get('status') == 409 and 'MEDIA_COMMAND_CONFLICT' in r.get('body', '') and r['ms'] < 1500, **r)
         act = activity()
-        check('AFTER_PART2_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0 and act['commits'] <= 2, **act)
+        check('AFTER_PART2_NOTHING_STAYS_BUSY', act['samplesBusy'] == 0, **act)
         # every spelling of the raise went through PostgREST identically: the message is the same and the status is 409 for one function of each spelling
         spellings = {}
         for fn in ('rpc_activate_urgent', 'rpc_accept_ai_task_review', 'rpc_save_worker_capacity', 'rpc_save_worker_availability'):
