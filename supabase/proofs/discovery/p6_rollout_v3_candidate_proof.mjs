@@ -205,8 +205,7 @@ try {
   const mismatch = fixedListMismatch();
   assert.ok(mismatch > 0, 'the DEV lineage shape must disagree with a fixed list of lineages');
   if (preExisting === 0) assert.equal(mismatch, 16, 'exactly the canonical DEV figure: 2 owners x (3 listed + 1 fixed REAL) x 2 orders');
-  const shape = helperSets();
-  assert.equal(shape.lineageRows, preExisting + seeded);
+  assert.equal(Number(mustSql('select count(*) from private.account_lineage_v5')), preExisting + seeded);
   report.devShapedLineage = { preExistingRows: preExisting, seededRows: seeded, fixedListMismatch: mismatch, lineageCounts: live.accountLineageCounts };
 
   stage = 'V2_REFUSES_ON_THE_DEV_LINEAGE_SHAPE';
