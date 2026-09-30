@@ -1073,7 +1073,11 @@ def s_search_places():
     edit_text(0, 'Liman')
     time.sleep(4)
     typed = since(m, 'PLACES')
-    check('SEARCH_TEXT_SENT_TO_SERVER', any('Liman' in json.dumps(r, ensure_ascii=False) for r in typed), requests=[brief(r) for r in typed[-3:]])
+    # The server is asked with the words as typed for the count (filter.text) and normalised for the places (prefix).
+    sent = since(m)
+    check('SEARCH_TEXT_SENT_TO_SERVER', any('liman' in json.dumps(r, ensure_ascii=False).lower() for r in sent), requests=[brief(r) for r in typed[-3:]])
+    # Opening the panel and typing five letters is a handful of previews. Hundreds is the panel asking again after every answer (found: 330 reads).
+    check('SEARCH_DRAFT_PREVIEW_DOES_NOT_LOOP', len(sent) <= 30, requests=len(sent), modes={k: sum(1 for r in sent if r.get('mode') == k) for k in ('PAGE', 'PLACES')})
     root, parent = dump()
     snapshot('P6_21_search_typed')
     dense_expected = EXPECTED.get('dense', 30)
@@ -1097,6 +1101,24 @@ def s_search_places():
     if not show:
         raise RuntimeError('search "Prikaži" action not found')
     snapshot('P6_22_search_place_chosen')
+    # The apply action names the count the server gave for this draft; press it once that has stopped changing.
+    stable = None
+    for _ in range(10):
+        root, parent = dump()
+        label = next((n.attrib.get('content-desc') or n.attrib.get('text') or '' for n in root.iter()
+                      if n.attrib.get('package') == PACKAGE and n.attrib.get('clickable') == 'true'
+                      and (n.attrib.get('content-desc', '') or n.attrib.get('text', '')).startswith('Prikaži')), '')
+        if label and label == stable:
+            break
+        stable = label
+        time.sleep(1.5)
+    show = sorted([n for n in root.iter() if n.attrib.get('package') == PACKAGE and (n.attrib.get('content-desc', '') or n.attrib.get('text', '')).startswith('Prikaži')
+                   and n.attrib.get('clickable') == 'true'], key=lambda n: parse_bounds(n.attrib.get('bounds'))[1])
+    if not show:
+        raise RuntimeError('search "Prikaži" action not found')
+    settled = len(since(m))
+    time.sleep(3)
+    check('SEARCH_PREVIEW_IS_QUIET_BEFORE_APPLY', len(since(m)) == settled, before=settled, after=len(since(m)))
     tap_visible(show[-1], parent)
     _, root, parent = wait_count(dense_expected, 30)
     check('SEARCH_PLACE_RESULT_COUNT_EQUALS_SERVER', count_value(root)[0] == dense_expected, ui=count_value(root)[0], expected=dense_expected)

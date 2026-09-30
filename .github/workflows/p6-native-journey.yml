@@ -173,8 +173,14 @@ jobs:
           for s in bad_steps: print('  STEP FAIL', s)
           fatal = open(d + '/logcat-fatal.txt', encoding='utf-8', errors='replace').read().strip() if os.path.exists(d + '/logcat-fatal.txt') else ''
           if fatal: print('  LOGCAT FATAL LINES:\n' + fatal[:1500])
+          # Native map annotations that could not draw: MapLibre's snapshot of a pill returned null (its view had no size), soft-caught by React.
+          bitmap = 0
+          if os.path.exists(d + '/logcat.txt'):
+              for line in open(d + '/logcat.txt', encoding='utf-8', errors='replace'):
+                  if 'viewToBitmap(...) must not be null' in line: bitmap += 1
+          print('annotation bitmap exceptions:', bitmap)
           if r.get('mode') == 'full':
-              assert r.get('result') == 'PASS' and not bad and not bad_steps and not fatal, 'P6 native journey not accepted'
+              assert r.get('result') == 'PASS' and not bad and not bad_steps and not fatal and bitmap == 0, 'P6 native journey not accepted'
               print('PASS P6_NATIVE_JOURNEY_ACCEPTED')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
