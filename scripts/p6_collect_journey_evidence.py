@@ -77,6 +77,6 @@ davey.sort()
 summary = {'logLines': lines, 'daveyEvents': len(davey), 'daveyOver700ms': sum(1 for d in davey if d >= 700), 'daveyMaxMs': davey[-1] if davey else 0,
            'daveyP50Ms': davey[len(davey) // 2] if davey else 0, **dict(counts), 'traceEvents': dict(sorted(events.items())), 'pinTimingsMs': pins,
            'screenshots': copied,
-           'note': 'CI emulator: x86_64 with software rendering, about ten times slower than a phone; Reanimated dead-tag lines are its retry of updates for views Fabric has not mounted yet (pre-existing, not P6)'}
+           'note': 'CI emulator: x86_64 with software rendering (longest frame on the phone in a comparable run 0.92 s, in this run 10.1 s); Reanimated failure lines are its retry of updates for views Fabric has not mounted yet: app-wide, present at login before any P6 code (P6_CLOSURE_RECEIPT.md section 4, row 1)'}
 (DEST / 'log-summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 print(json.dumps({k: v for k, v in summary.items() if k not in ('traceEvents', 'pinTimingsMs')}, ensure_ascii=False))

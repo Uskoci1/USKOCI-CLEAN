@@ -1,7 +1,7 @@
 # Round70 — P6 native acceptance on the disposable restricted server (working document; completed at the end of the round)
 
-Status: **IN PROGRESS.** P6 stays OPEN until every gate below is proven. This file is rewritten to its final form (with run ids, receipts and the
-closing statement) only when they are.
+Status: **CLOSED WITH LIMITS on 2026-09-30** — the closing statement, the classification of every failure as product or QA, and the exact limits are in `P6_CLOSURE_RECEIPT.md`. This file stays the record of what the native journeys found and how it was changed;
+the journeys #11 and #12 and the closing pointers are at its end.
 
 ## What the native journeys found, and what was changed
 
@@ -43,11 +43,11 @@ On the CI emulator, Reanimated logs `synchronouslyUpdateUIProps failed ... Unabl
 2–4 s after every screen mount (and list growth), with a full stack trace each, which stalls the emulator's UI thread (`Davey!` up to 8.4 s). The
 same flood is present in all journey runs, including those before any P6 map change, and is upstream (Reanimated retries updates for views Fabric has
 not mounted yet). The driver waits for it; no dependency or Reanimated setting was changed (the rejected global Reanimated flag stays rejected).
-It predates P6 and is not caused by the reader: `ROUND_32_ANR_DIAGNOSIS.md` (2026-09-28, the LEGACY Discovery reader, candidate 2b2cf4d7 on the emulator) measured 839
-synchronous-update warnings over 19 dead tags in a 5 s window, 771 skipped frames and an Android ANR (an input waited 5,002 ms), and traced the mechanism in the installed
-Reanimated 4.5.1 source: `NodesManager` applies every retained animated-registry entry on each draw pass and a failed native update is logged but not removed. On the local
-host-GPU emulator the same P6 build shows 16,534 such lines and 25 frames over 700 ms (max 3.35 s) in a 20-cycle session, no ANR. A repair (a dependency patch or the lifetimes of the
-screen's animated views) is a separate package and needs the owner's approval for any dependency change; it is listed as an explicit limit of the P6 acceptance, not as closed.
+The mechanism is app-wide and starts before any P6 code runs (this replaces an earlier sentence that called it "predating P6" on the strength of Round 32, whose candidate 2b2cf4d7 was REJECTED and is not a legacy baseline):
+in journey #12 the first `synchronouslyUpdateUIProps failed` line is at 13:27:48, in the LOGIN flow, 22 s before the first P6 trace line (13:28:10). `ROUND_32_ANR_DIAGNOSIS.md` (2026-09-28, the Discovery screen of that rejected candidate on the emulator) traced the mechanism in the installed
+Reanimated 4.5.1 source: `NodesManager` applies every retained animated-registry entry on each draw pass and a failed native update is logged but not removed (839 warnings over 19 dead tags in 5 s, 771 skipped frames, an ANR with an input waiting 5,002 ms).
+On the local host-GPU emulator the P6 build shows 16,534 such lines and 25 frames over 700 ms (max 3.35 s) in a 20-cycle session, no ANR; on the physical HONOR the LEGACY reader shows 17,637 lines in six minutes, 9 frames over 700 ms (max 919 ms) and no ANR (`ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md`).
+A repair (a dependency patch or the lifetimes of the screen's animated views) needs the owner's approval for any dependency change; it is carried as **RNR-01**, limit L2 of `P6_CLOSURE_RECEIPT.md`, not as closed.
 
 ## PKG045b client compatibility record (2026-09-30)
 The restriction removes table-wide SELECT on `public.needs` for `anon`/`authenticated` and keeps a 38-column allowlist; three columns become private:
@@ -108,4 +108,10 @@ budgets remain unmeasured. They show where the time goes: the halo waits for a f
 plus a skeleton, as chapter 6.5 proposes, would remove that from the perceived path), and the warm return rebuilds the route from its saved view and reads up to eight pages. P6-10's "smallest necessary change" (the immediate halo, finding 12)
 is done; the remainder is chapter 8.2 of the plan and is recorded as a proposed adjustment and follow-up, not as a relaxed target.
 
-(Journey #11, the cutover and the closing statement are added below as each gate is proven.)
+## Journeys #11 and #12 (the corrected paging driver, APK 36702278038, source 650d340d, production flavour)
+- **#11** (run 36714178256): 11 of 12 steps and 85 checks passed, paging PASSED (100 of 100 rows, no stray open, 5 minutes instead of 14); the `filters` step ended in `timeout (25s) waiting for count 15` on a runner about twice as slow as #10's (Back → list median 29.9 s against 15.6 s); no ANR, the process survived.
+  The step then recorded the tap point, the requests since the tap and the app's own trace, and waited 90 s.
+- **#12** (run 36721005694, driver 56a84df0): **12 of 12 steps, 92 of 92 checks PASS**; the remote filter's answer arrived 8.0 s after the tap; 100 of 100 rows paged (65 swipes, no stray open, one cursor request, maxIndex 100); 20 of 20 returns (tap → detail median 3.2 s, Back → list median 32.4 s on the software-rendered emulator);
+  PSS 527 MB before, 587 MB at cycle 5 and at cycle 20 (no idle sample in this driver version). The workflow's **evidence gate failed** on `logcat-fatal.txt`: one Android ANR at 13:31:44 (`Input dispatching timed out … Waited 5005ms for MotionEvent DOWN at (1053.0, 1920.0)`, the paging swipe's start, 27 px from the right edge), during the maximum of the Reanimated failure flood
+  (4,618 failed updates in that 10-second bucket, about 73,000 log lines per second); the run has 205 frames over 700 ms (p50 1.0 s, p95 3.96 s, max 10.1 s) and 111,623 failed updates over 102 ten-second buckets, the first at 13:27:48 in the login flow. Classification and consequences: `P6_CLOSURE_RECEIPT.md` section 4 (row 1) and limit L2. Compact evidence: `round70-native/full-36721005694/`.
+- The cutover, the physical-device baseline and the closing statement are in `P6_CLOSURE_RECEIPT.md`, `ROUND_73_P6_PHYSICAL_HONOR_BASELINE.md` and `ROUND_71_P6_30K_V3_CONFIRMATION.md`.
