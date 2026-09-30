@@ -858,6 +858,11 @@ def check(name, ok, **facts):
     return bool(ok)
 
 
+def facts_of(verdict):
+    """A pure rule's result minus its own `ok`, so it can be spread into check(name, ok, **facts) without naming `ok` twice."""
+    return {k: v for k, v in verdict.items() if k != 'ok'}
+
+
 def ensure_list():
     """Bring the app back to the P6 Discovery screen whatever the previous step left behind (never signs in again)."""
     for _ in range(4):
@@ -1104,7 +1109,7 @@ def s_paging():
         # app sent, so the cursor is inspected as sent) and is a whole cursor.
         continuity = cursor_continuity(cursor)
         REPORT['paging']['cursors'] = continuity['cursors']
-        check('PAGING_CURSORS_STAY_IN_ONE_SCOPE', continuity['ok'], **continuity)
+        check('PAGING_CURSORS_STAY_IN_ONE_SCOPE', continuity['ok'], **facts_of(continuity))
     check('COUNT_STABLE_AFTER_PAGING', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL)
     snapshot('P6_04_paged_to_end')
 
@@ -1205,9 +1210,9 @@ def s_repeat_cycles(n=20):
     peak = max(kb.values()) if kb else None
     after_mid = [kb[f'cycle_{i}'] for i in (15, n) if f'cycle_{i}' in kb]
     baseline = memory_returns_to_baseline_after_idle(kb.get('before_cycles'), kb.get('after_cycles_idle'))
-    check('MEMORY_RETURNS_TO_BASELINE_AFTER_IDLE', baseline['ok'], **baseline, peak_kb=peak, idleS=IDLE_AFTER_CYCLES_S, samples=kb)
+    check('MEMORY_RETURNS_TO_BASELINE_AFTER_IDLE', baseline['ok'], **facts_of(baseline), peak_kb=peak, idleS=IDLE_AFTER_CYCLES_S, samples=kb)
     flattens = memory_growth_flattens(kb.get('cycle_1'), kb.get(f'cycle_{n // 2}'), max(after_mid) if after_mid else None, kb.get('after_cycles_idle'))
-    check('MEMORY_GROWTH_FLATTENS_OVER_THE_CYCLES', flattens['ok'], **flattens, peak_kb=peak, samples=kb)
+    check('MEMORY_GROWTH_FLATTENS_OVER_THE_CYCLES', flattens['ok'], **facts_of(flattens), peak_kb=peak, samples=kb)
 
 
 def wait_count(expected, timeout=25):
