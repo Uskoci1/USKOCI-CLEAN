@@ -406,6 +406,30 @@
       "run": 36895021919,
       "sha": "e27e76db0c0be9d62683ff253a7f46d5cb846fe4",
       "result": "OSVEŽEN DOKAZ (1.10., CI run 36895021919, izvor e27e76db, runda 2 harnessa, bez izmene servera): disposable lanac, pravi Auth i PostgREST (JWT), pravi klijentski TypeScript; label CHAIN == DEV - svih 11 pinovanih tela lanca cene (submit, select, helper, stale resolver, oba need_candidate_states_v5, propose, respond i susedna tri) bajt-jednaka DEV čitanju od 1.10. (posle in-proof konverzije dve PRE-B24 funkcije sa izvedenim md5 koji je jednak DEV-u pre izvršenja). 142 odbijanja potvrđena tačnom porukom, SQLSTATE i HTTP 400 uz „ništa upisano“ i 23 iznosa sačuvana verbatim sa hash-om koji ih vezuje (46 redova PINNED_TO_TODAY pod otvorenim D1/D4/D6); replay prethodi proveri cene; ponovna potvrda posle izmene zadatka; izbor kopira cenu sačuvane verzije; svih 7 slabljenja (helper no-op i svaki od pet pozivalaca) OTKRIVENO uočenim ishodom i vraćeno tačno. D3 KARAKTERIZOVAN (ne presuđen): Dogovor se uz pristanak obe strane može preceniti na bilo koji ceo broj (u dokazu 1 i 2147483647), a kartica ponude u Moje prijave ostaje na staroj ceni (3000 naspram 1). NIJE dokazano: napadi direktnim upisom u tabele cena (round 3), PostgREST 14.5 (lanac 16.1), pkg051a/A1/P0/P4/P5/B3/PKG-045b P0/Voice B1/EX-04A-C na lancu, DEV bez otvorenih MY_PRICE zadataka. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/ci_run_36895021919/pkg049-report.md"
+    },
+    {
+      "id": "OWNER-DECISION-EX04-SAD-ATTEMPT-20261001",
+      "run": null,
+      "sha": null,
+      "result": "Vlasnik 1.10. (kasnije): „SAD“ za EX-04 test prozor (do 4,5 min ekskluzivnog HONOR-a, sesija i podaci sačuvani, bez reseta i bez ičeg van EX-04 testa); posle testa se test-only linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uklanja iz normalne build konfiguracije, a rezultat se evidentira u receipt, registar i LIVE plan. ISHOD POKUŠAJA: telefon je fizički povezan (HONOR 600 Pro vidljiv u Windows-u) ali ADB interfejs nije vidljiv (adb devices prazno; verovatno isključen USB debugging) - NIŠTA nije poslato telefonu, prozor nije potrošen, podešavanja telefona se ne menjaju; čeka se ponovno „SAD“ posle uključenog USB debugging-a."
+    },
+    {
+      "id": "OWNER-DECISION-B09-ZERO-CHANGE-20261001",
+      "run": null,
+      "sha": null,
+      "result": "Vlasnik 1.10. (kasnije): B09 = ZERO-CHANGE. D1, D2, D3 i D4 ostaju podrazumevano bez promene; osvežiti i završiti dokaz; ne menjati server samo zato što je stara pretpostavka bila pogrešna. Osvežen dokaz je u toku (runda 2 prošla CI 36895021919, runda 3 ispravki u toku)."
+    },
+    {
+      "id": "OWNER-DECISION-D12-DEC2-DEC3-20261001",
+      "run": null,
+      "sha": null,
+      "result": "Vlasnik 1.10. (kasnije): D-DEC-2 = PRIHVAĆEN predlog (sakriti samo tekst komentara; service_role pristup; vlasnik kao operater samo u kontrolisanom testu; bez automatskog pristupa/moderacije). D-DEC-3 = samo postojeći kanali. Ostalo podrazumevano prema kanonskom planu. Kandidat se sada piše (source + test-first + disposable dokaz + privacy/closure dokaz + tačan revert + DEV preflight); primena i dalje samo uz poseban approval block „PRIMENI D12 PISANI KOMENTAR“ koji IMENUJE re-bind sertifikata."
+    },
+    {
+      "id": "OWNER-DECISION-F1-AND-OPEN-ITEMS-20261001",
+      "run": null,
+      "sha": null,
+      "result": "Vlasnik 1.10. (kasnije): F1 - ODOBRENO pripremiti i dokazati kandidata, DEV primena NIJE odobrena. Semantika: „sutra“ = odgovarajući sledeći lokalni kalendarski dan; „ove nedelje“ = preostali deo odgovarajuće lokalne nedelje; ne izmišljati sate ni uži prozor koji korisnik nije dao. Source/test/disposable dokaz pa poseban approval block za eventualno PRIMENI. Vlasnik 1.10. (kasnije): elektro/vodoinstalaterski radovi (obični ili regulisani) i radna imena novih vrsta poslova (rad na daljinu, podovi, ljubimci, pakovanje) se NE zaključavaju kao nove product odluke - evidentirani kao OTVORENE KLASIFIKACIONE STAVKE do odluke. S07 i plaćeni S08 ostaju zatvoreni. Nastavlja se po kanonskom LIVE planu bez čekanja vlasnika za source/test/CI/disposable rad; svaka nova state-changing DEV/PROD promena traži poseban „primeni“."
     }
   ]
 }

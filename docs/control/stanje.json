@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T16:59:27Z",
+  "osvezeno": "2026-10-01T17:30:38Z",
   "grana": "HEAD",
-  "head": "995f507b",
-  "head_poruka": "docs(b09): refreshed price-authority evidence (CI run 36895021919, round-2 harness, NO server change): label CHAIN == DEV (11 price-chain bodies byte-equal to DEV), 142 refusals and 23 verbatim amounts through real PostgREST, all 7 weakening probes detected, Agreement change characterised as open decision D3 (any whole number by consent; the offer card keeps the old price); direct table-write attacks and PostgREST 14.5 not yet covered (round 3)",
+  "head": "0bcd9cfb",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -327,6 +327,7 @@
    },
    "owner_decision_20261001_option_a": "Vlasnik 1.10. (kasnije): ODOBRAVA OPCIJU A. Test-only EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 isključivo u DEV APK workflow-u; jedan novi verifikovani ARM64 DEV APK; tri EX-04 flaga ostaju uključena samo za DEV; adb install -r uz očuvanje sesije i podataka; bez izmene servera, bez izmene DEV podataka, bez fixture-a, bez PROD-a. Guard mora dokazati da promenljiva ne ulazi u release profil/eas.json niti van DEV workflow-a (src/data/__tests__/ex04-test-page-limit-guard.test.ts, mutacijski dokazan). Telefon se ne dira do vlasnikovog „SAD“ (oko 4 minuta ekskluzivnog HONOR prozora). Posle testa se DEV test konfiguracija vraća na normalno, a PAGE_LIMIT=2 se evidentira kao ISKLJUČIVO test instrument, nikad proizvodna vrednost. EX-04 se NE proglašava potpuno zatvorenim dok postoje nedokazane granice; one se evidentiraju tačno. Tumačenje: S4 čita strane od (vrednost - 1), najmanje 1, jer nijedan zadatak test podataka nema više od 2 kandidata.",
    "option_a_test_apk": "Test APK IZGRAĐEN I VERIFIKOVAN 1.10.: workflow run 36873169662 (pokušaj 2; pokušaj 1 pao na prolaznoj grešci preuzimanja Kotlin kompajlera, HTTP 500), izvor 52a66a7638ff55549825b0dccee331c28a979886, USKOCI-DEV.apk 71.250.306 bajtova, sha256 9ef10b674a9b4f323542225b2e5414ff28301d8d06418b59d8bf73b3b90a18ab (podudara se sa .sha256 fajlom i obe atestacije PASS na istom hash-u i izvoru), paket rs.uskoci.dev versionCode 35, native-code arm64-v8a, potpis fac61745dc09… identičan potpisu instaliranog APK-a (adb install -r je moguć bez deinstalacije), okruženje build-a pokazuje EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uz tri EX-04 flaga. NIJE instaliran na telefon i telefon nije dirnut; čeka vlasnikovo „SAD“. Skript ex04_boundary.py (install -r, tri prelaska granice + Back, pull-to-refresh, S1/S2/S4 do kraja, ciklusi, crash/ANR sken) ima tvrd budžet i staje ako izgubi foreground ili zazvoni telefon. Posle testa: brisanje linije iz DEV workflow-a i evidencija da je PAGE_LIMIT=2 bio isključivo test instrument.",
+   "owner_decision_20261001_sad_attempt": "Vlasnik 1.10. (kasnije): „SAD“ za EX-04 test prozor (do 4,5 min ekskluzivnog HONOR-a, sesija i podaci sačuvani, bez reseta i bez ičeg van EX-04 testa); posle testa se test-only linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uklanja iz normalne build konfiguracije, a rezultat se evidentira u receipt, registar i LIVE plan. ISHOD POKUŠAJA: telefon je fizički povezan (HONOR 600 Pro vidljiv u Windows-u) ali ADB interfejs nije vidljiv (adb devices prazno; verovatno isključen USB debugging) - NIŠTA nije poslato telefonu, prozor nije potrošen, podešavanja telefona se ne menjaju; čeka se ponovno „SAD“ posle uključenog USB debugging-a.",
    "open_items": [
     "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
     "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)",
@@ -362,6 +363,7 @@
    "s03_open_owner_questions": [
     "F1 (S03 nalaz, proizvod): zadaci TOMORROW_FLEXIBLE/WEEK_FLEXIBLE bez sačuvanog prozora nikad ne stižu ni do jednog radnika; potrebna je vlasnikova potvrda šta znači „sutra“ i „ove nedelje“ pre kandidata (podrazumevano: lokalni kalendarski dan / ostatak lokalne nedelje u needs.task_timezone, bez izmišljenih sati)"
    ],
+   "owner_decision_20261001_f1_and_open_items": "Vlasnik 1.10. (kasnije): F1 - ODOBRENO pripremiti i dokazati kandidata, DEV primena NIJE odobrena. Semantika: „sutra“ = odgovarajući sledeći lokalni kalendarski dan; „ove nedelje“ = preostali deo odgovarajuće lokalne nedelje; ne izmišljati sate ni uži prozor koji korisnik nije dao. Source/test/disposable dokaz pa poseban approval block za eventualno PRIMENI. Vlasnik 1.10. (kasnije): elektro/vodoinstalaterski radovi (obični ili regulisani) i radna imena novih vrsta poslova (rad na daljinu, podovi, ljubimci, pakovanje) se NE zaključavaju kao nove product odluke - evidentirani kao OTVORENE KLASIFIKACIONE STAVKE do odluke. S07 i plaćeni S08 ostaju zatvoreni. Nastavlja se po kanonskom LIVE planu bez čekanja vlasnika za source/test/CI/disposable rad; svaka nova state-changing DEV/PROD promena traži poseban „primeni“.",
    "provenance": "workflow ex06-canonical-scope-check: 7 mapera + 7 skeptika + kritičar + sintetizator = 16 agenata, svi claude-sonnet-5-5; 277 nalaza, 0 odbijenih, 41 delimično ispravljenih; read-only, DEV nije čitan",
    "flows": [
     "A02",
@@ -3596,6 +3598,7 @@
     "status": "ANALIZA_ODOBRENA_20260922"
    },
    "finalization": {
+    "owner_decision_20261001_zero_change": "Vlasnik 1.10. (kasnije): B09 = ZERO-CHANGE. D1, D2, D3 i D4 ostaju podrazumevano bez promene; osvežiti i završiti dokaz; ne menjati server samo zato što je stara pretpostavka bila pogrešna. Osvežen dokaz je u toku (runda 2 prošla CI 36895021919, runda 3 ispravki u toku).",
     "b09_proof_20261001": "OSVEŽEN DOKAZ (1.10., CI run 36895021919, izvor e27e76db, runda 2 harnessa, bez izmene servera): disposable lanac, pravi Auth i PostgREST (JWT), pravi klijentski TypeScript; label CHAIN == DEV - svih 11 pinovanih tela lanca cene (submit, select, helper, stale resolver, oba need_candidate_states_v5, propose, respond i susedna tri) bajt-jednaka DEV čitanju od 1.10. (posle in-proof konverzije dve PRE-B24 funkcije sa izvedenim md5 koji je jednak DEV-u pre izvršenja). 142 odbijanja potvrđena tačnom porukom, SQLSTATE i HTTP 400 uz „ništa upisano“ i 23 iznosa sačuvana verbatim sa hash-om koji ih vezuje (46 redova PINNED_TO_TODAY pod otvorenim D1/D4/D6); replay prethodi proveri cene; ponovna potvrda posle izmene zadatka; izbor kopira cenu sačuvane verzije; svih 7 slabljenja (helper no-op i svaki od pet pozivalaca) OTKRIVENO uočenim ishodom i vraćeno tačno. D3 KARAKTERIZOVAN (ne presuđen): Dogovor se uz pristanak obe strane može preceniti na bilo koji ceo broj (u dokazu 1 i 2147483647), a kartica ponude u Moje prijave ostaje na staroj ceni (3000 naspram 1). NIJE dokazano: napadi direktnim upisom u tabele cena (round 3), PostgREST 14.5 (lanac 16.1), pkg051a/A1/P0/P4/P5/B3/PKG-045b P0/Voice B1/EX-04A-C na lancu, DEV bez otvorenih MY_PRICE zadataka. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/ci_run_36895021919/pkg049-report.md",
     "b09_finding_20261001": "NALAZ PROVERE 1.10. (živi DEV samo čitanje, 13 agenata + nezavisna provera korenske sesije): premisa B09 je OPOVRGNUTA za živi DEV. private.assert_application_price_v5 (md5 bd7ef02925c03d99ff7fd549219214cb) sprovodi cenu naručioca za MY_PRICE (NULL osnova: jednakost; PER_PERSON: cena x broj mesta; TOTAL: sva mesta i jednakost; MY_PRICE bez cene: FIXED_PRICE_NOT_READY) i poziva ga rpc_submit_response (c98e5bee…), rpc_select_response (7cbb8390…), rpc_resolve_stale_response_after_need_edit (96cb9aac…) i oba need_candidate_states_v5; živo od ledgera 189 (PKG-033a, 21.09.), pre prijema od 23.09. Izbor i Dogovor v1 nikad ne primaju cenu od klijenta (iznos = cena sačuvane verzije prijave). Stvarni preostali otvoreni delovi: izmena cene Dogovora uz pristanak obe strane (D3), granica cene za OFFERS (D4), odbij-naspram-izvedi (D2), NULL osnova za nove MY_PRICE zadatke sa više ljudi (D1); 0 postojećih redova bi bilo odbijeno ili promenjeno. PRIMENI B09/PKG-049 se NE traži: ponovna primena bi bila bajt-identičan no-op. Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PRICE_AUTHORITY_FINDING_20261001.md; sirovi rezultat: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PHASE1_WORKFLOW_RESULT_20261001.json",
     "owner_decision_20261001": "Vlasnik 1.10. (kasnije): ŽELI SERVERSKI AUTORITET ZA CENU U V1 - cena i prihvaćeni iznos u poslovnom toku ne zavise od klijentske vrednosti kad server može biti kanonski autoritet. To je proizvodna odluka. PKG-049 se NE primenjuje na osnovu te poruke: prvo provera kanonskog obima (kandidat kao fajl NE postoji, samo predlog), šta danas određuje cenu, šta server smatra autoritetom, lanac task -> prijava/ponuda -> izbor -> Dogovor -> prihvaćena cena -> readback, semantika TOTAL / PER_PERSON / OFFERS, dokaz da se postojeći podaci ne menjaju, test-first/disposable dokaz, tačan revert i svež read-only DEV preflight; tek tada poseban approval block koji traži „PRIMENI B09/PKG-049“.",
@@ -4992,6 +4995,7 @@
     "status": "ANALIZA_ODOBRENA_20260922"
    },
    "finalization": {
+    "owner_decision_20261001_dec2_dec3": "Vlasnik 1.10. (kasnije): D-DEC-2 = PRIHVAĆEN predlog (sakriti samo tekst komentara; service_role pristup; vlasnik kao operater samo u kontrolisanom testu; bez automatskog pristupa/moderacije). D-DEC-3 = samo postojeći kanali. Ostalo podrazumevano prema kanonskom planu. Kandidat se sada piše (source + test-first + disposable dokaz + privacy/closure dokaz + tačan revert + DEV preflight); primena i dalje samo uz poseban approval block „PRIMENI D12 PISANI KOMENTAR“ koji IMENUJE re-bind sertifikata.",
     "d12_design_20261001": "PROJEKAT (1.10., samo čitanje, 13 agenata + nezavisna provera korenske sesije): kanon već traži funkciju (L-017: 1-5 zvezdica + OPCIONI kratak tekst posle završenog Dogovora) ali ne definiše ugovor (dužina, edit, moderacija, retention, vreme objave su OTVORENI). Živo: jedna tabela private.agreement_reviews, 7 redova, NEMA tekstualne kolone, RLS forsiran, 0 politika, trigger pre_v3_review_immutable. Predlog (SVE osim kanonskih činjenica je PREDLOG): zasebna tabela 1:1 po recenziji, nova imena funkcija (v2), stare funkcije bajt-identične (stari APK rade), komentar samo u istoj komandi kao zvezdice, 500 znakova, bez AI i plaćenog servisa, brisanje pri zatvaranju autorovog naloga kroz sertifikovani izvršilac, export sopstvenog komentara (52 skupa, V5_9 -> V5_10), bez edit/delete (kanon ga ne definiše). D12 NIJE samo-funkcije: nova tabela POMERA sertifikat zatvaranja 58447d77, pa se primena radi u jednoj atomskoj izjavi sa re-bindom na tri mesta i traži vlasnikovo izričito odobrenje koje IMENUJE re-bind. Dva pitanja blokiraju pisanje kandidata: D-DEC-2 (efekat i operator moderacije) i D-DEC-3 (pokazivač prijave). Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_WRITTEN_REVIEW_DESIGN_20261001.md",
     "owner_decision_20261001": "Vlasnik 1.10. (kasnije): ŽELI PISANI KOMENTAR UZ ZVEZDANU OCENU U V1 - zvezdica ostaje, korisnik opciono ostavlja i pisani komentar posle završenog posla; deo reputacije/javnog profila gde proizvod to predviđa. To je proizvodna odluka. D12 se NE primenjuje na osnovu te poruke: prvo kompletan paket (ko sme da piše, samo posle stvarno završenog odgovarajućeg Dogovora, najviše jedna recenzija po strani, zvezdice + opcioni tekst, dužina i validacija, ko vidi i gde, javni profil, report/moderation, zloupotreba i spam, privacy klasifikacija, export, zatvaranje naloga, retention, RLS/ACL, stari klijenti; edit/delete samo ako ga kanonski proizvod već definiše), source + test-first + disposable dokaz + privacy/closure dokaz + tačan revert + DEV preflight; tek tada poseban approval block koji traži „PRIMENI D12 PISANI KOMENTAR“. Bez automatske AI moderacije i bez plaćenog servisa bez posebnog odobrenja.",
     "priorities": [
@@ -8010,5 +8014,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36896019778,
+   "ime": "Control tracker refresh",
+   "sha": "995f507b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:59:10Z"
+  },
+  {
+   "id": 36895021919,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "e27e76db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:50:45Z"
+  },
+  {
+   "id": 36892351679,
+   "ime": "Control tracker refresh",
+   "sha": "2f3d7390",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:29:12Z"
+  },
+  {
+   "id": 36890566753,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "e7f129d5",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:15:04Z"
+  },
+  {
+   "id": 36880192681,
+   "ime": "Control tracker refresh",
+   "sha": "34d6d06c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:55:26Z"
+  },
+  {
+   "id": 36879449522,
+   "ime": "Control tracker refresh",
+   "sha": "5f5930ed",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:49:53Z"
+  },
+  {
+   "id": 36875994563,
+   "ime": "Control tracker refresh",
+   "sha": "b1f280de",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:23:46Z"
+  },
+  {
+   "id": 36875676769,
+   "ime": "Control tracker refresh",
+   "sha": "202c2577",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:21:20Z"
+  },
+  {
+   "id": 36875025074,
+   "ime": "Control tracker refresh",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36875025066,
+   "ime": "P5 ready task and matching contract",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36873883166,
+   "ime": "Control tracker refresh",
+   "sha": "ce8daef9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:07:31Z"
+  },
+  {
+   "id": 36873169662,
+   "ime": "Build Android development APK",
+   "sha": "52a66a76",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:01:59Z"
+  }
+ ]
 }
