@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T14:50:18Z",
+  "osvezeno": "2026-10-01T14:55:16Z",
   "grana": "HEAD",
-  "head": "5f5930ed",
-  "head_poruka": "docs(b09): PKG-049 canonical scope check - the recorded premise is REFUTED for live DEV: private.assert_application_price_v5 (md5 bd7ef029) already enforces the requester-fixed price for MY_PRICE and rpc_submit_response, rpc_select_response, the stale-reconfirm resolver and both need_candidate_states_v5 overloads call it, live since ledger 189 (PKG-033a); selection and Agreement v1 never take a client price; 0 existing rows would be rejected or changed; no PKG-049 candidate file exists and none is needed (PRIMENI B09/PKG-049 would be a no-op, so it is not asked)",
+  "head": "c804b2e2",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -4988,6 +4988,7 @@
     "status": "ANALIZA_ODOBRENA_20260922"
    },
    "finalization": {
+    "d12_design_20261001": "PROJEKAT (1.10., samo čitanje, 13 agenata + nezavisna provera korenske sesije): kanon već traži funkciju (L-017: 1-5 zvezdica + OPCIONI kratak tekst posle završenog Dogovora) ali ne definiše ugovor (dužina, edit, moderacija, retention, vreme objave su OTVORENI). Živo: jedna tabela private.agreement_reviews, 7 redova, NEMA tekstualne kolone, RLS forsiran, 0 politika, trigger pre_v3_review_immutable. Predlog (SVE osim kanonskih činjenica je PREDLOG): zasebna tabela 1:1 po recenziji, nova imena funkcija (v2), stare funkcije bajt-identične (stari APK rade), komentar samo u istoj komandi kao zvezdice, 500 znakova, bez AI i plaćenog servisa, brisanje pri zatvaranju autorovog naloga kroz sertifikovani izvršilac, export sopstvenog komentara (52 skupa, V5_9 -> V5_10), bez edit/delete (kanon ga ne definiše). D12 NIJE samo-funkcije: nova tabela POMERA sertifikat zatvaranja 58447d77, pa se primena radi u jednoj atomskoj izjavi sa re-bindom na tri mesta i traži vlasnikovo izričito odobrenje koje IMENUJE re-bind. Dva pitanja blokiraju pisanje kandidata: D-DEC-2 (efekat i operator moderacije) i D-DEC-3 (pokazivač prijave). Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_WRITTEN_REVIEW_DESIGN_20261001.md",
     "owner_decision_20261001": "Vlasnik 1.10. (kasnije): ŽELI PISANI KOMENTAR UZ ZVEZDANU OCENU U V1 - zvezdica ostaje, korisnik opciono ostavlja i pisani komentar posle završenog posla; deo reputacije/javnog profila gde proizvod to predviđa. To je proizvodna odluka. D12 se NE primenjuje na osnovu te poruke: prvo kompletan paket (ko sme da piše, samo posle stvarno završenog odgovarajućeg Dogovora, najviše jedna recenzija po strani, zvezdice + opcioni tekst, dužina i validacija, ko vidi i gde, javni profil, report/moderation, zloupotreba i spam, privacy klasifikacija, export, zatvaranje naloga, retention, RLS/ACL, stari klijenti; edit/delete samo ako ga kanonski proizvod već definiše), source + test-first + disposable dokaz + privacy/closure dokaz + tačan revert + DEV preflight; tek tada poseban approval block koji traži „PRIMENI D12 PISANI KOMENTAR“. Bez automatske AI moderacije i bez plaćenog servisa bez posebnog odobrenja.",
     "priorities": [
      "P2"
@@ -8005,5 +8006,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36879449522,
+   "ime": "Control tracker refresh",
+   "sha": "5f5930ed",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:49:53Z"
+  },
+  {
+   "id": 36875994563,
+   "ime": "Control tracker refresh",
+   "sha": "b1f280de",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:23:46Z"
+  },
+  {
+   "id": 36875676769,
+   "ime": "Control tracker refresh",
+   "sha": "202c2577",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:21:20Z"
+  },
+  {
+   "id": 36875025074,
+   "ime": "Control tracker refresh",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36875025066,
+   "ime": "P5 ready task and matching contract",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36873883166,
+   "ime": "Control tracker refresh",
+   "sha": "ce8daef9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:07:31Z"
+  },
+  {
+   "id": 36873169662,
+   "ime": "Build Android development APK",
+   "sha": "52a66a76",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:01:59Z"
+  },
+  {
+   "id": 36870759897,
+   "ime": "Control tracker refresh",
+   "sha": "d7c93511",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:43:08Z"
+  },
+  {
+   "id": 36870291053,
+   "ime": "Control tracker refresh",
+   "sha": "707b1308",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:39:26Z"
+  },
+  {
+   "id": 36869363125,
+   "ime": "Control tracker refresh",
+   "sha": "e32612f9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:31:56Z"
+  },
+  {
+   "id": 36859811107,
+   "ime": "Build Android development APK",
+   "sha": "bf48a5db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T12:08:36Z"
+  },
+  {
+   "id": 36858334599,
+   "ime": "Control tracker refresh",
+   "sha": "fbf928d1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T11:54:41Z"
+  }
+ ]
 }
