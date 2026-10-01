@@ -32,6 +32,8 @@ on:
       - 'supabase/proofs/ex06/**'
       - '!supabase/proofs/ex06/*.md'
       - '!supabase/proofs/ex06/**/*.md'
+      - '!supabase/proofs/ex06/ex06a_*'
+      - '!supabase/proofs/ex06/build_ex06a.py'
       - 'supabase/proofs/ai/corpus/**'
       - 'src/contracts/needFactsV2.ts'
       - 'supabase/proofs/pre_v3/closure_runtime.mjs'

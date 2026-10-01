@@ -56,6 +56,8 @@ const W2A = 'supabase/migrations/20260909150000_clean_w02_persistent_availabilit
 const AV = 'supabase/migrations/20260909140000_clean_w02_availability_commands.sql';
 const K31 = 'supabase/candidates/pkg031b_work_kinds_for_matching.sql';
 const P27 = 'supabase/candidates/pkg027a_dispatch_keeps_looking.sql';
+const X6 = 'supabase/candidates/ex06a_flexible_window.sql';
+const X6R = 'supabase/candidates/ex06a_flexible_window_revert.sql';
 const R15 = 'supabase/operations/dev-alpha/ledger/20260917181212_dev_alpha_pkg015b_gap0042_world_boundary.sql';
 const GW = 'supabase/migrations/20260910121926_clean_w02_regional_country_authority.sql';
 const G173 = 'supabase/migrations/20260830173000_clean_authoritative_mutation_boundary.sql';
@@ -154,8 +156,10 @@ describe('EX-06 S05 field-to-consumer map: effective matcher chain and gate clas
       'supabase/candidates/pkg023c_public_pin_100m.sql', // comment only: "matching ... not touched"
       K31,
       'supabase/candidates/pkg035a_selectable_application_counts.sql', // md5 pin and reader only
+      X6, X6R, // EX-06 ex06a: ONE anchored edit of the match_detail_without_calendar body (a window-less TOMORROW/WEEK task counts as future availability for CURRENT_AVAILABILITY_PAUSED), NOT APPLIED to DEV, and its exact inverse
       W2C, W2I, W2A].sort());
-    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A].sort());
+    // ex06a also pins the pre-image of dispatch_cheap_candidate_admitted (md5 row only; it changes neither this function nor the prefilter)
+    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R].sort());
     const wrappers = mentioning(migrationSql(), /create or replace function private\.match_detail\(/);
     expect(wrappers[wrappers.length - 1]).toBe(W2F);
     const waves = mentioning(migrationSql(), /create or replace function private\.dispatch_next_wave\(/);
