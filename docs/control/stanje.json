@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T22:04:14Z",
+  "osvezeno": "2026-10-01T22:04:35Z",
   "grana": "HEAD",
-  "head": "3882099d",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "78f021a7",
+  "head_poruka": "docs(control): B22 / RNR-01 - owner decided to introduce patch-package for the Reanimated patch (his words \"uvedi zakrpu\")",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8551,102 +8551,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36932301741,
-   "ime": "Control tracker refresh",
-   "sha": "9394e94f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T21:59:55Z"
-  },
-  {
-   "id": 36931740188,
-   "ime": "Control tracker refresh",
-   "sha": "e367336f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T21:54:31Z"
-  },
-  {
-   "id": 36931606720,
-   "ime": "Control tracker refresh",
-   "sha": "8edadfa1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T21:53:13Z"
-  },
-  {
-   "id": 36931086522,
-   "ime": "Build Android development APK",
-   "sha": "fb865dd7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T21:48:25Z"
-  },
-  {
-   "id": 36929784190,
-   "ime": "Control tracker refresh",
-   "sha": "d63779b7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T21:36:22Z"
-  },
-  {
-   "id": 36925081287,
-   "ime": "Control tracker refresh",
-   "sha": "0042d82a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T20:55:13Z"
-  },
-  {
-   "id": 36924665165,
-   "ime": "Control tracker refresh",
-   "sha": "83a18b15",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T20:51:44Z"
-  },
-  {
-   "id": 36923900555,
-   "ime": "Control tracker refresh",
-   "sha": "13680e55",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T20:45:25Z"
-  },
-  {
-   "id": 36915024215,
-   "ime": "Control tracker refresh",
-   "sha": "7a5712b8",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T19:32:21Z"
-  },
-  {
-   "id": 36910942456,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "b00f62f3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T18:59:20Z"
-  },
-  {
-   "id": 36901457675,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "852cf658",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:43:17Z"
-  },
-  {
-   "id": 36901345565,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:42:23Z"
-  }
- ]
+ "ci": null
 }
