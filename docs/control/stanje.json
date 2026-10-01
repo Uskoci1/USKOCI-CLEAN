@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T10:17:59Z",
-  "grana": "HEAD",
-  "head": "92fa9d45",
-  "head_poruka": "feat(ex04): S4 client (A11 candidates) behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (off) and the round 76 receipt - S3 and S4 are source and disposable-CI proven (runs 36846103770, 36846103824), NOTHING applied to DEV",
+  "osvezeno": "2026-10-01T11:53:59Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "46040a03",
+  "head_poruka": "chore(ex04): pin the EX-04 candidates and reverts to LF in gitattributes - their body md5 pins and the trimmed sha256 of the receipts are computed from LF text, and a Windows checkout (autocrlf) had turned two of them into CRLF in the working tree",
   "server": {
-   "snimljeno": "2026-10-01T07:03:07Z",
-   "migracije": 215,
-   "dev_alpha": 67,
-   "poslednja": "dev_alpha_chat_voice_b1_dev_application",
+   "snimljeno": "2026-10-01T11:42:55Z",
+   "migracije": 219,
+   "dev_alpha": 71,
+   "poslednja": "dev_alpha_ex04c_rating_state_application",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -87,8 +87,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "PROBLEM": 42,
-  "NA TELEFONU NIJE PROVERENO": 20
+  "PROBLEM": 41,
+  "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
   "updated_at": "2026-09-28",
@@ -208,7 +208,7 @@
    "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "ex04": {
-   "state": "S1_S4_SOURCE_CI_PROVEN_20261001 / NOTHING_APPLIED / CLIENT_FLAGS_OFF",
+   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_OFF / NATIVE_NOT_PROVEN",
    "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
    "flows_p2": [
@@ -242,14 +242,14 @@
    ],
    "first_open_row": "Lične liste A09 / B10 / A11 (P6 L7) i RC-03 zbirna projekcija ocena A01 / D01 (P6 L10): direktiva vlasnika 30.09, tačka 4 (eksplicitan otvoren sledeći red EX-04/P2).",
    "aligned_order": [
-    "S1 A09: rpc_list_my_needs_page dopunjen na mestu (stavka = rpc_read_task dokument) + klijentski cursor owner: SOURCE + CI (run 36836659746; ponovo zeleno 36846103774 na završnom izvoru), DEV NIJE primenjeno",
-    "S2 B10: rpc_list_my_applications_page dopunjen (redosled (pažnja, vreme, id) kao puna lista, Na daljinu, ceo termin, osnova cene i broj ljudi u projekciji, tabovi i brojevi; potpis dobija p_before_rank) + cursor owner: SOURCE + CI (run 36839658547; ponovo zeleno 36846103943), DEV NIJE primenjeno",
-    "S3 RC-03: stanje ocene u stranici Dogovora (ratingDue) i ratings {due, dueAgreementId} u postojećem rpc_home_attention, oba dopunjena na mestu, samo dodati ključevi; klijent bez flaga (podatak određuje put, stari put ostaje rezerva): SOURCE + CI (run 36846103770), DEV NIJE primenjeno",
-    "S4 A11: rpc_list_need_candidates_page + private.need_candidate_states_v5(uuid, uuid[]) (dve NOVE funkcije; isti dokument kandidata kao puna lista, strana plaća samo svoje kandidate) + klijent iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED: SOURCE + CI (run 36846103824), DEV NIJE primenjeno"
+    "S1 A09: rpc_list_my_needs_page dopunjen na mestu + private.own_task_counts: SOURCE + CI (run 36836659746; ponovo zeleno 36846103774) i PRIMENJENO NA DEV 1.10. (migracija 20261001113449, ledger 216), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen)",
+    "S2 B10: rpc_list_my_applications_page (5 argumenata, redosled kao puna lista, činjenice zadatka, tabovi i brojevi) + private.own_application_rows: SOURCE + CI (run 36839658547; ponovo zeleno 36846103943) i PRIMENJENO NA DEV 1.10. (migracija 20261001113629, ledger 217), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen)",
+    "S3 RC-03: ratingDue u stranici Dogovora i ratings {due, dueAgreementId} u rpc_home_attention, oba dopunjena na mestu, samo dodati ključevi: SOURCE + CI (run 36846103770) i PRIMENJENO NA DEV 1.10. (migracija 20261001113949, ledger 219), postflight prazan; klijent bez flaga (podatak određuje put, stari put ostaje rezerva)",
+    "S4 A11: rpc_list_need_candidates_page + private.need_candidate_states_v5(uuid, uuid[]) (dve NOVE funkcije): SOURCE + CI (run 36846103824) i PRIMENJENO NA DEV 1.10. (migracija 20261001113815, ledger 218), postflight prazan; klijent iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (isključen)"
    ],
    "slices": {
     "S1_A09": {
-     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client behind EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (off)",
+     "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (off); native NOT proven",
      "candidate": "supabase/candidates/ex04a_own_tasks_page.sql",
      "candidate_sha256": "3e502e62598fac40fdbfa47623904b736b0fb1e46c5d886f4e423ff0fa50ab59",
      "revert_sha256": "c790dfb9133793f10e57eca21b7e391fb4ecb49705675ec1902f9e12a7582f3e",
@@ -260,10 +260,17 @@
       36839658435,
       36846103774
      ],
-     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md",
+     "dev_migration": {
+      "name": "dev_alpha_ex04a_own_tasks_page_application",
+      "version": "20261001113449",
+      "ledger_after": 216,
+      "stored_sha256": "4d55af3eed0aa92b3e281152beaa6ac986b9110cb95563e2dedfeba6e51274b9"
+     },
+     "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
     },
     "S2_B10": {
-     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client behind EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (off)",
+     "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (off); native NOT proven",
      "candidate": "supabase/candidates/ex04b_own_applications_page.sql",
      "candidate_sha256": "d0bc1e1bc4e919eba06559be807fc1c8e54a30b4a282ddc6f4e857e9f93d4948",
      "revert_sha256": "66e0bcdb0535f4242526ff22b3f748fcf0c20ef42164199f83bbca59abd8380a",
@@ -272,21 +279,17 @@
       36839658547,
       36846103943
      ],
-     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
-    },
-    "S3_RC03": {
-     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client without a flag (the data decides, the old per-Dogovor path stays as the fallback)",
-     "candidate": "supabase/candidates/ex04c_rating_state.sql",
-     "candidate_sha256": "e67eabecd7d820f9b2ea41b4ac4508459c7beadda5caf3ce72c848c8fc3317e6",
-     "revert_sha256": "3fe26a1d54e95772ad0b3fc20904a54b446ed5c6a446e61b8ad354ff43d3f84e",
-     "postflight_sha256": "dc6b160482441f152737a51cd317161bb5afa6a6dc089aefe306cbee70e89632",
-     "ci_runs": [
-      36846103770
-     ],
-     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md"
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md",
+     "dev_migration": {
+      "name": "dev_alpha_ex04b_own_applications_page_application",
+      "version": "20261001113629",
+      "ledger_after": 217,
+      "stored_sha256": "2ad69506885029ecf47e00fa06fdcf7e23c68c83a56384d9b183df7338e0c351"
+     },
+     "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
     },
     "S4_A11": {
-     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (off)",
+     "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (off); native NOT proven",
      "candidate": "supabase/candidates/ex04d_candidates_page.sql",
      "candidate_sha256": "ff11ea470d2afa09b6651a5f1b55bc68d19578862841e12a4c83287924564a09",
      "revert_sha256": "086a5662d8a78d46d6688f6ab7e1983e8de16cc582bdb2124ca571173579b792",
@@ -294,12 +297,39 @@
      "ci_runs": [
       36846103824
      ],
-     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md"
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md",
+     "dev_migration": {
+      "name": "dev_alpha_ex04d_candidates_page_application",
+      "version": "20261001113815",
+      "ledger_after": 218,
+      "stored_sha256": "db03fc0f1cf4b4340866073c1aad2ef3c891b10ee5e13ce28b38c6668c03c9f7"
+     },
+     "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+    },
+    "S3_RC03": {
+     "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client without a flag (the data decides, the old per-Dogovor path stays as the fallback); native NOT proven",
+     "candidate": "supabase/candidates/ex04c_rating_state.sql",
+     "candidate_sha256": "e67eabecd7d820f9b2ea41b4ac4508459c7beadda5caf3ce72c848c8fc3317e6",
+     "revert_sha256": "3fe26a1d54e95772ad0b3fc20904a54b446ed5c6a446e61b8ad354ff43d3f84e",
+     "postflight_sha256": "dc6b160482441f152737a51cd317161bb5afa6a6dc089aefe306cbee70e89632",
+     "ci_runs": [
+      36846103770
+     ],
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md",
+     "dev_migration": {
+      "name": "dev_alpha_ex04c_rating_state_application",
+      "version": "20261001113949",
+      "ledger_after": 219,
+      "stored_sha256": "9aaadf7aeb806ba9f80b1ee3157652b1e7f5bab50e46b1829370fc32ed720cee"
+     },
+     "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
     }
    },
    "open_items": [
-    "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja; prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
-    "Posle svakog vlasnikovog „primeni“ i čitanja nazad: uključiti tri build flaga (S1 EXPO_PUBLIC_EX04_OWN_TASKS_PAGED, S2 EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED, S4 EXPO_PUBLIC_EX04_CANDIDATES_PAGED) u DEV profilu i izvesti nativne provere na HONOR-u u prozoru koji vlasnik odobri; do tada u svakom build-u ostaju čitanja cele liste"
+    "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja; prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i, 1.10., na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
+    "Flagovi S1/S2/S4 su isključeni u svakom profilu: uključivanje u DEV profilu, APK i nativne provere na HONOR-u (dugačka lista, Back, promena taba, promena drugog naloga tokom čitanja; za S3 lista Dogovora sa završenim poslom i broj na Početnoj) traže vlasnikovo odobrenje i prozor koji on odobri",
+    "Nije dokazano: HTTP/JWT poziv novih čitača kroz PostgREST na DEV-u (SQL nivo sa claims-ovima svakog naloga jeste, na pravim podacima), prelazak granice strane na pravim DEV podacima (premalo podataka; dokazano na disposable lancu), troškovi na produkcijskom obimu",
+    "Vlasnikove odluke koje ostaju: B09/PKG-049 (serverska cena) i pisani komentar D12; svaki revert traži novo posebno PRIMENI"
    ],
    "withdrawn": "rpc_home_summary() kao imenovana isporuka: ne postoji ni u jednom kanonskom izvoru; Home ide kroz postojeću projekciju (RC-03).",
    "not_in_scope": [
@@ -553,7 +583,7 @@
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
     "device": "Novi Home retry nije u instaliranom f526a736; native još čeka.",
     "round73": "P6 obuhvat: zbirni rpc_home_attention postoji i klijent ga koristi; provere ocena (RC-03) su ublažene (4 paralelne, rok 4 s), ali broj i dalje zavisi od stranica Dogovora. Granica ugovora: zbirna projekcija ocena je P2 paket.",
-    "ex04": "S3 (round 76): serverski kandidat ex04c (rpc_home_attention dopunjen na mestu: ratings {due, dueAgreementId} u istom prolazu, ista presuda kao rpc_get_my_agreement_review(...).eligible, samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera, pravi klijentski TypeScript: nijedno čitanje ocene po Dogovoru za nijedan, jedan i dugu istoriju, broj na Početnoj je zbirni odgovor servera i preživljava neuspelo čitanje Dogovora); klijent koristi zbirni odgovor kad ga server šalje, inače stari put (bez flaga); DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md"
+    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_home_attention dopunjen na mestu: ratings {due, dueAgreementId}, ista presuda kao rpc_get_my_agreement_review(...).eligible, samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949, ledger 219; postflight problems []); na pravim DEV podacima ratings.due = broj prema autoritetu (0 i 1) i dueAgreementId je taj Dogovor; klijent koristi zbirni odgovor kad ga server šalje, inače stari put (bez flaga); nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1289,7 +1319,7 @@
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
     "device": "Nova izmena nije u APK36339245682/f526a736; native čeka sledeći objedinjeni paket.",
     "round73": "P6 obuhvat: klijent i dalje čita celu ličnu listu (rpc_list_my_tasks); serverski straničeni čitač rpc_list_my_needs_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim je ograničen brojem zadataka jednog naloga; povezivanje straničenja je red EX-04.",
-    "ex04": "S1 (round 75): serverski kandidat ex04a (rpc_list_my_needs_page dopunjen na mestu: stavka = rpc_read_task dokument, scopes ALL/ACTIVE/DRAFTS/HISTORY/WAITING, pet brojeva na prvoj strani) DOKAZAN na disposable lancu (run 36836659746, 21 provera); klijent (pager, \"Prikaži još\", serverski brojevi) iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen); DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
+    "ex04": "S1 (round 75 + DEV 1.10.): serverski kandidat ex04a (rpc_list_my_needs_page dopunjen na mestu: stavka = rpc_read_task dokument, scopes ALL/ACTIVE/DRAFTS/HISTORY/WAITING, pet brojeva na prvoj strani) DOKAZAN na disposable lancu (run 36846103774, 21 provera) i PRIMENJEN NA DEV 1.10. na vlasnikovo PRIMENI (migracija 20261001113449, ledger 216; postflight problems [], sertifikat nepromenjen); na pravim DEV podacima strana = rpc_list_my_tasks() za svih 5 naloga; klijent (pager, \"Prikaži još\", serverski brojevi) iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen), nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1427,12 +1457,11 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "crveno",
+    "server": "zeleno",
     "test": "zeleno",
     "telefon": "zuto"
    },
    "note": {
-    "server": "Aplikacija poziva, a na serveru nema: rpc_list_need_candidates_page",
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
     "test": "5 test fajl(ova)"
    },
@@ -1464,9 +1493,9 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
     "round73": "P6 obuhvat: kandidati po zadatku (rpc_list_need_candidates) ostaju kakvi su; obim po jednom zadatku je ograničen brojem prijava. Nije novo P6 programiranje.",
-    "ex04": "S4 (round 76): serverski kandidat ex04d (dve NOVE funkcije: rpc_list_need_candidates_page = isti dokument kandidata kao puna lista, u istom redosledu (podnošenje, id) + keyset vrednost, ukupan broj na prvoj strani; private.need_candidate_states_v5(uuid, uuid[]) = stanje PKG-035a ograničeno na prijave jedne strane) DOKAZAN na disposable lancu (run 36846103824, 17 provera, pravi klijentski TypeScript: stranice jednake punoj listi kroz izjednačenja, stanja i limite; strana radi samo za svoje kandidate: 30 javnih profila i 19 uparivanja naspram 136 i 125 za celu listu; hod preživljava promenu između strana); klijent (pager, „Prikaži još“, cena i poređenje čitaju ostatak, prijave dve revizije zadatka se nikad ne prikazuju zajedno) iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (isključen); DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md"
+    "ex04": "S4 (round 76 + DEV 1.10.): serverski kandidat ex04d (dve NOVE funkcije: rpc_list_need_candidates_page = isti dokument kandidata kao puna lista u istom redosledu (podnošenje, id) + keyset vrednost, ukupan broj na prvoj strani; private.need_candidate_states_v5(uuid, uuid[]) = stanje PKG-035a ograničeno na prijave jedne strane) DOKAZAN na disposable lancu (run 36846103824, 17 provera; strana od 30 radi 30 javnih profila i 19 uparivanja naspram 136 i 125 za celu listu) i PRIMENJEN NA DEV 1.10. (migracija 20261001113815, ledger 218; postflight problems []); na pravim DEV podacima prva strana = rpc_list_need_candidates za svih 11 zadataka sa prijavama (14 prijava); klijent (pager, „Prikaži još“, cena i poređenje čitaju ostatak, prijave dve revizije zadatka se nikad ne prikazuju zajedno) iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (isključen), nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
    },
-   "ukupno": "PROBLEM",
+   "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
     "povrsina": "Moj zadatak / Objavi",
     "nivo": 2,
@@ -3497,7 +3526,7 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
     "round73": "P6 obuhvat: klijent čita celu listu (rpc_list_my_applications); straničeni čitač rpc_list_my_applications_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim po nalogu; povezivanje je red EX-04.",
-    "ex04": "S2 (round 75): serverski kandidat ex04b (rpc_list_my_applications_page: redosled kao puna lista kroz keyset (rank, sortAt, id), činjenice zadatka za karticu, tabovi ALL/ATTENTION/ACTIVE/HISTORY, četiri broja; potpis dobija p_before_rank) DOKAZAN na disposable lancu (run 36839658547, 21 provera, pravi klijentski TypeScript); klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen): Na daljinu i ceo termin na kartici, osnova cene i broj ljudi u projekciji; DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
+    "ex04": "S2 (round 75 + DEV 1.10.): serverski kandidat ex04b (rpc_list_my_applications_page: redosled kao puna lista kroz keyset (rank, sortAt, id), činjenice zadatka za karticu, tabovi ALL/ATTENTION/ACTIVE/HISTORY, četiri broja; potpis dobija p_before_rank) DOKAZAN na disposable lancu (run 36846103943, 21 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113629, ledger 217; stari 4-argumentni potpis uklonjen bez CASCADE; postflight problems []); na pravim DEV podacima isti redosled i nula razlika u poljima celog čitanja za 3 naloga sa prijavama; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen), nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3759,7 +3788,7 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
     "round73": "P6 obuhvat: lista Dogovora je već straničena (rpc_list_my_agreements_page); RC-03 (provere ocena po završenom Dogovoru) ostaje ublažen, ne zbirni (L10).",
-    "ex04": "S3 (round 76): serverski kandidat ex04c (rpc_list_my_agreements_page: svaka stavka dobija ratingDue, ista presuda kao rpc_get_my_agreement_review(...).eligible; samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera): stari klijentski put pita jednom po završenom Dogovoru (150 čitanja za 150 Dogovora i 3 stranice), novi nijedno, rezultat jednak; zastoj čitanja ocene ne uskraćuje ništa jer nijedno nije pokrenuto; paging/zadržavanje redova preko restarta nije dodato (kartica to i ne traži); DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md"
+    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_list_my_agreements_page: svaka stavka dobija ratingDue, ista presuda kao rpc_get_my_agreement_review(...).eligible; samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera: stari put 150 čitanja za 150 Dogovora, novi nijedno) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949); na pravim DEV podacima ratingDue je logički boolean u svih 16 stavki i jednak autoritetu za sve završene Dogovore oba naloga koja ih imaju (po 4); paging/zadržavanje redova preko restarta nije dodato (kartica to i ne traži); nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -6658,9 +6687,7 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [
-  "rpc_list_need_candidates_page"
- ],
+ "aplikacija_zove_a_server_nema": [],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
   "stavke": [
@@ -7366,9 +7393,7 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [
-   "rpc_list_need_candidates_page"
-  ],
+  "novo_slomljeno": [],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [
@@ -7806,5 +7831,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36848229608,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36848229494,
+   "ime": "Control tracker refresh",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36846103943,
+   "ime": "EX-04 S2 own applications page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103824,
+   "ime": "EX-04 S4 candidates page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103774,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103770,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36844727502,
+   "ime": "EX-04 S4 candidates page proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T09:44:57Z"
+  },
+  {
+   "id": 36844727458,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T09:44:57Z"
+  },
+  {
+   "id": 36844727454,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:44:57Z"
+  },
+  {
+   "id": 36844727415,
+   "ime": "EX-04 S2 own applications page proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:44:57Z"
+  },
+  {
+   "id": 36843942412,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "1ecd8f4b",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T09:37:34Z"
+  },
+  {
+   "id": 36843942278,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "1ecd8f4b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:37:34Z"
+  }
+ ]
 }

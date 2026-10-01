@@ -1,5 +1,7 @@
 # Round 76 - EX-04 slices S3 (RC-03 rating state: A01 + D01) and S4 (A11 candidates and comparison): source and disposable-CI proof, NOT APPLIED to DEV
 
+> **UPDATE 2026-10-01 (later the same day): the four candidates S1-S4 were APPLIED to canonical DEV on the owner's PRIMENI (ledger 215 -> 219, certificate unchanged, every postflight `problems: []`) - see `EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md`. The text below is the state at the time of writing ("NOT APPLIED"); it is kept as it was.**
+
 **Status (2026-10-01): SOURCE + CI-PROVEN on a disposable chain; CLIENT SOURCE-WIRED (S3 by data-shape detection with the old path kept as the fallback, S4 behind one compile-time flag that is OFF in every build profile); NOTHING APPLIED to DEV; nothing on PROD.**
 Levels (LIVE plan 4.2): SOURCE yes | CI-PROVEN yes (disposable, actual Auth and PostgREST) | DEV-APPLIED **no** (needs the owner's exact word "primeni" per candidate) | CLIENT-WIRED in a build **no** (S4) / **no server fact to read yet** (S3) | DEVICE-PROVEN **no** | RELEASE-READY **no**.
 Scope check: this round follows `EX04_PERSONAL_LISTS_PLAN_20260930.md` section 6 (S3, S4); it adds nothing the canonical cards (A01, D01, A11, chapter 6.7, P6 L10) do not name. With S1 and S2 (round 75) all four slices of the plan are now source- and CI-proven; none is applied.

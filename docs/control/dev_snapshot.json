@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-01T07:03:07Z",
-  "ledger_total": 215,
-  "ledger_dev_alpha": 67,
-  "ledger_last": "dev_alpha_chat_voice_b1_dev_application",
+  "generated_at": "2026-10-01T11:42:55Z",
+  "ledger_total": 219,
+  "ledger_dev_alpha": 71,
+  "ledger_last": "dev_alpha_ex04c_rating_state_application",
   "certificate_certified": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "cron": [
     {
@@ -144,6 +144,7 @@
     "rpc_list_my_needs_page",
     "rpc_list_my_tasks",
     "rpc_list_need_candidates",
+    "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
@@ -338,6 +339,7 @@
     "rpc_list_my_needs_page",
     "rpc_list_my_tasks",
     "rpc_list_need_candidates",
+    "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
@@ -435,10 +437,10 @@
   "project": "leqcwgzvjsxugfgzdmth",
   "certificate_live": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "retention_ai_ready": true,
-  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (07:03 UTC), after the owner-approved Voice B1 apply (ledger 215, migration 20261001065800) and its two Edge deploys. The erasure binding and the exact applied pins were read by the voice postflight at 06:59:09Z (problems: none). The Edge list (11 ACTIVE functions; uskoci-account-closure-worker v4 and uskoci-media v14 are the new versions) was read with list_edge_functions at 07:00 UTC.",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC.",
   "private_current_status": "FRESH",
-  "private_observed_at": "2026-10-01T07:03:07Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json",
+  "private_observed_at": "2026-10-01T11:42:14Z",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261001_ex04_s1_s4_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -513,5 +515,38 @@
       "rpc_agreement_voice_read_service_v1 (service role)"
     ],
     "client_flag": "EXPO_PUBLIC_VOICE_MESSAGES is off in every build"
+  },
+  "ex04": {
+    "migrations": [
+      {
+        "name": "dev_alpha_ex04a_own_tasks_page_application",
+        "version": "20261001113449",
+        "ledger_after": 216
+      },
+      {
+        "name": "dev_alpha_ex04b_own_applications_page_application",
+        "version": "20261001113629",
+        "ledger_after": 217
+      },
+      {
+        "name": "dev_alpha_ex04d_candidates_page_application",
+        "version": "20261001113815",
+        "ledger_after": 218
+      },
+      {
+        "name": "dev_alpha_ex04c_rating_state_application",
+        "version": "20261001113949",
+        "ledger_after": 219
+      }
+    ],
+    "new_rpc": [
+      "rpc_list_need_candidates_page (the one new public rpc name; rpc_list_my_applications_page changed its signature to 5 arguments)"
+    ],
+    "new_private": [
+      "private.own_task_counts(uuid)",
+      "private.own_application_rows(uuid)",
+      "private.need_candidate_states_v5(uuid,uuid[])"
+    ],
+    "client_flags": "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED, EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED and EXPO_PUBLIC_EX04_CANDIDATES_PAGED are OFF in every build profile"
   }
 }
