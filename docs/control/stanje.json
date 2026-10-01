@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T09:19:21Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "ad02dbc4",
-  "head_poruka": "feat(ex04): S2 client for B10 Moje prijave - the paged own-application list behind a compile-time flag (default off): the editor keeps the read, the reconciliation and the commands, the pager owns the rows, the server counts and the next page",
+  "osvezeno": "2026-10-01T09:19:51Z",
+  "grana": "HEAD",
+  "head": "b9453a4b",
+  "head_poruka": "docs(ex04): round 75 receipt - S1 (A09 Moji zadaci) and S2 (B10 Moje prijave) are source and disposable-CI proven, clients behind two off flags, NOTHING applied to DEV; registry (finalization.ex04, A09, B10), LIVE plan state and evidence, tracker views regenerated",
   "server": {
    "snimljeno": "2026-10-01T07:03:07Z",
    "migracije": 215,
@@ -7773,102 +7773,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36841588517,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "ad02dbc4",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-10-01T09:15:58Z"
-  },
-  {
-   "id": 36839658547,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "0724309c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T08:58:01Z"
-  },
-  {
-   "id": 36839658435,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "0724309c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T08:58:01Z"
-  },
-  {
-   "id": 36837512563,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "e48c3e58",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T08:37:53Z"
-  },
-  {
-   "id": 36836659746,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "dccf2a5d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T08:29:49Z"
-  },
-  {
-   "id": 36835813942,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "2e8dcb81",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T08:21:50Z"
-  },
-  {
-   "id": 36834405458,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "b0499890",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T08:07:39Z"
-  },
-  {
-   "id": 36832661783,
-   "ime": "Control tracker refresh",
-   "sha": "6016ee7c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T07:50:16Z"
-  },
-  {
-   "id": 36828953004,
-   "ime": "Control tracker refresh",
-   "sha": "0354e04b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T07:11:57Z"
-  },
-  {
-   "id": 36791068621,
-   "ime": "Control tracker refresh",
-   "sha": "93b6e3ac",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T23:26:11Z"
-  },
-  {
-   "id": 36790757905,
-   "ime": "Control tracker refresh",
-   "sha": "9d2225da",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T23:22:37Z"
-  },
-  {
-   "id": 36789867392,
-   "ime": "Chat voice B1 revert package proof",
-   "sha": "5b70d237",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-30T23:12:36Z"
-  }
- ]
+ "ci": null
 }
