@@ -164,7 +164,8 @@ async function main() {
   const mods = loadModules({client: owner.client, accountId: owner.id}), service = mods.load('data/needClientService').needClientService, view = mods.load('data/marketplaceView');
   const mapped = await service.mojePotrebe({includeUrgency: false});
   assert.equal(mapped.length, SPEC.length);
-  const expectedCounts = view.ownedTaskCounts(mapped);
+  // The VM realm builds its own objects: the strict comparison against the server's counts needs a plain main-realm copy.
+  const expectedCounts = JSON.parse(JSON.stringify(view.ownedTaskCounts(mapped)));
   assert.equal(expectedCounts.waiting, 3, 'FIXTURE_WAITING_COUNT'); assert.equal(expectedCounts.drafts, 3); assert.equal(expectedCounts.history, 7); assert.equal(expectedCounts.active, 9); assert.equal(expectedCounts.total, 19);
   report.clientSources = mods.sources;
   for (const limit of [1, 2, 3, 7, 100]) {
