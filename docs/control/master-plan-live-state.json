@@ -370,6 +370,12 @@
       "run": null,
       "sha": null,
       "result": "EX-06 S05 (SOURCE level, documentation + contract test): field-to-consumer map of the eight plan 12.2 fact families with the effective definition chain of the matcher (baseline -> W02 -> PKG-015b -> PKG-031b), hard/soft gate split (team capacity is application-time only), G04 verdicts (8 confirmed or corrected; \"years_experience forced to 0 for client writes\" was stale), 10 additional findings X-01..X-10 (buffer_minutes dead column, the opportunity notification switch is never read by the matcher, no requeue after skills/tools/vehicles/licences edits, the interview never asks for matcher inputs), decision list D-01..D-12 for S12; repository-text md5 replay reproduces the DEV md5 recorded in receipts for six bodies; test p5-matching-field-contract 50/50 (3 original + 47 new); NOT live proof; record docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_FIELD_CONSUMER_MAP_20261001.md"
+    },
+    {
+      "id": "EX06-S02-CORPUS-V1-20261001",
+      "run": null,
+      "sha": null,
+      "result": "EX-06 S02 offline synthetic contract corpus v1: 66 cases (50 task, 16 worker; three reference workers per task case), all plan 12.5/12.6 items covered, 9 of 11 hidden kinds, no kind beyond the eleven, synthetic only (no real user text, placeholders for phone/address), validator test ex06-corpus-contract 25/25 (15 negative tests), independent privacy scan clean; NOT run against any provider, matcher or database (no pass rate, no threshold); open owner questions: ELEKTRO/VODOINSTALATER policy, working names of candidate kinds; supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_CORPUS_COVERAGE_REPORT_20261001.md"
     }
   ]
 }

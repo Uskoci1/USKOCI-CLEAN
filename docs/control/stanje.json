@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T14:16:39Z",
+  "osvezeno": "2026-10-01T14:21:03Z",
   "grana": "HEAD",
-  "head": "552d7ac7",
-  "head_poruka": "docs(ex06): S05 field-to-consumer map (source level) - the eight plan 12.2 fact families, the effective matcher definition chain, hard/soft gate split, G04 verdicts, ten additional findings and a 12-item decision list for S12; contract test extended 3 -> 50 (md5 replay of the repository matcher text against the DEV md5 recorded in receipts); NOT live proof, nothing applied",
+  "head": "deac9aa3",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -348,11 +348,16 @@
    "done": "§5.4 oba učesnika završavaju posao i oporavak; §9.3 odobreni dvonaložni scenario prolazi novim zajedničkim kandidatom (konkurentnost, izmene, terminalna stanja, oporavak), novi kod samo za stvarno reprodukovanu rupu; po toku A09 / B10 / A11 / A01 'DONE samo za ovaj tok' uključuje native dokaz. Source, CI i disposable dokaz su tek prvi nivoi (LIVE §4.2)."
   },
   "ex06": {
-   "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_S05_RECORDED",
+   "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_S02_S05_RECORDED",
    "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md",
    "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
    "owner_decision_20261001": "Vlasnik 1.10. (kasnije): nastavi EX-06 S00-S07 u granicama kanonskog LIVE plana; S03 nastavlja; S06 počinje tek iz stvarnih nalaza S03; S07 ostaje USLOVAN (nije proširen paralelnim radom); bez plaćenog AI testa dok se ne iznese poseban S08 approval block sa providerom, modelom, brojem testova, maksimalnim troškom i tačno onim što test dokazuje.",
+   "s02_open_owner_questions": [
+    "ELEKTRO i VODOINSTALATER nemaju slučaj u korpusu: da li su elektro i vodoinstalaterski radovi običan ili regulisan posao nije odlučeno u izvorima politike; svaki očekivani ishod bio bi izmišljena politika (vlasnička odluka)",
+    "Radni nazivi mogućih novih vrsta posla iz korpusa (NE dodaju se, devet slučajeva očekuje unclassified): rad na daljinu (tekst), postavljanje podova, kućni ljubimci, pakovanje; vlasnik ih pregleda i odlučuje",
+    "Izvorni nalazi korpusa (čitanje koda, ne ponašanje): stem sklapanj daje lažno pogođen slučaj za sklapanje maketa, prevoz daje SELIDBE_PREVOZ za prevoz putnika, ćirilica se ne svodi na latinicu, ofarba nema stem; proveravaju se u S03"
+   ],
    "provenance": "workflow ex06-canonical-scope-check: 7 mapera + 7 skeptika + kritičar + sintetizator = 16 agenata, svi claude-sonnet-5-5; 277 nalaza, 0 odbijenih, 41 delimično ispravljenih; read-only, DEV nije čitan",
    "flows": [
     "A02",
@@ -380,7 +385,7 @@
     },
     "S02": {
      "title": "Contract corpus v1 (offline, synthetic) with expected structured facts and a coverage report",
-     "status": "NOT STARTED",
+     "status": "DONE 2026-10-01 (offline SYNTHETIC corpus v1: 66 cases = 50 task + 16 worker, every task case with three reference workers; all 13 plan 12.5 and 10 plan 12.6 items, the A02 painting defect and 13 worker topics covered; 9 of 11 hidden kinds; validator test ex06-corpus-contract 25/25 incl. 15 negative tests; NOT run against any provider, matcher or database; supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_CORPUS_COVERAGE_REPORT_20261001.md)",
      "autonomous": true,
      "depends_on": "none",
      "first_owner_boundary": "None while synthetic. Q5 if the owner wants real descriptions included."
@@ -809,7 +814,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Jedan AI razgovor dao je spreman nacrt. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 23.09. 07:11–07:13, telefon VKP-NX9, nalog uskocibusiness: ceo razgovor do objave prošao i zadatak „Pomoć oko krečenja stana“ je PUBLISHED na serveru (be549970…). Jedna greška: kategorija nije sama izvedena.",
    "problem": "Round40 rešava vidljivu razliku između nacrta koji se još skuplja i zadatka spremnog za eksplicitan pregled; privatna adresa/koordinate ostaju van sažetka. Istorijski provider-quality problem (jasan opis krečenja nije sam dao kategoriju) i dalje je otvoren.",
@@ -2131,7 +2136,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Round39 review/map ostaje povezan. Round40 dodaje tačno objašnjenje koje sačuvane činjenice stvarno ulaze u matching i source-contract proof; stvarni AI provider, save/activation i live dispatch još nisu dokazani na aktuelnom kandidatu.",
@@ -7998,5 +8003,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36875025074,
+   "ime": "Control tracker refresh",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36875025066,
+   "ime": "P5 ready task and matching contract",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36873883166,
+   "ime": "Control tracker refresh",
+   "sha": "ce8daef9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:07:31Z"
+  },
+  {
+   "id": 36873169662,
+   "ime": "Build Android development APK",
+   "sha": "52a66a76",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:01:59Z"
+  },
+  {
+   "id": 36870759897,
+   "ime": "Control tracker refresh",
+   "sha": "d7c93511",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:43:08Z"
+  },
+  {
+   "id": 36870291053,
+   "ime": "Control tracker refresh",
+   "sha": "707b1308",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:39:26Z"
+  },
+  {
+   "id": 36869363125,
+   "ime": "Control tracker refresh",
+   "sha": "e32612f9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:31:56Z"
+  },
+  {
+   "id": 36859811107,
+   "ime": "Build Android development APK",
+   "sha": "bf48a5db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T12:08:36Z"
+  },
+  {
+   "id": 36858334599,
+   "ime": "Control tracker refresh",
+   "sha": "fbf928d1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T11:54:41Z"
+  },
+  {
+   "id": 36848229608,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36848229494,
+   "ime": "Control tracker refresh",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36846103943,
+   "ime": "EX-04 S2 own applications page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  }
+ ]
 }
