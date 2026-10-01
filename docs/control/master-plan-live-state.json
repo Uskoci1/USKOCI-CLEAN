@@ -376,6 +376,12 @@
       "run": null,
       "sha": null,
       "result": "EX-06 S02 offline synthetic contract corpus v1: 66 cases (50 task, 16 worker; three reference workers per task case), all plan 12.5/12.6 items covered, 9 of 11 hidden kinds, no kind beyond the eleven, synthetic only (no real user text, placeholders for phone/address), validator test ex06-corpus-contract 25/25 (15 negative tests), independent privacy scan clean; NOT run against any provider, matcher or database (no pass rate, no threshold); open owner questions: ELEKTRO/VODOINSTALATER policy, working names of candidate kinds; supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_CORPUS_COVERAGE_REPORT_20261001.md"
+    },
+    {
+      "id": "EX04-OPTION-A-TEST-APK-20261001",
+      "run": 36873169662,
+      "sha": "52a66a7638ff55549825b0dccee331c28a979886",
+      "result": "Test APK IZGRAĐEN I VERIFIKOVAN 1.10.: workflow run 36873169662 (pokušaj 2; pokušaj 1 pao na prolaznoj grešci preuzimanja Kotlin kompajlera, HTTP 500), izvor 52a66a7638ff55549825b0dccee331c28a979886, USKOCI-DEV.apk 71.250.306 bajtova, sha256 9ef10b674a9b4f323542225b2e5414ff28301d8d06418b59d8bf73b3b90a18ab (podudara se sa .sha256 fajlom i obe atestacije PASS na istom hash-u i izvoru), paket rs.uskoci.dev versionCode 35, native-code arm64-v8a, potpis fac61745dc09… identičan potpisu instaliranog APK-a (adb install -r je moguć bez deinstalacije), okruženje build-a pokazuje EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uz tri EX-04 flaga. NIJE instaliran na telefon i telefon nije dirnut; čeka vlasnikovo „SAD“. Skript ex04_boundary.py (install -r, tri prelaska granice + Back, pull-to-refresh, S1/S2/S4 do kraja, ciklusi, crash/ANR sken) ima tvrd budžet i staje ako izgubi foreground ili zazvoni telefon. Posle testa: brisanje linije iz DEV workflow-a i evidencija da je PAGE_LIMIT=2 bio isključivo test instrument."
     }
   ]
 }

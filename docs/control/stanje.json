@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T14:21:36Z",
+  "osvezeno": "2026-10-01T14:23:39Z",
   "grana": "HEAD",
-  "head": "202c2577",
-  "head_poruka": "docs(ex06): S02 offline synthetic contract corpus v1 - 66 cases (50 task, 16 worker, three reference workers per task case) covering every plan 12.5 and 12.6 item, the A02 painting defect and 13 worker topics; validator test 25/25 with 15 negative tests; synthetic only (no real user text), NOT run against any provider, matcher or database (no pass rate, no threshold); two owner questions recorded (regulated/ordinary electrical and plumbing work, working names of candidate kinds)",
+  "head": "3df3ca45",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -208,7 +208,7 @@
    "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "ex04": {
-   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_APPROVED_TEST_PAGE_LIMIT_BUILD_IN_PROGRESS",
+   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_APK_BUILT_AND_VERIFIED_AWAITING_OWNER_SAD_WINDOW",
    "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
    "flows_p2": [
@@ -326,6 +326,7 @@
     }
    },
    "owner_decision_20261001_option_a": "Vlasnik 1.10. (kasnije): ODOBRAVA OPCIJU A. Test-only EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 isključivo u DEV APK workflow-u; jedan novi verifikovani ARM64 DEV APK; tri EX-04 flaga ostaju uključena samo za DEV; adb install -r uz očuvanje sesije i podataka; bez izmene servera, bez izmene DEV podataka, bez fixture-a, bez PROD-a. Guard mora dokazati da promenljiva ne ulazi u release profil/eas.json niti van DEV workflow-a (src/data/__tests__/ex04-test-page-limit-guard.test.ts, mutacijski dokazan). Telefon se ne dira do vlasnikovog „SAD“ (oko 4 minuta ekskluzivnog HONOR prozora). Posle testa se DEV test konfiguracija vraća na normalno, a PAGE_LIMIT=2 se evidentira kao ISKLJUČIVO test instrument, nikad proizvodna vrednost. EX-04 se NE proglašava potpuno zatvorenim dok postoje nedokazane granice; one se evidentiraju tačno. Tumačenje: S4 čita strane od (vrednost - 1), najmanje 1, jer nijedan zadatak test podataka nema više od 2 kandidata.",
+   "option_a_test_apk": "Test APK IZGRAĐEN I VERIFIKOVAN 1.10.: workflow run 36873169662 (pokušaj 2; pokušaj 1 pao na prolaznoj grešci preuzimanja Kotlin kompajlera, HTTP 500), izvor 52a66a7638ff55549825b0dccee331c28a979886, USKOCI-DEV.apk 71.250.306 bajtova, sha256 9ef10b674a9b4f323542225b2e5414ff28301d8d06418b59d8bf73b3b90a18ab (podudara se sa .sha256 fajlom i obe atestacije PASS na istom hash-u i izvoru), paket rs.uskoci.dev versionCode 35, native-code arm64-v8a, potpis fac61745dc09… identičan potpisu instaliranog APK-a (adb install -r je moguć bez deinstalacije), okruženje build-a pokazuje EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uz tri EX-04 flaga. NIJE instaliran na telefon i telefon nije dirnut; čeka vlasnikovo „SAD“. Skript ex04_boundary.py (install -r, tri prelaska granice + Back, pull-to-refresh, S1/S2/S4 do kraja, ciklusi, crash/ANR sken) ima tvrd budžet i staje ako izgubi foreground ili zazvoni telefon. Posle testa: brisanje linije iz DEV workflow-a i evidencija da je PAGE_LIMIT=2 bio isključivo test instrument.",
    "open_items": [
     "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
     "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)",
@@ -8003,5 +8004,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36875676769,
+   "ime": "Control tracker refresh",
+   "sha": "202c2577",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:21:20Z"
+  },
+  {
+   "id": 36875025074,
+   "ime": "Control tracker refresh",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36875025066,
+   "ime": "P5 ready task and matching contract",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36873883166,
+   "ime": "Control tracker refresh",
+   "sha": "ce8daef9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:07:31Z"
+  },
+  {
+   "id": 36873169662,
+   "ime": "Build Android development APK",
+   "sha": "52a66a76",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:01:59Z"
+  },
+  {
+   "id": 36870759897,
+   "ime": "Control tracker refresh",
+   "sha": "d7c93511",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:43:08Z"
+  },
+  {
+   "id": 36870291053,
+   "ime": "Control tracker refresh",
+   "sha": "707b1308",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:39:26Z"
+  },
+  {
+   "id": 36869363125,
+   "ime": "Control tracker refresh",
+   "sha": "e32612f9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:31:56Z"
+  },
+  {
+   "id": 36859811107,
+   "ime": "Build Android development APK",
+   "sha": "bf48a5db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T12:08:36Z"
+  },
+  {
+   "id": 36858334599,
+   "ime": "Control tracker refresh",
+   "sha": "fbf928d1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T11:54:41Z"
+  },
+  {
+   "id": 36848229608,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36848229494,
+   "ime": "Control tracker refresh",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  }
+ ]
 }
