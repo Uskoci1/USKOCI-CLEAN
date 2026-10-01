@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T20:54:42Z",
+  "osvezeno": "2026-10-01T20:55:48Z",
   "grana": "HEAD",
-  "head": "7d4e37df",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "0042d82a",
+  "head_poruka": "docs(ex07): canonical scope record for EX-07 (Nalog), registry anchor and LIVE state",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8549,102 +8549,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36924665165,
-   "ime": "Control tracker refresh",
-   "sha": "83a18b15",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T20:51:44Z"
-  },
-  {
-   "id": 36923900555,
-   "ime": "Control tracker refresh",
-   "sha": "13680e55",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T20:45:25Z"
-  },
-  {
-   "id": 36915024215,
-   "ime": "Control tracker refresh",
-   "sha": "7a5712b8",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T19:32:21Z"
-  },
-  {
-   "id": 36910942456,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "b00f62f3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T18:59:20Z"
-  },
-  {
-   "id": 36901457675,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "852cf658",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:43:17Z"
-  },
-  {
-   "id": 36901345565,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:42:23Z"
-  },
-  {
-   "id": 36901222769,
-   "ime": "Control tracker refresh",
-   "sha": "60da5a05",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:41:23Z"
-  },
-  {
-   "id": 36899935334,
-   "ime": "Control tracker refresh",
-   "sha": "c97be190",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:30:52Z"
-  },
-  {
-   "id": 36896019778,
-   "ime": "Control tracker refresh",
-   "sha": "995f507b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:59:10Z"
-  },
-  {
-   "id": 36895021919,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "e27e76db",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:50:45Z"
-  },
-  {
-   "id": 36892351679,
-   "ime": "Control tracker refresh",
-   "sha": "2f3d7390",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:29:12Z"
-  },
-  {
-   "id": 36890566753,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "e7f129d5",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:15:04Z"
-  }
- ]
+ "ci": null
 }
