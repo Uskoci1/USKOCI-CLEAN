@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T13:39:19Z",
+  "osvezeno": "2026-10-01T13:39:45Z",
   "grana": "HEAD",
-  "head": "b44b68d1",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "707b1308",
+  "head_poruka": "docs(ex06): canonical scope check of EX-06 (AI/worker) before any work - one plan-proposed row of LIVE 5.4 (corpus, review, canonical groups, matching, dispatch; measure: persisted facts lead to a relevant notification); 16 read-only agents (all Sonnet 5.5), 277 findings, 0 refuted, 41 corrected; 15 done items, 15 gaps, 13 source disagreements, 13 slices S00-S12 (S00-S07 autonomous), 14 owner gates, 7 owner questions; no code, no DEV change, no paid call",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -7994,102 +7994,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36869363125,
-   "ime": "Control tracker refresh",
-   "sha": "e32612f9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T13:31:56Z"
-  },
-  {
-   "id": 36859811107,
-   "ime": "Build Android development APK",
-   "sha": "bf48a5db",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T12:08:36Z"
-  },
-  {
-   "id": 36858334599,
-   "ime": "Control tracker refresh",
-   "sha": "fbf928d1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T11:54:41Z"
-  },
-  {
-   "id": 36848229608,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "92fa9d45",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T10:17:44Z"
-  },
-  {
-   "id": 36848229494,
-   "ime": "Control tracker refresh",
-   "sha": "92fa9d45",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T10:17:44Z"
-  },
-  {
-   "id": 36846103943,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103824,
-   "ime": "EX-04 S4 candidates page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103774,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103770,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36844727502,
-   "ime": "EX-04 S4 candidates page proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36844727458,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36844727454,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:44:57Z"
-  }
- ]
+ "ci": null
 }
