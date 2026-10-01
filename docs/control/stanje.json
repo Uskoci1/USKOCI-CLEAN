@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T21:54:44Z",
+  "osvezeno": "2026-10-01T21:59:46Z",
   "grana": "HEAD",
-  "head": "e367336f",
-  "head_poruka": "docs(control): regenerate LIVE plan after reverting the B22 record",
+  "head": "4ee656da",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -208,7 +208,7 @@
    "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "ex04": {
-   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_WINDOW_RUN_1_PARTIAL_INSTRUMENT_REMOVED_FROM_CONFIG / WINDOW_2_PARTIAL / WINDOW_3_BOUNDARY_PROVEN_S1_S2_S4_REFRESH_AND_CANDIDATE_LOOP_10_OF_10_PAGING_ERROR_ROW_NOT_REPRODUCED_CAUSE_UNDETERMINED / NOT_CLOSED_LIMITS_FOR_OWNER_DECISION",
+   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_WINDOW_RUN_1_PARTIAL_INSTRUMENT_REMOVED_FROM_CONFIG / WINDOW_2_PARTIAL / WINDOW_3_BOUNDARY_PROVEN_S1_S2_S4_REFRESH_AND_CANDIDATE_LOOP_10_OF_10_PAGING_ERROR_ROW_NOT_REPRODUCED_CAUSE_UNDETERMINED / CLOSED_WITH_LIMITS_20261001_OWNER_DA",
    "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
    "flows_p2": [
@@ -240,7 +240,7 @@
     "D12",
     "D13"
    ],
-   "first_open_row": "Lične liste A09 / B10 / A11 (P6 L7) i RC-03 zbirna projekcija ocena A01 / D01 (P6 L10): direktiva vlasnika 30.09, tačka 4 (eksplicitan otvoren sledeći red EX-04/P2).",
+   "first_open_row": "ZATVORENO SA GRANICAMA 1.10. (EX04_CLOSURE_RECEIPT_20261001.md); sledeći otvoreni redovi po redosledu rada: EX-06 (F1 i D12 kandidati u popravnom krugu pa CI dokaz na probnom lancu), EX-05 Komunikacija i EX-07 Nalog (zapisi obima, pomoćna traka), pa UI/UX prolaz. Prethodni tekst: Lične liste A09 / B10 / A11 (P6 L7) i RC-03 zbirna projekcija ocena A01 / D01 (P6 L10): direktiva vlasnika 30.09, tačka 4 (eksplicitan otvoren sledeći red EX-04/P2).",
    "aligned_order": [
     "S1 A09: rpc_list_my_needs_page dopunjen na mestu + private.own_task_counts: SOURCE + CI (run 36836659746; ponovo zeleno 36846103774) i PRIMENJENO NA DEV 1.10. (migracija 20261001113449, ledger 216), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen)",
     "S2 B10: rpc_list_my_applications_page (5 argumenata, redosled kao puna lista, činjenice zadatka, tabovi i brojevi) + private.own_application_rows: SOURCE + CI (run 36839658547; ponovo zeleno 36846103943) i PRIMENJENO NA DEV 1.10. (migracija 20261001113629, ledger 217), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen)",
@@ -331,6 +331,7 @@
    "option_a_window_result": "PROZOR 1.10. (vlasnikovo „SAD“, 274 s, test APK 9ef10b67 sa PAGE_LIMIT=2 instaliran sa install -r, firstInstallTime nepromenjen, sesija i podaci sačuvani; prvi pokušaj je zaustavljen jer ADB interfejs nije bio vidljiv, ništa nije poslato telefonu): DELIMIČNO DOKAZANO. Granica strane je prelazena na telefonu: S1 Istorija foot „Prikaži još“ viđen na prvoj strani i radi, lista dalje raste kroz onEndReached, šetnja do kraja = 11 kartica = pozicije 6..16 od 17, uzastopne, isti redosled kao baza, bez duplikata/anomalije/greške, završava poslednjom karticom baze; S1 Aktivni 2/2; S2 Sve 4/4 isti redosled kao baza bez duplikata (druga strana pročitana); ciklusi S2 6/6; bez pada i ANR (nema FATAL/ANR, nema izlaza procesa u prozoru); jank 3,58 %, p99 19 ms. NIJE dokazano: S4 Kandidati (korak navigacije pao na AssertionError bez poruke; rpc_list_need_candidates_page 5->5), pull-to-refresh i prve 4-6 kartice S1 (moja provera „vrh liste“ je pogrešno prepoznala zaglavlje), ciklusi Kandidata 0/10; Back posle dubokog skrola vraća najviše 5 strana (projektovano, reloadPages=5). Test linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 UKLONJENA iz normalne build konfiguracije (guard 8/8); test APK ostaje na telefonu do sledećeg normalnog DEV build-a i NIJE proizvodni build; PAGE_LIMIT=2 je bio ISKLJUČIVO test instrument. EX-04 NIJE zatvoren. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md",
    "option_a_window2_result": "PROZOR 2 (vlasnikovo drugo „SAD“, oko 3 min, skripta 124 s, 20:31-20:33 po telefonu, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, posle prozora telefon nije diran): DELIMIČNO DOKAZANO. DOKAZANO: pull-to-refresh sa pravog vrha (prva kartica na ekranu = prva kartica baze, 0 krugova skrola) vraća listu na prvu stranu (2 kartice, prva = pozicija 0, foot „Prikaži još“); posle refresha prvih 8 kartica = pozicije 0..7 od 17, isti redosled i tekst, bez duplikata/anomalije; jedan tap na „Prikaži još“, ostalo kroz onEndReached; bez pada i ANR; 2217 frejmova, janky 1,13 %, p99 15 ms, PSS 271 MB. UOČENO PRVI PUT, UZROK NEODREĐEN: posle 8. kartice foot je prikazao „Nije uspelo učitavanje još zadataka.“ uz „Pokušaj ponovo“ (lista ostaje na ekranu, projektovano ponašanje moreError). Poznato: prozor 1 je pročitao svih 17 bez te greške; DEV edge_logs (lossy, 19 redova za 16 min) pokazuju 5 poziva rpc_list_my_needs_page 18:31:27-18:32:11 UTC, svi HTTP 200; postgres_logs bez ERROR/FATAL za 18:20-18:36 UTC; nijedan red needs nije menjan posle 17:30 UTC osim jednog novog PUBLISHED zadatka 18:04:49 UTC (Aktivni, pre prozora); šesti zahtev nije u logovima; čitač strane svaku grešku svodi na jednu poruku (greška servera, mreža/15 s timeout, promena revizije naloga, nevažeći odgovor), pa KLASA uzroka nije utvrđena - ne tvrdim ni defekt ni prolaznu smetnju. NIJE dokazano: S4 Kandidati i ciklusi kandidata (korak s4 pao na „open Aktivni tab“ - ekran je još bio Istorija na dnu sa redom greške, snimak fail_s4_candidates.png; korak cycles pao jer ciljna kartica nije bila na prvom ekranu Aktivnih („3 zadatka“, novi zadatak od 18:04 UTC, skripta ne skroluje); rpc_list_need_candidates_page nije pozvan), šetnja do kraja 17 kartica, odbijanje mešanih revizija, loading skeleton, pozitivan put ocene. EX-04 NE ispunjava native closure kriterijum. Sledeće (samo uz vlasnikovo „SAD“, oko 2,5 min): skripta koja skroluje do ciljne kartice, tap „Pokušaj ponovo“ posle greške i čitanje app loga (samo čitanje). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 5)",
    "option_a_window3_result": "PROZOR 3 (vlasnikovo „ajde sad“, 2.10. u noći 23:29-23:34 po telefonu, skripta 262 s, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, telefon posle nije dirnut; prvo ADB interfejs nije bio vidljiv jer je USB debugging bio isključen, ništa nije poslato dok ga vlasnik nije uključio): GRANICA STRANE DOKAZANA NA TELEFONU za S1, S2 i S4. DOKAZANO: pull-to-refresh sa pravog vrha vraća S1 Istoriju na prvu stranu (2 kartice, foot „Prikaži još“); šetnja do kraja = 17 od 17 kartica, isti redosled i tekst kao baza, bez duplikata/anomalije i BEZ reda greške; S4 Kandidati (strane od 1): skrol do kartice „Pomoć pri nošenju ormara“, 2 od 2 kandidata pročitana, „Uporedi“ otvoreno sa obe prijave; ciklusi zadatak -> Prijave -> Back 10 od 10 (otvaranje 6,7-7,6 s, Back 3,2-3,5 s, uključuje polling UI dump-a, gornja granica); bez pada i ANR; 10405 frejmova, janky 0,44 %, p99 14 ms; PSS 483 MB (posmatranje, bez osnove za poređenje). DEV brojači: rpc_list_need_candidates_page +22 (5 -> 27), rpc_list_need_candidates +0 (40 -> 40, nijedno čitanje cele liste kandidata), rpc_list_my_needs_page +19, rpc_get_my_agreement_review +0. RED GREŠKE IZ PROZORA 2 SE NIJE PONOVIO (isti niz koraka čist; prozor 1 takođe čist: viđen u 1 od 3 pune šetnje); uzrok i dalje neodređen (app log ima samo platformska WARN upozorenja, nema JS linije ni izuzetka); kontrola „Pokušaj ponovo“ NIJE isprobana. NEMA nativno: odbijanje mešanih revizija (CI dokaz i unit testovi, ne telefon), loading skeleton i retry reda greške, pozitivan put ocene (drugi nalog), Home brojevi i dalje čitaju cele liste (A01), veličina strane je TEST vrednost (2/2/1; proizvodne 30/30/50 se ne mogu preći sa trenutnim podacima), ništa na iOS-u ni drugom Android uređaju, test APK nije proizvodni build. EX-04 NIJE zatvoren mojom odlukom: zatvaranje „sa granicama“ (kao P6) je vlasnikova odluka. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 6); docs/implementation/product-v1-closure-20260926/finalization-20260927/ex04-physical-honor/",
+   "closure_20261001": "ZATVORENO SA GRANICAMA 1.10. (vlasnik, na pitanje „EX-04: zatvoriti sa granicama, da ili ne?“: „DA“). Zatvoren je TAČNO obim EX04_PERSONAL_LISTS_PLAN (A09 Moji zadaci, B10 Moje prijave, A11 Kandidati, RC-03 stanje ocene = A01 + D01): straničenje server+klijent, primenjeno na DEV (ledger 216-219, sertifikat 58447d77 nepromenjen), dokazano na telefonu pri test veličinama strane. NIJE zatvoreno šire merilo reda iz LIVE plana 5.4 (oba učesnika završavaju posao i oporavak, 27 P2 tokova, dvonaložni scenario 9.3): EX04-L0. Granice (tačno, EX04_CLOSURE_RECEIPT): L0 šire merilo reda; L1 mešane revizije samo CI/unit; L2 red greške „Nije uspelo učitavanje još zadataka.“ viđen jednom u 3 šetnje, uzrok neodređen, „Pokušaj ponovo“ i loading skeleton neprobani - OTVARA EX-04 ponovo ako se ponovi; L3 pozitivan put ocene (drugi nalog); L4 Home brojevi A01 čitaju cele liste; L5 test veličine strane 2/2/1 umesto 30/30/50 (podaci premali); L6 Back posle dubokog skrola vraća najviše 5 strana (dizajn); L7 test APK 9ef10b67 na telefonu do sledećeg normalnog DEV build-a (run 36931086522); L8 jedan telefon, jedan nalog, bez iOS-a i dugotrajne sesije. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_CLOSURE_RECEIPT_20261001.md",
    "open_items": [
     "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
     "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)",
@@ -8550,5 +8551,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36931740188,
+   "ime": "Control tracker refresh",
+   "sha": "e367336f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:54:31Z"
+  },
+  {
+   "id": 36931606720,
+   "ime": "Control tracker refresh",
+   "sha": "8edadfa1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:53:13Z"
+  },
+  {
+   "id": 36931086522,
+   "ime": "Build Android development APK",
+   "sha": "fb865dd7",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-01T21:48:25Z"
+  },
+  {
+   "id": 36929784190,
+   "ime": "Control tracker refresh",
+   "sha": "d63779b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:36:22Z"
+  },
+  {
+   "id": 36925081287,
+   "ime": "Control tracker refresh",
+   "sha": "0042d82a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:55:13Z"
+  },
+  {
+   "id": 36924665165,
+   "ime": "Control tracker refresh",
+   "sha": "83a18b15",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:51:44Z"
+  },
+  {
+   "id": 36923900555,
+   "ime": "Control tracker refresh",
+   "sha": "13680e55",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:45:25Z"
+  },
+  {
+   "id": 36915024215,
+   "ime": "Control tracker refresh",
+   "sha": "7a5712b8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T19:32:21Z"
+  },
+  {
+   "id": 36910942456,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "b00f62f3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T18:59:20Z"
+  },
+  {
+   "id": 36901457675,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "852cf658",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:43:17Z"
+  },
+  {
+   "id": 36901345565,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:42:23Z"
+  },
+  {
+   "id": 36901222769,
+   "ime": "Control tracker refresh",
+   "sha": "60da5a05",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:41:23Z"
+  }
+ ]
 }
