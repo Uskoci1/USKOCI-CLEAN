@@ -334,6 +334,12 @@
       "run": null,
       "sha": "e32612f9",
       "result": "EX-06 canonical scope check (documentation package, NOT EX-06 progress): workflow of 16 agents (all claude-sonnet-5-5), 277 findings, 0 refuted, 41 partly corrected; 15 already-done items, 15 gaps G01-G15, 13 source disagreements, 13 slices S00-S12, 14 owner gates, 7 owner questions Q1-Q7, 13 non-canonical proposals, 13 risks; no code, no DEV change, no paid call; record docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md; raw result docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json"
+    },
+    {
+      "id": "EX06-S01-DEV-BEFORE-BASELINE-20261001",
+      "run": null,
+      "sha": "707b1308",
+      "result": "EX-06 S01 read-only DEV BEFORE baseline (3 SELECT statements via the connector, no write): ledger 219, closure certificate certified = live = 58447d77, 12 matcher/dispatch/event/push function md5 pins each equal to an earlier receipt (no drift since 2026-09-07..30), aggregate chain state (5 active workers: skills 4, availability 3, location preference 1; 9 open tasks, 7 without required skills; 607 of 614 dispatch rounds NO_ELIGIBLE_CANDIDATES; 7 deliveries, 0 duplicates; PUSH 7 SUPPRESSED/PUSH_OFF; cron 1440/24h succeeded); record docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_S01_DEV_BEFORE_BASELINE_20261001.md and supabase/proofs/ex06/ex06_s01_baseline.readonly.sql"
     }
   ]
 }

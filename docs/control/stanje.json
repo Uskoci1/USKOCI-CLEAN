@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T13:39:45Z",
+  "osvezeno": "2026-10-01T13:43:01Z",
   "grana": "HEAD",
-  "head": "707b1308",
-  "head_poruka": "docs(ex06): canonical scope check of EX-06 (AI/worker) before any work - one plan-proposed row of LIVE 5.4 (corpus, review, canonical groups, matching, dispatch; measure: persisted facts lead to a relevant notification); 16 read-only agents (all Sonnet 5.5), 277 findings, 0 refuted, 41 corrected; 15 done items, 15 gaps, 13 source disagreements, 13 slices S00-S12 (S00-S07 autonomous), 14 owner gates, 7 owner questions; no code, no DEV change, no paid call",
+  "head": "5f115e4b",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -347,7 +347,7 @@
    "done": "§5.4 oba učesnika završavaju posao i oporavak; §9.3 odobreni dvonaložni scenario prolazi novim zajedničkim kandidatom (konkurentnost, izmene, terminalna stanja, oporavak), novi kod samo za stvarno reprodukovanu rupu; po toku A09 / B10 / A11 / A01 'DONE samo za ovaj tok' uključuje native dokaz. Source, CI i disposable dokaz su tek prvi nivoi (LIVE §4.2)."
   },
   "ex06": {
-   "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_RECORDED",
+   "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_RECORDED",
    "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md",
    "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
@@ -371,7 +371,7 @@
     },
     "S01": {
      "title": "Read-only DEV BEFORE baseline of the EX-06 chain",
-     "status": "NOT STARTED",
+     "status": "DONE 2026-10-01 (read-only DEV BEFORE baseline: ledger 219, certificate 58447d77 certified = live, 12 function md5 pins equal earlier receipts, aggregate chain state; docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_S01_DEV_BEFORE_BASELINE_20261001.md)",
      "autonomous": true,
      "depends_on": "none",
      "first_owner_boundary": "None (read-only). If the host classifier blocks the reads, ask the owner for the word instead of routing around the denial (memory: uskoci-dev-writes-need-owners-word)."
@@ -7994,5 +7994,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36870291053,
+   "ime": "Control tracker refresh",
+   "sha": "707b1308",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:39:26Z"
+  },
+  {
+   "id": 36869363125,
+   "ime": "Control tracker refresh",
+   "sha": "e32612f9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:31:56Z"
+  },
+  {
+   "id": 36859811107,
+   "ime": "Build Android development APK",
+   "sha": "bf48a5db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T12:08:36Z"
+  },
+  {
+   "id": 36858334599,
+   "ime": "Control tracker refresh",
+   "sha": "fbf928d1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T11:54:41Z"
+  },
+  {
+   "id": 36848229608,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36848229494,
+   "ime": "Control tracker refresh",
+   "sha": "92fa9d45",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T10:17:44Z"
+  },
+  {
+   "id": 36846103943,
+   "ime": "EX-04 S2 own applications page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103824,
+   "ime": "EX-04 S4 candidates page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103774,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36846103770,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "001b4b1d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T09:57:58Z"
+  },
+  {
+   "id": 36844727502,
+   "ime": "EX-04 S4 candidates page proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T09:44:57Z"
+  },
+  {
+   "id": 36844727458,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "ab35d833",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T09:44:57Z"
+  }
+ ]
 }
