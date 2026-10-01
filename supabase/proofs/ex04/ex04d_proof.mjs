@@ -47,7 +47,7 @@ const SPEC = [   // k, response status, covered slots (of the response and its v
   {k: 'overfill', raw: 'SUBMITTED', slots: 3, sub: 40, snapshot: true},
   {k: 'withdrawn', raw: 'WITHDRAWN', slots: 1, sub: 50}, {k: 'not_selected', raw: 'NOT_SELECTED', slots: 1, sub: 50, snapshot: true}, {k: 'expired', raw: 'EXPIRED', slots: 1, sub: 60},
   {k: 'stale_rev', raw: 'SUBMITTED', slots: 1, revision: 1, sub: 70}, {k: 'stale_status', raw: 'STALE_REVIEW_REQUIRED', slots: 1, sub: 70, snapshot: true},
-  {k: 'inactive', raw: 'SUBMITTED', slots: 1, status: 'PAUSED', sub: 80}, {k: 'capacity', raw: 'SUBMITTED', slots: 2, capacity: 1, sub: 80},
+  {k: 'inactive', raw: 'SUBMITTED', slots: 1, status: 'SUSPENDED', sub: 80}, {k: 'capacity', raw: 'SUBMITTED', slots: 2, capacity: 1, sub: 80},
   {k: 'no_skills', raw: 'SUBMITTED', slots: 1, skills: '{}', sub: 90}, {k: 'selected_extra', raw: 'SELECTED', slots: 1, sub: 90},
 ];
 for (let i = 1; i <= 120; i++) SPEC.push({k: 'bulk_' + i, raw: 'SUBMITTED', slots: 1, sub: 100 + Math.floor(i / 2), snapshot: i % 2 === 0});

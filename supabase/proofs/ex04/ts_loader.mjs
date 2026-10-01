@@ -34,7 +34,7 @@ export function loadModules({client, accountId, accountRevision = 1}) {
       assert.ok(id.startsWith('.'), 'TS_LOADER_EXTERNAL_MODULE:' + id + ' (in ' + name + ')');
       return load(posix.normalize(posix.join(posix.dirname(name), id)));
     };
-    vm.runInNewContext(compiled, {exports, require, setTimeout, clearTimeout, console, Intl, Date, Math, JSON, Number, String, Array, Object, Map, Set, Error, Symbol, Promise},
+    vm.runInNewContext(compiled, {exports, require, setTimeout, clearTimeout, setInterval, clearInterval, AbortController, console, Intl, Date, Math, JSON, Number, String, Array, Object, Map, Set, Error, Symbol, Promise},
       {filename: path, timeout: 5000});
     return exports;
   }
