@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T07:50:30Z",
-  "grana": "HEAD",
-  "head": "6016ee7c",
-  "head_poruka": "docs(ex04): canonical scope check of EX-04 Posao before any work - LIVE plan 5.4 defines it as B09 authority, projections and the full P2 lifecycle (27 P2 flows, done = both participants finish the job and recover); the personal-lists row (A09/B10/A11, P6 L7) and RC-03 (A01/D01, L10) are its first open row by the owner's directive of 2026-09-30; rpc_home_summary() withdrawn (not canonical, rpc_home_attention already returns bounded counts); B10 order was a proposal, not a decision; contracts are completed in place; B09/PKG-049 and the D12 written comment stay owner gates; registry finalization.ex04, B04 next text and LIVE note aligned, closure statuses untouched",
+  "osvezeno": "2026-10-01T09:19:21Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "ad02dbc4",
+  "head_poruka": "feat(ex04): S2 client for B10 Moje prijave - the paged own-application list behind a compile-time flag (default off): the editor keeps the read, the reconciliation and the commands, the pager owns the rows, the server counts and the next page",
   "server": {
    "snimljeno": "2026-10-01T07:03:07Z",
    "migracije": 215,
@@ -208,7 +208,7 @@
    "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "ex04": {
-   "state": "SCOPE_ALIGNED_20261001 / SOURCE_NOT_STARTED / NOTHING_APPLIED",
+   "state": "S1_S2_SOURCE_CI_PROVEN_20261001 / NOTHING_APPLIED / CLIENT_FLAGS_OFF",
    "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
    "flows_p2": [
@@ -242,10 +242,39 @@
    ],
    "first_open_row": "Lične liste A09 / B10 / A11 (P6 L7) i RC-03 zbirna projekcija ocena A01 / D01 (P6 L10): direktiva vlasnika 30.09, tačka 4 (eksplicitan otvoren sledeći red EX-04/P2).",
    "aligned_order": [
-    "S1 A09: rpc_list_my_needs_page dopunjen na mestu (stavka = rpc_read_task dokument) + klijentski cursor owner",
-    "S2 B10: rpc_list_my_applications_page dopunjen na mestu (Na daljinu, krajnji datum, osnova cene, redosled) + cursor owner",
-    "S3 RC-03: stanje ocene u stranici Dogovora i ratingsDue/nextAgreement u postojećem rpc_home_attention",
+    "S1 A09: rpc_list_my_needs_page dopunjen na mestu (stavka = rpc_read_task dokument) + klijentski cursor owner: SOURCE + CI (run 36836659746), DEV NIJE primenjeno",
+    "S2 B10: rpc_list_my_applications_page dopunjen (redosled (pažnja, vreme, id) kao puna lista, Na daljinu, ceo termin, osnova cene i broj ljudi u projekciji, tabovi i brojevi; potpis dobija p_before_rank) + cursor owner: SOURCE + CI (run 36839658547), DEV NIJE primenjeno",
+    "S3 RC-03: stanje ocene u stranici Dogovora i ratingsDue/dueAgreementId u postojećem rpc_home_attention",
     "S4 A11: straničenje ili izričit limit, poslednje"
+   ],
+   "slices": {
+    "S1_A09": {
+     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client behind EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (off)",
+     "candidate": "supabase/candidates/ex04a_own_tasks_page.sql",
+     "candidate_sha256": "3e502e62598fac40fdbfa47623904b736b0fb1e46c5d886f4e423ff0fa50ab59",
+     "revert_sha256": "c790dfb9133793f10e57eca21b7e391fb4ecb49705675ec1902f9e12a7582f3e",
+     "postflight_sha256": "92d0c1dd688d242050f848b74572e190602f9ca49222d3acebafe604ac7998da",
+     "ci_runs": [
+      36836659746,
+      36837512563,
+      36839658435
+     ],
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
+    },
+    "S2_B10": {
+     "status": "SOURCE + CI-PROVEN (disposable); DEV NOT APPLIED; client behind EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (off)",
+     "candidate": "supabase/candidates/ex04b_own_applications_page.sql",
+     "candidate_sha256": "d0bc1e1bc4e919eba06559be807fc1c8e54a30b4a282ddc6f4e857e9f93d4948",
+     "revert_sha256": "66e0bcdb0535f4242526ff22b3f748fcf0c20ef42164199f83bbca59abd8380a",
+     "postflight_sha256": "ab49bf0e722b090f9baf800d67b731a00f8e9e812358526a7e1784f4557f990a",
+     "ci_runs": [
+      36839658547
+     ],
+     "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
+    }
+   },
+   "open_items": [
+    "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja; prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve"
    ],
    "withdrawn": "rpc_home_summary() kao imenovana isporuka: ne postoji ni u jednom kanonskom izvoru; Home ide kroz postojeću projekciju (RC-03).",
    "not_in_scope": [
@@ -1120,7 +1149,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objavljen pa zatvoren zadatak prikazan sa istorijskim brojem prijava. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 2026-09-23: novi raspored detalja mog zadatka viđen na telefonu (build 165ab4fa, docs/implementation/design-system/g3-task-detail/G3_RECEIPT.json), samo čitanje. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
@@ -1204,7 +1233,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "1 test fajl(ova)"
+    "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Čitanje po delovima postoji, ali njegov prikaz nema osnovu cene i broj prijava koje stvarno mogu da se izaberu. Prosta zamena sadašnjeg čitanja pokvarila bi karticu.",
@@ -1233,7 +1262,8 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
     "device": "Nova izmena nije u APK36339245682/f526a736; native čeka sledeći objedinjeni paket.",
-    "round73": "P6 obuhvat: klijent i dalje čita celu ličnu listu (rpc_list_my_tasks); serverski straničeni čitač rpc_list_my_needs_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim je ograničen brojem zadataka jednog naloga; povezivanje straničenja je red EX-04."
+    "round73": "P6 obuhvat: klijent i dalje čita celu ličnu listu (rpc_list_my_tasks); serverski straničeni čitač rpc_list_my_needs_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim je ograničen brojem zadataka jednog naloga; povezivanje straničenja je red EX-04.",
+    "ex04": "S1 (round 75): serverski kandidat ex04a (rpc_list_my_needs_page dopunjen na mestu: stavka = rpc_read_task dokument, scopes ALL/ACTIVE/DRAFTS/HISTORY/WAITING, pet brojeva na prvoj strani) DOKAZAN na disposable lancu (run 36836659746, 21 provera); klijent (pager, \"Prikaži još\", serverski brojevi) iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen); DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1547,7 +1577,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -1720,7 +1750,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -2274,7 +2304,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "30 test fajl(ova)"
+    "test": "33 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "P6 čitač (rpc_discovery_v1) je na kanonskom DEV-u (ledger 212) i uključen u DEV APK; P6 je zatvoren sa granicama L1–L10 (P6_CLOSURE_RECEIPT.md). Na telefonu (Round 74) su feedback i sporih frejmova ispunjeni, a pin→kartica (p95 1503 ms, uključuje tačno čitanje) i povratak (p95 822 ms) su iznad cilja; produkcioni backend, iOS, scale (jit=off L4) i lične liste bez straničenja (EX-04) nisu dokazani.",
@@ -2682,7 +2712,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "23 test fajl(ova)"
+    "test": "26 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri i pretraga rade preko P6 čitača na DEV-u (serverski brojevi, facet-i, PLACES); na telefonu (Round 74) provereni: filter „Na daljinu“ (0) i „Na licu mesta“ (7) sa vraćanjem na 7, pretraga mesta (broj u predlogu = broj u listi, stanje vraćeno). Straničenje nije proverljivo na 7 zadataka (CI journey pokriva 100 redova); scale i produkcija nisu dokazani.",
@@ -3057,7 +3087,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "2 test fajl(ova)"
+    "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "R17 25.09, 8500bf29 / APK 36172923719: javni detalj iz pina otvoren na VKP-NX9; naslov, činjenice, uslovi, opis, osoba i donja komanda vidljivi. Prijava nije poslata. Povratak na isto mesto na mapi je pregledan. docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Stvarni javni detalj i donji deo sa približnom mapom/pitanjima viđeni. Prijava i ostale poslovne radnje nisu izvršene. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: detalj zadatka (naslov u traci pri pomeranju, osoba sa inicijalima, razlog kad prijava nije moguća, retke radnje iza „···“) viđen na emulatoru, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-23: novi raspored detalja tuđeg zadatka viđen na telefonu (build 165ab4fa, g3-task-detail/G3_RECEIPT.json), samo čitanje; prijava nije poslata. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
@@ -3321,7 +3351,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "Dva stvarna slanja 23.09: tvoje sa telefona (2.000 RSD, adversarial_a) i jedno sa emulatora na tvoju reč (3.000 RSD, zadatak uskocibusiness-a, tvoj lični nalog). Oba su na serveru kao SUBMITTED i oba su napravila obaveštenje drugoj strani. Emulator: docs/implementation/functional-audit-20260922/device-20260923/ponuda-emulator/. Viđeno: zaključana cena kad naručilac zada iznos, pregled pre slanja, imenovano sletanje „Tvoja prijava“.",
    "problem": "NALAZ 23.09 (živi server, samo čitanje): kad naručilac zada cenu („Moja cena“), aplikacija zaključa polje pa izvođač može samo da prihvati tu cenu — ali rpc_submit_response NE proverava da je p_price_rsd jednak requester_price_rsd niti ga prepisuje; tvoju cenu samo zabeleži u snimak uz prijavu. Prepravljena aplikacija bi mogla da pošalje drugi iznos na zadatak sa zadatom cenom. Nije rupa u podacima (sve je zapisano), ali pravilo čuva samo ekran, ne i server. R18-E01/E02: klijentsko razlikovanje potvrđenog odbijanja i nepoznatog ishoda provereno u CI-ju; tačan novi APK/telefon nije proveren. Novi paket ne potvrđuje stare navode o serverskoj ceni. 26.09 STORAGE: reset/storage race i promena sadržaja pod istim ključem popravljeni i dokazani red→green testovima; telefon ostaje neproveren. docs/implementation/release-hardening-20260926/STORAGE_INTEGRITY.md",
@@ -3410,7 +3440,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/ponuda/: 23.09. u 06:02 ti si sa telefona poslao pravu ponudu od 2.000 RSD na tuđi zadatak. Server je u istoj transakciji upisao prijavu (SUBMITTED) i obaveštenje RESPONSE_RECEIVED drugoj strani. Aplikacija je prikazuje u „Moje prijave“ kao „Otvorena prijava · Poslata“. APK 35807138233.",
    "problem": "Učitava celu listu odjednom. Straničena serverska funkcija postoji, ali nije zamena jedan-za-jedan: redosled joj je drugačiji. R18-E03: Moje prijave gube Na daljinu i krajnji datum; projekcija vraća samo mesto i početak. Treba dodatni serverski ugovor, bez nagađanja iz praznih koordinata.",
@@ -3438,7 +3468,8 @@
     "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
-    "round73": "P6 obuhvat: klijent čita celu listu (rpc_list_my_applications); straničeni čitač rpc_list_my_applications_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim po nalogu; povezivanje je red EX-04."
+    "round73": "P6 obuhvat: klijent čita celu listu (rpc_list_my_applications); straničeni čitač rpc_list_my_applications_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim po nalogu; povezivanje je red EX-04.",
+    "ex04": "S2 (round 75): serverski kandidat ex04b (rpc_list_my_applications_page: redosled kao puna lista kroz keyset (rank, sortAt, id), činjenice zadatka za karticu, tabovi ALL/ATTENTION/ACTIVE/HISTORY, četiri broja; potpis dobija p_before_rank) DOKAZAN na disposable lancu (run 36839658547, 21 provera, pravi klijentski TypeScript); klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen): Na daljinu i ceo termin na kartici, osnova cene i broj ljudi u projekciji; DEV NIJE primenjeno, nativno NIJE provereno. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md"
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3496,7 +3527,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "Isti snimak: dugme „Povuci prijavu“ je vidljivo na kartici poslate ponude. Nije pritisnuto — povlačenje menja stvarne podatke.",
    "problem": "Aktuelni source već ima eksplicitnu potvrdu povlačenja, KEEP/UPDATE/WITHDRAW version guards i unknown-outcome readback. Serverska fixed-price authority iz B09 ostaje zasebna granica; ovaj flow je ne rešava.",
@@ -6271,7 +6302,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "131 test fajl(ova)"
+    "test": "136 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -6579,14 +6610,6 @@
   },
   {
    "rpc": "rpc_list_my_agreements",
-   "preko_edge": false
-  },
-  {
-   "rpc": "rpc_list_my_applications_page",
-   "preko_edge": false
-  },
-  {
-   "rpc": "rpc_list_my_needs_page",
    "preko_edge": false
   },
   {
@@ -7750,5 +7773,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36841588517,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "ad02dbc4",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-01T09:15:58Z"
+  },
+  {
+   "id": 36839658547,
+   "ime": "EX-04 S2 own applications page proof",
+   "sha": "0724309c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T08:58:01Z"
+  },
+  {
+   "id": 36839658435,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "0724309c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T08:58:01Z"
+  },
+  {
+   "id": 36837512563,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "e48c3e58",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T08:37:53Z"
+  },
+  {
+   "id": 36836659746,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "dccf2a5d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T08:29:49Z"
+  },
+  {
+   "id": 36835813942,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "2e8dcb81",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T08:21:50Z"
+  },
+  {
+   "id": 36834405458,
+   "ime": "EX-04 S1 own tasks page proof",
+   "sha": "b0499890",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T08:07:39Z"
+  },
+  {
+   "id": 36832661783,
+   "ime": "Control tracker refresh",
+   "sha": "6016ee7c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T07:50:16Z"
+  },
+  {
+   "id": 36828953004,
+   "ime": "Control tracker refresh",
+   "sha": "0354e04b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T07:11:57Z"
+  },
+  {
+   "id": 36791068621,
+   "ime": "Control tracker refresh",
+   "sha": "93b6e3ac",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:26:11Z"
+  },
+  {
+   "id": 36790757905,
+   "ime": "Control tracker refresh",
+   "sha": "9d2225da",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:22:37Z"
+  },
+  {
+   "id": 36789867392,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "5b70d237",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:12:36Z"
+  }
+ ]
 }
