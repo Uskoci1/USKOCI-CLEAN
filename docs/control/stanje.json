@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T16:29:32Z",
-  "grana": "HEAD",
-  "head": "2f3d7390",
-  "head_poruka": "docs(ex06): round 78 - S03 first corpus-driven matching proof on the disposable chain (CI run 36890566753, source e7f129d5): real S02 corpus, 37 task cases on the product path, canary 3/3, 436 assertions, 0 harness errors, 12 of 12 function pins equal DEV; result FINDINGS = 11 findings in 3 cases: F1 flexible-day/week tasks stored without a window are refused for every worker (verified on live DEV: 3 of 3 such tasks, 41 of 41 rounds empty), F2 stem sklapanj false positive, F3 corpus expectation; nothing applied, nothing adjusted",
+  "osvezeno": "2026-10-01T16:57:16Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "e27e76db",
+  "head_poruka": "feat(b09): PKG-049 price-authority CHARACTERIZATION proof, round 2 (author + two review rounds, 25 offline tests) - disposable chain, actual Auth and PostgREST, real client TypeScript: modified-client matrix per mode and basis (refusals asserted by exact message, SQLSTATE and status, nothing written), replay precedes the price check, stale reconfirm, selection with pinned revision/version/content hash, Agreement price copy, Agreement change characterised as open decision D3, weakening probes with detected-means-expected-outcome, pin gate that fails on unexplained core differences, in-proof B24 conversion of two functions; NO server change, nothing applied, nothing against DEV",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -3596,6 +3596,7 @@
     "status": "ANALIZA_ODOBRENA_20260922"
    },
    "finalization": {
+    "b09_proof_20261001": "OSVEŽEN DOKAZ (1.10., CI run 36895021919, izvor e27e76db, runda 2 harnessa, bez izmene servera): disposable lanac, pravi Auth i PostgREST (JWT), pravi klijentski TypeScript; label CHAIN == DEV - svih 11 pinovanih tela lanca cene (submit, select, helper, stale resolver, oba need_candidate_states_v5, propose, respond i susedna tri) bajt-jednaka DEV čitanju od 1.10. (posle in-proof konverzije dve PRE-B24 funkcije sa izvedenim md5 koji je jednak DEV-u pre izvršenja). 142 odbijanja potvrđena tačnom porukom, SQLSTATE i HTTP 400 uz „ništa upisano“ i 23 iznosa sačuvana verbatim sa hash-om koji ih vezuje (46 redova PINNED_TO_TODAY pod otvorenim D1/D4/D6); replay prethodi proveri cene; ponovna potvrda posle izmene zadatka; izbor kopira cenu sačuvane verzije; svih 7 slabljenja (helper no-op i svaki od pet pozivalaca) OTKRIVENO uočenim ishodom i vraćeno tačno. D3 KARAKTERIZOVAN (ne presuđen): Dogovor se uz pristanak obe strane može preceniti na bilo koji ceo broj (u dokazu 1 i 2147483647), a kartica ponude u Moje prijave ostaje na staroj ceni (3000 naspram 1). NIJE dokazano: napadi direktnim upisom u tabele cena (round 3), PostgREST 14.5 (lanac 16.1), pkg051a/A1/P0/P4/P5/B3/PKG-045b P0/Voice B1/EX-04A-C na lancu, DEV bez otvorenih MY_PRICE zadataka. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/ci_run_36895021919/pkg049-report.md",
     "b09_finding_20261001": "NALAZ PROVERE 1.10. (živi DEV samo čitanje, 13 agenata + nezavisna provera korenske sesije): premisa B09 je OPOVRGNUTA za živi DEV. private.assert_application_price_v5 (md5 bd7ef02925c03d99ff7fd549219214cb) sprovodi cenu naručioca za MY_PRICE (NULL osnova: jednakost; PER_PERSON: cena x broj mesta; TOTAL: sva mesta i jednakost; MY_PRICE bez cene: FIXED_PRICE_NOT_READY) i poziva ga rpc_submit_response (c98e5bee…), rpc_select_response (7cbb8390…), rpc_resolve_stale_response_after_need_edit (96cb9aac…) i oba need_candidate_states_v5; živo od ledgera 189 (PKG-033a, 21.09.), pre prijema od 23.09. Izbor i Dogovor v1 nikad ne primaju cenu od klijenta (iznos = cena sačuvane verzije prijave). Stvarni preostali otvoreni delovi: izmena cene Dogovora uz pristanak obe strane (D3), granica cene za OFFERS (D4), odbij-naspram-izvedi (D2), NULL osnova za nove MY_PRICE zadatke sa više ljudi (D1); 0 postojećih redova bi bilo odbijeno ili promenjeno. PRIMENI B09/PKG-049 se NE traži: ponovna primena bi bila bajt-identičan no-op. Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PRICE_AUTHORITY_FINDING_20261001.md; sirovi rezultat: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PHASE1_WORKFLOW_RESULT_20261001.json",
     "owner_decision_20261001": "Vlasnik 1.10. (kasnije): ŽELI SERVERSKI AUTORITET ZA CENU U V1 - cena i prihvaćeni iznos u poslovnom toku ne zavise od klijentske vrednosti kad server može biti kanonski autoritet. To je proizvodna odluka. PKG-049 se NE primenjuje na osnovu te poruke: prvo provera kanonskog obima (kandidat kao fajl NE postoji, samo predlog), šta danas određuje cenu, šta server smatra autoritetom, lanac task -> prijava/ponuda -> izbor -> Dogovor -> prihvaćena cena -> readback, semantika TOTAL / PER_PERSON / OFFERS, dokaz da se postojeći podaci ne menjaju, test-first/disposable dokaz, tačan revert i svež read-only DEV preflight; tek tada poseban approval block koji traži „PRIMENI B09/PKG-049“.",
     "priorities": [
@@ -8009,5 +8010,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36895021919,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "e27e76db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:50:45Z"
+  },
+  {
+   "id": 36892351679,
+   "ime": "Control tracker refresh",
+   "sha": "2f3d7390",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:29:12Z"
+  },
+  {
+   "id": 36890566753,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "e7f129d5",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:15:04Z"
+  },
+  {
+   "id": 36880192681,
+   "ime": "Control tracker refresh",
+   "sha": "34d6d06c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:55:26Z"
+  },
+  {
+   "id": 36879449522,
+   "ime": "Control tracker refresh",
+   "sha": "5f5930ed",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:49:53Z"
+  },
+  {
+   "id": 36875994563,
+   "ime": "Control tracker refresh",
+   "sha": "b1f280de",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:23:46Z"
+  },
+  {
+   "id": 36875676769,
+   "ime": "Control tracker refresh",
+   "sha": "202c2577",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:21:20Z"
+  },
+  {
+   "id": 36875025074,
+   "ime": "Control tracker refresh",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36875025066,
+   "ime": "P5 ready task and matching contract",
+   "sha": "552d7ac7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:16:19Z"
+  },
+  {
+   "id": 36873883166,
+   "ime": "Control tracker refresh",
+   "sha": "ce8daef9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:07:31Z"
+  },
+  {
+   "id": 36873169662,
+   "ime": "Build Android development APK",
+   "sha": "52a66a76",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:01:59Z"
+  },
+  {
+   "id": 36870759897,
+   "ime": "Control tracker refresh",
+   "sha": "d7c93511",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T13:43:08Z"
+  }
+ ]
 }

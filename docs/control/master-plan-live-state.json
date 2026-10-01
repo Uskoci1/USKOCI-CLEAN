@@ -400,6 +400,12 @@
       "run": 36890566753,
       "sha": "e7f129d5a4635ba418a4d983a24fd1f5cca788a8",
       "result": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md"
+    },
+    {
+      "id": "B09-PKG049-CHARACTERIZATION-CI-20261001",
+      "run": 36895021919,
+      "sha": "e27e76db0c0be9d62683ff253a7f46d5cb846fe4",
+      "result": "OSVEŽEN DOKAZ (1.10., CI run 36895021919, izvor e27e76db, runda 2 harnessa, bez izmene servera): disposable lanac, pravi Auth i PostgREST (JWT), pravi klijentski TypeScript; label CHAIN == DEV - svih 11 pinovanih tela lanca cene (submit, select, helper, stale resolver, oba need_candidate_states_v5, propose, respond i susedna tri) bajt-jednaka DEV čitanju od 1.10. (posle in-proof konverzije dve PRE-B24 funkcije sa izvedenim md5 koji je jednak DEV-u pre izvršenja). 142 odbijanja potvrđena tačnom porukom, SQLSTATE i HTTP 400 uz „ništa upisano“ i 23 iznosa sačuvana verbatim sa hash-om koji ih vezuje (46 redova PINNED_TO_TODAY pod otvorenim D1/D4/D6); replay prethodi proveri cene; ponovna potvrda posle izmene zadatka; izbor kopira cenu sačuvane verzije; svih 7 slabljenja (helper no-op i svaki od pet pozivalaca) OTKRIVENO uočenim ishodom i vraćeno tačno. D3 KARAKTERIZOVAN (ne presuđen): Dogovor se uz pristanak obe strane može preceniti na bilo koji ceo broj (u dokazu 1 i 2147483647), a kartica ponude u Moje prijave ostaje na staroj ceni (3000 naspram 1). NIJE dokazano: napadi direktnim upisom u tabele cena (round 3), PostgREST 14.5 (lanac 16.1), pkg051a/A1/P0/P4/P5/B3/PKG-045b P0/Voice B1/EX-04A-C na lancu, DEV bez otvorenih MY_PRICE zadataka. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/ci_run_36895021919/pkg049-report.md"
     }
   ]
 }
