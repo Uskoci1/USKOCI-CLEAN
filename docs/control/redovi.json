@@ -4534,6 +4534,168 @@
       "owner_gates": ["PRIMENI za svaki DEV kandidat", "B09 / PKG-049: da li server mora da sprovodi cenu koju zadaje naručilac (LIVE §9.2: plan ne izmišlja politiku cene)", "D12 pisani komentar: poseban server paket", "HONOR prozor (oko 4 min) za preostale cikluse S2/Kandidati i pull-to-refresh; izbor vlasnika za dokaz granice strane (test-only veličina strane + novi APK, ili state-changing DEV fixture)"],
       "done": "§5.4 oba učesnika završavaju posao i oporavak; §9.3 odobreni dvonaložni scenario prolazi novim zajedničkim kandidatom (konkurentnost, izmene, terminalna stanja, oporavak), novi kod samo za stvarno reprodukovanu rupu; po toku A09 / B10 / A11 / A01 'DONE samo za ovaj tok' uključuje native dokaz. Source, CI i disposable dokaz su tek prvi nivoi (LIVE §4.2)."
     },
+    "ex06": {
+          "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_RECORDED",
+          "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
+          "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md",
+          "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
+          "provenance": "workflow ex06-canonical-scope-check: 7 mapera + 7 skeptika + kritičar + sintetizator = 16 agenata, svi claude-sonnet-5-5; 277 nalaza, 0 odbijenih, 41 delimično ispravljenih; read-only, DEV nije čitan",
+          "flows": [
+                "A02",
+                "B00",
+                "B01",
+                "B02",
+                "B03",
+                "P04",
+                "J03",
+                "J15"
+          ],
+          "first_open_row": "S01 read-only DEV BEFORE baza lanca, S02 offline korpus, S05 mapa polje-potrošač (bez vlasnikove reči), zatim S03/S04 disposable dokazi i S06 kao kandidat u EX-04 šablonu do PRIMENI granice.",
+          "slices": {
+                "S00": {
+                      "title": "EX-06 scope record and registry anchor",
+                      "status": "DONE 2026-10-01 (this record)",
+                      "autonomous": true
+                },
+                "S01": {
+                      "title": "Read-only DEV BEFORE baseline of the EX-06 chain",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "none",
+                      "first_owner_boundary": "None (read-only). If the host classifier blocks the reads, ask the owner for the word instead of routing around the denial (memory: uskoci-dev-writes-need-owners-word)."
+                },
+                "S02": {
+                      "title": "Contract corpus v1 (offline, synthetic) with expected structured facts and a coverage report",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "none",
+                      "first_owner_boundary": "None while synthetic. Q5 if the owner wants real descriptions included."
+                },
+                "S03": {
+                      "title": "Corpus-driven matching contract proof on a disposable chain (positive and negative candidates)",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "S01 (md5 pins), S02 (corpus)",
+                      "first_owner_boundary": "None for the proof. PRIMENI is needed only for a follow-up candidate."
+                },
+                "S04": {
+                      "title": "Dispatch lifecycle negative-case proof and probe of the untested inferences",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "S01, S03 (shared fixtures)",
+                      "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval."
+                },
+                "S05": {
+                      "title": "Field-to-consumer map (documentation + contract test)",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "S01 optional (live md5 for the claim that a body is unchanged)",
+                      "first_owner_boundary": "None for the map; each resulting change (G05/S12) needs its own primeni and, for Edge schemas, a paid test."
+                },
+                "S06": {
+                      "title": "Canonical groups step 1: certificate-neutral alias registry and classification version",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "S01, S02, S03",
+                      "first_owner_boundary": "Owner's exact 'primeni' before any DEV application."
+                },
+                "S07": {
+                      "title": "Ranking policy version and on-demand exclusion explainer (function-only)",
+                      "status": "NOT STARTED",
+                      "autonomous": true,
+                      "depends_on": "S01, S03",
+                      "first_owner_boundary": "'primeni'. Lowest priority: not part of the runbook P5 Exit sentence."
+                },
+                "S08": {
+                      "title": "Real-provider corpus run (budgeted, report-only)",
+                      "status": "NOT STARTED",
+                      "autonomous": false,
+                      "depends_on": "S02, S01, owner answer Q1 and Q5",
+                      "first_owner_boundary": "Owner states provider, call count/ceiling, admitted accounts (and DEV write approval for any new account) - Q1."
+                },
+                "S09": {
+                      "title": "Live persisted-fact -> opportunity-notification chain on DEV with positive and negative candidates (the EX-06 measure)",
+                      "status": "NOT STARTED",
+                      "autonomous": false,
+                      "depends_on": "S01, S03, S04, S06 (if applied), S08, EX-04 native check (the chain ends in 'prijava/izbor'), owner answers Q1 and Q2",
+                      "first_owner_boundary": "Paid-AI budget (Q1) + the owner's word for DEV writes (accounts, admission, data) + a granted HONOR window."
+                },
+                "S10": {
+                      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
+                      "status": "NOT STARTED",
+                      "autonomous": false,
+                      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
+                      "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."
+                },
+                "S11": {
+                      "title": "Opportunity push device proof (conditional on Q2)",
+                      "status": "NOT STARTED",
+                      "autonomous": false,
+                      "depends_on": "S04 probes (c)(d), owner answers Q2/Q7, push-capable build",
+                      "first_owner_boundary": "Owner's 'primeni' for the named package + OS permission + device window + store-package Firebase decision."
+                },
+                "S12": {
+                      "title": "Resolution of matcher-consumed field gaps (after S05)",
+                      "status": "NOT STARTED",
+                      "autonomous": false,
+                      "depends_on": "S05 decision list, S03",
+                      "first_owner_boundary": "'primeni' per package; paid test for any Edge schema/prompt change; certificate approval if a trigger/column is chosen."
+                }
+          },
+          "open_items": [
+                "G01 - No corpus (expected structured facts) exists anywhere",
+                "G02 - No corpus-driven proof that persisted facts reach the matcher with positive AND negative candidates on the current bodies",
+                "G03 - Dispatch lifecycle negatives (12.5) not proven as a set; several inferences untested",
+                "G04 - No field-to-consumer map; matcher-consumed worker fields have no collector or writer",
+                "G05 - Resolution of the collector/consumer mismatches found by G04",
+                "G06 - Canonical groups: only the PKG-031b hidden closed set of eleven kinds; no alias data, no classification version, no registry/candidate/promotion",
+                "G07 - No taxonomy candidate capture and explicit promotion path",
+                "G08 - No stored ranking policy/version per dispatch wave and no record of why candidates were excluded",
+                "G09 - Real-provider extraction/location samples never run on the current candidate",
+                "G10 - No live worker interview -> save/activation -> dispatch -> opportunity event -> application proof on the current build",
+                "G11 - Opportunity push leg: no device proof, no single-target admission mechanism, no opportunity-specific payload, no push-capable DEV APK",
+                "G12 - No current DEV baseline and live function bodies of the EX-06 chain not re-read since 2026-09-21/27",
+                "G13 - No registry anchor for EX-06",
+                "G14 - A02 category dead-end: need.category is required for a draft but hidden from people and never asked by the AI",
+                "G15 - Adjacent items the plan does not give to EX-06: P05 reminder, HITNO, A2 opportunity push metadata, identity gate"
+          ],
+          "owner_questions": [
+                "Q1 Paid AI budget (money/provider): which provider and model (the code is Gemini gemini-3.8-flash only), the maximum number of paid calls and USD ceiling for the EX-06 corpus run and the later live chain, and which accounts may be admitted (only the owner and one QA account are admitted today; the earlier allowance is fulfilled; the in-database cap is off since PKG-026 and every call stops on 2027-01-01). Also: does the owner's own AI use on the HONOR count as a 'new paid test', and every publish adds a second paid call (publication evaluator) - should it be counted?",
+                "Q2 What closes the EX-06 measure 'relevant notification': (a) the durable OPPORTUNITY_AVAILABLE event that reaches only eligible workers and is visible in the in-app Inbox and opens the task (event level, no Firebase or push needed), or (b) a device push of that event? And is push part of the first store release at all (RELEASE_CONFIG_MATRIX C-36; the store package rs.uskoci has no Firebase client)? If (b) or yes: authorize preparing a single-target one-event push proof (new admission package, push-capable build, HONOR window) as a separate package; the default recommendation is (a) for EX-06 and a separate P4/EX-05 evidence row for push.",
+                "Q3 P05 reminder before an appointment: in V1 or explicitly deferred? The plan requires a visible owner-level decision, no EX row owns it, and it is not implemented (no scheduler/event/recipient/push path).",
+                "Q4 HITNO: confirm it stays OUT of EX-06 (policy disabled, no category registry, price policy and category allowlist are his), or put it in scope with his category/price policy.",
+                "Q5 Privacy of the corpus: confirm the corpus is built only from synthetic or owner-authored descriptions (no stored user conversations, per AGENTS 3.4.2) and that no real user text is sent to the provider; if he wants the painting-type real descriptions from card A02, say who authors them and whether the existing disclosure is sufficient.",
+                "Q6 (conditional, only if the table-based taxonomy candidates S10 are wanted): approve an isolated closure-certificate recertification and a compatible APK rollout; the recommended default is NOT to ask now - S06 is certificate-neutral and the corpus coverage report will show whether S10 is needed.",
+                "Q7 (conditional on Q2): may a public task title, rounded distance or price appear on the lock screen (A2 metadata)? The global notification rule forbids arbitrary user-authored text; default is out of EX-06 and the existing generic copy stays."
+          ],
+          "owner_gates": [
+                "Paid AI / provider budget: no new paid call without an owner-agreed provider, call count and admitted accounts. The one earlier allowance is fulfilled. The DB reservation cap is switched off since PKG-026, so the gate is purely procedural (only Edge flags + admitted accounts limit spend) and a hard stop exists at price_valid_until 2027-01-01. Every publish also costs a second paid call (publication evaluator).",
+                "Server/Edge application needs the owner's exact word 'primeni' per package; DEV candidates under supabase/candidates are NOT applied unless a ledger receipt says so; any state-changing DEV action (test accounts, AI admission, QA credential, data writes) needs his word first; read-only diagnostics do not.",
+                "Closure certificate: a new table, column, constraint or certified trigger/function (the 76-function digest set) moves the closure digest (now 58447d77) and needs an isolated recertification, the owner's explicit approval and a compatible APK. Function-only changes outside the certified set and data rows do not (precedents PKG-027a, PKG-031b, PKG-051a; counter-example B24 Part 2).",
+                "Push: no global enable, no blanket enable window, no mass notification; a single-target admission mechanism does not exist yet; a push-capable build exists only as the rs.uskoci.preview proof build (the HONOR DEV APK rs.uskoci.dev has no Firebase client); owner OS permission and a device window; iOS is a separate proof; exact-message payload is MESSAGE_RECEIVED-only and OFF.",
+                "Privacy: the two Sep-27 branches (AI context minimization d18e830a, processor inventory 1ab01e78) stay NOT INTEGRATED and must not be started; but the deferral does not cover a newly observed serious exposure (exact addresses/access notes reaching the provider or logs, plan card N11). Sending real descriptions to a third-party AI needs disclosure and permission; raw conversations must not be copied into the repo.",
+                "Owner device: the physical HONOR is used only in a window he grants (his word 'sad' = 6 minutes), never clearing data/signing out without his OK; QA device chosen by adb serial; two-device E2E later.",
+                "TEST world: the owner's accounts are in the TEST world (pkg029e) until removed before real users, so any DEV dispatch proof is inside that temporary arrangement and not production behavior.",
+                "HITNO (urgent dispatch) is policy-disabled (allowedCategories empty because no category registry; chargesFee false); enabling needs the owner's category/price policy; exclusion from V1 is explicitly not automatic.",
+                "P05 appointment reminder: scheduler->event->recipient->push is NOT IMPLEMENTED and the V1 delivery-or-explicit-deferral decision must be visible and is the owner's; no EX row owns it.",
+                "Scope reduction of AI/worker/taxonomy/matching/dispatch for a deadline needs an explicit owner decision; likewise adding scope not named by the EX-06 row.",
+                "Identity/KYC: private.identity_admitted is a fail-closed placeholder; no verified badge on self-declared facts and no new KYC project without a decision; AF-D23 only allows correcting the requirement to false.",
+                "External accounts/keys: push for the store package rs.uskoci needs a new Firebase Android app and an Expo access token from the owner's accounts; paid keys/accounts are owner-only.",
+                "Dependencies: no new package without owner approval; expo-speech not approved, expo-audio conditional; AI audio/STT/TTS/voice transcription needs separate approval.",
+                "Subagents run on the parent model; Fable 5.1 only after the owner says yes; say which model each subagent runs on."
+          ],
+          "not_in_scope": [
+                "tačna poruka čet push (EX-05)",
+                "profil/nalog ekrani (EX-07)",
+                "životni ciklus posla (EX-04)",
+                "dve odložene privatnosti grane (EX-08)",
+                "P05 podsetnik, HITNO, A2 metapodaci push-a, identitet/KYC (kanonski drugde, vlasnikova odluka)",
+                "glas/TTS",
+                "novi paid AI test bez dogovorenog budžeta"
+          ],
+          "withdrawn": "Nijedna stavka nije povučena; 13 predloga je označeno kao NIJE KANONSKO u planu (odeljak 10) i ne gradi se po pretpostavci.",
+          "done": "Plan 12.5 DONE: oba intervjua završavaju sačuvanim, od čoveka potvrđenim rezultatom; klasifikacija bez duplikata; matcher koristi stvarne uslove (tvrda podobnost pre rangiranja); pravi tok radnik -> zadatak -> dispatch -> prijava/izbor sa pozitivnim I negativnim kandidatima; trajne činjenice vode ograničenom, relevantnom obaveštenju; izveštaj korpusa bez izmišljenog praga; nivoi dokaza odvojeni (SOURCE / CI / DEV_APPLIED / CLIENT_WIRED / APK_BUILT / DEVICE / PROVIDER)."
+    },
     "consolidated_apk": {
       "status": "RESTORED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
       "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
