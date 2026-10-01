@@ -446,6 +446,15 @@ export const lazniIzvor: Izvor = {
     return sve.find((p) => p.id === id) ?? null;
   },
 
+  // EX-04 S4: the same applications a page at a time, in the local order (the cursor is a position here, never a timestamp).
+  async prijaveZaPotrebuStrana(potrebaId, request) {
+    const all = await lazniIzvor.prijaveZaPotrebu(potrebaId);
+    const start = request.cursor ? Number(request.cursor.at) : 0, items = all.slice(start, start + request.limit), end = start + items.length;
+    const last = items[items.length - 1];
+    return { items, hasMore: end < all.length, counts: request.cursor ? null : { total: all.length },
+      cursor: last ? { at: String(end), id: last.prijavaId } : null, asOf: new Date().toISOString() };
+  },
+
   async prijaveZaPotrebu() {
     await kasnjenje();
     const preostalo = Math.max(0, UKUPNO_MESTA - popunjeno());

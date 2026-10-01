@@ -181,6 +181,7 @@ type SupabaseIzvor = Omit<
   | 'mojePotrebeStrana'
   | 'potreba'
   | 'prijaveZaPotrebu'
+  | 'prijaveZaPotrebuStrana'
   | 'oznaciPrijavuVidjenom'
   | 'podeliTelefon'
   | 'opoziviTelefon'

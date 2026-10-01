@@ -2,6 +2,7 @@ import type { DokazPrijave, KandidatProjekcija, StanjePrijave } from '../contrac
 import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
+import { decodeCandidatesPage } from './candidatesPage';
 import { calendarInstant } from '../lib/calendarTime';
 import { novac } from '../lib/novac';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
@@ -12,7 +13,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type CandidateService = Pick<Izvor, 'prijaveZaPotrebu'>;
+type CandidateService = Pick<Izvor, 'prijaveZaPotrebu' | 'prijaveZaPotrebuStrana'>;
 
 const STATES = new Set<StanjePrijave>([
   'SELECTABLE',
@@ -143,6 +144,24 @@ export const candidateClientService: CandidateService = {
       },
     });
     if (!result.ok) throw new Error('Prijave trenutno nije moguće učitati. Pokušaj ponovo.');
+    return result.podatak;
+  },
+
+  /**
+   * EX-04 S4 (A11): the same applications a keyset page at a time, in the same order, every document through the same `mapCandidate`; the first page also answers how many there are. A page that does
+   * not add up is an invalid read, never a short one. Needs the ex04d server contract: a build flag keeps the screen on `prijaveZaPotrebu` until DEV has it.
+   */
+  async prijaveZaPotrebuStrana(potrebaId, request) {
+    const id = potrebaId.trim();
+    if (!id) throw new Error('CANDIDATE_PAGE_NEED_REQUIRED');
+    const args: Record<string, unknown> = { p_need_id: id, p_limit: request.limit };
+    if (request.cursor) { args.p_after_at = request.cursor.at; args.p_after_id = request.cursor.id; }
+    const result = await readOwnedResult({
+      request: () => supabase.rpc('rpc_list_need_candidates_page', args),
+      decode: raw => decodeCandidatesPage(raw, request, mapCandidate),
+      errors: {}, fallback: 'CANDIDATE_PAGE_UNAVAILABLE', invalid: 'CANDIDATE_PAGE_INVALID',
+    });
+    if (!result.ok) throw new Error(result.kod);
     return result.podatak;
   },
 };

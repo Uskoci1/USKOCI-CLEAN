@@ -22,6 +22,7 @@ import type {
 } from '../contracts/projections';
 import type { TaskRelationIndex } from './taskRelation';
 import type { HomeAttentionPreview } from './homeSnapshot';
+import type { CandidatesPage, CandidatesPageRequest } from './candidatesPage';
 import type { OwnApplicationsPage, OwnApplicationsPageRequest } from './ownApplicationsPage';
 import type { OwnTasksPage, OwnTasksPageRequest } from './ownTasksPage';
 
@@ -73,6 +74,8 @@ export interface PotrebeCitanje {
 export interface PrijaveCitanje {
   /** R05 — vlasnik kompletne liste prijava i kandidata. */
   prijaveZaPotrebu(potrebaId: string): Promise<KandidatProjekcija[]>;
+  /** EX-04 S4 (A11) — one keyset page of the applications to one of my tasks, in the whole-list order. Needs the ex04d server contract: a build flag keeps the screen on `prijaveZaPotrebu` until DEV has it. */
+  prijaveZaPotrebuStrana(potrebaId: string, request: CandidatesPageRequest): Promise<CandidatesPage>;
   /** W06 / P0C-03 — kanonska projekcija sopstvenih Prijava. */
   mojePrijave(): Promise<MojaPrijavaProjekcija[]>;
   /** EX-04 S2 (B10) — one keyset page of my own applications in one of the screen's sets, in the whole-list order. Needs the ex04b server contract: a build flag keeps the screen on `mojePrijave` until DEV has it. */
