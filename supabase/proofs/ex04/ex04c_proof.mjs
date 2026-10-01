@@ -137,6 +137,8 @@ function counting(client, {strip = false, stall = false} = {}) {
   }};
 }
 const tally = (calls, name) => calls.filter(call => call === name).length;
+// A closure-restricted account is refused by the platform (PostgREST says ACCOUNT_CLOSING) before any reader runs; its predicate is reached with the claims set directly.
+const asClaims = (accountId, expression) => sql(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', ${q(accountId)}, true), set_config('request.jwt.claim.role', 'authenticated', true), set_config('request.jwt.claims', ${q(JSON.stringify({sub: accountId, role: 'authenticated'}))}, true); select ${expression}; rollback;`).split(/\r?\n/).pop();
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function main() {
@@ -149,18 +151,23 @@ async function main() {
   const closureBefore = closure(); assert.equal(closureBefore.ready, true); assert.equal(closureBefore.live, closureBefore.certified);
   const surfaceBefore = surface();
   const f = await buildFixture();
-  const {P, Q, S, E, U, R, B1, B2, made, single, bulk} = f;
+  const {P, Q, S, E, U, R, O, B1, B2, made, single, bulk} = f;
   const accounts = {P, Q, S, E, U, B1, B2};
   const before = {};
-  for (const [name, actor] of Object.entries({...accounts, R})) {
+  for (const [name, actor] of Object.entries(accounts)) {
     const listed = await readPages(actor.client);
-    before[name] = {items: listed.items, truth: await truthOf(actor.client, listed.items), pages: listed.pages.length, home: name === 'R' ? null : await home(actor.client)};
+    before[name] = {items: listed.items, truth: await truthOf(actor.client, listed.items), pages: listed.pages.length, home: await home(actor.client)};
   }
+  // The closure-restricted account: the platform fences it at the API, and by its own predicate it is never eligible; the other side of its Dogovor still is.
+  assert.equal((await R.client.rpc('rpc_list_my_agreements_page', {p_scope: 'ALL', p_limit: 5})).error?.message, 'ACCOUNT_CLOSING', 'THE_PLATFORM_FENCES_A_CLOSING_ACCOUNT');
+  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'f', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_ELIGIBLE');
+  assert.equal(await eligible(O.client, f.restrictedId), true, 'THE_OTHER_SIDE_OF_THAT_DOGOVOR_STILL_IS');
   assert.equal(before.P.items.length, SPEC.length); assert.equal(before.Q.items.length, SPEC.length + 1); assert.equal(before.S.items.length, 1); assert.equal(before.E.items.length, 0);
   assert.equal(before.U.items.length, 4); assert.equal(before.B1.items.length, 230); assert.equal(before.B1.pages, 3);
   assert.ok(!ids(before.P.items).includes(f.outsiderId), 'A_DOGOVOR_OF_TWO_OTHER_PEOPLE_IS_NOT_P_S');
   for (const name of Object.keys(before)) assert.ok(before[name].items.every(item => !('ratingDue' in item)), 'REPRODUCED_THE_PAGE_HAS_NO_RATING_FACT');
-  for (const name of Object.keys(before).filter(name => name !== 'R')) assert.ok(!('ratings' in before[name].home), 'REPRODUCED_THE_HOME_ANSWER_HAS_NO_RATING_AGGREGATE');
+  for (const name of Object.keys(before)) assert.ok(!('ratings' in before[name].home), 'REPRODUCED_THE_HOME_ANSWER_HAS_NO_RATING_AGGREGATE');
+  assert.ok(!('ratingDue' in JSON.parse(asClaims(R.id, "(public.rpc_list_my_agreements_page('ALL',100,null,null)->'items'->0)::text"))), 'REPRODUCED_THE_PAGE_HAS_NO_RATING_FACT_FOR_R');
   // The authority itself: the awkward states are not eligible, and each side's own review decides for that side only.
   const byKey = Object.fromEntries(made.map(item => [item.k, item]));
   const truthFor = (name, key) => before[name].truth.get(byKey[key].id);
@@ -170,7 +177,6 @@ async function main() {
   const reviewedByP = made.filter(item => (item.reviews ?? []).some(side => (side === 'requester' ? item.requester : item.worker) === P)).map(item => item.id);
   assert.ok(reviewedByP.length > 0 && reviewedByP.every(id => before.P.truth.get(id) === false), 'MY_OWN_REVIEW_MAKES_IT_NOT_DUE_FOR_ME');
   assert.ok(made.some(item => before.P.truth.get(item.id) !== before.Q.truth.get(item.id)), 'THE_TWO_SIDES_CAN_DIFFER');
-  assert.equal([...before.R.truth.values()].filter(Boolean).length, 0, 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_ELIGIBLE');
   assert.equal([...before.U.truth.values()].filter(Boolean).length, 1);
   const dueCount = name => [...before[name].truth.values()].filter(Boolean).length;
   assert.ok(dueCount('P') >= 2 && dueCount('B1') > 20);
@@ -209,9 +215,9 @@ async function main() {
 
   // ---------------------------------------------------------------- AFTER
   const after = {};
-  for (const [name, actor] of Object.entries({...accounts, R})) {
+  for (const [name, actor] of Object.entries(accounts)) {
     const listed = await readPages(actor.client);
-    after[name] = {items: listed.items, pages: listed.pages.length, home: name === 'R' ? null : await home(actor.client)};
+    after[name] = {items: listed.items, pages: listed.pages.length, home: await home(actor.client)};
     assert.equal(listed.items.length, before[name].items.length);
     for (const item of listed.items) {
       assert.equal(typeof item.ratingDue, 'boolean', 'EVERY_ITEM_CARRIES_THE_FACT');
@@ -230,10 +236,12 @@ async function main() {
   assert.equal(after.U.home.ratings.due, 1); assert.equal(after.U.home.ratings.dueAgreementId, single[0].id);
   assert.ok(after.B1.home.ratings.due > 20 && after.B1.home.ratings.dueAgreementId === null);
   pass('THE_HOME_AGGREGATE_EQUALS_THE_AUTHORITY_FOR_NONE_ONE_AND_MANY_AND_NOTHING_ELSE_CHANGED');
-  // The closure-restricted account: never due, on the page and by the authority; the home answer is its own gate's.
-  assert.ok(after.R.items.every(item => item.ratingDue === false));
-  const restrictedHome = await R.client.rpc('rpc_home_attention');
-  assert.ok(restrictedHome.error ? restrictedHome.error.message === 'ACCOUNT_NOT_OPEN' : restrictedHome.data.ratings.due === 0, 'A_RESTRICTED_ACCOUNT_HAS_NO_RATINGS_DUE');
+  // The closure-restricted account (claims set directly: the platform fences it at the API): never due on the page, as by the authority; the other side of that Dogovor is due.
+  assert.equal(asClaims(R.id, "(public.rpc_list_my_agreements_page('ALL',100,null,null)->'items'->0->>'ratingDue')"), 'f', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_DUE_ON_THE_PAGE');
+  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'f');
+  const otherSide = (await readPages(O.client)).items.find(item => item.id === f.restrictedId);
+  assert.equal(otherSide.ratingDue, true, 'THE_OTHER_SIDE_OF_THAT_DOGOVOR_IS_DUE'); assert.equal(otherSide.ratingDue, await eligible(O.client, f.restrictedId));
+  assert.equal((await R.client.rpc('rpc_home_attention')).error?.message, 'ACCOUNT_CLOSING');
   pass('A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_DUE');
   // The scopes keep their meaning and carry the fact too; invalid input is still refused by name.
   for (const scope of ['ACTIVE', 'HISTORY']) {
