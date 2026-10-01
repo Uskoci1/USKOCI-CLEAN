@@ -4713,6 +4713,207 @@
           "withdrawn": "Nijedna stavka nije povučena; 13 predloga je označeno kao NIJE KANONSKO u planu (odeljak 10) i ne gradi se po pretpostavci.",
           "done": "Plan 12.5 DONE: oba intervjua završavaju sačuvanim, od čoveka potvrđenim rezultatom; klasifikacija bez duplikata; matcher koristi stvarne uslove (tvrda podobnost pre rangiranja); pravi tok radnik -> zadatak -> dispatch -> prijava/izbor sa pozitivnim I negativnim kandidatima; trajne činjenice vode ograničenom, relevantnom obaveštenju; izveštaj korpusa bez izmišljenog praga; nivoi dokaza odvojeni (SOURCE / CI / DEV_APPLIED / CLIENT_WIRED / APK_BUILT / DEVICE / PROVIDER)."
     },
+    "ex09": {
+      "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PROD / NO_PAID_CALL / 6_OF_7_AREAS / RELEASE_NOT_READY / LAST_IN_CANONICAL_ORDER",
+      "canonical": "LIVE Master Plan 5.4 row EX-09 (\"Javna verzija\": PROD, oba builda, forme, review i operativa; uslov: nalozi/toolchain/web tekstovi pripremaju se ranije; merilo: jedno koherentno izdanje, J01-J22 i store kontrole). Poslednja u kanonskom redosledu (AGENTS 4.2; runbook 8.3(1)): RC se ne zamrzava pre zatvaranja P0-P7 i završnog privacy prolaza EX-08.",
+      "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX09_CANONICAL_SCOPE_20261001.md",
+      "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex09/EX09_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
+      "provenance": "workflow canonical-scope-check-generic: 7 oblasti, svaka sa skeptikom, kritičar i sintetizator, sve na modelu roditelja (Sonnet 5.5). 6 od 7 oblasti završeno, 250 nalaza, 0 opovrgnuto, 16 delimično ispravljeno; zbog prekida API-ja nedostaju mapper oblasti registry-blockers i skeptik oblasti plan (resume iz keša ih popunjava).",
+      "first_open_row": "EX09-S00 (zapis obima i registarsko sidro, samo dokumentacija) pa S01/S04 (osvežavanje nacrta i provenijencija, samo čitanje); prva tvrda vlasnikova granica je odluka o PROD topologiji i ceni (novi Supabase projekat ili formalna promocija DEV-a)",
+      "slices": {
+        "EX09-S00": {
+          "title": "EX-09 canonical scope record and registry anchor",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None for the document; its content branches on the owner answers about iOS, free vs paid launch and PROD topology (carried as variants, not assumed)."
+        },
+        "EX09-S01": {
+          "title": "Refresh the 2026-09-30 release-prep and legal drafts to current HEAD and DEV",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S00 (preferred, not required)",
+          "first_owner_boundary": "Console facts (Play, Apple, EAS, Firebase, Auth settings, Edge env values) cannot be read here and stay marked PROVERITI."
+        },
+        "EX09-S02": {
+          "title": "Release-artifact audit script and CI step (target SDK, 16 KB, ABIs, merged manifest, debug routes, recovery redirect)",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "Running it on the real signed AAB needs the owner's EAS build; the audit-only bundle must never be called a release artifact."
+        },
+        "EX09-S03": {
+          "title": "Recovery redirect in the production profile with hook check and tests",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "Console 'production' environment variables and the Supabase Auth allowlist are the owner's; whether the console already holds the variable cannot be read here."
+        },
+        "EX09-S04": {
+          "title": "Migration provenance reconciliation and classification of the 71 dev_alpha rows",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None for the read-only table; the owner's PROD topology decision chooses which classification drives a build."
+        },
+        "EX09-S05": {
+          "title": "PROD promotion package and disposable-chain equivalence proof",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S04",
+          "first_owner_boundary": "PROD topology/cost decision and the exact 'primeni' before any write to a PROD project; creating the project and its Vault/Edge secrets (worker key, Gemini, LocationIQ, flags) are owner steps; Edge deploy must be byte-exact (owner CLI)."
+        },
+        "EX09-S06": {
+          "title": "pkg029e removal candidate with exact revert and disposable proof (conditional on formal promotion of DEV)",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S05 route decision (moot on a brand-new PROD project where pkg029e is never applied)",
+          "first_owner_boundary": "'primeni' AND timing at cutover: applying on DEV flips the owner's accounts to REAL and ends TEST-world QA."
+        },
+        "EX09-S07": {
+          "title": "RC manifest and release-packet generator, fail-closed, with a clean-source guard",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S00 (J/gate mapping); EX09-S02 for the audit field",
+          "first_owner_boundary": "Real hashes need artifacts built with the owner's EAS login; the owner authorizes the concrete packet."
+        },
+        "EX09-S08": {
+          "title": "J01-J22 linkage into the existing 32-step plan, account and phone requirements",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S00",
+          "first_owner_boundary": "Executing any J on the HONOR needs his window and per-action OK; creating accounts is a state-changing DEV action needing his word."
+        },
+        "EX09-S09": {
+          "title": "Operations and launch runbook drafts with read-only monitoring queries",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "Named responsible person and channel, choice of tooling (possible new dependency), budget alarms and backup plan are owner decisions; scheduled alerts would be state-changing."
+        },
+        "EX09-S10": {
+          "title": "Missing legal and store drafts: LEG-14, LEG-15, LEG-19, LEG-20 review package, refreshed LEG-16/17",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX09-S01",
+          "first_owner_boundary": "Operator identity, retention, legal basis, countries/age and counsel review; final store answers wait for EX-08."
+        },
+        "EX09-S11": {
+          "title": "iOS read-only toolchain and minimum-version review plus iOS config proposal",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "iOS-in-V1 decision, bundle id (OP-40) and Apple account."
+        },
+        "EX09-S12": {
+          "title": "Retarget EAS profile, hook and build identity to the PROD project",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "Owner PROD topology/cost decision; EX09-S05; EX09-S03",
+          "first_owner_boundary": "PROD project decision and cost approval (and the project ref); EAS production environment variables."
+        },
+        "EX09-S13": {
+          "title": "iOS identity, EAS iOS profile and hook extension",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX09-S11; owner iOS decision, bundle id, Apple account",
+          "first_owner_boundary": "iOS in V1, bundle id (OP-40), Apple Developer account (99 USD, D-U-N-S if organization), iPhone."
+        },
+        "EX09-S14": {
+          "title": "Web account-deletion request path and public legal pages hosting",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "Owner: domain/hosting, request handler and identity-check rule, operator data; EX09-S10",
+          "first_owner_boundary": "Domain/hosting and the named handler; any server write needs 'primeni'."
+        },
+        "EX09-S15": {
+          "title": "Execute RUNNABLE J scenarios on the HONOR against the release candidate",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "RC (EX09-S07 inputs), EX-05/07/08 closed, owner accounts and allowances",
+          "first_owner_boundary": "His phone window and per-action OK; paid-AI allowance; account creation approval."
+        }
+      },
+      "open_items": [
+        "G01 - No EX-09 scope record and no registry anchor",
+        "G02 - No PROD project; the only organization is on the free plan",
+        "G03 - No repeatable PROD promotion package; the 71 dev_alpha ledger rows are unclassified and mostly product behaviour",
+        "G04 - No pkg029e removal candidate (owner accounts sit in the TEST world on DEV)",
+        "G05 - Store profile, hook and build identity are pinned to the DEV project and to Android",
+        "G06 - Recovery redirect missing from the production profile; no AAB-side attestation",
+        "G07 - Which compile-time flags the public build ships is undecided",
+        "G08 - No signed AAB, no production EAS build, no RC (B21 OPEN); current EAS profiles never exercised",
+        "G09 - No release-artifact verification tooling (target API, 16 KB alignment, 64-bit libs, merged manifest, debug routes)",
+        "G10 - No RC manifest / release-packet generator and no clean-source cut procedure",
+        "G11 - iOS absent end to end (B12 OPEN)",
+        "G12 - Store package rs.uskoci has no Firebase client; push in V1 undecided",
+        "G13 - Operator unregistered, legal texts unpublished, legal registries 0/0/0 (B13 OPEN)",
+        "G14 - No publication path for legal documents",
+        "G15 - No acceptance gate; sign-up shows a 'test version' line",
+        "G16 - No public web: domain, Privacy/Terms/Support URLs, out-of-app account-deletion request page",
+        "G17 - Retention periods undecided; export blocked by policy (N09)",
+        "G18 - No moderation/support operator, channel or procedure (LEG-14 NOT-STARTED)",
+        "G19 - Operations minimum absent: monitoring/alerts, crash reporting, backups, OTA, budget alarms",
+        "G20 - Missing legal/store drafts: LEG-14, LEG-15, LEG-19, LEG-20 as one review package; LEG-16/17 only provisional",
+        "G21 - Existing drafts and registry views are stale or inconsistent",
+        "G22 - J01-J22 are not mapped in the registry and barely executed",
+        "G23 - REAL world has never been exercised; reviewer/test account supply undefined",
+        "G24 - Permission truth fails: microphone text vs hold-to-talk sends on release; iOS microphone declaration",
+        "G25 - V1 scope questions that change store truth: HITNO, written review (D12), voice, P05",
+        "G26 - Store forms cannot be final before the EX-08 privacy pass; closed-test ordering risk",
+        "G27 - Production runtime switch states, test limits and AI admission model undecided",
+        "G28 - Accessibility/localization matrix, performance and scale limits unrun on the final UI",
+        "G29 - Auth/email and Edge/Auth console configuration is unreadable from the repo",
+        "G30 - Source-of-truth conflict on RNR-01 / B22 and a few smaller stale statements"
+      ],
+      "owner_questions": [
+        "Is iOS part of the first public release (EX-09 says 'oba builda'), or Android first? If iOS: which bundle id and which Apple account (personal or organization)?",
+        "Free launch at 0 RSD (plan 3.2, price list at 0, payments off) or the paid connection-service fee you required before the first public release (APP_FINISHING_PLAN, registry 'Plaćanje')? One explicit word, since it changes Terms, store copy and APL/GPL-11/12.",
+        "PROD environment: a new separate Supabase project (organization, plan, region, cost) or an explicit formal promotion of canonical DEV (which would require neutralising test data and removing pkg029e)? Is a paid Supabase plan with backups intended (the only organization is on the free plan)?",
+        "Operator: legal form and data (OP-01..OP-05, OP-07), or a decision to register first; and who is the named person and channel for moderation/support and incidents?",
+        "Google Play developer account: personal or organization, and when was it opened (decides the 12-testers/14-days closed test)? Do you confirm rs.uskoci as the permanent package? Who are the 12 testers if needed?",
+        "Countries offered, minimum age (RC2 proposes 18+, the app has no age check) and the list of forbidden job kinds.",
+        "Push in the first release (new Firebase app for rs.uskoci, FCM V1 credential and Expo token from your accounts, APNs if iOS)? If no, push moves out of store copy and J14.",
+        "Voice messages: ship in V1 on both platforms, Android only, or formally defer; and do you approve new microphone/permission texts (hold-to-talk sends on release) and installation of expo-audio now that the compatibility check is documented?",
+        "V1 scope of HITNO, the written review comment with the star rating (D12, moves the closure certificate) and the P05 reminder: deliver or explicitly defer?",
+        "Retention periods (12 decisions) and legal review by counsel; and may legal documents be published into the registry only after your explicit word on a domain and text?",
+        "Paid resources and allowances: production Gemini account/billing, bounded paid-AI allowance for reviewer accounts, screenshots, J03/J04 and post-launch verification, LocationIQ vs state address register, map-tile provider, email sender and domain, EAS plan.",
+        "Crash/ANR visibility: store consoles only, or approve a crash-reporting/OTA dependency (changes Data Safety/App Privacy answers)? And please confirm the RNR-01 line: is your decision not to introduce patch-package current, so B22 stops being an open owner gate?",
+        "Please restrict or rotate the two publicly leaked Google API keys flagged in the cleanup inventory, and confirm whether the unreferenced USKOCI-SAJT/Vercel folder is meant as the host for public pages.",
+        "Confirm that the documentation/read-only/disposable-proof side lane (S00-S11) may start now, ahead of EX-05/EX-07, even though your order of work puts release preparation last?"
+      ],
+      "owner_gates": [
+        "Store/production release, and final authorization of the concrete release packet (candidate, countries/audience, submit moment) | izvor: AGENTS.md 3.1.1; runbook 8.3(5); plan 18.4, 20.2, 21.1 | blokira: Any public submit, controlled rollout, production resource creation; preparing a store package is not permission to submit",
+        "Play Console app, listing and privacy URL; confirmation that package rs.uskoci is permanent (OP-41); Google Play developer account type and creation date | izvor: AGENTS.md 3.1.1; RELEASE_CHECKLIST_GOOGLE_PLAY_20260923.md; OWNER_INPUTS_NEEDED item 2 | blokira: First upload, internal/closed tracks, GPL-01/GPL-13/BOTH-03, 12-tester rule applicability",
+        "EAS production environment variables and the production build under the owner's EAS login (upload key lives in EAS remote credentials; agents never create or print keys) | izvor: AGENTS.md 3.1.1; runbook 1 hard rules (login/signing by owner); matrix C-05/C-07 | blokira: Signed AAB, B21, any real production build, EAS-side recovery-redirect variable",
+        "PROD environment: new separate Supabase project (plan recommendation) or explicit formal promotion of DEV; organization, plan, region and cost approval | izvor: AGENTS.md 3.1.3; plan 17.1; runbook 8.1(2); OWNER_INPUTS item 5 | blokira: Any PROD write, retargeting eas.json/guard to a production project, reviewer accounts, PROD E2E; creating paid resources needs its own decision",
+        "Server/Edge/certificate application to any environment needs explicit 'primeni'; certificate-moving change needs isolated recertification plus approval; B24 (both parts) and Voice B1 must be applied to any production project before its first real user; pkg029e removal | izvor: AGENTS.md 3.1.2, 3.1.4, 4.4, 4.6; Voice B1 receipt line 64 | blokira: Every promotion step, TEST-world removal, D12-style digest moves",
+        "Destructive production migrations or data deletion (relevant if DEV is formally promoted: DEV holds 5 TEST-world accounts and test rows per critic's live read) | izvor: AGENTS.md 3.1.1; runbook 8.1(2) | blokira: Formal-promotion route, neutralising test-world data",
+        "Any state-changing DEV/PROD action, including creating review/probe/disposable accounts and any first REAL-world account | izvor: AGENTS.md 3.1.8; plan 19.3 | blokira: J-scenario account supply, reviewer access, closure E2E subject",
+        "New dependencies: crash/error reporter, OTA channel, expo-audio installation (approved only conditionally), patch-package | izvor: AGENTS.md 3.1.5; VOICE_AUDIO_STACK_DECISION_20260930.md | blokira: Operations tooling choice, Voice B2, permission/manifest freeze",
+        "Paid AI / providers / budgets: any new paid call (J03/J04 on a candidate, reviewer AI use, screenshots with live AI, post-launch verification of both AI flows), production Gemini account/billing, LocationIQ plan, Supabase plan with backups, EAS plan, SMTP, domain, store fees | izvor: AGENTS.md 3.1.1, 3.1.6; plan 5.2 'Produkciona priprema'; OWNER_INPUTS item 11 | blokira: J03-J06, APL-08/GPL-10 review access, budget alarms, backups",
+        "Push in the first release (yes/no) and enabling: new Firebase Android app for rs.uskoci, FCM V1 credential and EXPO_ACCESS_TOKEN in the owner's accounts, APNs if iOS; no global enable, one-device/one-event proof only after approval | izvor: AGENTS.md 3.1.7; OWNER_INPUTS item 12; EX-06 owner question Q2 | blokira: J14, P03/P04 store acceptance, C-36..C-38",
+        "Legal texts, operator identity and company data (OP-01..OP-05, OP-07), retention periods (12 decisions in LEG-10), legal basis, processor contracts/regions; never invented by an agent | izvor: AGENTS.md 3.1.1, 3.4.5; OPEN_INPUTS (AF-D10 operator not registered); runbook P7 item 8 | blokira: LEG-02/04/05/07/08, APL-02, GPL-02/03/13, export N09, publication of any legal document",
+        "Prices, payments, payment provider and core business model: free 0 RSD launch vs a connection fee required before the first public release | izvor: AGENTS.md 3.1.1; plan 3.2 vs APP_FINISHING_PLAN_20260922.md sec.1; registry prodavnice 'Plaćanje'; OP-31 | blokira: Terms, store listing, APL-11/12, GPL-11/12",
+        "External accounts: Apple Developer (99 USD/yr; organization needs legal entity, D-U-N-S, public site), domain/hosting, email sender with SPF/DKIM/DMARC, Supabase Auth console (Site URL, redirect allowlist, leaked-password protection) | izvor: AGENTS.md 3.1.1; OWNER_INPUTS items 3, 4, 7; matrix C-22..C-24 | blokira: iOS, public web pages, N02/J02, store contact fields",
+        "iOS in the first release (and iOS bundleIdentifier, iPhone for proof); any scope exclusion needs an explicit product decision before UI/store copy changes | izvor: OWNER_INPUTS item 3; runbook 9; plan 20.3 'obe dogovorene platforme'; registry B12 | blokira: APL-01..12, iOS half of J14/J22, iOS voice, Apple screenshots",
+        "Permissions with privacy consequences / new permission texts (microphone text vs hold-to-talk-sends-on-release; iOS mic declaration) | izvor: AGENTS.md 3.1.1, 3.6.3; LEG-12 N-03; STORE_GATES BOTH-01 | blokira: BOTH-01, BOTH-02, merged-manifest freeze",
+        "Physical HONOR phone: only in a window the owner grants; never clear app data/session, sign out or change data without his explicit OK; installs only via adb install -r; iPhone for iOS proof | izvor: AGENTS.md 3.2.1; plan 19.3 | blokira: J01, J17-J19, J22 and any physical-device proof",
+        "Final privacy pass (EX-08) for the two deferred branches, scheduled by the owner before public release | izvor: AGENTS.md 4.5; runbook 8.3(1); plan 15.4 | blokira: RC freeze, final Data Safety/App Privacy and Privacy Policy wording",
+        "Named moderation/support owner and real intake channel; staffed multi-operator support would be a table-DDL change (certificate re-bind) | izvor: plan 17.3, 13.3; OPEN_INPUTS AF-D17-18; OP-07/OP-13 | blokira: APL-06, GPL-06, J16, 'operativa' DONE",
+        "Countries, minimum age (18+ is an RC2 proposal, no age check exists) and list of forbidden job kinds | izvor: OWNER_INPUTS item 8; registry prodavnice 'Uzrast i vrste poslova'; plan LEG-19 | blokira: APL-09, GPL-08, GPL-09, LEG-19, EU/DSA trader question",
+        "Geocoder for production (state address register vs LocationIQ) and map-tile provider (public OpenFreeMap has no SLA) | izvor: OWNER_DECISIONS_20260924.md decision 8; matrix C-32/C-33 | blokira: Production location search, LEG-11 processor entries",
+        "V1 scope of HITNO, written review comment (D12, moves the closure certificate), voice, P05 reminder: delivered or explicitly deferred by owner | izvor: plan 3.1, 3.2, card A16, P05; D12_WRITTEN_REVIEW_DESIGN_20261001.md; runbook 9 | blokira: Store copy, Terms, review notes, certificate re-bind",
+        "Restrict or rotate two publicly leaked active Google API keys; GitHub repo settings (repo is public) | izvor: cleanup-inventory-20260930/SUMMARY.md findings 2-3 | blokira: Google/Firebase account hygiene before public release",
+        "RNR-01 status: registry B22 and AGENTS 4.2 list the dependency decision as open and release-blocking; EX03 closure receipt says the owner decided not to introduce patch-package | izvor: docs/control/redovi.json blokade B22; AGENTS.md 4.2; EX03_CLOSURE_RECEIPT_20261001.md line 41 | blokira: B22 disposition in the release blocker list"
+      ],
+      "withdrawn": "Nijedna stavka nije povučena; 12 predloga je zabeleženo kao NIJE KANONSKO (odeljak 10 zapisa obima) i ne ulazi u plan bez posebne odluke.",
+      "not_in_scope": [
+        "pisanje ili objava pravnih tekstova sa izmišljenim podacima operatera",
+        "bilo koji PROD upis, nalog, konzola, potpisivanje ili slanje u prodavnicu (sve vlasnikovo)",
+        "plaćeni AI test bez posebnog S08 bloka"
+      ]
+    },
     "consolidated_apk": {
       "status": "RESTORED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
       "source": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
