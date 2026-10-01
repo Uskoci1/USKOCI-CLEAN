@@ -4547,6 +4547,187 @@
       "owner_gates": ["PRIMENI za svaki DEV kandidat", "B09 / PKG-049: da li server mora da sprovodi cenu koju zadaje naručilac (LIVE §9.2: plan ne izmišlja politiku cene)", "D12 pisani komentar: poseban server paket", "HONOR prozor (oko 4 min) za preostale cikluse S2/Kandidati i pull-to-refresh; izbor vlasnika za dokaz granice strane (test-only veličina strane + novi APK, ili state-changing DEV fixture)"],
       "done": "§5.4 oba učesnika završavaju posao i oporavak; §9.3 odobreni dvonaložni scenario prolazi novim zajedničkim kandidatom (konkurentnost, izmene, terminalna stanja, oporavak), novi kod samo za stvarno reprodukovanu rupu; po toku A09 / B10 / A11 / A01 'DONE samo za ovaj tok' uključuje native dokaz. Source, CI i disposable dokaz su tek prvi nivoi (LIVE §4.2)."
     },
+    "ex05": {
+      "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / 6_OF_8_AREAS / SCOPE_RECORD_ONLY",
+      "canonical": "LIVE Master Plan 5.4 row EX-05 (\"Komunikacija\"): plan-predloženi radni paket, ne vlasnikom odobren obim. EX-05 'Komunikacija' is ONE row of the LIVE Master Plan section 5.4 table 'Predloženi radni paketi' (docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html, plain-data): deliverable 'Tekst/foto/VOICE/grupa + P4 isti događaj', precondition 'Server/native dependency odobrenje gde je potrebno', measure 'Two-device/platform lanac i mediji'. It is a plan-proposed work unit inside the existing plan, not an owner-approved sco",
+      "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX05_CANONICAL_SCOPE_20261001.md",
+      "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex05/EX05_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
+      "provenance": "workflow canonical-scope-check-generic: 8 oblasti, svaka sa skeptikom, kritičar i sintetizator, sve na modelu roditelja (Sonnet 5.5). 6 od 8 oblasti završeno, 238 nalaza, 0 opovrgnuto, 29 delimično ispravljeno; zbog prekida API-ja nedostaju: map:owner-gates, map:client-chat (resume iz keša ih popunjava).",
+      "first_open_row": "1. EX05-S00 first: scope record, registry anchor and read-only baseline (docs only, one registry writer after fetch; EX-04 and EX-06 also edit redovi.json). It ends in the owner's confirmation of row membership and scheduling.",
+      "first_owner_boundary": "Everything up to a not-applied candidate with a disposable proof (S00-S06) is autonomous and needs no owner word. The first real owner boundary is a DECISION at the end of S00 (which rows EX-05 owns, P05 in or out, when EX-05 starts relative to the in-progress EX-04/EX-06). The first hard gates after that are the owner's exact 'primeni' to apply the S06 candidate and Edge change, and, for any two-device work (S07, S10-S13), his word for state-changing DEV actions plus an HONOR window and owner-provided signed-in accounts.",
+      "slices": {
+        "EX05-S00": {
+          "title": "Scope record, registry anchor and read-only DEV baseline",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "Not a gate on writing; the owner's confirmation of row membership, P05 and scheduling (questions 1-2) is needed before slices S06 onward start"
+        },
+        "EX05-S01": {
+          "title": "Disposable re-proof of the chat server legs on the post-B24 and Voice B1 chain",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX05-S00 (baseline) preferred, not required",
+          "first_owner_boundary": "None for the proof. A confirmed contract defect (for example G22) becomes a server candidate that needs 'primeni' to apply"
+        },
+        "EX05-S02": {
+          "title": "RC-02 targeted concurrent proof for media cancellation",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest"
+        },
+        "EX05-S03": {
+          "title": "Reconnect, anchor and unknown-outcome review with focused client tests",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None; a forward-reader server candidate would need 'primeni' and maybe a re-bind"
+        },
+        "EX05-S04": {
+          "title": "Voice validator acceptance with real-encoder AAC-LC M4A samples (de-risk only)",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None"
+        },
+        "EX05-S05": {
+          "title": "Voice UI proposal pack for owner review",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX05-S00 for the deviation records",
+          "first_owner_boundary": "The owner's approval of the proposal (question 7) before any B2-c code"
+        },
+        "EX05-S06": {
+          "title": "Single-target push admission candidate (P1B)",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "EX05-S00; EX05-S01 (post-B24 proof base); owner's route answer (question 3b) before authoring to avoid rework",
+          "first_owner_boundary": "'primeni' for the SQL and the Edge deploy; owner-set Edge secrets afterwards"
+        },
+        "EX05-S07": {
+          "title": "Hosted voice smoke on DEV (HTTP/JWT, synthetic M4A)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S04 (so a validator surprise is known first); owner's word",
+          "first_owner_boundary": "The owner's word for a state-changing DEV action and his acceptance that the clean revert path ends with the first voice row; an owner-provided session (no password entry by agents)"
+        },
+        "EX05-S08": {
+          "title": "B2-b native voice recorder and player behind the compile-time flag",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S05 approval is not required for B2-b; owner's expo-audio confirmation and microphone text",
+          "first_owner_boundary": "Owner confirmation that the conditional expo-audio approval is satisfied and the approved microphone text"
+        },
+        "EX05-S09": {
+          "title": "B2-c voice UI in AgreementChat behind the flag",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S05 approved; EX05-S08",
+          "first_owner_boundary": "Owner approval of the UI proposal"
+        },
+        "EX05-S10": {
+          "title": "Two-device text and photo chain on the current build (HONOR A, AVD B)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S00; owner-provided sessions on both devices; EX05-S01/S03 green first",
+          "first_owner_boundary": "HONOR window plus the owner's word for DEV message/photo writes and signed-in accounts"
+        },
+        "EX05-S11": {
+          "title": "Voice B4: two-device voice chain",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S07, S08, S09; legal gate before any exposure beyond test accounts",
+          "first_owner_boundary": "HONOR window, DEV write word, signed-in accounts; legal text before exposure"
+        },
+        "EX05-S12": {
+          "title": "P4 same-event push chain on Android (one real message)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S06 (applied), EX05-S10 (text path proven first), owner answers to questions 3-4",
+          "first_owner_boundary": "PRIMENI for S06, owner-set Edge secrets, a push-capable install in his window, the stale-backlog decision"
+        },
+        "EX05-S13": {
+          "title": "Group multi-member native proof, with a conditional server extension",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "EX05-S01 (group proof refreshed), S10; owner decisions on group scope and test accounts",
+          "first_owner_boundary": "Owner scope answer (question 8), the second applicant account and his word for the DEV writes"
+        },
+        "EX05-S14": {
+          "title": "EX-05 closure receipt with limits",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S10-S13 or the owner's explicit descoping of them",
+          "first_owner_boundary": "The owner's closure decision"
+        }
+      },
+      "open_items": [
+        "G01 - No EX-05 scope record or package form",
+        "G02 - Row membership of EX-05 undecided",
+        "G03 - Voice native recorder/player (B2-b)",
+        "G04 - Voice UI in AgreementChat (B2-c)",
+        "G05 - Voice never exercised at the hosted boundary",
+        "G06 - Validator never saw real recorder output",
+        "G07 - Voice deletion semantics unmapped",
+        "G08 - Voice legal and store-declaration texts contradict shipped behaviour",
+        "G09 - Photos in messages: no device proof, success path never run on hosted DEV",
+        "G10 - Photo/group/text SQL proofs predate B24 and Voice B1",
+        "G11 - RC-02 media-cancel lock order: no concurrent proof",
+        "G12 - Text chat: no current two-device native proof",
+        "G13 - Reconnect completeness vs the B3 contract",
+        "G14 - Full client regression is not bound to HEAD for the chat client",
+        "G15 - Group: no group exists on DEV; real multi-member native proof absent",
+        "G16 - Group has no notification, realtime or media path",
+        "G17 - No single-target push admission mechanism",
+        "G18 - Stale push backlog and unsettled attempt on DEV",
+        "G19 - Push flags not readable; exact flag last confirmed absent 2026-09-27",
+        "G20 - No push-capable build at current HEAD; HONOR runs a package that cannot register a token",
+        "G21 - Same-event chain has no receipt at any level; provider receipt stage never completed",
+        "G22 - Push-ON / in-app-OFF accounts may not resolve the exact target (source-derived, not executed)",
+        "G23 - Return-from-sign-in path of a push tap has Jest only",
+        "G24 - iOS has no identity, signing, APNs or build",
+        "G25 - Store package rs.uskoci has no push configuration; push-in-first-release undecided",
+        "G26 - P05 reminder not implemented and unowned",
+        "G27 - Two-phone plan has no voice step and most communication steps are unexecuted",
+        "G28 - Two-device QA lane not ready",
+        "G29 - Real account closure after the Voice B1 re-bind not run",
+        "G30 - Stale status text that will mislead the next reader"
+      ],
+      "owner_questions": [
+        "Scheduling and scope: do you want the autonomous side lane (S00-S05, no DEV write, no gate) to run now in parallel with EX-04/EX-06, and may EX-05 own D03, D04, D05, P01 and the chat-message leg of P04 (P02/P03 only as evidence preconditions)? Should P05 (reminder before the appointment) be in V1 or explicitly deferred, and should N06, D08, A03 and the opportunity-push leg stay outside EX-05 (the EX-06 default)?",
+        "Push in the first store release (RELEASE_CONFIG_MATRIX C-36, legal question 21): yes or no? If yes you must supply a Firebase Android app for rs.uskoci, an FCM credential in Expo and EXPO_ACCESS_TOKEN; if no, please restate what the P4 'both release candidates' DONE becomes (for example an Android proof on rs.uskoci.preview only).",
+        "Push enablement route: (a) may we prepare the single-target admission package (S06: candidate, revert, postflight, disposable proof, to be applied only on your PRIMENI) instead of any global or windowed enable, and will you correct the AGENTS 3.1.7 sentence about 'zero-device backlog retirement' that its own source withdrew; (b) what should happen to the 2 stale WORKER push deliveries and the unsettled 26.09 attempt on DEV, and which account is the proof recipient; (c) will you do a names-only check or tell us the values of EXPO_PUSH_TRANSPORT_ENABLED and EXPO_PUSH_MESSAGE_TARGET_ENABLED before any proof?",
+        "iOS: will you provide a real iPhone, an Apple developer account, a bundle identifier and an APNs key so voice and push can get the separate iOS results the plan requires, or should EX-05 close Android-only with iOS recorded as an explicit limit?",
+        "expo-audio: does the 2026-09-30 compatibility check satisfy your conditional approval so `npx expo install expo-audio ~57.0.4` may run in S08, including the migration of the Android AI hold-to-talk capture behind NativeSpeechAdapter with a physical-phone parity list? Please also supply or approve the chat-voice microphone permission text (the current string is the AI-assistant text).",
+        "Voice legal and privacy: your texts for LEG-04/09/10/11/12 and the store declarations (D-12 still asks whether voice is in the first release, while AGENTS says mandatory V1); audio retention and expiry periods (none may be invented); whether a reported voice message may ever be heard by support (the receipt says no in V1, which sits uneasily with the store report-handling control GPL-06); acceptance of the live old-client placeholder 'Glasovna poruka. Ažuriraj aplikaciju da je poslušaš.'; and confirmation that 'brisanje' in the plan means pre-send discard plus account-closure erasure, since no per-message delete exists.",
+        "Voice UI: will you review the S05 proposal, and which record flow governs chat voice: tap, review, send (plan D03 card, contract) or hold-to-talk sends on release with an accessible review mode (AGENTS 3.6.3)?",
+        "Group scope: is the current text-only group with refresh on tap enough for V1, or do you want group push, realtime or media (a new server package that, if it widens the event-type CHECK, moves the certified closure digest and needs a re-bind and compatible APK)?",
+        "DEV test actions: do you approve, per slice, the state-changing DEV steps (messages, photos, voice rows, push preference rows, group seeding by a second applicant) and will you provide the signed-in sessions (the AVD session was lost on 2026-09-30, a third account is needed for group and negative cases) and HONOR windows? Note that the first voice row on DEV ends the proven clean revert of Voice B1."
+      ],
+      "owner_gates": [
+        "Server/Edge application: explicit 'primeni' per package | izvor: AGENTS.md 3.1.2; owner practice 2026-10-01 (each decision says it does not authorize application); AGENTS 3.1.3 (AF-D26) is NOT a standing pre-authorization because 3.1.2 says the older general authorization does not override the newer boundary | blokira: Applying any candidate to DEV: single-target push admission (S06), any group event/realtime package, P05, RC-02 fix, any Voice B1 revert or Edge redeploy",
+        "Closure certificate re-bind | izvor: AGENTS 3.1.4; pkg046a_media_upload_cancellation.sql header lines 5-7 (digest hashes every table's columns, constraints, triggers and ACLs); EX06_CANONICAL_SCOPE item 10; AGENTS 4.4 (PT409, never 40001) | blokira: Any new table, column, CHECK widening (for example a group event_type in user_activity_events_event_type_check), trigger. Function-only changes outside the certified set do not move it; a new candidate must prove the digest unchanged or stop and escalate",
+        "Dependencies: expo-audio conditional, expo-speech not approved | izvor: AGENTS 3.1.5; VOICE_AUDIO_STACK_DECISION_20260930.md (compatibility check written by the agent; no recorded owner acknowledgement) | blokira: B2-b native recorder/player (S08); also migrates the Android AI hold-to-talk capture (A03) behind NativeSpeechAdapter with a 7-row physical-Android parity list",
+        "Push enablement: no global enable, one owner device, one event, only after approval; Edge secrets set by the owner | izvor: AGENTS 3.1.7 (its 'zero-device backlog retirement' clause is withdrawn by CODEX_HANDOFF line 12, MEDIA_PUSH_PREFLIGHT line 3, PLAN.md line 69); plan 5.2; CODEX_HANDOFF P1B/P1C | blokira: Any real provider send (S12); EXPO_PUSH_TRANSPORT_ENABLED and EXPO_PUSH_MESSAGE_TARGET_ENABLED values; EXPO_ACCESS_TOKEN",
+        "Push in the first store release is undecided; store package rs.uskoci has no Firebase client; Firebase/FCM/Expo token/APNs are owner accounts | izvor: RELEASE_CONFIG_MATRIX C-36/C-37/C-38; legal-drafts README question 21; DATA_DECLARATIONS_DRAFT; AGENTS 3.1.1 | blokira: Scope of P4 DONE for the store build; any rs.uskoci push; iOS push",
+        "State-changing DEV actions need the owner's prior word (the clause names 'sending a message') | izvor: AGENTS 3.1.8; runbook section 1 (new test accounts need specific approval; destructive/third-account cases use disposable CI fixtures unless a separate live scope is approved) | blokira: Every two-device message/photo/voice run on DEV, group seeding, push preference rows, voice smoke, any real account closure",
+        "Physical HONOR only in a window the owner grants ('sad' = 6 min); no clear/sign-out/data change; updates only with adb install -r | izvor: AGENTS 3.2.1; qa-robot README section 5; ROUND_79 (the EX-04 test APK 9ef10b67 stays on the phone until the next normal DEV build) | blokira: S08-S13 acceptance; any phone proof",
+        "Accounts and sign-in: agents may not create accounts or enter passwords; AVD session was lost 2026-09-30 | izvor: system rule on credentials; qa-robot README section 5; AGENTS 3.4.1 | blokira: Person B on the AVD, a signed-in rs.uskoci.preview install, the third account for group/negative cases, the second worker applicant for group seeding",
+        "Legal/privacy texts for chat voice and the microphone text | izvor: AGENTS 3.1.1, 3.4.5; plan 10.3 and 16 (LEG-09..12); legal-drafts LEG-04 line 66/124, LEG-09 line 85, LEG-10 AF-D02, LEG-12 N-03; DATA_DECLARATIONS_DRAFT D-12, GS-15, AP-12; app.config.js line 43 is the AI-assistant text | blokira: Exposing voice to any user and any store declaration; building and CI proofs are not blocked (plan 16.3)",
+        "Voice UI proposal (record/review/player in AgreementChat) and which record flow governs | izvor: VOICE_B1_B2_PLAN B2-c and owner gates; registry D03 'sledece' (no fake mic button); AGENTS 3.6.3 (hold-to-talk sends on release) vs plan D03 card/CHAT_VOICE_CONTRACT (tap, review, send) | blokira: B2-c UI code (S09)",
+        "iOS: real iPhone, Apple developer account, bundle identifier, APNs key | izvor: plan 19.3, 21.1; RELEASE_CONFIG_MATRIX C-02/C-38; registry B12 OPEN; Voice plan owner gate 6 | blokira: Any iOS push/audio result; P4 and voice DONE as the plan words them",
+        "Paid AI / transcription of voice | izvor: plan 10.3 closing paragraph; AGENTS 3.1.6 | blokira: Any transcription, AI processing of audio messages, training use. No budget gate binds EX-05 directly (the budget sentence sits on EX-06 and the P5 entry)",
+        "Processor-inventory privacy branch deferred (1ab01e78); Expo/FCM terms and retention are PROVERITI | izvor: AGENTS 4.5; LEG-11 R-04/R-05; legal-drafts README line 53 | blokira: Any public claim about push/processors; a real provider send stays inside the owner's TEST-world accounts",
+        "Destructive tests: account-closure after the voice re-bind needs a specifically approved disposable target; no adb uninstall/pm clear/factory reset; never delete the owner's account to simplify a test | izvor: runbook section 1; plan 19.3 | blokira: Real closure with a voice object on DEV (not run since the re-bind to 58447d77)",
+        "Plan, README and this scope check are not approvals | izvor: plan 24.5; AGENTS 1.1 | blokira: Treating any slice as authorized beyond its stated autonomy"
+      ],
+      "withdrawn": "Nijedna stavka nije povučena; 13 predloga je zabeleženo kao NIJE KANONSKO (odeljak 10 zapisa obima) i ne ulazi u plan bez posebne odluke.",
+      "not_in_scope": [
+        "svaka primena na DEV/PROD, plaćeni poziv, nalog, zavisnost ili uređaj bez posebne vlasnikove reči",
+        "tuđi redovi plana (EX-04, EX-06, EX-09 i ostali) osim tamo gde ih zapis obima izričito vezuje"
+      ]
+    },
     "ex06": {
           "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_S02_S03_S05_RECORDED",
           "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
