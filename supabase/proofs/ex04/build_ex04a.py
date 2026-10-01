@@ -29,8 +29,8 @@ PINS = [
     (PAGE_SIGNATURE, 'dad1de3234e72d4e2f44be5e920eda61'),
     ('public.rpc_list_my_tasks()', '2a8ff0fa8a1211414e5e1fc69c6fb4f7'),
     ('public.rpc_read_task(uuid)', '1e01db5140248f27ab374187f01fded3'),
-    ('public.selectable_application_count(needs)', 'fe53442f8b661d6f33d22a54e2a468a8'),
-    ('public.covered_slots(needs)', 'cbeb8f2a3da7d08965ef0386cfc437ba'),
+    ('public.selectable_application_count(public.needs)', 'fe53442f8b661d6f33d22a54e2a468a8'),
+    ('public.covered_slots(public.needs)', 'cbeb8f2a3da7d08965ef0386cfc437ba'),
     ('public.rpc_storage_account_open()', '7350621ef256678e209aa6a28c79b58b'),
     ('private.need_candidate_states_v5(uuid)', '6d65e304f41f3e130228f58874757f0d'),
 ]
