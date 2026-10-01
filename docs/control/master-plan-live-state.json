@@ -364,6 +364,12 @@
       "run": null,
       "sha": null,
       "result": "OWNER DECISION recorded (EX-06): Vlasnik 1.10. (kasnije): nastavi EX-06 S00-S07 u granicama kanonskog LIVE plana; S03 nastavlja; S06 počinje tek iz stvarnih nalaza S03; S07 ostaje USLOVAN (nije proširen paralelnim radom); bez plaćenog AI testa dok se ne iznese poseban S08 approval block sa providerom, modelom, brojem testova, maksimalnim troškom i tačno onim što test dokazuje."
+    },
+    {
+      "id": "EX06-S05-FIELD-CONSUMER-MAP-20261001",
+      "run": null,
+      "sha": null,
+      "result": "EX-06 S05 (SOURCE level, documentation + contract test): field-to-consumer map of the eight plan 12.2 fact families with the effective definition chain of the matcher (baseline -> W02 -> PKG-015b -> PKG-031b), hard/soft gate split (team capacity is application-time only), G04 verdicts (8 confirmed or corrected; \"years_experience forced to 0 for client writes\" was stale), 10 additional findings X-01..X-10 (buffer_minutes dead column, the opportunity notification switch is never read by the matcher, no requeue after skills/tools/vehicles/licences edits, the interview never asks for matcher inputs), decision list D-01..D-12 for S12; repository-text md5 replay reproduces the DEV md5 recorded in receipts for six bodies; test p5-matching-field-contract 50/50 (3 original + 47 new); NOT live proof; record docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_FIELD_CONSUMER_MAP_20261001.md"
     }
   ]
 }
