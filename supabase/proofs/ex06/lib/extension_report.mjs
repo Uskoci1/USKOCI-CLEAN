@@ -6,7 +6,7 @@
 // can see that the corpus result was not produced on the extended chain and what the extension was. It asserts nothing about matching and never fails the job for a differing pin.
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {createFixtures} from './fixtures.mjs';
-import {EXTENSION_PINS, PINS, PROOF_POINT_PINS, bodyMd5Map, catalogLines, catalogQuery, diffCatalog, evaluatePins, evidenceLabel, pinQuery, pinRowsOf} from './pins.mjs';
+import {EXTENSION_PINS, PINS, bodyMd5Map, catalogLines, catalogQuery, diffCatalog, evaluatePins, pinQuery, pinRowsOf, sectionLabel} from './pins.mjs';
 import {sha256Hex} from './corpus.mjs';
 
 export function renderExtensionMarkdown(report) {
@@ -56,8 +56,8 @@ export function runExtensionReport({rt, env}) {
     if (existsSync(mainReportPath)) proofGate = JSON.parse(readFileSync(mainReportPath, 'utf8')).pinGate ?? null;
     else report.warnings.push('The first section report was not found: the 11 proof-point pins are unknown.');
     report.proofPoint = proofGate ? {equal: proofGate.equal.length, different: proofGate.different.map(item => item.name), missing: proofGate.missing} : null;
-    const all = proofGate ? {different: [...proofGate.different, ...gate.different], missing: [...proofGate.missing, ...gate.missing], equal: [...proofGate.equal, ...gate.equal]} : null;
-    report.label = all ? evidenceLabel(all, PROOF_POINT_PINS.length + EXTENSION_PINS.length)
+    // The 11 pins were read in ANOTHER chain state (before the extension) and are not re-read here: the label says which pins were read in which state, never a bare "12 pins == DEV".
+    report.label = proofGate ? sectionLabel(proofGate, gate)
       : `12TH PIN ONLY: ${gate.equal.length ? 'rpc_begin_push_send == DEV' : 'rpc_begin_push_send != DEV'} (the 11 proof-point pins were not read)`;
     if (existsSync(catalogPath)) {
       const before = JSON.parse(readFileSync(catalogPath, 'utf8')).rows;

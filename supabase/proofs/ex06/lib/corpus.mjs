@@ -8,7 +8,8 @@
 //    expectedKinds: ['SELIDBE_PREVOZ'] | null  asserted against private.work_kinds_v5(array_prepend(category, required_skills)) of the STORED task row (the input of the exclusion gate)
 //    referenceWorkers: [{label, profile, expect | null, note, annotations?, unconsumed?: [{key, value, reason}], skip?: reason}]
 //    deriveWorkers: boolean                  true = add fit / unfit / unknown derived from the task (the harness-native SMOKE shape); false = the corpus lists every worker
-//    positiveOnly?: true  noEligibleWorker?: true   explicit opt-outs of the per-case discrimination checks
+//    positiveOnly?: true + positiveOnlyReason  noEligibleWorker?: true   explicit, listed opt-outs of the per-case discrimination checks (a case needs a negative of the CORPUS that names its
+//      cause: the harness's own control does NOT count; positiveOnly needs the reason the corpus gives and the report lists the case)
 //    annotations?: {...}}
 import {createHash} from 'node:crypto';
 import {HarnessInputError, validateExpectation} from './compare.mjs';
@@ -212,8 +213,12 @@ export function finalizeCase(item, {registry, where = item?.id}) {
     workers.push({label: worker.label, profile: clone(worker.profile), expect: worker.expect ? clone(worker.expect) : null, note: worker.note ?? null, annotations: worker.annotations ?? null,
       unconsumed: worker.unconsumed ?? [], skip: worker.skip ?? null});
   }
+  // positiveOnly is an explicit, visible opt-out of the "every case needs a corpus-named negative" rule: it needs the reason the corpus gives, and the report lists it.
+  if (item.positiveOnly === true && !(typeof item.positiveOnlyReason === 'string' && item.positiveOnlyReason.length >= 20)) throw new HarnessInputError('POSITIVE_ONLY_NEEDS_A_REASON', `${id}: positiveOnly:true needs positiveOnlyReason (the reason the corpus gives, at least 20 characters)`);
+  if (item.positiveOnly !== true && item.positiveOnlyReason !== undefined) throw new HarnessInputError('POSITIVE_ONLY_REASON_WITHOUT_FLAG', id);
   return {id, family: item.family ?? null, outcomeClass: 'READY', expectedFacts: clone(item.expectedFacts), expectedKinds: item.expectedKinds ?? null, referenceWorkers: workers,
-    deriveWorkers: item.deriveWorkers === true, positiveOnly: item.positiveOnly === true, noEligibleWorker: item.noEligibleWorker === true, annotations: item.annotations ?? null};
+    deriveWorkers: item.deriveWorkers === true, positiveOnly: item.positiveOnly === true, positiveOnlyReason: item.positiveOnly === true ? item.positiveOnlyReason : null,
+    noEligibleWorker: item.noEligibleWorker === true, annotations: item.annotations ?? null};
 }
 
 /** Convert a harness-native case ({expectedFacts, expectedEligibility?, referenceWorkers?: {label: {profileFrom?, profile?, expect?}}}) into the normalised array form (derived workers included). */
@@ -319,13 +324,18 @@ export const SMOKE_CORPUS = Object.freeze({
   ],
 });
 
+/** The reason a REAL requester's task is not delivered to a TEST-world worker: private.dispatch_cheap_candidate_admitted (PKG-015b) holds the same-world gate, match_detail does not. */
+const worldNotDelivered = Object.freeze({hardBlockers: [], dispatchBlockers: [], dispatchEligible: true, responseAllowed: true, delivery: false, event: false, notDeliveredBecause: 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS'});
+
 /**
- * CANARY corpus: three product-path cases that run FIRST. They prove, before any corpus case, that the pipeline can produce an eligible and a delivered worker, a worker refused for a
- * named hard blocker, a scheduled task the fit worker's covering availability admits, and a worker beyond the radius (the city table's coordinates reach the matcher). Any disagreement
- * is a HARNESS_ERROR (a fixture or chain defect), never a finding. Nothing here is a contract expectation.
+ * CANARY corpus: seven product-path cases that run FIRST. They prove, before any corpus case, that the pipeline can produce an eligible and a delivered worker, a worker refused for a
+ * named hard blocker, a scheduled task the fit worker's covering availability admits, a worker beyond the radius (the city table's coordinates reach the matcher), EVERY geography shape the
+ * S02 corpus uses (STATIONARY above, REMOTE, POINT_TO_POINT, MULTI_STOP: a fixture defect in a location value, a waypoint pin or the end slot is a canary failure and not a quiet
+ * PRODUCT_PATH_REFUSED finding of a corpus case), and the world gate (a REAL requester's task reaches a REAL worker and not a TEST-world worker, which match_detail still calls eligible).
+ * Any disagreement is a HARNESS_ERROR (a fixture or chain defect), never a finding. Nothing here is a contract expectation.
  */
 export const CANARY_CORPUS = Object.freeze({
-  schema: 'EX06_HARNESS_CANARY', version: 'canary-1', synthetic: true,
+  schema: 'EX06_HARNESS_CANARY', version: 'canary-2', synthetic: true,
   cases: [
     {id: 'canary-fit-unfit', family: 'canary',
       expectedFacts: {...common, 'need.title': 'Kanarinac: prenos stvari', 'need.description': 'Sintetički kanarinac harnessa: prenos jedne kutije, potrebna su kolica.',
@@ -342,5 +352,25 @@ export const CANARY_CORPUS = Object.freeze({
       expectedEligibility: {fit: fitExpectation},
       referenceWorkers: {far: {profileFrom: 'fit', profile: {location: {city: 'Niš'}},
         expect: {hardBlockers: [], responseAllowed: true, dispatchEligible: false, dispatchBlockers: ['OUTSIDE_PREFERRED_RADIUS'], delivery: false, event: false}}}},
+    {id: 'canary-remote', family: 'canary',
+      expectedFacts: {...common, 'need.schedule_kind': 'REMOTE_ANYTIME', 'need.task_geography': {mode: 'REMOTE'}, 'need.title': 'Kanarinac: posao na daljinu',
+        'need.description': 'Sintetički kanarinac harnessa: posao na daljinu, potreban je računar.', 'need.category': 'Prepisivanje dokumenta', 'need.required_skills': ['prepisivanje teksta'],
+        'need.required_tools': ['racunar']},
+      expectedEligibility: {fit: fitExpectation, unfit: blockedByResource('MISSING_REQUIRED_TOOL')}},
+    {id: 'canary-point-to-point', family: 'canary',
+      expectedFacts: {...common, 'need.task_geography': {mode: 'POINT_TO_POINT', start: {label: 'Liman', city: 'Novi Sad'}, end: {label: 'Detelinara', city: 'Novi Sad'}}, 'need.title': 'Kanarinac: prevoz od tačke do tačke',
+        'need.description': 'Sintetički kanarinac harnessa: prevoz iz jednog dela grada u drugi, potrebna su kolica.', 'need.category': 'Fizicki poslovi', 'need.required_skills': ['fizicki poslovi'],
+        'need.required_tools': ['kolica za prenos']},
+      expectedEligibility: {fit: fitExpectation, unfit: blockedByResource('MISSING_REQUIRED_TOOL')}},
+    {id: 'canary-multi-stop', family: 'canary',
+      expectedFacts: {...common, 'need.task_geography': {mode: 'MULTI_STOP', start: {label: 'Liman', city: 'Novi Sad'}, waypoints: [{label: 'Grbavica', city: 'Novi Sad'}], end: {label: 'Podbara', city: 'Novi Sad'}},
+        'need.title': 'Kanarinac: prevoz sa usputnom stanicom', 'need.description': 'Sintetički kanarinac harnessa: prevoz sa jednom usputnom stanicom, potrebna su kolica.',
+        'need.category': 'Fizicki poslovi', 'need.required_skills': ['fizicki poslovi'], 'need.required_tools': ['kolica za prenos']},
+      expectedEligibility: {fit: fitExpectation, unfit: blockedByResource('MISSING_REQUIRED_TOOL')}},
+    {id: 'canary-world', family: 'canary',
+      expectedFacts: {...common, 'need.title': 'Kanarinac: svet radnika', 'need.description': 'Sintetički kanarinac harnessa: ista prilika za radnika iz istog i iz drugog sveta, potrebna su kolica.',
+        'need.category': 'Fizicki poslovi', 'need.required_skills': ['fizicki poslovi'], 'need.required_tools': ['kolica za prenos']},
+      expectedEligibility: {fit: fitExpectation, unfit: blockedByResource('MISSING_REQUIRED_TOOL')},
+      referenceWorkers: {'test-world': {profileFrom: 'fit', profile: {world: 'TEST'}, expect: worldNotDelivered}}},
   ],
 });

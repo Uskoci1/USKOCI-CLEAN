@@ -6,6 +6,7 @@
 // the fixtures send that the simulation does not know throws SIM_UNHANDLED_SQL, so a new statement cannot slip through unnoticed. Quirks switch single behaviours (a differing pin, a moved
 // certificate, a matcher that ignores tools, a publish that is refused) so the tests can break the pipeline on purpose.
 import {randomUUID} from 'node:crypto';
+import {TEST_LINEAGES} from './fixtures.mjs';
 import {DEPENDENCY_FUNCTIONS, EXTRA_PINS, PINS} from './pins.mjs';
 import {haversineKm} from './geo.mjs';
 import {parseIso, zonedParts} from './timeutil.mjs';
@@ -31,14 +32,59 @@ export function workKinds(values) {
 
 const round2 = value => Math.round(value * 100) / 100;
 
+// ------------------------------------------------------------------ a tiny reader of the direct INSERT the fixtures send (the guard of private.guard_need_write is modelled on it)
+/** Splits a SQL list at its top-level commas (quotes, parentheses, brackets and braces nest). */
+function splitTop(text) {
+  const out = [];
+  let depth = 0, quoted = false, current = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) {
+      current += ch;
+      if (ch === "'") { if (text[i + 1] === "'") { current += "'"; i += 1; } else quoted = false; }
+      continue;
+    }
+    if (ch === "'") { quoted = true; current += ch; continue; }
+    if ('([{'.includes(ch)) depth += 1;
+    if (')]}'.includes(ch)) depth -= 1;
+    if (ch === ',' && depth === 0) { out.push(current.trim()); current = ''; continue; }
+    current += ch;
+  }
+  if (current.trim() !== '') out.push(current.trim());
+  return out;
+}
+/** The text between the parenthesis that opens at `from` and its match (quotes respected): {inner, end}. */
+function readParen(text, from) {
+  let depth = 0, quoted = false;
+  for (let i = from; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quoted) { if (ch === "'") { if (text[i + 1] === "'") i += 1; else quoted = false; } continue; }
+    if (ch === "'") { quoted = true; continue; }
+    if (ch === '(') depth += 1;
+    if (ch === ')') { depth -= 1; if (depth === 0) return {inner: text.slice(from + 1, i), end: i}; }
+  }
+  throw new Error('SIM_UNHANDLED_SQL: unbalanced parenthesis');
+}
+function sqlValue(token) {
+  if (token === 'null') return null;
+  if (token === 'true') return true;
+  if (token === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
+  let match;
+  if ((match = /^array\[(.*)\]::text\[\]$/s.exec(token))) return match[1].trim() === '' ? [] : splitTop(match[1]).map(sqlValue);
+  if ((match = /^'((?:[^']|'')*)'(?:::\w+)?$/s.exec(token))) return match[1].replaceAll("''", "'");
+  return {expression: token};
+}
+
 export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs = Date.UTC(2026, 9, 1, 12, 0, 0)} = {}) {
   const state = {accounts: new Map(), profiles: new Map(), needs: new Map(), conversations: new Map(), reviews: new Map(), deliveries: [], rounds: [], schedule: new Map(), events: [],
-    sqlSeen: [], rpcSeen: [], tick: 0, quirks};
+    geography: new Map(), directInserts: [], terminated: [], actorCalls: 0, sqlSeen: [], rpcSeen: [], tick: 0, quirks};
   const now = () => startMs + state.tick * 1000;
+  const worldOf = accountId => (TEST_LINEAGES.includes(state.accounts.get(accountId)?.lineage) ? 'TEST' : 'REAL');
 
   function newAccount(label) {
     const id = randomUUID(), requester = randomUUID(), worker = randomUUID();
-    state.accounts.set(id, {id, label, lineage: 'UNCLASSIFIED'});
+    state.accounts.set(id, {id, label, lineage: 'UNCLASSIFIED', revision: 0});
     const base = {account_id: id, display_name: '', city: '', skills: [], tools: [], vehicles: [], licenses: [], exclusions: [], radius_km: 15, team_capacity: 1, years_experience: 0,
       minimum_fee_rsd: 0, available_now: false, pref: null, rules: [], windows: []};
     state.profiles.set(requester, {...base, id: requester, kind: 'REQUESTER', profile_status: 'ACTIVE'});
@@ -97,6 +143,12 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
     if (!radiusOk) soft.push('OUTSIDE_PREFERRED_RADIUS');
     if (svc) reasons.push('SERVICE_MATCH');
     if (sched) reasons.push('SCHEDULE_MATCH');
+    // quirk everyoneEligibleFromNeed: N: an "everyone eligible" stub once N tasks exist (so the canary, which runs first on the first N-1 tasks, passes): only a DRAFT / restricted profile is
+    // refused, every other gate is dropped. The corpus run must NOT survive it.
+    if (state.quirks.everyoneEligibleFromNeed && state.needs.size >= state.quirks.everyoneEligibleFromNeed) {
+      hard.splice(0, hard.length, ...hard.filter(code => code === 'ACCOUNT_OR_PROFILE_RESTRICTED'));
+      soft.length = 0;
+    }
     const score = (svc ? 30 : 0) + (sched ? 25 : 0) + (radiusOk ? 15 : 0) + 10;
     return {workerAccountId: profile.account_id, workerProfileId: profile.id, responseAllowed: hard.length === 0, dispatchEligible: hard.length === 0 && soft.length === 0, hardBlockers: hard,
       dispatchBlockers: soft, reasonCodes: reasons, distanceToStartKm: dist, effectiveRadiusKm: radius, taskLocationMode: need.execution_location_mode, distanceSource: dist === null ? null : 'GEODESIC',
@@ -112,7 +164,8 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
     const round = {id: randomUUID(), need_id: needId, round_no: rounds.length + 1, need_revision: 1, urgency: 'NORMAL', batch_size: batch, target_responses: 3, candidate_limit_used: 40, budget_source: 'SIM',
       status: 'SENT', stop_reason: null, deadline_at: new Date(now() + 3600000).toISOString()};
     state.rounds.push(round);
-    const candidates = [...state.profiles.values()].filter(item => item.kind === 'WORKER' && item.profile_status === 'ACTIVE')
+    // private.dispatch_cheap_candidate_admitted (PKG-015b) holds the same-world gate: nobody is offered work from the other world. match_detail does not read the world.
+    const candidates = [...state.profiles.values()].filter(item => item.kind === 'WORKER' && item.profile_status === 'ACTIVE' && (state.quirks.noWorldGate || worldOf(item.account_id) === worldOf(need.requester_account_id)))
       .map(item => matchDetail(needId, item.id)).filter(item => item.dispatchEligible).sort((a, b) => b.score - a.score || a.workerProfileId.localeCompare(b.workerProfileId));
     let inserted = 0;
     for (const match of candidates) {
@@ -136,6 +189,7 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
   function rpc(accountId, name, args) {
     state.rpcSeen.push({accountId, name});
     const own = kind => profileOf(accountId, kind);
+    if (state.quirks.timeoutAt === name) return fail('20', 'TimeoutError: The operation was aborted due to timeout');
     switch (name) {
       case 'rpc_get_worker_location': return succeed({revision: REV});
       case 'rpc_save_worker_location': {
@@ -162,7 +216,7 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
           if (Object.keys(window).sort().join(',') !== 'endsAt,id,label,startsAt,state') return fail('22023', 'AVAILABILITY_ITEM_INVALID window keys');
           parseIso(window.startsAt); parseIso(window.endsAt);
         }
-        p.available_now = v.availableNow; p.rules = v.rules.map(item => ({...item})); p.windows = v.windows.map(item => ({...item}));
+        p.available_now = v.availableNow; p.rules = v.rules.map(item => ({...item, ...(state.quirks.mangleRules ? {startTime: '00:00:00'} : {})})); p.windows = v.windows.map(item => ({...item}));
         if (p.pref === null) p.pref = {lat: null, lng: null, proactive: true, sameDay: true, timezone: v.timezone};
         return succeed({saved: true});
       }
@@ -174,7 +228,18 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
         p.profile_status = 'ACTIVE';
         return succeed({profileStatus: 'ACTIVE'});
       }
-      case 'rpc_admit_account_lineage_service': state.accounts.get(args.p_account_id).lineage = args.p_lineage; return succeed({changed: true});
+      case 'rpc_read_account_lineage_service': {
+        const account = state.accounts.get(args.p_account_id);
+        return succeed({accountId: account.id, lineage: account.lineage, revision: account.revision, nonProduction: TEST_LINEAGES.includes(account.lineage), authoritative: true});
+      }
+      case 'rpc_admit_account_lineage_service': {
+        // the revision is checked BEFORE the identical restatement is recognised (pkg015_dev_data_lineage.sql): a stale revision is 40001, which PostgREST 14 re-executes without end on a chain without B24 part 1
+        const account = state.accounts.get(args.p_account_id);
+        if (account.revision !== args.p_expected_revision) return fail('40001', 'ACCOUNT_LINEAGE_REVISION_CONFLICT');
+        account.lineage = args.p_lineage;
+        account.revision += 1;
+        return succeed({changed: true, revision: account.revision});
+      }
       case 'rpc_ai_open_need_conversation_v2': { const id = randomUUID(); state.conversations.set(id, {accountId, proposals: []}); return succeed(id); }
       case 'rpc_ai_claim_need_turn_v2_service': return succeed({claim: {attemptId: randomUUID()}});
       case 'rpc_ai_dispatch_need_turn_v2_service': return succeed(true);
@@ -188,7 +253,7 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
         const conv = state.conversations.get(args.p_conversation_id), facts = Object.fromEntries(conv.proposals.map(item => [item.key, item.value]));
         const canAccept = ['need.title', 'need.description', 'need.category', 'need.price_mode', 'need.schedule_kind', 'need.people_needed'].every(key => key in facts);
         const reviewId = randomUUID();
-        state.reviews.set(reviewId, {conversationId: args.p_conversation_id, accountId, location: args.p_location.value, facts});
+        state.reviews.set(reviewId, {conversationId: args.p_conversation_id, accountId, location: args.p_location.value, facts, responseDeadline: args.p_response_deadline ?? null});
         return succeed({canAccept, reviewId, displayedContentDigest: 'digest'});
       }
       case 'rpc_accept_ai_task_review': {
@@ -201,7 +266,8 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
           minimum_experience_years: f['need.minimum_experience_years'] ?? 0, verified_identity_required: false, required_slots: f['need.people_needed'], schedule_kind: f['need.schedule_kind'],
           starts_at: f['need.starts_at'] ?? null, ends_at: f['need.ends_at'] ?? null, execution_location_mode: geography.mode, approximate_city: geography.mode === 'REMOTE' ? '' : (geography.start?.city ?? geography.serviceArea?.city ?? ''),
           approximate_lat: first ? round2(first.latitudeE6 / 1e6) : null, approximate_lng: first ? round2(first.longitudeE6 / 1e6) : null, mode: f['need.price_mode'],
-          requester_price_rsd: f['need.price_mode'] === 'MY_PRICE' ? f['need.price_rsd'] ?? null : null, revision: 1, response_deadline: new Date(now() + 2 * 86400000).toISOString(), urgent: false, published_at: null});
+          requester_price_rsd: f['need.price_mode'] === 'MY_PRICE' ? f['need.price_rsd'] ?? null : null, revision: 1, response_deadline: review.responseDeadline ?? new Date(now() + 2 * 86400000).toISOString(),
+          urgent: Boolean(state.quirks.urgentNeed), published_at: null});
         review.needId = id;
         return succeed({needId: id, needRevision: 1, reviewId: args.p_review_id, clientRequestId: args.p_client_request_id});
       }
@@ -211,6 +277,11 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
       case 'rpc_publish_accepted_ai_task_review': {
         if (state.quirks.refusePublish) return fail('P0001', 'PUBLICATION_REFUSED_BY_THE_SIMULATION');
         const need = state.needs.get(state.reviews.get(args.p_review_id).needId);
+        // quirk refuseCorpusPublishEvery: N: every Nth publish of a task that is not a canary is refused (the canary passes, the corpus is refused in part)
+        if (state.quirks.refuseCorpusPublishEvery && !need.title.startsWith('Kanarinac')) {
+          state.corpusPublishes = (state.corpusPublishes ?? 0) + 1;
+          if (state.corpusPublishes % state.quirks.refuseCorpusPublishEvery === 0) return fail('P0001', 'PUBLICATION_REFUSED_BY_THE_SIMULATION_FOR_A_CORPUS_CASE');
+        }
         need.status = 'PUBLISHED'; need.published_at = new Date(now()).toISOString();
         state.schedule.set(need.id, {next_run_at: need.published_at, locked_until: null, attempts: 0, last_status: null, last_reason: null});
         return succeed({state: 'PUBLISHED'});
@@ -299,6 +370,40 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
     if (/^(begin|commit|set local session_replication_role = replica)$/.test(statement)) return true;
     return false;
   }
+  /**
+   * The direct INSERT of public.needs the fixtures send (directPath): the guard of private.guard_need_write (a task_country_code or task_timezone needs uskoci.need_region =
+   * 'CONFIRMED_REVIEW'; a PUBLISHED row needs uskoci.need_lifecycle = 'PUBLISH'), the need_geography row, and the task row for the columns the matcher oracle reads.
+   */
+  function directInsert(flat) {
+    const open = flat.indexOf('insert into public.needs(');
+    const columns = readParen(flat, open + 'insert into public.needs'.length);
+    const valuesAt = flat.indexOf('values (', columns.end);
+    const values = readParen(flat, valuesAt + 'values '.length);
+    const names = splitTop(columns.inner), tokens = splitTop(values.inner);
+    if (names.length !== tokens.length) throw new Error(`SIM_UNHANDLED_SQL: the direct insert has ${names.length} columns and ${tokens.length} values`);
+    const row = Object.fromEntries(names.map((name, index) => [name, sqlValue(tokens[index])]));
+    const before = flat.slice(0, open);
+    const lifecycle = /set_config\('uskoci\.need_lifecycle', 'PUBLISH', true\)/.test(before);
+    const region = /set_config\('uskoci\.need_region', 'CONFIRMED_REVIEW', true\)/.test(before);
+    if ((row.task_country_code !== null && row.task_country_code !== undefined) || (row.task_timezone !== null && row.task_timezone !== undefined)) {
+      if (!region) throw new Error('NEED_COUNTRY_REQUIRES_CONFIRMED_REVIEW');
+    }
+    if (row.status === 'PUBLISHED' && !lifecycle) throw new Error('NEED_MUST_START_AS_DRAFT');
+    const geography = /insert into public\.need_geography\(need_id, public_topology\) values \('([0-9a-f-]{36})'::uuid, '((?:[^']|'')*)'::jsonb\)/.exec(flat.slice(values.end));
+    const id = row.id;
+    state.needs.set(id, {id, requester_account_id: row.requester_account_id, requester_profile_id: row.requester_profile_id, status: row.status, title: row.title, description: row.description,
+      category: row.category, required_skills: row.required_skills, required_tools: row.required_tools, required_vehicles: row.required_vehicles, required_licenses: row.required_licenses,
+      minimum_experience_years: row.minimum_experience_years, verified_identity_required: row.verified_identity_required, required_slots: row.required_slots, schedule_kind: row.schedule_kind,
+      starts_at: row.starts_at, ends_at: row.ends_at, execution_location_mode: row.execution_location_mode, approximate_city: row.approximate_city, approximate_lat: row.approximate_lat,
+      approximate_lng: row.approximate_lng, mode: row.mode, requester_price_rsd: row.requester_price_rsd, revision: 1,
+      response_deadline: typeof row.response_deadline === 'string' ? row.response_deadline : new Date(now() + 2 * 86400000).toISOString(), urgent: false, published_at: new Date(now()).toISOString()});
+    state.schedule.set(id, {next_run_at: new Date(now()).toISOString(), locked_until: null, attempts: 0, last_status: null, last_reason: null});
+    const topology = geography ? JSON.parse(geography[2].replaceAll("''", "'")) : null;
+    if (topology) state.geography.set(id, topology);
+    state.directInserts.push({id, lifecycle, region, geography: topology, columns: names});
+    return '';
+  }
+
   function handleSql(text) {
     state.sqlSeen.push(text);
     const flat = text.replace(/\s+/g, ' ').trim();
@@ -328,6 +433,8 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
       return [{profile_status: p.profile_status, available_now: p.available_now, skills: p.skills, tools: p.tools, vehicles: p.vehicles, licenses: p.licenses, exclusions: p.exclusions, radius_km: p.radius_km, city: p.city,
         team_capacity: p.team_capacity, years_experience: p.years_experience, minimum_fee_rsd: p.minimum_fee_rsd, lat: p.pref?.lat ?? null, lng: p.pref?.lng ?? null,
         proactive_notifications: p.pref?.proactive ?? true, same_day_urgent_notifications: p.pref?.sameDay ?? true, timezone: p.pref?.timezone ?? null, rules: p.rules.filter(r => r.active).length, windows: p.windows.length,
+        rule_docs: p.rules.map(r => ({id: r.id, weekdays: r.weekdays, startTime: r.startTime, endTime: r.endTime, startsOn: r.startsOn, endsOn: r.endsOn ?? null, active: r.active})),
+        window_docs: p.windows.map(w => ({id: w.id, startMs: Date.parse(w.startsAt), endMs: Date.parse(w.endsAt), state: w.state})),
         lineage: state.accounts.get(p.account_id).lineage}];
     }
     if (/^select status, category, required_skills/.test(flat) && (match = /from public\.needs where id = '([0-9a-f-]{36})'::uuid$/.exec(flat))) {
@@ -359,6 +466,17 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
       return [...state.profiles.values()].filter(p => p.kind === 'WORKER' && p.profile_status === 'ACTIVE' && !ownIds.has(p.id)).length;
     }
     if (/^select count\(\*\) from private\.dispatch_schedule/.test(flat)) return state.schedule.size;
+    if (/from pg_stat_activity/.test(flat)) {
+      // the active backends after an aborted call (quirk stuckBackends: [{pid, usename, state, age_s, query}]); pg_terminate_backend answers for the ones that are old enough
+      const stuck = state.quirks.stuckBackends ?? [];
+      if (/pg_terminate_backend/.test(flat)) {
+        const old = stuck.filter(item => Number(item.age_s) >= 25);
+        state.terminated.push(...old.map(item => item.pid));
+        return old.map(item => ({pid: item.pid, terminated: true}));
+      }
+      return stuck.map(item => ({wait_event_type: null, wait_event: null, ...item}));
+    }
+    if (/insert into public\.needs\(/.test(flat)) return directInsert(flat);
     // one or more write statements
     const parts = flat.split(/;\s*/).map(item => item.trim()).filter(Boolean);
     if (parts.length && parts.every(applyStatement)) return '';
@@ -374,6 +492,9 @@ export function createSimulatedBackend({foreignWorkers = 2, quirks = {}, startMs
     rows: text => { const value = handleSql(text); return Array.isArray(value) ? value : []; },
     service,
     actor: async label => {
+      state.actorCalls += 1;
+      // quirk rateLimitedFirst: the first N Auth calls are refused with GoTrue's rate limit (HTTP 429 over_request_rate_limit), as the local stack does when many accounts sign in at once
+      if (state.quirks.rateLimitedFirst && state.actorCalls <= state.quirks.rateLimitedFirst) throw Object.assign(new Error('Request rate limit reached'), {status: 429, code: 'over_request_rate_limit'});
       const account = newAccount(label);
       return {id: account.id, client: makeClient(account.id)};
     },

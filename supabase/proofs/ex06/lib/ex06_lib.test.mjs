@@ -1,4 +1,4 @@
-// Offline tests of the EX-06 S03/S04 harness helpers (no database, no network, no dependency): `node --test supabase/proofs/ex06/lib/`.
+// Offline tests of the EX-06 S03/S04 harness helpers (no database, no network, no dependency): `node --test supabase/proofs/ex06/lib/*.test.mjs`.
 // They check the harness, not the chain: the pins against the S01 document (each pin against ITS OWN row), the gate logic, the expectation comparison (including that every negative control
 // reports a mismatch and that a negative without a named cause is refused), the corpus validation (nested profile keys included), the city table and the time helpers, and the call sequence
 // of the fixture builders against a recording fake of the proof adapter (abort signals, read-back, the world option, activate-then-clear, the S04 helpers).
@@ -6,13 +6,15 @@ process.env.EX06_QUIET = '1';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {DEPENDENCY_FUNCTIONS, EXTENSION_PINS, EXTRA_PINS, PINS, PROOF_POINT_PINS, bodyMd5Map, bodyQuery, catalogLines, catalogQuery, configQuery, dependencyBodies, dependencyQuery, diffCatalog,
-  evaluatePins, evidenceLabel, pinGate, pinQuery, pinRowsOf, s01TableRows} from './pins.mjs';
-import {NEGATIVE_CONTROLS, annotationsFor, classifyFields, compareExpectation, comparisonRows, failedNegativeControls, gatesOf, renderMarkdown, resultLine, sortedSet, validateExpectation} from './compare.mjs';
+  evaluatePins, evidenceLabel, pinGate, pinQuery, pinRowsOf, s01TableRows, sectionLabel} from './pins.mjs';
+import {NEGATIVE_CONTROLS, NOT_DELIVERED_CAUSES, annotationsFor, classifyFields, compareExpectation, comparisonRows, failedNegativeControls, gatesOf, namesCause, renderMarkdown, resultLine, scopeOf,
+  scopeSentence, sortedSet, validateExpectation} from './compare.mjs';
 import {CANARY_CORPUS, CONTROL_RESTRICTED, SMOKE_CORPUS, capFromEnv, chooseCorpusPath, checkWorkerProfile, containsPersonalDataPattern, deriveReferenceWorkers, factsAtTime, hasBypassFacts,
   normaliseCorpus, referenceWorkerPlan, resolveRelativeTime, unreachableReason} from './corpus.mjs';
-import {CITY_CENTRES, cityCentre, haversineKm, pinFor, primaryCity} from './geo.mjs';
-import {availabilityFor, computeRebase, coverageFor, materialiseTimes, parseIso, rebaseIso, utcOffsetMinutes, zonedParts} from './timeutil.mjs';
-import {createFixtures, diffNeedReadBack, diffWorkerReadBack, locationValueFor, proposalsFor, slotCity, slotsForGeography} from './fixtures.mjs';
+import {CITY_CENTRES, anchorCity, cityCentre, haversineKm, pinFor, primaryCity} from './geo.mjs';
+import {availabilityFor, computeRebase, coverageFor, materialiseTimes, parseIso, rebaseIso, shapeWantsCoverage, utcOffsetMinutes, zonedParts} from './timeutil.mjs';
+import {ABORT_PATTERN, AUTH_RETRY_DEFAULTS, createFixtures, diffAvailabilityContent, diffNeedReadBack, diffWorkerReadBack, isInfrastructureFailure, isRateLimit, locationValueFor, proposalsFor, slotCity,
+  slotsForGeography} from './fixtures.mjs';
 import {STAND_IN_REGISTRY as REGISTRY, S01_PATH, fakeRuntime, readText} from './test_support.mjs';
 
 const S01 = readText(S01_PATH);
@@ -85,7 +87,9 @@ test('evaluatePins: equal, different (with the explanation of a known predecesso
   const clean = evaluatePins(rowsFor(PINS));
   assert.deepEqual(Object.keys(clean), ['equal', 'different', 'missing']);
   assert.equal(clean.equal.length, 12);
-  assert.equal(evidenceLabel(clean, 12), 'MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (12 pins; helper functions, config rows and triggers not pinned)');
+  assert.equal(evidenceLabel(clean, 12), 'MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (12 pins, all read in ONE chain state; helper functions, config rows and triggers not pinned)',
+    'the one-gate 12-pin label says the twelve were read in one state, which this harness never does');
+  assert.ok(!/== DEV \(12 pins;/.test(evidenceLabel(clean, 12)), 'never a bare "== DEV (12 pins)"');
   const proof = evaluatePins(rowsFor(PROOF_POINT_PINS), PROOF_POINT_PINS);
   assert.equal(evidenceLabel(proof, 11), 'MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (11 of 12 pins read at the proof point, all equal; the others are read after the extension; helper functions, config rows and triggers not pinned)');
 
@@ -99,6 +103,36 @@ test('evaluatePins: equal, different (with the explanation of a known predecesso
   assert.equal(byName['private.emit_event'].explanation, null);
   assert.match(byName['private.match_detail'].actual, /^AMBIGUOUS_OVERLOADS:2/);
   assert.equal(evidenceLabel(result, 12), 'MATCH/DISPATCH/EVENT FUNCTION BODIES != DEV (4 of 12 pins differ or are missing; helper functions, config rows and triggers not pinned)');
+});
+
+test('sectionLabel: the second section joins two chain states and says so (11 pins equal at the proof point + the 12th after the extension), never a bare 12-pin claim; a difference names where it was read', () => {
+  const proofRows = rowsFor(PROOF_POINT_PINS), extensionRows = rowsFor(EXTENSION_PINS);
+  const proof = evaluatePins(proofRows, PROOF_POINT_PINS), extension = evaluatePins(extensionRows, EXTENSION_PINS);
+  assert.equal(sectionLabel(proof, extension), 'MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (11 pins equal at the proof point (chain without the extension) + the 12th equal after the extension (different chain state); helper functions, config rows and triggers not pinned)');
+  const wave = PROOF_POINT_PINS.find(pin => pin.name === 'private.dispatch_next_wave');
+  const differing = evaluatePins(rowsFor(PROOF_POINT_PINS, {'private.dispatch_next_wave': {md5: wave.predecessors[0].md5}}), PROOF_POINT_PINS);
+  assert.equal(sectionLabel(differing, extension), 'MATCH/DISPATCH/EVENT FUNCTION BODIES != DEV (1 of 12 pins differ or are missing: 1 of 11 at the proof point (chain without the extension), 0 of 1 after the extension (different chain state); helper functions, config rows and triggers not pinned)');
+  const begin = EXTENSION_PINS[0];
+  const moved = evaluatePins(rowsFor(EXTENSION_PINS, {'public.rpc_begin_push_send': {md5: begin.predecessors[0].md5}}), EXTENSION_PINS);
+  assert.match(sectionLabel(proof, moved), /^MATCH\/DISPATCH\/EVENT FUNCTION BODIES != DEV \(1 of 12 pins differ or are missing: 0 of 11 at the proof point.*1 of 1 after the extension/);
+});
+
+test('the A1 predecessor label cites the right ledger position (203, not B3c\'s 209), and a difference with no machine-checked explanation falls back to what the pin records about itself', () => {
+  const begin = PINS.find(pin => pin.name === 'public.rpc_begin_push_send');
+  assert.ok(begin.predecessors.some(item => item.label === 'A1 body (DEV ledger 203), the P4 push transport pre-image'));
+  assert.ok(!JSON.stringify(PINS).includes('DEV ledger 209'));
+  // the informational certificate pin that differs BY DESIGN (voice B1) read DIFFERENT with an empty explanation: now it says why
+  const digest = EXTRA_PINS.find(pin => pin.name === 'private.closure_source_digest_v5');
+  const gate = evaluatePins(rowsFor(EXTRA_PINS, {'private.closure_source_digest_v5': {md5: '0'.repeat(32)}}), EXTRA_PINS);
+  assert.equal(gate.different[0].explanation, null, 'no predecessor, no derivation: the gate has nothing to say');
+  const row = pinRowsOf(gate, EXTRA_PINS).find(item => item.name === digest.name);
+  assert.equal(row.verdict, 'DIFFERENT');
+  assert.match(row.explanation, /^pin evidence: S01 section 2 \(new pin; changed by voice B1, ledger 215\): differs by design/);
+  // a known predecessor keeps its own explanation, an equal pin has none
+  const wave = PINS.find(pin => pin.name === 'private.dispatch_next_wave');
+  const known = pinRowsOf(evaluatePins(rowsFor([wave], {'private.dispatch_next_wave': {md5: wave.predecessors[0].md5}}), [wave]), [wave])[0];
+  assert.match(known.explanation, /^KNOWN_PREDECESSOR/);
+  assert.equal(pinRowsOf(evaluatePins(rowsFor([wave]), [wave]), [wave])[0].explanation, '');
 });
 
 test('evaluatePins: a difference that is only B24 part 1 is recognised by the derivation, and is still a difference', () => {
@@ -191,14 +225,53 @@ test('resultLine prints the corpus, the cases ran/total, what was asserted, prod
     assertions: {matcher: 300, positive: 120, negative: 180, distinct: 150, derived: {positive: 40, negative: 60}, preconditions: 200}, paths: {product: 37, direct: 0}, findings: [{}, {}], harnessErrors: [],
     degradedCases: [{}], warnings: []};
   const line = resultLine(report);
-  for (const part of ['RESULT PARTIAL', 'corpus=CORPUS', 'cases ran 37/66', 'skipped 29', 'asserted 300', 'distinct 150', 'derived 100', 'product 37 / direct 0', 'unconsumed 80', 'findings 2', 'LABEL']) assert.ok(line.includes(part), part);
+  for (const part of ['RESULT PARTIAL', 'scope: PARTIAL on 0 of 66 cases, 0 refused, 29 skipped, 0 of 0 leaves compared', 'corpus=CORPUS', 'cases ran 37/66', 'skipped 29', 'asserted 300', 'distinct 150', 'derived 100',
+    'product 37 / direct 0', 'unconsumed 80', 'findings 2', 'LABEL']) assert.ok(line.includes(part), part);
   const notes = annotationsFor(report);
   assert.ok(notes.some(text => text.startsWith('::error::') && text.includes('PARTIAL')));
   assert.ok(notes.some(text => text.startsWith('::warning::') && text.includes('2 finding')));
   assert.ok(notes.some(text => text.includes('80 corpus expectation')));
   assert.ok(annotationsFor({...report, result: 'SMOKE_ONLY'}).some(text => text.startsWith('::error::') && text.includes('SMOKE')));
   assert.ok(annotationsFor({...report, result: 'HARNESS_BROKEN'}).some(text => text.startsWith('::error::')));
-  assert.deepEqual(annotationsFor({...report, result: 'PASS', findings: [], corpus: {...report.corpus, unconsumed: {total: 0}}}), []);
+  // a result with nothing out of scope has no annotation; one that skipped cases carries a scope notice (never a quiet PASS)
+  assert.deepEqual(annotationsFor({...report, result: 'PASS', findings: [], corpus: {...report.corpus, skipped: [], unconsumed: {total: 0}}}), []);
+  assert.deepEqual(annotationsFor({...report, result: 'PASS', findings: [], corpus: {...report.corpus, unconsumed: {total: 0}}}), ['::notice::EX-06 S03 scope: PASS on 0 of 66 cases, 0 refused, 29 skipped, 0 of 0 leaves compared']);
+});
+
+test('scopeOf derives what was compared from the case entries: compared, refused, errored, unasserted, positive-only, SHAPE_DEGRADED and the leaves compared at run time; refused findings are not matcher disagreements', () => {
+  const report = {result: 'PARTIAL', evidenceLabel: 'L', corpus: {label: 'CORPUS', totalCases: 66, buildable: 37, ran: 8, skipped: new Array(29).fill({}), leaves: {present: 897}, leavesComparedAtRun: 40, unconsumed: {total: 0}, capped: false},
+    cases: [{status: 'PASS'}, {status: 'POSITIVE_ONLY', positiveOnly: true}, {status: 'SHAPE_DEGRADED', shapeDegraded: true}, {status: 'FINDING', shapeDegraded: true}, {status: 'PRODUCT_PATH_REFUSED'},
+      {status: 'HARNESS_ERROR'}, {status: 'UNASSERTED'}, {status: 'PASS'}],
+    assertions: {matcher: 1, positive: 1, negative: 0, distinct: 1, derived: {positive: 0, negative: 0}, preconditions: 0}, paths: {product: 8, direct: 0}, harnessErrors: [], degradedCases: [],
+    findings: [{kind: 'PRODUCT_PATH_REFUSED_READY_CASE'}, {kind: 'SHAPE_DEGRADED_WORKER'}, {}]};
+  assert.deepEqual(scopeOf(report), {totalCases: 66, buildable: 37, ran: 8, skipped: 29, compared: 5, refused: 1, errored: 1, unasserted: 1, positiveOnly: 1, shapeDegraded: 2, leavesPresent: 897, leavesCompared: 40});
+  assert.equal(scopeSentence(report), 'PARTIAL on 5 of 66 cases, 1 refused, 29 skipped, 40 of 897 leaves compared');
+  const notes = annotationsFor(report);
+  assert.ok(notes.some(text => text.startsWith('::error::') && text.includes('1 READY case(s) were REFUSED by the product path and NOT compared')));
+  assert.ok(notes.some(text => text.startsWith('::warning::') && text.includes('2 finding(s): the matcher or the chain disagrees') && text.includes('1 of them on a SHAPE_DEGRADED worker')), JSON.stringify(notes));
+  assert.ok(notes.some(text => text.includes('2 case(s) are SHAPE_DEGRADED')) && notes.some(text => text.includes('1 case(s) are POSITIVE_ONLY')));
+  assert.match(renderMarkdown({...report, findings: [], pinRows: [], digest: {}, warnings: [], bypasses: [], workers: []}), /\*\*Scope: PARTIAL on 5 of 66 cases, 1 refused, 29 skipped, 40 of 897 leaves compared\*\*/);
+});
+
+test('notDeliveredBecause names the cause of a missing delivery that is not a matcher blocker: a closed list, only with delivery:false, never compared, never a cause of a refused application', () => {
+  assert.deepEqual(NOT_DELIVERED_CAUSES, ['REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS']);
+  const world = {hardBlockers: [], dispatchBlockers: [], dispatchEligible: true, responseAllowed: true, delivery: false, event: false, notDeliveredBecause: 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS'};
+  assert.ok(validateExpectation(world));
+  assert.equal(namesCause(world), true);
+  assert.equal(namesCause({delivery: false}), false);
+  assert.equal(namesCause({hardBlockers: ['X']}), true);
+  assert.throws(() => validateExpectation({...world, notDeliveredBecause: 'BECAUSE'}), /EXPECTATION_WRONG_TYPE.*notDeliveredBecause is one of/);
+  assert.throws(() => validateExpectation({...world, delivery: true}), /needs delivery:false/);
+  assert.throws(() => validateExpectation({dispatchEligible: true, notDeliveredBecause: 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS'}), /needs delivery:false/);
+  assert.throws(() => validateExpectation({responseAllowed: false, delivery: false, notDeliveredBecause: 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS'}), /NEGATIVE_EXPECTATION_WITHOUT_CAUSE.*responseAllowed:false/, 'the world does not explain a refused application');
+  assert.throws(() => validateExpectation({dispatchEligible: false, delivery: false, notDeliveredBecause: 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS'}), /NEGATIVE_EXPECTATION_WITHOUT_CAUSE.*dispatchEligible:false/, 'nor a worker the matcher blocks');
+  const actual = {hardBlockers: [], dispatchBlockers: [], dispatchEligible: true, responseAllowed: true, reasonCodes: [], delivery: false, event: false};
+  const compared = compareExpectation(world, actual);
+  assert.ok(compared.ok);
+  assert.ok(!compared.asserted.includes('notDeliveredBecause'), 'a marker is not an asserted field');
+  assert.equal(comparisonRows(world, actual).some(row => row.field === 'notDeliveredBecause'), false);
+  assert.equal(compareExpectation(world, {...actual, delivery: true}).mismatches[0].field, 'delivery', 'the delivery itself is still compared');
+  assert.ok(!classifyFields(world).positive.includes('notDeliveredBecause') && !classifyFields(world).negative.includes('notDeliveredBecause'));
 });
 
 test('renderMarkdown renders the result, the canary, the pin table, the expected-versus-actual rows, the skipped and unconsumed sections and the findings', () => {
@@ -278,6 +351,41 @@ test('relative times resolve to ISO-8601 UTC without milliseconds, other values 
   assert.throws(() => parseIso('2026-10-10 09:00:00'), /TIMESTAMP_SHAPE_INVALID/);
 });
 
+test('rebaseIso re-expresses a Belgrade offset with the zone\'s REAL offset at the new instant (a window moved across the 2026-10-25 / 2027-03-28 DST changes keeps its instant and reads +02:00 / +01:00 as the zone does); any other offset is kept', () => {
+  const day = 86400000;
+  // winter (+01:00) moved into summer: the T-038 window of the S02 corpus (written for the day after the clock change)
+  const intoSummer = rebaseIso('2026-10-31T10:00:00+01:00', -29 * day);
+  assert.equal(intoSummer, '2026-10-02T11:00:00+02:00');
+  assert.equal(parseIso(intoSummer).ms, Date.parse('2026-10-31T10:00:00+01:00') - 29 * day, 'the instant is the original instant shifted by the delta');
+  assert.equal(parseIso(intoSummer).offsetMinutes, utcOffsetMinutes(parseIso(intoSummer).ms));
+  // summer (+02:00) moved into winter
+  const intoWinter = rebaseIso('2026-10-10T09:00:00+02:00', 60 * day);
+  assert.equal(intoWinter, '2026-12-09T08:00:00+01:00');
+  assert.equal(parseIso(intoWinter).ms, Date.parse('2026-10-10T09:00:00+02:00') + 60 * day);
+  // the other direction of the spring change
+  assert.equal(rebaseIso('2027-01-15T10:00:00+01:00', 120 * day), '2027-05-15T11:00:00+02:00');
+  // within the same regime nothing is re-expressed
+  assert.equal(rebaseIso('2026-10-10T09:00:00+02:00', -4 * day), '2026-10-06T09:00:00+02:00');
+  // an offset that is not Belgrade's at the original instant ('Z', another zone, a summer offset written in winter) is kept as written
+  assert.equal(rebaseIso('2026-10-10T09:00:00Z', 60 * day), '2026-12-09T09:00:00Z');
+  assert.equal(rebaseIso('2026-10-10T09:00:00+05:30', 60 * day), '2026-12-09T09:00:00+05:30');
+  assert.equal(rebaseIso('2026-12-10T09:00:00+02:00', -60 * day), '2026-10-11T09:00:00+02:00', 'a +02:00 written in winter was never Belgrade\'s offset there');
+  assert.equal(rebaseIso('2026-10-10T09:00:00-05:00', day), '2026-10-11T09:00:00-05:00');
+  // fractions of a second are dropped as before
+  assert.equal(rebaseIso('2026-10-10T09:00:00.500+02:00', 0), '2026-10-10T09:00:00+02:00');
+});
+
+test('shapeWantsCoverage names the shapes that promise a covering rule or window; availabilityFor reports coverage NONE for them when the task has no window', () => {
+  assert.equal(shapeWantsCoverage('AVAILABLE_NOW_AND_SCHEDULED'), true);
+  assert.equal(shapeWantsCoverage('SCHEDULED_ONLY'), true);
+  assert.equal(shapeWantsCoverage('AVAILABLE_NOW_ONLY'), false);
+  assert.equal(shapeWantsCoverage('NONE_DECLARED'), false);
+  const none = availabilityFor('AVAILABLE_NOW_AND_SCHEDULED', null);
+  assert.equal(none.coverage, 'NONE');
+  assert.equal(shapeWantsCoverage('AVAILABLE_NOW_AND_SCHEDULED') && none.coverage === 'NONE', true, 'wanted and not got: the shape was not built');
+  assert.equal(availabilityFor('AVAILABLE_NOW_ONLY', null).coverage, 'NONE');
+});
+
 test('materialiseTimes: both times or neither, ordered, in the future; the S02 window rebased; a window that has aged out is CASE_TIME_NOT_FUTURE', () => {
   const now = Date.parse('2026-10-01T12:00:00Z'), rebase = computeRebase({ciNowMs: now, corpusNowUtc: '2026-10-05T08:00:00Z'});
   const facts = {'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-06T14:00:00+02:00', 'need.ends_at': '2026-10-06T16:00:00+02:00', 'need.title': 't'};
@@ -351,9 +459,20 @@ test('the SMOKE and CANARY corpora normalise against a registry: explicit and de
   const all = corpus.cases.flatMap(item => referenceWorkerPlan(item).map(worker => worker.expect));
   assert.ok(all.some(expect => expect.hardBlockers?.length > 0) && all.some(expect => expect.dispatchBlockersInclude?.length > 0) && all.some(expect => expect.delivery === true));
   const canary = normaliseCorpus(CANARY_CORPUS, {registry: REGISTRY, label: 'CANARY'});
-  assert.deepEqual(canary.cases.map(item => item.id), ['canary-fit-unfit', 'canary-scheduled', 'canary-radius']);
+  assert.deepEqual(canary.cases.map(item => item.id), ['canary-fit-unfit', 'canary-scheduled', 'canary-radius', 'canary-remote', 'canary-point-to-point', 'canary-multi-stop', 'canary-world']);
   assert.equal(canary.cases[1].expectedFacts['need.schedule_kind'], 'FIXED_WINDOW');
   assert.equal(referenceWorkerPlan(canary.cases[2]).find(worker => worker.label === 'far').profile.location.city, 'Niš');
+  // every canary case has an eligible-worker anchor AND a negative of its own that names its cause (the control does not count)
+  for (const item of canary.cases) {
+    const plan = referenceWorkerPlan(item).filter(worker => !worker.control && worker.expect);
+    assert.ok(plan.some(worker => worker.expect.dispatchEligible === true), item.id + ' has an anchor');
+    assert.ok(plan.some(worker => classifyFields(worker.expect).negative.length > 0 && namesCause(worker.expect)), item.id + ' has a named negative');
+  }
+  const world = referenceWorkerPlan(canary.cases[6]);
+  assert.equal(world.find(worker => worker.label === 'test-world').profile.world, 'TEST');
+  assert.equal(world.find(worker => worker.label === 'test-world').expect.notDeliveredBecause, 'REQUESTER_AND_WORKER_IN_DIFFERENT_WORLDS');
+  assert.equal(world.find(worker => worker.label === 'fit').profile.world, undefined, 'the fit worker and the control stay in the requester\'s world');
+  assert.equal(world.find(worker => worker.control).profile.world, undefined);
 });
 
 test('deriveReferenceWorkers: fit declares all and is available for the task window; unfit declares a non-matching set; unknown declares nothing; a minimum experience is given to all by a labelled bypass', () => {
@@ -467,22 +586,71 @@ test('diffNeedReadBack: an applied task has no mismatch (order and case of the l
   assert.deepEqual(diffNeedReadBack(intentOf({}), needRow({approximate_city: ''})), [], 'a city the product does not store is not compared when the coordinates are there');
 });
 
+test('diffNeedReadBack asserts urgent === false unless the corpus says otherwise (urgent picks the wave sizes and the same-day gate); AREA_BASED anchors the coordinates on the service area and the city text on the start', () => {
+  assert.deepEqual(diffNeedReadBack(intentOf({}), needRow({urgent: false})), []);
+  assert.deepEqual(diffNeedReadBack(intentOf({}), needRow({urgent: null})), [], 'a NULL column is not urgent');
+  assert.deepEqual(diffNeedReadBack(intentOf({}), needRow({urgent: true})).map(item => [item.field, item.expected, item.actual]), [['urgent', false, true]]);
+  assert.deepEqual(diffNeedReadBack(intentOf({'need.urgent': true}), needRow({urgent: true})), [], 'unless the corpus says so');
+  // AREA_BASED with a service area in Niš and a start in Novi Sad: the coordinates are Niš's (the product's anchor), the city text is the start's
+  const area = {'need.task_geography': {mode: 'AREA_BASED', serviceArea: {city: 'Niš'}, start: {city: 'Novi Sad'}}};
+  assert.deepEqual(diffNeedReadBack(intentOf(area), needRow({approximate_lat: 43.32, approximate_lng: 21.9, approximate_city: 'Novi Sad', execution_location_mode: 'AREA_BASED'})), []);
+  assert.deepEqual(diffNeedReadBack(intentOf(area), needRow({approximate_lat: 45.27, approximate_lng: 19.83, approximate_city: 'Novi Sad', execution_location_mode: 'AREA_BASED'})).map(item => item.field), ['approximate_lat', 'approximate_lng'],
+    'coordinates on the start instead of the service area are a defect');
+  assert.deepEqual(diffNeedReadBack(intentOf(area), needRow({approximate_lat: 43.32, approximate_lng: 21.9, approximate_city: 'Niš', execution_location_mode: 'AREA_BASED'})).map(item => item.field), ['approximate_city']);
+  assert.equal(anchorCity(area['need.task_geography']), 'Niš');
+  assert.equal(primaryCity(area['need.task_geography']), 'Novi Sad');
+  assert.equal(anchorCity({mode: 'AREA_BASED', start: {city: 'Beograd'}}), 'Beograd', 'without a service area the start anchors');
+  assert.equal(anchorCity({mode: 'POINT_TO_POINT', start: {city: 'A'}, end: {city: 'B'}}), 'A');
+  assert.equal(anchorCity({mode: 'REMOTE'}), null);
+  // the same-city AREA_BASED task (the only shape a corpus case could have) still reads back
+  assert.deepEqual(diffNeedReadBack(intentOf({'need.task_geography': {mode: 'AREA_BASED', serviceArea: {city: 'Novi Sad'}}}), needRow({execution_location_mode: 'AREA_BASED'})), []);
+});
+
+const RULE = {id: 'r', weekdays: [6, 0], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-10-10', endsOn: null, label: 'EX-06 fixture', active: true};
+const WINDOW = {id: 'w', startsAt: '2026-10-10T20:00:00Z', endsAt: '2026-10-11T02:00:00Z', state: 'AVAILABLE', label: 'EX-06 fixture'};
 const workerSpec = patch => ({status: 'ACTIVE', radiusKm: 25, teamCapacity: 2, location: {countryCode: 'RS', city: 'Niš', position: {latitude: 43.32, longitude: 21.9}},
-  availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [{id: 'r', active: true}], windows: []}, bypass: {yearsExperience: 6, exclusions: ['x']}, world: 'REAL',
+  availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [RULE], windows: [WINDOW]}, bypass: {yearsExperience: 6, exclusions: ['x']}, world: 'REAL',
   final: {skills: ['A'], tools: [], vehicles: ['kombi'], licenses: []}, ...patch});
 const workerRow = patch => ({profile_status: 'ACTIVE', available_now: true, skills: ['a'], tools: [], vehicles: ['Kombi'], licenses: [], exclusions: ['x'], radius_km: 25, city: 'Niš', team_capacity: 2,
-  years_experience: 6, lat: 43.32, lng: 21.9, rules: 1, windows: 0, lineage: 'UNCLASSIFIED', ...patch});
+  years_experience: 6, lat: 43.32, lng: 21.9, rules: 1, windows: 1, lineage: 'UNCLASSIFIED',
+  rule_docs: [{id: 'r', weekdays: [0, 6], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-10-10', endsOn: null, active: true}],
+  window_docs: [{id: 'w', startMs: Date.parse('2026-10-10T20:00:00Z'), endMs: Date.parse('2026-10-11T02:00:00Z'), state: 'AVAILABLE'}], ...patch});
 
 test('diffWorkerReadBack: an applied worker has no mismatch; a status, list, position, availability count, bypass or world the product did not apply is named', () => {
   assert.deepEqual(diffWorkerReadBack(workerSpec(), workerRow()), []);
   for (const [patch, field] of [[{profile_status: 'DRAFT'}, 'profile_status'], [{skills: []}, 'skills'], [{vehicles: []}, 'vehicles'], [{radius_km: 15}, 'radius_km'], [{city: 'Novi Sad'}, 'city'], [{lat: 45.27}, 'approximate_lat'],
-    [{lng: null}, 'approximate_lng'], [{team_capacity: 1}, 'team_capacity'], [{available_now: false}, 'available_now'], [{rules: 0}, 'availability_rules'], [{windows: 1}, 'availability_windows'],
+    [{lng: null}, 'approximate_lng'], [{team_capacity: 1}, 'team_capacity'], [{available_now: false}, 'available_now'], [{rules: 0}, 'availability_rules'], [{windows: 2}, 'availability_windows'],
     [{years_experience: 0}, 'years_experience'], [{exclusions: []}, 'exclusions'], [{lineage: 'DEV_ACCEPTANCE_QA'}, 'world']]) {
     assert.deepEqual(diffWorkerReadBack(workerSpec(), workerRow(patch)).map(item => item.field), [field], field);
   }
   assert.deepEqual(diffWorkerReadBack(workerSpec({world: 'TEST'}), workerRow({lineage: 'SYNTHETIC_ACCEPTANCE_FIXTURE'})), []);
   assert.deepEqual(diffWorkerReadBack(workerSpec({final: {skills: [], tools: [], vehicles: ['kombi'], licenses: []}}), workerRow({skills: []})), [], 'activate-then-clear: the stored list is the cleared one');
   assert.deepEqual(diffWorkerReadBack(workerSpec({location: null, availability: null, teamCapacity: undefined, bypass: {}}), workerRow({exclusions: [], city: 'x', lat: null, lng: null})), []);
+});
+
+test('the read-back compares the CONTENT of the stored availability rules and windows, not only their count: a writer that normalised the generated rule or window is FIXTURE_NOT_APPLIED, not an OUTSIDE_AVAILABILITY finding', () => {
+  const stored = patch => workerRow({rule_docs: [{...workerRow().rule_docs[0], ...patch}]});
+  for (const [patch, label] of [[{startTime: '00:00:00'}, 'start time'], [{endTime: '11:00:00'}, 'end time'], [{weekdays: [1]}, 'weekdays'], [{startsOn: '2026-10-11'}, 'startsOn'], [{endsOn: '2027-01-01'}, 'endsOn'], [{active: false}, 'active']]) {
+    const found = diffWorkerReadBack(workerSpec(), stored(patch));
+    assert.ok(found.some(item => item.field === 'availability_rule_content'), label + ': ' + JSON.stringify(found));
+  }
+  assert.deepEqual(diffWorkerReadBack(workerSpec(), stored({weekdays: [6, 0], startTime: '09:00', endTime: '12:00'})), [], 'the stored time without seconds and any weekday order are the same rule');
+  assert.deepEqual(diffWorkerReadBack(workerSpec({availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [{...RULE, endTime: '24:00:00'}], windows: []}}),
+    workerRow({windows: 0, rule_docs: [{...workerRow().rule_docs[0], endTime: '24:00:00'}], window_docs: []})), [], 'a 24:00:00 end time that is stored as such is applied');
+  assert.ok(diffWorkerReadBack(workerSpec({availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [{...RULE, endTime: '24:00:00'}], windows: []}}),
+    workerRow({windows: 0, window_docs: []})).some(item => item.field === 'availability_rule_content'), 'a normalised "24:00:00" (here: stored as 12:00:00) is caught');
+  assert.ok(diffWorkerReadBack(workerSpec(), workerRow({rule_docs: []})).some(item => item.field === 'availability_rule_content' && item.actual === null), 'a rule that was not stored at all');
+  for (const [patch, label] of [[{startMs: Date.parse('2026-10-10T21:00:00Z')}, 'start'], [{endMs: Date.parse('2026-10-11T03:00:00Z')}, 'end'], [{state: 'UNAVAILABLE'}, 'state']]) {
+    const found = diffWorkerReadBack(workerSpec(), workerRow({window_docs: [{...workerRow().window_docs[0], ...patch}]}));
+    assert.ok(found.some(item => item.field === 'availability_window_content'), label);
+  }
+  assert.ok(diffWorkerReadBack(workerSpec(), workerRow({window_docs: []})).some(item => item.field === 'availability_window_content' && item.actual === null));
+  // the rows themselves must be there: a read-back without rule_docs / window_docs is not a read-back
+  const missing = workerRow();
+  delete missing.rule_docs;
+  assert.deepEqual(diffWorkerReadBack(workerSpec(), missing).map(item => item.field), ['availability_content']);
+  assert.deepEqual(diffAvailabilityContent({rules: [], windows: []}, {rule_docs: [], window_docs: []}), []);
+  assert.deepEqual(diffWorkerReadBack(workerSpec({availability: null}), workerRow({rule_docs: undefined, window_docs: undefined})), [], 'a worker whose availability was never written has nothing to compare');
 });
 
 // ------------------------------------------------------------------ fixtures against a recording fake of the proof adapter
@@ -553,6 +721,174 @@ test('createWorker: activate-then-clear writes the owner UPDATE of the lists aga
   const requester = await fx.createRequester({label: 'tester', world: 'TEST'});
   assert.equal(requester.world, 'TEST');
   assert.equal(log.filter(item => item.name === 'rpc_admit_account_lineage_service').length, 2);
+  const reads = log.filter(item => item.name === 'rpc_read_account_lineage_service');
+  assert.equal(reads.length, 2, 'the lineage is READ before every admission');
+  assert.ok(reads.every(item => item.signal instanceof AbortSignal));
+});
+
+test('admitTestWorld reads the lineage first: an account that is already TEST is left alone (a stale revision 0 would raise 40001), any other is admitted at its CURRENT revision, an unusable read is a harness error', async () => {
+  const {rt, flow, log, response} = fakeRuntime();
+  const fx = createFixtures(rt, {flow});
+  response.rpc_read_account_lineage_service = {lineage: 'OPERATOR', revision: 2};
+  assert.deepEqual(await fx.admitTestWorld('a1'), {lineage: 'OPERATOR', revision: 2, admitted: false});
+  assert.equal(log.filter(item => item.name === 'rpc_admit_account_lineage_service').length, 0, 'nothing is written for an account that is already in the TEST world');
+  response.rpc_read_account_lineage_service = {lineage: 'REAL_USER', revision: 3};
+  assert.deepEqual(await fx.admitTestWorld('a2'), {lineage: 'SYNTHETIC_ACCEPTANCE_FIXTURE', revision: 4, admitted: true});
+  const admit = log.find(item => item.name === 'rpc_admit_account_lineage_service');
+  assert.deepEqual([admit.args.p_account_id, admit.args.p_expected_revision], ['a2', 3], 'the revision it read, not 0');
+  for (const bad of [null, {revision: 1}, 'x']) {
+    response.rpc_read_account_lineage_service = bad;
+    await assert.rejects(() => fx.admitTestWorld('a3'), /EX06_LINEAGE_READ_UNUSABLE/);
+  }
+});
+
+test('a TEST requester that becomes a TEST worker (the owner accounts of OWN_NEED) is admitted ONCE: createWorker takes the world of the given account, and a REAL worker request on it is a read-back mismatch, not a second admission', async () => {
+  const {rt, flow, log, response} = fakeRuntime();
+  const fx = createFixtures(rt, {flow});
+  const requester = await fx.createRequester({label: 'owner', world: 'TEST'});
+  response.rpc_read_account_lineage_service = {lineage: 'SYNTHETIC_ACCEPTANCE_FIXTURE', revision: 1};   // what the chain says now
+  const worker = await fx.createWorker({label: 'owner-worker', account: requester, skills: ['a']});
+  assert.equal(worker.world, 'TEST');
+  assert.equal(worker.spec.world, 'TEST', 'the read-back expects the account\'s own world, not the default REAL');
+  assert.equal(log.filter(item => item.name === 'rpc_admit_account_lineage_service').length, 1, 'the account is admitted once, at the requester');
+  assert.deepEqual(diffWorkerReadBack(worker.spec, workerRow({lineage: 'SYNTHETIC_ACCEPTANCE_FIXTURE'})).filter(item => item.field === 'world'), []);
+  const real = await fx.createWorker({label: 'plain', skills: ['a']});
+  assert.equal(real.world, 'REAL', 'a fresh account defaults to REAL');
+  const forcedReal = await fx.createWorker({label: 'forced', account: requester, skills: ['a'], world: 'REAL'});
+  assert.equal(forcedReal.spec.world, 'REAL');
+  assert.deepEqual(diffWorkerReadBack(forcedReal.spec, workerRow({lineage: 'SYNTHETIC_ACCEPTANCE_FIXTURE'})).filter(item => item.field === 'world').map(item => [item.expected, item.actual]), [['REAL', 'TEST']]);
+  assert.equal(log.filter(item => item.name === 'rpc_admit_account_lineage_service').length, 1, 'still one admission');
+});
+
+test('the Auth adapter retries GoTrue\'s rate limit with a bounded back-off and reports it; other errors, an exhausted retry and a hung call are thrown (a hung call as a TimeoutError)', async () => {
+  const {rt, flow} = fakeRuntime();
+  const sleeps = [];
+  const pause = async ms => { sleeps.push(ms); };
+  let calls = 0;
+  const limited = {...rt, actor: async label => {
+    calls += 1;
+    if (calls <= 2) throw Object.assign(new Error('Request rate limit reached'), {status: 429, code: 'over_request_rate_limit'});
+    return rt.actor(label);
+  }};
+  const fx = createFixtures(limited, {flow, sleep: pause, authRetry: {backoffMs: 30000, maxWaitMs: 90000, maxTotalWaitMs: 300000}});
+  const requester = await fx.createRequester({label: 'r'});
+  assert.ok(requester.id);
+  assert.deepEqual(sleeps, [30000, 30000]);
+  assert.deepEqual([fx.authStats().accountsCreated, fx.authStats().retries, fx.authStats().rateLimited, fx.authStats().waitedMs, fx.authStats().failures], [1, 2, 2, 60000, 0]);
+  await fx.createWorker({label: 'w', skills: ['a']});
+  assert.equal(fx.authStats().accountsCreated, 2, 'every account of the run is counted');
+  // the limit never lifts: bounded per account (3 x 30 s fits 90 s, the fourth would not), then the error is thrown
+  sleeps.length = 0;
+  const always = {...rt, actor: async () => { throw new Error('LOCAL_RPC:429:over_request_rate_limit'); }};
+  const fx2 = createFixtures(always, {flow, sleep: pause, authRetry: {backoffMs: 30000, maxWaitMs: 90000, maxTotalWaitMs: 300000}});
+  await assert.rejects(() => fx2.createRequester(), /429/);
+  assert.deepEqual(sleeps, [30000, 30000, 30000]);
+  assert.equal(fx2.authStats().failures, 1);
+  // bounded per run: the second account may wait only what the run still has
+  sleeps.length = 0;
+  const fx3 = createFixtures(always, {flow, sleep: pause, authRetry: {backoffMs: 30000, maxWaitMs: 90000, maxTotalWaitMs: 120000}});
+  await assert.rejects(() => fx3.createRequester());
+  await assert.rejects(() => fx3.createRequester());
+  assert.equal(sleeps.length, 4, '3 waits for the first account, 1 more for the second: 120 s in all, then nothing');
+  // an error that is not a rate limit is not retried
+  sleeps.length = 0;
+  const down = {...rt, actor: async () => { throw new Error('AUTH_DOWN'); }};
+  await assert.rejects(() => createFixtures(down, {flow, sleep: pause}).createRequester(), /AUTH_DOWN/);
+  assert.deepEqual(sleeps, []);
+  // a call that never answers is a TimeoutError (a harness error at every step), not an endless wait
+  const hang = {...rt, actor: () => new Promise(() => {})};
+  const hung = createFixtures(hang, {flow, abortMs: 5, sleep: pause});
+  await assert.rejects(() => hung.createRequester({label: 'h'}), error => /TimeoutError.*aborted due to timeout/.test(error.message) && ABORT_PATTERN.test(error.message));
+  assert.deepEqual(AUTH_RETRY_DEFAULTS, {backoffMs: 30000, maxWaitMs: 360000, maxTotalWaitMs: 1200000});
+  for (const text of ['Request rate limit reached', 'LOCAL_RPC:429:x', 'over_request_rate_limit', 'over_email_send_rate_limit', 'Too Many Requests']) assert.equal(isRateLimit(new Error(text)), true, text);
+  assert.equal(isRateLimit({status: 429}), true);
+  for (const text of ['AUTH_DOWN', 'duplicate key value', 'LOCAL_RPC:22023:INVALID']) assert.equal(isRateLimit(new Error(text)), false, text);
+});
+
+test('isInfrastructureFailure: an unopenable conversation, an unclaimable turn, a timeout and an abort are the harness\'s; a refusal at any other step (provider_turns included) is the product refusing the case', () => {
+  assert.equal(isInfrastructureFailure('open_conversation', new Error('x')), true);
+  assert.equal(isInfrastructureFailure('provider_turns', new Error('EX06_TURN_NOT_CLAIMED')), true);
+  assert.equal(isInfrastructureFailure('provider_turns', new Error('LOCAL_RPC:22023:V2_FACT_VALUE_INVALID')), false);
+  assert.equal(isInfrastructureFailure('review', new Error('LOCAL_RPC:20:TimeoutError: The operation was aborted due to timeout')), true);
+  assert.equal(isInfrastructureFailure('publish', new Error('AbortError: This operation was aborted')), true);
+  for (const step of ['review', 'accept', 'evaluate', 'publish']) assert.equal(isInfrastructureFailure(step, new Error('LOCAL_RPC:42501:NEED_COUNTRY_REQUIRES_CONFIRMED_REVIEW')), false, step);
+});
+
+test('kindsOfStoredNeed requires exactly one row holding a JSON array: an empty result (zero rows, a mismatched id) is a harness error, so the seven "unclassified" cases cannot pass vacuously', () => {
+  const kinds = answer => createFixtures(fakeRuntime({sqlAnswers: [[/work_kinds_v5/, answer]]}).rt, {needPath: 'product'});
+  assert.deepEqual(kinds('["CISCENJE"]').kindsOfStoredNeed('n'), {exclusionInput: ['CISCENJE'], skillsOnly: ['CISCENJE']});
+  assert.deepEqual(kinds('[]').kindsOfStoredNeed('n'), {exclusionInput: [], skillsOnly: []}, 'a real empty set is "[]"');
+  for (const [answer, label] of [['', 'zero rows'], ['null', 'a JSON null'], ['{"a":1}', 'an object'], ['"x"', 'a string'], ['["A"]\n["B"]', 'two rows'], ['[', 'broken JSON'], ['   ', 'whitespace only']]) {
+    assert.throws(() => kinds(answer).kindsOfStoredNeed('n'), /EX06_KINDS_NOT_READ/, label);
+    assert.throws(() => kinds(answer).kindsOf({'need.category': 'c', 'need.required_skills': ['a']}), /EX06_KINDS_NOT_READ/, label + ' (kindsOf)');
+  }
+});
+
+test('setLocation, setCapacity and setAvailability go through the revision-bound getters and keep the worker\'s spec in step, so the read-back compares what was LAST written (S04 re-drives the requeue triggers with them)', async () => {
+  const {rt, flow, log} = fakeRuntime();
+  const fx = createFixtures(rt, {flow});
+  const worker = await fx.createWorker({label: 'mv', skills: ['a'], radiusKm: 20, teamCapacity: 2});
+  const before = log.length;
+  await fx.setLocation(worker, {city: 'Beograd', radiusKm: 30});
+  assert.deepEqual(log.slice(before).map(item => item.name), ['rpc_get_worker_location', 'rpc_save_worker_location']);
+  assert.deepEqual(log.find((item, index) => index >= before && item.name === 'rpc_save_worker_location').args.p_value, {operatingCountryCode: 'RS', city: 'Beograd', radiusKm: 30, approximatePosition: {latitude: 44.82, longitude: 20.46}});
+  assert.deepEqual([worker.spec.location.city, worker.spec.location.position, worker.spec.radiusKm], ['Beograd', {latitude: 44.82, longitude: 20.46}, 30], 'a new city takes the table\'s coordinates');
+  await fx.setLocation(worker, {radiusKm: 40});
+  assert.deepEqual([worker.spec.location.city, worker.spec.radiusKm], ['Beograd', 40], 'a left-out key keeps the current value');
+  await fx.setLocation(worker, {position: {latitude: 44.8, longitude: 20.4}});
+  assert.deepEqual(worker.spec.location.position, {latitude: 44.8, longitude: 20.4});
+  await fx.setLocation(worker, {position: null});
+  assert.equal(log.filter(item => item.name === 'rpc_save_worker_location').at(-1).args.p_value.approximatePosition, null);
+  await assert.rejects(() => fx.setLocation(worker, {city: 'Kragujevac'}), /EX06_CITY_UNKNOWN/);
+  await assert.rejects(() => fx.setLocation(worker, {radiusKm: 0}), /radiusKm/);
+  assert.ok(log.filter(item => item.name === 'rpc_get_worker_location' || item.name === 'rpc_save_worker_location').every(item => item.signal instanceof AbortSignal));
+  await fx.setCapacity(worker, 3);
+  assert.equal(log.filter(item => item.name === 'rpc_save_worker_capacity').at(-1).args.p_team_capacity, 3);
+  assert.equal(worker.spec.teamCapacity, 3);
+  await assert.rejects(() => fx.setCapacity(worker, 0), /teamCapacity/);
+  await fx.setAvailability(worker, {availableNow: false});
+  assert.equal(worker.spec.availability.availableNow, false);
+  assert.equal(worker.spec.location.position, null, 'the position was last cleared, so the spec expects no coordinates');
+  assert.deepEqual(worker.spec.location.city, 'Beograd');
+});
+
+test('the product path prepares the review with the response deadline when one is given (rpc_prepare_ai_task_review p_response_deadline, the shape of pkg023_flow.review) and through pkg023_flow.review otherwise', async () => {
+  const {rt, flow, log} = fakeRuntime();
+  const fx = createFixtures(rt, {flow, needPath: 'product'});
+  const requester = await fx.createRequester();
+  const facts = {'need.title': 't', 'need.description': 'd', 'need.category': 'c', 'need.price_mode': 'OFFERS', 'need.schedule_kind': 'FLEXIBLE', 'need.people_needed': 1, 'need.required_skills': ['a'],
+    'need.task_country_code': 'RS', 'need.task_geography': {mode: 'STATIONARY', start: {city: 'Novi Sad'}}};
+  await fx.createNeedFromFacts(requester, facts);
+  assert.equal(log.filter(item => item.kind === 'flow.review').length, 1, 'no deadline: the proven pkg023_flow.review');
+  assert.equal(log.filter(item => item.name === 'rpc_prepare_ai_task_review').length, 0);
+  await fx.createNeedFromFacts(requester, facts, {responseDeadline: '2026-10-02T12:00:00Z'});
+  assert.equal(log.filter(item => item.kind === 'flow.review').length, 1, 'with a deadline the flow helper (which sends null) is not used');
+  const prepare = log.find(item => item.name === 'rpc_prepare_ai_task_review');
+  assert.equal(prepare.args.p_response_deadline, '2026-10-02T12:00:00Z');
+  assert.deepEqual(Object.keys(prepare.args).sort(), ['p_conversation_id', 'p_location', 'p_response_deadline']);
+  assert.deepEqual(Object.keys(prepare.args.p_location).sort(), ['expectedRevision', 'value']);
+  assert.equal(prepare.args.p_location.expectedRevision, 'l'.repeat(64));
+  assert.deepEqual(prepare.args.p_location.value.resolvedLocation.points, [pinFor('start', 'Novi Sad')]);
+  assert.ok(log.filter(item => item.name === 'rpc_get_need_location_review' || item.name === 'rpc_prepare_ai_task_review').every(item => item.signal instanceof AbortSignal));
+  assert.ok(log.some(item => item.kind === 'flow.accept'), 'the review still goes through accept, evaluate and publish');
+});
+
+test('diagnoseActiveBackends reads the active client backends of the disposable database and terminates only the ones stuck for a while (never this session); terminate:false only reads', () => {
+  const backends = [{pid: 11, usename: 'authenticator', state: 'active', wait_event_type: null, wait_event: null, age_s: 40, query: 'select public.rpc_save_worker_location()'},
+    {pid: 12, usename: 'authenticator', state: 'active', wait_event_type: null, wait_event: null, age_s: 3, query: 'select 1'}];
+  const {rt, sqlLog} = fakeRuntime({rows: [[/pg_terminate_backend/, [{pid: 11, terminated: true}]], [/from pg_stat_activity/, backends]]});
+  const fx = createFixtures(rt, {});
+  assert.deepEqual(fx.diagnoseActiveBackends(), {backends, terminated: [11]});
+  const read = sqlLog.find(text => text.includes('from pg_stat_activity') && !text.includes('pg_terminate_backend'));
+  for (const part of ["backend_type = 'client backend'", "state = 'active'", 'pid <> pg_backend_pid()', 'current_database()']) assert.ok(read.includes(part), part);
+  const kill = sqlLog.find(text => text.includes('pg_terminate_backend'));
+  assert.ok(kill.includes("interval '25 seconds'") && kill.includes('pid <> pg_backend_pid()') && kill.includes("state = 'active'"));
+  const young = fakeRuntime({rows: [[/pg_terminate_backend/, [{pid: 12, terminated: true}]], [/from pg_stat_activity/, [backends[1]]]]});
+  assert.deepEqual(createFixtures(young.rt, {}).diagnoseActiveBackends(), {backends: [backends[1]], terminated: []});
+  assert.ok(!young.sqlLog.some(text => text.includes('pg_terminate_backend')), 'nothing old enough: nothing is terminated');
+  const readOnly = fakeRuntime({rows: [[/from pg_stat_activity/, backends]]});
+  assert.deepEqual(createFixtures(readOnly.rt, {}).diagnoseActiveBackends({terminate: false}), {backends, terminated: []});
+  assert.ok(!readOnly.sqlLog.some(text => text.includes('pg_terminate_backend')));
 });
 
 test('createWorker: an existing account (a person with both roles) is reused; a worker is registered before its first write so a half-built one is retired', async () => {
@@ -615,6 +951,12 @@ test('createNeedFromFacts: the product path never falls back (the error names it
   assert.deepEqual(need.droppedFacts, ['need.price_basis']);
   const insert = sqlLog.find(text => text.includes('insert into public.needs'));
   assert.ok(insert.includes("set_config('uskoci.need_lifecycle', 'PUBLISH', true)") && insert.includes("array['kombi']::text[]") && insert.includes("'STATIONARY'"));
+  // the final guard_need_write refuses an INSERT that names task_country_code / task_timezone unless BOTH tokens are set (supabase/proofs/pkg040/pkg040_proof.mjs does the same)
+  assert.ok(insert.includes("set_config('uskoci.need_region', 'CONFIRMED_REVIEW', true)"), 'the W02 region token');
+  assert.ok(insert.indexOf('need_lifecycle') < insert.indexOf('need_region') && insert.indexOf('need_region') < insert.indexOf('insert into public.needs('), 'both tokens before the insert, in the same transaction');
+  assert.ok(insert.includes('begin;') && insert.trimEnd().endsWith('commit;'));
+  assert.match(insert, /insert into public\.need_geography\(need_id, public_topology\) values \('[0-9a-f-]{36}'::uuid, '\{"mode":"STATIONARY","start":\{"city":"Niš"\}\}'::jsonb\);/, 'a non-remote task gets its public topology row');
+  assert.ok(insert.indexOf('insert into public.needs(') < insert.indexOf('insert into public.need_geography('));
   assert.ok(insert.includes('43.32') && insert.includes('21.9'), 'the direct insert writes the city\'s coordinates so the radius branch is the one the product feeds');
   const identity = {...facts, 'need.verified_identity_required': true};
   await assert.rejects(() => createFixtures(rt, {flow, needPath: 'product'}).createNeedFromFacts(requester, identity), /EX06_FACT_NOT_CARRIABLE_BY_THE_PRODUCT_AI_PATH/);
@@ -623,7 +965,10 @@ test('createNeedFromFacts: the product path never falls back (the error names it
   assert.equal(bypassed.productPathFailure, undefined);
   assert.throws(() => createFixtures(rt, {needPath: 'sideways'}), /EX06_NEED_PATH_INVALID/);
   const remote = await fx.createNeedFromFacts(requester, {...facts, 'need.task_geography': {mode: 'REMOTE'}});
-  assert.match(sqlLog.filter(text => text.includes('insert into public.needs')).at(-1), /'', '', null,\s+null, 'OFFERS'/, 'a remote task has no coordinates');
+  const remoteInsert = sqlLog.filter(text => text.includes('insert into public.needs')).at(-1);
+  assert.match(remoteInsert, /'', '', null,\s+null, 'OFFERS'/, 'a remote task has no coordinates');
+  assert.ok(remoteInsert.includes("set_config('uskoci.need_region', 'CONFIRMED_REVIEW', true)"), 'the region token is set for a remote task too (it names task_country_code)');
+  assert.ok(!remoteInsert.includes('need_geography'), 'a remote task has no geography row');
   assert.equal(remote.needRevision, 1);
 });
 
@@ -703,6 +1048,8 @@ test('the S04 helpers wrap the product RPCs by name: apply with a proposed windo
   const booked = await fx.bookWorker(worker, {startsAt: '2026-10-10T07:00:00Z', endsAt: '2026-10-10T10:00:00Z'});
   assert.ok(booked.needId);
   assert.ok(sqlLog.some(text => text.includes('insert into public.needs') && text.includes("'REMOTE'") && text.includes('FIXED_WINDOW')));
+  assert.ok(sqlLog.some(text => text.includes('insert into public.needs') && text.includes("'REMOTE'") && text.includes("set_config('uskoci.need_region', 'CONFIRMED_REVIEW', true)")),
+    'the booking task is inserted under both tokens: without the region token the W02 guard refuses it and bookWorker could never run');
   assert.ok(worker.bypassed.some(item => item.startsWith('booking:')));
   assert.ok(log.filter(item => item.name === 'rpc_submit_response').length === 2 && log.filter(item => item.name === 'rpc_select_response').length === 2);
   fx.setWorkerStatusBypass(worker, 'SUSPENDED');

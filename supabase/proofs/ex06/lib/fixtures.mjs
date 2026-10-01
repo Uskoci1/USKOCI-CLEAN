@@ -18,16 +18,30 @@
 // puts them back.
 import {BYPASS_FACT_KEYS, LOCATION_AUTHORITY_KEYS, checkWorkerProfile, factsAtTime} from './corpus.mjs';
 import {HarnessInputError, sortedSet} from './compare.mjs';
-import {DEFAULT_CITY, cityCentre, pinFor, primaryCity} from './geo.mjs';
-import {availabilityFor} from './timeutil.mjs';
+import {DEFAULT_CITY, anchorCity, cityCentre, pinFor, primaryCity} from './geo.mjs';
+import {availabilityFor, shapeWantsCoverage} from './timeutil.mjs';
 
 export const DEFAULT_GEOGRAPHY = Object.freeze({mode: 'STATIONARY', start: {city: DEFAULT_CITY}});
 export const DEFAULT_AVAILABILITY = Object.freeze({timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: []});
 export const ABORT_MS = 30000;
 export const TEST_WORLD_LINEAGE = 'SYNTHETIC_ACCEPTANCE_FIXTURE';   // private.accounts_same_world: TEST = DEV_ACCEPTANCE_QA, SYNTHETIC_ACCEPTANCE_FIXTURE or OPERATOR
-const TEST_LINEAGES = ['DEV_ACCEPTANCE_QA', 'SYNTHETIC_ACCEPTANCE_FIXTURE', 'OPERATOR'];
-// The steps of the product path that are infrastructure (a turn could not be claimed): a failure there is a harness error. A refusal at any later step is the PRODUCT refusing a READY case.
-export const INFRA_STEPS = Object.freeze(['open_conversation', 'provider_turns']);
+export const TEST_LINEAGES = Object.freeze(['DEV_ACCEPTANCE_QA', 'SYNTHETIC_ACCEPTANCE_FIXTURE', 'OPERATOR']);
+// The steps of the product path that are infrastructure: a conversation that cannot be opened is a harness error; so is a turn that cannot be CLAIMED (EX06_TURN_NOT_CLAIMED), a timeout and an
+// abort (isInfrastructureFailure). A refusal at any other step, 'provider_turns' included (the proposals are the corpus's own facts, which the service RPC validates: V2_FACT_* errors),
+// is the PRODUCT refusing a READY case: a finding of that case, not a failure of the whole run.
+export const INFRA_STEPS = Object.freeze(['open_conversation']);
+/** A call that timed out (the 30 s abort signal) or was aborted is the harness or the chain failing, never the product refusing a task: a harness error at every step. */
+export const ABORT_PATTERN = /AbortError|TimeoutError|operation was aborted|aborted due to timeout/i;
+/** True when a failure of the product path is the harness's (infrastructure) and not a refusal of the product: an infrastructure step, a turn that was not claimed, a timeout or an abort. */
+export function isInfrastructureFailure(step, error) {
+  const message = String(error?.message ?? error);
+  return INFRA_STEPS.includes(step) || (step === 'provider_turns' && /EX06_TURN_NOT_CLAIMED/.test(message)) || ABORT_PATTERN.test(message);
+}
+/** GoTrue's per-IP rate limit as the supabase-js adapter reports it: HTTP 429 / over_request_rate_limit / over_email_send_rate_limit / "rate limit" / "too many requests". */
+export const RATE_LIMIT_PATTERN = /\b429\b|over_request_rate_limit|over_email_send_rate_limit|rate limit|too many requests/i;
+export const isRateLimit = error => error?.status === 429 || error?.code === 'over_request_rate_limit' || RATE_LIMIT_PATTERN.test(String(error?.message ?? error));
+/** The defaults of the bounded Auth retry: 30 s steps (the limits are per 5 minutes) up to 6 minutes per account and 20 minutes per run. */
+export const AUTH_RETRY_DEFAULTS = Object.freeze({backoffMs: 30000, maxWaitMs: 6 * 60000, maxTotalWaitMs: 20 * 60000});
 // Every need.* fact the direct insert writes. Anything else in the facts is DROPPED by it and listed.
 const DIRECT_WRITES = Object.freeze(['need.title', 'need.description', 'need.category', 'need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses',
   'need.minimum_experience_years', 'need.verified_identity_required', 'need.people_needed', 'need.schedule_kind', 'need.starts_at', 'need.ends_at', 'need.task_country_code',
@@ -104,6 +118,9 @@ export function diffNeedReadBack(intent, row) {
   const geography = f['need.task_geography'] ?? DEFAULT_GEOGRAPHY;
   same('execution_location_mode', geography.mode, row.execution_location_mode);
   same('mode', f['need.price_mode'] ?? 'OFFERS', row.mode);
+  // urgent picks dispatch_urgent against dispatch_normal wave sizes and the same-day-urgent soft gate. The corpus says every task is non-urgent (HITNO is off by policy, no such fact exists),
+  // so a stored urgent flag is a task the product turned urgent behind the harness's back: FIXTURE_NOT_APPLIED:urgent, not a worker that is "blocked for the wrong reason".
+  same('urgent', f['need.urgent'] === true, row.urgent === true);
   if ((f['need.price_mode'] ?? 'OFFERS') === 'MY_PRICE' && f['need.price_rsd'] !== undefined) same('requester_price_rsd', Number(f['need.price_rsd']), row.requester_price_rsd === null ? null : Number(row.requester_price_rsd));
   if (intent.interval) {
     for (const [column, key] of [['starts_at', 'startMs'], ['ends_at', 'endMs']]) {
@@ -111,12 +128,41 @@ export function diffNeedReadBack(intent, row) {
       if (actual !== intent.interval[key]) out.push({field: column, expected: new Date(intent.interval[key]).toISOString(), actual: row[column] ?? null});
     }
   }
-  const city = primaryCity(geography);
-  if (city) {
-    const centre = cityCentre(city);
+  // The coarse coordinates sit on the ANCHOR point (for AREA_BASED with a service area: the service area's, even when the route names a start in another city); the city TEXT is the
+  // start's first. They differ only when the geography names two cities, which no S02 case does; the product does exactly this (w02_resolved_location_authority).
+  const anchor = anchorCity(geography), city = primaryCity(geography);
+  if (anchor) {
+    const centre = cityCentre(anchor);
     if (!near(row.approximate_lat, centre.latitude, 0.0051)) out.push({field: 'approximate_lat', expected: centre.latitude, actual: row.approximate_lat ?? null});
     if (!near(row.approximate_lng, centre.longitude, 0.0051)) out.push({field: 'approximate_lng', expected: centre.longitude, actual: row.approximate_lng ?? null});
-    if (String(row.approximate_city ?? '').trim() !== '' && String(row.approximate_city).trim().toLowerCase() !== city.trim().toLowerCase()) out.push({field: 'approximate_city', expected: city, actual: row.approximate_city});
+  }
+  if (city && String(row.approximate_city ?? '').trim() !== '' && String(row.approximate_city).trim().toLowerCase() !== city.trim().toLowerCase()) out.push({field: 'approximate_city', expected: city, actual: row.approximate_city});
+  return out;
+}
+
+const timeText = value => (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value) ? value + ':00' : value);
+const weekdaysOf = list => JSON.stringify([...(Array.isArray(list) ? list : [])].map(Number).sort((a, b) => a - b));
+
+/**
+ * What a worker's stored availability rules and windows must say about the spec (by id: the product stores the ids the document carries). A writer that normalised the generated rule
+ * (weekday, start / end time, startsOn, a '24:00:00' end) or the window (instants, state) would otherwise be reported as a matcher finding (OUTSIDE_AVAILABILITY on the fit worker) instead
+ * of FIXTURE_NOT_APPLIED. rule_docs / window_docs are the rows read back by readBackWorker; when they are missing the read-back itself failed.
+ */
+export function diffAvailabilityContent(availability, row) {
+  const out = [];
+  if (!Array.isArray(row.rule_docs) || !Array.isArray(row.window_docs)) return [{field: 'availability_content', expected: 'the stored rules and windows (rule_docs, window_docs)', actual: null}];
+  const storedRules = new Map(row.rule_docs.map(item => [item.id, item])), storedWindows = new Map(row.window_docs.map(item => [item.id, item]));
+  for (const rule of availability.rules) {
+    const stored = storedRules.get(rule.id);
+    const wanted = {weekdays: weekdaysOf(rule.weekdays), startTime: timeText(rule.startTime), endTime: timeText(rule.endTime), startsOn: rule.startsOn ?? null, endsOn: rule.endsOn ?? null, active: rule.active !== false};
+    const actual = stored ? {weekdays: weekdaysOf(stored.weekdays), startTime: timeText(stored.startTime), endTime: timeText(stored.endTime), startsOn: stored.startsOn ?? null, endsOn: stored.endsOn ?? null, active: stored.active === true} : null;
+    if (JSON.stringify(wanted) !== JSON.stringify(actual)) out.push({field: 'availability_rule_content', expected: wanted, actual});
+  }
+  for (const window of availability.windows) {
+    const stored = storedWindows.get(window.id);
+    const wanted = {startMs: Date.parse(window.startsAt), endMs: Date.parse(window.endsAt), state: window.state ?? 'UNAVAILABLE'};
+    const actual = stored ? {startMs: Number(stored.startMs), endMs: Number(stored.endMs), state: stored.state} : null;
+    if (JSON.stringify(wanted) !== JSON.stringify(actual)) out.push({field: 'availability_window_content', expected: wanted, actual});
   }
   return out;
 }
@@ -124,7 +170,7 @@ export function diffNeedReadBack(intent, row) {
 /**
  * What a worker's stored rows must say about the spec the fixture built (spec as stored in worker.spec). Returns [{field, expected, actual}] (empty = applied).
  * Compared only what the fixture wrote: lists (order and case free), status, available_now, radius, city, capacity, coordinates, the bypass columns and preferences it set, the number of
- * active weekly rules and windows, and the world (lineage) it was admitted to.
+ * active weekly rules and windows AND their content (diffAvailabilityContent), and the world (lineage) it was admitted to.
  */
 export function diffWorkerReadBack(spec, row) {
   const out = [];
@@ -145,6 +191,7 @@ export function diffWorkerReadBack(spec, row) {
     same('available_now', spec.availability.availableNow, row.available_now === true);
     same('availability_rules', spec.availability.rules.filter(rule => rule.active !== false).length, Number(row.rules));
     same('availability_windows', spec.availability.windows.length, Number(row.windows));
+    out.push(...diffAvailabilityContent(spec.availability, row));
   }
   if (spec.bypass?.yearsExperience !== undefined) same('years_experience', spec.bypass.yearsExperience, Number(row.years_experience));
   if (spec.bypass?.minimumFeeRsd !== undefined) same('minimum_fee_rsd', spec.bypass.minimumFeeRsd, Number(row.minimum_fee_rsd));
@@ -159,6 +206,9 @@ export function createFixtures(rt, options = {}) {
   const defaultPath = options.needPath ?? process.env.EX06_NEED_PATH ?? 'product';
   if (!['product', 'direct', 'auto'].includes(defaultPath)) throw new Error('EX06_NEED_PATH_INVALID:' + defaultPath);
   const abortMs = options.abortMs ?? ABORT_MS;
+  const retry = {...AUTH_RETRY_DEFAULTS, ...(options.authRetry ?? {})};
+  const pause = options.sleep ?? sleep;
+  const auth = {accountsCreated: 0, retries: 0, rateLimited: 0, waitedMs: 0, failures: 0, backoffMs: retry.backoffMs, maxWaitMs: retry.maxWaitMs, maxTotalWaitMs: retry.maxTotalWaitMs};
   let flowPromise = null;
   const flow = () => options.flow ? Promise.resolve(options.flow) : (flowPromise ??= import('../../pkg023/pkg023_flow.mjs'));
   const created = {requesters: [], workers: [], needs: []};
@@ -177,10 +227,55 @@ export function createFixtures(rt, options = {}) {
   const rawCall = (client, name, args) => withSignal(client.rpc(name, args));
 
   // ------------------------------------------------------------------ people
-  /** Puts an account in the TEST world through the service-only lineage writer (rpc_admit_account_lineage_service, PKG-015). */
+  /** A promise that fails with a TimeoutError after `ms` (the timer is always cleared, so a finished call never keeps the process alive). */
+  const withTimeout = (promise, ms, message) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+  });
+
+  /**
+   * One Auth account through the proof adapter (rt.actor = service.auth.admin.createUser + signInWithPassword), with a BOUNDED retry on GoTrue's rate limit. The whole corpus signs in about
+   * 200 accounts in minutes (every other proof makes ten or fewer), and a 429 / over_request_rate_limit in the middle would end the run as HARNESS_BROKEN after the hour of chain replay.
+   * A rate-limited attempt sleeps `backoffMs` and tries again until `maxWaitMs` (one account) or `maxTotalWaitMs` (the run) is used up; any other error, a timeout of the call itself
+   * (2 x the abort window) and an exhausted retry are thrown. A retry creates a NEW account (the failed attempt may have created one; an orphan with a DRAFT worker profile is not a candidate
+   * and the stack is disposable). auth = {accountsCreated, retries, rateLimited, waitedMs, failures} goes into the report.
+   */
+  async function newAccount(label) {
+    let waitedHere = 0;
+    for (;;) {
+      try {
+        const made = await withTimeout(actor(label), abortMs * 2, `TimeoutError: the Auth call for ${label} did not finish within ${abortMs * 2} ms (aborted due to timeout)`);
+        auth.accountsCreated += 1;
+        return made;
+      } catch (error) {
+        const step = retry.backoffMs;
+        if (!isRateLimit(error) || step <= 0 || waitedHere + step > retry.maxWaitMs || auth.waitedMs + step > retry.maxTotalWaitMs) {
+          auth.failures += 1;
+          throw error;
+        }
+        auth.rateLimited += 1;
+        auth.retries += 1;
+        auth.waitedMs += step;
+        waitedHere += step;
+        await pause(step);
+      }
+    }
+  }
+
+  /**
+   * Puts an account in the TEST world through the service-only lineage writer (rpc_admit_account_lineage_service, PKG-015). The writer checks the revision BEFORE it recognises an identical
+   * restatement and raises ACCOUNT_LINEAGE_REVISION_CONFLICT (40001, which PostgREST 14 re-executes without end on a chain that lacks B24 part 1) for a stale one, so the account is READ first
+   * (rpc_read_account_lineage_service: UNCLASSIFIED / revision 0 when absent): an account already in a TEST lineage is left alone, any other is admitted at its CURRENT revision.
+   * Returns {lineage, revision, admitted}.
+   */
   async function admitTestWorld(accountId) {
+    const current = await call(service, 'rpc_read_account_lineage_service', {p_account_id: accountId});
+    if (current === null || typeof current !== 'object' || typeof current.lineage !== 'string') throw new Error('EX06_LINEAGE_READ_UNUSABLE: ' + JSON.stringify(current));
+    if (TEST_LINEAGES.includes(current.lineage)) return {lineage: current.lineage, revision: Number(current.revision ?? 0), admitted: false};
+    const revision = Number(current.revision ?? 0);
     await call(service, 'rpc_admit_account_lineage_service', {p_account_id: accountId, p_lineage: TEST_WORLD_LINEAGE, p_reason: 'EX-06 harness fixture account',
-      p_source_ref: 'EX06_FIXTURE', p_expected_revision: 0});
+      p_source_ref: 'EX06_FIXTURE', p_expected_revision: revision});
+    return {lineage: TEST_WORLD_LINEAGE, revision: revision + 1, admitted: true};
   }
 
   /**
@@ -189,7 +284,7 @@ export function createFixtures(rt, options = {}) {
    */
   async function createRequester({label = 'requester', world = 'REAL'} = {}) {
     if (!['REAL', 'TEST'].includes(world)) throw new HarnessInputError('WORKER_PROFILE_WRONG_TYPE', 'world');
-    const account = await actor('ex06-' + label);
+    const account = await newAccount('ex06-' + label);
     const profile = rows(`select id from public.app_profiles where account_id = ${q(account.id)}::uuid and kind = 'REQUESTER'`)[0];
     if (!profile) throw new Error('EX06_FIXTURE_REQUESTER_PROFILE_MISSING');
     const requester = {...account, label, role: 'REQUESTER', profileId: profile.id, world};
@@ -198,11 +293,45 @@ export function createFixtures(rt, options = {}) {
     return requester;
   }
 
-  /** Reads and writes the worker availability through the product writers rpc_get_worker_availability / rpc_save_worker_availability (revision-bound, owner only). */
+  /**
+   * Reads and writes the worker availability through the product writers rpc_get_worker_availability / rpc_save_worker_availability (revision-bound, owner only). The worker's spec follows
+   * (spec.availability), so a later readBackWorker compares the stored rules and windows with what was last written, not with what the worker was first built with. S04 re-drives the
+   * requeue triggers of PKG-027a (a location, capacity, availability or activation write re-enqueues the open tasks) through this and setLocation / setCapacity.
+   */
   async function setAvailability(worker, value) {
     const doc = await call(worker.client, 'rpc_get_worker_availability');
     const next = {timezone: value.timezone ?? doc.timezone ?? 'Europe/Belgrade', availableNow: value.availableNow ?? doc.availableNow, rules: value.rules ?? doc.rules, windows: value.windows ?? doc.windows};
-    return call(worker.client, 'rpc_save_worker_availability', {p_expected_revision: doc.revision, p_value: next});
+    const saved = await call(worker.client, 'rpc_save_worker_availability', {p_expected_revision: doc.revision, p_value: next});
+    if (worker.spec) worker.spec.availability = next;
+    return saved;
+  }
+
+  /**
+   * Writes the worker's location through rpc_get_worker_location / rpc_save_worker_location (revision-bound, confirmed): {city, radiusKm, position, countryCode}; every key that is left out keeps
+   * the worker's current value, except that a new city without a position takes the city table's coordinates (the city text and the position always agree). A city that is not in the table
+   * is refused (EX06_CITY_UNKNOWN). The worker's spec follows.
+   */
+  async function setLocation(worker, {city, radiusKm, position, countryCode} = {}) {
+    const current = worker.spec?.location ?? null;
+    const nextCity = city ?? current?.city ?? DEFAULT_CITY;
+    const nextPosition = position !== undefined ? position : city !== undefined || !current ? cityCentre(nextCity) : current.position;
+    const next = {countryCode: countryCode ?? current?.countryCode ?? 'RS', city: nextCity, position: nextPosition};
+    const radius = radiusKm ?? worker.spec?.radiusKm ?? 15;
+    checkWorkerProfile({radiusKm: radius, location: next}, 'setLocation');
+    const doc = await call(worker.client, 'rpc_get_worker_location', {});
+    const saved = await call(worker.client, 'rpc_save_worker_location', {p_expected_revision: doc.revision, p_confirmed: true,
+      p_value: {operatingCountryCode: next.countryCode, city: next.city, radiusKm: radius, approximatePosition: next.position === null ? null : {...next.position}}});
+    if (worker.spec) { worker.spec.location = next; worker.spec.radiusKm = radius; }
+    return saved;
+  }
+
+  /** Writes the worker's team capacity through rpc_get_worker_capacity / rpc_save_worker_capacity (revision-bound; an integer 1..50). The worker's spec follows. */
+  async function setCapacity(worker, teamCapacity) {
+    checkWorkerProfile({teamCapacity}, 'setCapacity');
+    const doc = await call(worker.client, 'rpc_get_worker_capacity', {});
+    const saved = await call(worker.client, 'rpc_save_worker_capacity', {p_expected_revision: doc.revision, p_team_capacity: teamCapacity});
+    if (worker.spec) worker.spec.teamCapacity = teamCapacity;
+    return saved;
   }
 
   /**
@@ -217,9 +346,13 @@ export function createFixtures(rt, options = {}) {
    *   rt.actor (real Auth) -> [world TEST: rpc_admit_account_lineage_service] -> owner UPDATE of app_profiles (display_name, skills, tools, vehicles, licenses: the PostgREST call of
    *   workerProfileClientService.azurirajRadnikProfil) -> rpc_save_worker_location (city, radius, coordinates) -> rpc_save_worker_capacity -> rpc_save_worker_availability
    *   -> rpc_complete_worker_profile (DRAFT -> ACTIVE) -> [skillsAfterActivation: the owner UPDATE of the lists again].
-   * spec: {label, account?, interval?, displayName, skills, tools, vehicles, licenses, radiusKm=15, teamCapacity, availability, location, status='ACTIVE', bypass, world='REAL', skillsAfterActivation}
+   * spec: {label, account?, interval?, displayName, skills, tools, vehicles, licenses, radiusKm=15, teamCapacity, availability, location, status='ACTIVE', bypass, world, skillsAfterActivation}
    *   interval: {startMs, endMs} of the (rebased) task window; an availability {shape} (the S02 shapes) is resolved against it (timeutil.availabilityFor).
    *   availability: undefined = available now, no schedule; null = never written; {shape}; or {timezone, availableNow, rules, windows}.
+   *     The returned worker carries shapeCoverage = {shape, wanted, got}: wanted = the shape promises a weekly rule or window covering the task time, got = 'RULE' | 'WINDOW' | 'NONE'. A
+   *     shape that wanted coverage and got 'NONE' (the task stores no window: AVAILABLE_NOW_AND_SCHEDULED is then built as available-now-only) is a worker that was NOT built as the corpus
+   *     says; the runner reports the case SHAPE_DEGRADED and the worker's notes say so.
+   *   world: 'REAL' | 'TEST'; left out it is the world of the given account (a TEST requester that becomes a TEST worker is not admitted twice), else 'REAL'.
    *   location: undefined = the default city (Novi Sad) with the city table's coordinates; null = never written; or {countryCode, city, position}. A city that is not in the table is refused
    *     (EX06_CITY_UNKNOWN); the position defaults to the city's table coordinates, so the worker's city text and position always agree.
    *   status: 'ACTIVE' (rpc_complete_worker_profile) or 'DRAFT' (left a draft: a draft profile is not ACTIVE).
@@ -233,9 +366,10 @@ export function createFixtures(rt, options = {}) {
   async function createWorker(spec = {}) {
     const {label = 'worker', account: given = null, interval = null, ...profileSpec} = spec;
     checkWorkerProfile(profileSpec, 'createWorker');
-    const {displayName = 'EX-06 radnik', skills = [], tools = [], vehicles = [], licenses = [], radiusKm = 15, teamCapacity, status = 'ACTIVE', bypass = {}, world = 'REAL', skillsAfterActivation} = profileSpec;
+    const {displayName = 'EX-06 radnik', skills = [], tools = [], vehicles = [], licenses = [], radiusKm = 15, teamCapacity, status = 'ACTIVE', bypass = {}, skillsAfterActivation} = profileSpec;
+    const world = profileSpec.world ?? given?.world ?? 'REAL';
     if (status === 'ACTIVE' && skills.length === 0) throw new HarnessInputError('EX06_ACTIVE_WORKER_NEEDS_A_SKILL', `${label}: rpc_complete_worker_profile refuses an empty skill list (SKILL_REQUIRED); pass skillsAfterActivation: [] to clear it after activation`);
-    const account = given ?? await actor('ex06-' + label);
+    const account = given ?? await newAccount('ex06-' + label);
     const profile = rows(`select id from public.app_profiles where account_id = ${q(account.id)}::uuid and kind = 'WORKER'`)[0];
     if (!profile) throw new Error('EX06_FIXTURE_WORKER_PROFILE_MISSING');
     // what the stored rows must say afterwards
@@ -244,28 +378,27 @@ export function createFixtures(rt, options = {}) {
       const city = place.city ?? DEFAULT_CITY;
       return {countryCode: place.countryCode ?? 'RS', city, position: place.position === undefined ? cityCentre(city) : place.position};
     })();
-    let availability = null;
+    let availability = null, shapeCoverage = {shape: null, wanted: false, got: 'NONE'};
     if (profileSpec.availability !== null) {
       const wanted = profileSpec.availability ?? {availableNow: true};
-      availability = 'shape' in wanted ? availabilityFor(wanted.shape, interval, {newId: randomUUID}).availability
-        : {timezone: wanted.timezone ?? 'Europe/Belgrade', availableNow: wanted.availableNow ?? true, rules: wanted.rules ?? [], windows: wanted.windows ?? []};
+      if ('shape' in wanted) {
+        const made = availabilityFor(wanted.shape, interval, {newId: randomUUID});
+        availability = made.availability;
+        shapeCoverage = {shape: wanted.shape, wanted: shapeWantsCoverage(wanted.shape), got: made.coverage};
+      } else {
+        availability = {timezone: wanted.timezone ?? 'Europe/Belgrade', availableNow: wanted.availableNow ?? true, rules: wanted.rules ?? [], windows: wanted.windows ?? []};
+      }
     }
     const final = {skills: skillsAfterActivation ?? skills, tools, vehicles, licenses};
-    const worker = {...account, label, role: 'WORKER', profileId: profile.id, world, bypassed: [], notes: [],
+    const worker = {...account, label, role: 'WORKER', profileId: profile.id, world, bypassed: [], notes: [], shapeCoverage,
       spec: {status, radiusKm, teamCapacity, location, availability, bypass, world, final, skillsAfterActivation}};
     created.workers.push(worker);
     if (world === 'TEST') await admitTestWorld(account.id);
     await updateProfile(account, profile.id, {display_name: displayName, skills, tools, vehicles, licenses});
-    if (location) {
-      const doc = await call(account.client, 'rpc_get_worker_location', {});
-      await call(account.client, 'rpc_save_worker_location', {p_expected_revision: doc.revision, p_confirmed: true,
-        p_value: {operatingCountryCode: location.countryCode, city: location.city, radiusKm, approximatePosition: location.position === null ? null : {...location.position}}});
-    }
-    if (teamCapacity !== undefined) {
-      const doc = await call(account.client, 'rpc_get_worker_capacity', {});
-      await call(account.client, 'rpc_save_worker_capacity', {p_expected_revision: doc.revision, p_team_capacity: teamCapacity});
-    }
+    if (location) await setLocation(worker, {countryCode: location.countryCode, city: location.city, position: location.position, radiusKm});
+    if (teamCapacity !== undefined) await setCapacity(worker, teamCapacity);
     if (availability) await setAvailability(worker, availability);
+    if (shapeCoverage.wanted && shapeCoverage.got === 'NONE') worker.notes.push(`SHAPE_DEGRADED: ${shapeCoverage.shape} wants a rule or window covering the task time, but the task has none (coverage NONE): built as ${availability.availableNow ? 'available now' : 'not available now'} only`);
     if (status === 'ACTIVE') await call(account.client, 'rpc_complete_worker_profile', {p_profile_id: profile.id});
     if (skillsAfterActivation !== undefined) {
       await updateProfile(account, profile.id, {skills: skillsAfterActivation});
@@ -311,6 +444,10 @@ export function createFixtures(rt, options = {}) {
         w.approximate_lat::float8 as lat, w.approximate_lng::float8 as lng, w.proactive_notifications, w.same_day_urgent_notifications, w.timezone,
         (select count(*) from public.profile_availability_rules r where r.profile_id = p.id and r.active)::integer as rules,
         (select count(*) from public.profile_availability_windows x where x.profile_id = p.id)::integer as windows,
+        coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'weekdays', r.weekdays, 'startTime', r.start_time::text, 'endTime', r.end_time::text, 'startsOn', r.starts_on::text,
+          'endsOn', r.ends_on::text, 'active', r.active) order by r.id) from public.profile_availability_rules r where r.profile_id = p.id), '[]'::jsonb) as rule_docs,
+        coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'startMs', (extract(epoch from x.starts_at) * 1000)::bigint, 'endMs', (extract(epoch from x.ends_at) * 1000)::bigint,
+          'state', x.availability_state) order by x.id) from public.profile_availability_windows x where x.profile_id = p.id), '[]'::jsonb) as window_docs,
         coalesce(private.account_lineage(p.account_id), 'UNCLASSIFIED') as lineage
       from public.app_profiles p left join public.worker_match_preferences w on w.worker_profile_id = p.id where p.id = ${q(worker.profileId)}::uuid and p.kind = 'WORKER'`)[0];
     if (!row) return {row: null, mismatches: [{field: 'profile', expected: 'a WORKER profile', actual: null}]};
@@ -327,6 +464,8 @@ export function createFixtures(rt, options = {}) {
    *   writes the city's coarse coordinates (so the radius branch is the one the product path feeds) but drops every fact it cannot carry (listed in droppedFacts). It is the labelled path for
    *   facts the AI path cannot carry (need.verified_identity_required, need.public_photo_paths) and a diagnostic mode; the caller counts such a case as DEGRADED.
    *   auto (diagnostic only): product first; if it fails, the failing step is recorded (productPathFailure) and the direct path is used.
+   * responseDeadline (ISO string or null): the product path prepares the review with p_response_deadline (rpc_prepare_ai_task_review, the shape of pkg023_flow.review but with the deadline
+   * instead of null: S04's expiry and past-deadline cases); the direct path writes response_deadline. Left out, the product's own default applies.
    * Returns {needId, needRevision, materialisation, synthetic, droppedFacts, intent, productPathFailure?, reason?}.
    */
   async function createNeedFromFacts(requester, rawFacts, {path = defaultPath, nowMs = Date.now(), interval = null, responseDeadline = null} = {}) {
@@ -337,10 +476,10 @@ export function createFixtures(rt, options = {}) {
     if (path === 'direct' || bypassKeys.length) {
       result = {...directPath(requester, facts, {responseDeadline}), reason: bypassKeys.length ? 'FACT_NOT_CARRIABLE_BY_THE_PRODUCT_AI_PATH:' + bypassKeys.join(',') : 'EX06_NEED_PATH=direct'};
     } else if (path === 'product') {
-      result = await productPath(requester, facts);
+      result = await productPath(requester, facts, {responseDeadline});
     } else {
       try {
-        result = await productPath(requester, facts);
+        result = await productPath(requester, facts, {responseDeadline});
       } catch (error) {
         result = {...directPath(requester, facts, {responseDeadline}), productPathFailure: {step: error.ex06Step ?? 'unknown', message: String(error.message).slice(0, 300)}};
       }
@@ -361,7 +500,14 @@ export function createFixtures(rt, options = {}) {
       p_rule_ids: ['RS-MIN-001'], p_safe_reason_codes: ['CLEAR_CONCRETE_TASK'], p_provider_ref: 'DISPOSABLE_PKG023', p_model_ref: 'NO_REAL_PROVIDER', p_not_ready_code: null});
   }
 
-  async function productPath(requester, facts) {
+  /** The review of the product path: pkg023_flow.review (a null response deadline), or, with a deadline, the same two calls with p_response_deadline set. */
+  async function prepareReview(f, a, requester, conversationId, location, responseDeadline) {
+    if (responseDeadline === null || responseDeadline === undefined) return f.review(a, conversationId, location);
+    const l = await call(requester.client, 'rpc_get_need_location_review', {p_conversation_id: conversationId});
+    return call(requester.client, 'rpc_prepare_ai_task_review', {p_conversation_id: conversationId, p_response_deadline: responseDeadline, p_location: {expectedRevision: l.revision, value: location}});
+  }
+
+  async function productPath(requester, facts, {responseDeadline = null} = {}) {
     const f = await flow();
     const a = {id: requester.id, client: abortable(requester.client)};
     let step = 'open_conversation';
@@ -379,7 +525,7 @@ export function createFixtures(rt, options = {}) {
           p_assistant_message: 'EX06 synthetic proposal', p_safety: 'ALLOW', p_proposals: proposals.slice(from, from + 12)});
       }
       step = 'review';
-      const review = await f.review(a, conversationId, locationValueFor(facts));
+      const review = await prepareReview(f, a, requester, conversationId, locationValueFor(facts), responseDeadline);
       if (review.canAccept !== true) throw new Error('EX06_REVIEW_CANNOT_BE_ACCEPTED');
       step = 'accept';
       const accepted = await f.accept(a, review);
@@ -397,16 +543,24 @@ export function createFixtures(rt, options = {}) {
     }
   }
 
+  /**
+   * The labelled direct insert. The final private.guard_need_write (20260910144644_clean_w05_publication_evaluator_authority.sql, same rule since W02) refuses an INSERT that names
+   * task_country_code or task_timezone with NEED_COUNTRY_REQUIRES_CONFIRMED_REVIEW (42501) unless the transaction carries uskoci.need_region = 'CONFIRMED_REVIEW', so BOTH tokens are set,
+   * as supabase/proofs/pkg040/pkg040_proof.mjs does; a non-remote task also gets its public.need_geography row (the public topology: the task_geography fact is PUBLIC), which the later
+   * readers of the geography expect. Coarse coordinates sit on the ANCHOR city (anchorCity), the city text on the primary city.
+   */
   function directPath(requester, facts, {responseDeadline = null} = {}) {
     const geography = facts['need.task_geography'] ?? DEFAULT_GEOGRAPHY;
     const remote = geography.mode === 'REMOTE';
     const city = remote ? '' : primaryCity(geography) ?? '';
+    const anchor = remote ? null : anchorCity(geography);
     const area = remote ? '' : geography.start?.area ?? geography.serviceArea?.area ?? '';
-    const centre = remote || !city ? null : cityCentre(city);
+    const centre = anchor ? cityCentre(anchor) : null;
     const mode = facts['need.price_mode'] ?? 'OFFERS';
     const id = randomUUID();
     const time = value => (value === undefined ? 'null' : `${q(value)}::timestamptz`);
-    sql(`begin; select set_config('uskoci.need_lifecycle', 'PUBLISH', true);
+    const topology = remote ? '' : `insert into public.need_geography(need_id, public_topology) values (${q(id)}::uuid, ${q(JSON.stringify(geography))}::jsonb);`;
+    sql(`begin; select set_config('uskoci.need_lifecycle', 'PUBLISH', true); select set_config('uskoci.need_region', 'CONFIRMED_REVIEW', true);
       insert into public.needs(id, requester_account_id, requester_profile_id, status, title, description, category, required_skills, required_tools, required_vehicles, required_licenses,
         minimum_experience_years, verified_identity_required, approximate_city, approximate_area, approximate_lat, approximate_lng, mode, required_slots, schedule_kind, starts_at, ends_at,
         execution_location_mode, task_country_code, task_timezone, requester_price_rsd, response_deadline, published_at)
@@ -417,6 +571,7 @@ export function createFixtures(rt, options = {}) {
         ${time(facts['need.ends_at'])}, ${q(geography.mode)}, ${q(facts['need.task_country_code'] ?? 'RS')}, 'Europe/Belgrade',
         ${mode === 'MY_PRICE' && facts['need.price_rsd'] !== undefined ? Number(facts['need.price_rsd']) : 'null'},
         ${responseDeadline ? q(responseDeadline) + '::timestamptz' : "statement_timestamp() + interval '2 days'"}, statement_timestamp());
+      ${topology}
       commit;`);
     return {needId: id, needRevision: 1, materialisation: 'DIRECT_INSERT_PUBLISHED', synthetic: ['TASK_ROW_INSERTED_UNDER_THE_PUBLISH_TOKEN_NO_PRODUCT_RPC'],
       droppedFacts: Object.keys(facts).filter(key => !DIRECT_WRITES.includes(key))};
@@ -636,14 +791,44 @@ export function createFixtures(rt, options = {}) {
 
   /** The hidden kinds (private.work_kinds_v5) of the STORED task: over category + required skills (the input of the exclusion gate) and over the required skills alone (the service-match arm). */
   function kindsOfStoredNeed(needId) {
-    const text = expression => jsonOrNull(sql(`select to_jsonb(private.work_kinds_v5(${expression})) from public.needs n where n.id = ${q(needId)}::uuid`)) ?? [];
+    const text = expression => exactKindsArray(sql(`select to_jsonb(private.work_kinds_v5(${expression})) from public.needs n where n.id = ${q(needId)}::uuid`), 'the stored task ' + needId);
     return {exclusionInput: text('array_prepend(n.category, n.required_skills)'), skillsOnly: text('n.required_skills')};
   }
 
-  /** `kinds(category + required_skills)` of facts (read-only, immutable): the legacy probe on corpus text; a run asserts the STORED row through kindsOfStoredNeed. */
+  /**
+   * Exactly one row and a JSON ARRAY, or a harness error. work_kinds_v5 never returns NULL (it coalesces to '{}'), so an EMPTY result (psql prints nothing: zero rows, a mismatched id, a task
+   * that is gone) must not be read as "the task has no kinds": seven S02 cases expect 'unclassified' (the empty set) and would pass vacuously on it.
+   */
+  function exactKindsArray(raw, what) {
+    const lines = String(raw).split('\n').filter(line => line.trim() !== '');
+    if (lines.length !== 1 || !lines[0].trim().startsWith('[')) throw new HarnessInputError('EX06_KINDS_NOT_READ', `${what}: expected exactly one row holding a JSON array, psql returned ${JSON.stringify(String(raw).slice(0, 80))}`);
+    let parsed;
+    try { parsed = JSON.parse(lines[0]); } catch { throw new HarnessInputError('EX06_KINDS_NOT_READ', `${what}: the row is not valid JSON`); }
+    if (!Array.isArray(parsed)) throw new HarnessInputError('EX06_KINDS_NOT_READ', `${what}: the value is not an array`);
+    return parsed;
+  }
+
+  /** `kinds(category + required_skills)` of facts (read-only, immutable): the legacy probe on corpus text; a run asserts the STORED row through kindsOfStoredNeed. Same strictness. */
   function kindsOf(facts) {
     const values = [facts['need.category'], ...asList(facts['need.required_skills'])].filter(item => typeof item === 'string');
-    return jsonOrNull(sql(`select to_jsonb(private.work_kinds_v5(${textList(values)}))`)) ?? [];
+    return exactKindsArray(sql(`select to_jsonb(private.work_kinds_v5(${textList(values)}))`), 'the corpus text');
+  }
+
+  /**
+   * The active client backends of the disposable database (pg_stat_activity), and the stuck ones (active longer than minAgeSeconds, never this session) terminated: what a timed-out or
+   * aborted call leaves behind. PostgREST 14 re-executes a function that raises 40001 without end, and on a chain that lacks B24 part 1 (the proof runs BEFORE the extension that adds it)
+   * the loop keeps running after the harness gave up; the 30 s abort says THAT a call hung, this says WHICH query. Disposable database only. Returns {backends, terminated}.
+   */
+  function diagnoseActiveBackends({terminate = true, minAgeSeconds = 25} = {}) {
+    const backends = rows(`select pid, usename, state, wait_event_type, wait_event, round(extract(epoch from now() - query_start))::integer as age_s,
+        left(regexp_replace(query, '\\s+', ' ', 'g'), 200) as query
+      from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and backend_type = 'client backend' and state = 'active' order by query_start`);
+    let terminated = [];
+    if (terminate && backends.some(item => Number(item.age_s) >= minAgeSeconds)) {
+      terminated = rows(`select pid, pg_terminate_backend(pid) as terminated from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()
+        and backend_type = 'client backend' and state = 'active' and query_start < now() - interval '${Number(minAgeSeconds)} seconds'`).filter(item => item.terminated === true).map(item => item.pid);
+    }
+    return {backends, terminated};
   }
 
   /** Reload the PostgREST schema cache (the proof stages that ran psql files do not) and give it a moment. */
@@ -652,7 +837,10 @@ export function createFixtures(rt, options = {}) {
     await sleep(options.reloadDelayMs ?? 1500);
   }
 
-  return {createRequester, createWorker, createNeedFromFacts, setAvailability, setWorkerStatusBypass, readBackNeed, readBackWorker, runTick, runWave, runExpiry, readDeliveries, readEvents,
+  /** {accountsCreated, retries, rateLimited, waitedMs, failures, ...limits}: what the Auth adapter did for this run (a copy). */
+  const authStats = () => ({...auth});
+
+  return {createRequester, createWorker, createNeedFromFacts, setAvailability, setLocation, setCapacity, setWorkerStatusBypass, readBackNeed, readBackWorker, runTick, runWave, runExpiry, readDeliveries, readEvents,
     readMatch, readMatchForInterval, readSchedule, readRounds, submitApplication, selectResponse, withdrawApplication, cancelNeed, bookWorker, setNotificationPreferences, mark, retireSince, retireFixtures, parkAll,
-    parkForeign, restoreForeign, countForeignActive, pauseSchedulers, closureState, chainCounts, kindsOfStoredNeed, kindsOf, reloadSchema, admitTestWorld, created, defaultPath};
+    parkForeign, restoreForeign, countForeignActive, pauseSchedulers, closureState, chainCounts, kindsOfStoredNeed, kindsOf, diagnoseActiveBackends, authStats, reloadSchema, admitTestWorld, created, defaultPath};
 }

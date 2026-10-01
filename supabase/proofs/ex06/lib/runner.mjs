@@ -6,11 +6,14 @@
 //   * every matcher result and every wave result is shape-validated before it can make an expectation pass (a null matcher result, a NEED_NOT_FOUND shape, a wave that stopped early
 //     or ran as round 2 are harness errors, not vacuous passes);
 //   * every fixture is read back; a field the product dropped is FIXTURE_NOT_APPLIED:<field>;
-//   * a case the product refuses to publish is a FINDING (PRODUCT_PATH_REFUSED_READY_CASE), never silently matched on a direct insert;
-//   * the result is PASS | FINDINGS | SMOKE_ONLY | PARTIAL | HARNESS_BROKEN, and SMOKE never yields PASS.
-import {classifyFields, compareExpectation, comparisonRows, gatesOf, isUnattributed, sortedSet} from './compare.mjs';
+//   * a case the product refuses to publish is a FINDING (PRODUCT_PATH_REFUSED_READY_CASE), never silently matched on a direct insert, and it is NOT compared: the scope says so;
+//   * every case needs a negative of the CORPUS that names its cause (the harness's own control does not count), or an explicit positiveOnly with the corpus's reason that the report lists;
+//   * a schedule shape the corpus asked for that could not be built (the task stores no window) is SHAPE_DEGRADED, never a quiet available-now-only worker;
+//   * the result is PASS | FINDINGS | SMOKE_ONLY | PARTIAL | HARNESS_BROKEN, SMOKE never yields PASS, a refused, SHAPE_DEGRADED, degraded, capped or unrun case yields PARTIAL, and every
+//     result is quoted with its scope ("PASS on N of M cases, K refused, L skipped, X of Y leaves compared").
+import {classifyFields, compareExpectation, comparisonRows, gatesOf, isUnattributed, namesCause, refreshScope, REFUSED_KIND, sortedSet} from './compare.mjs';
 import {CANARY_CORPUS, STANDARD_LABELS, hasBypassFacts, normaliseCorpus, referenceWorkerPlan, unreachableReason} from './corpus.mjs';
-import {INFRA_STEPS} from './fixtures.mjs';
+import {isInfrastructureFailure} from './fixtures.mjs';
 import {haversineKm, primaryCity} from './geo.mjs';
 import {materialiseTimes} from './timeutil.mjs';
 
@@ -122,6 +125,7 @@ const compact = row => (row ? Object.fromEntries(Object.entries(row).filter(([ke
  */
 export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date.now(), rebase = null, corpusLabel = 'CORPUS', needPath = 'product', controls = true, foreignTokens = null}) {
   const entry = {id: caseItem.id, family: caseItem.family, status: 'RUN', materialisation: null, synthetic: [], interval: null, scheduleKind: null, rebased: [], degraded: false, unreachable: false,
+    positiveOnly: false, positiveOnlyReason: null, shapeDegraded: false, shapeDegradedWorkers: [],
     workers: [], checks: [], notes: [], readBack: {}, wave: null, rounds: null, schedule: null, annotations: caseItem.annotations ?? null};
   const since = fx.mark();
   const stepOf = {current: 'time'};
@@ -145,13 +149,16 @@ export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date
     const live = plan.filter(item => !item.skip);
     for (const item of plan.filter(entry2 => entry2.skip)) entry.notes.push(`worker ${item.label} not built: ${item.skip}`);
     const anchored = live.some(item => !item.control && (item.expect?.dispatchEligible === true || item.expect?.delivery === true));
-    const named = live.some(item => item.expect && classifyFields(item.expect).negative.length > 0 && (item.expect.hardBlockers?.length || item.expect.dispatchBlockers?.length
-      || item.expect.hardBlockersInclude?.length || item.expect.dispatchBlockersInclude?.length));
-    const corpusNegative = live.some(item => !item.control && item.expect && (item.expect.hardBlockers?.length || item.expect.dispatchBlockers?.length
-      || item.expect.hardBlockersInclude?.length || item.expect.dispatchBlockersInclude?.length));
+    // A case is discriminating only through a negative of the CORPUS that names its cause. The harness's own control (the DRAFT copy of the fit worker) is NOT counted: it is the same for every
+    // case, so an "everyone eligible" matcher that merely restricts DRAFT profiles would otherwise pass any case that has no negative of its own.
+    const named = live.some(item => !item.control && item.expect && classifyFields(item.expect).negative.length > 0 && namesCause(item.expect));
     if (corpusLabel !== 'SMOKE' && !anchored && !caseItem.noEligibleWorker) throw new HarnessFailure('UNANCHORED_CASE', `${caseItem.id}: no worker is expected to be eligible, so a negative can pass because the fixture failed (set noEligibleWorker:true on purpose)`);
-    if (corpusLabel !== 'SMOKE' && !named && !caseItem.positiveOnly) throw new HarnessFailure('UNDISCRIMINATING_CASE', `${caseItem.id}: no worker has a negative expectation that names its cause (set positiveOnly:true on purpose)`);
-    if (!corpusNegative && !caseItem.positiveOnly) {
+    if (corpusLabel !== 'SMOKE' && !named && !caseItem.positiveOnly) throw new HarnessFailure('UNDISCRIMINATING_CASE', `${caseItem.id}: no worker has a negative expectation of the corpus that names its cause (the harness control does not count; set positiveOnly:true with the corpus's reason on purpose)`);
+    if (caseItem.positiveOnly) {
+      entry.positiveOnly = true;
+      entry.positiveOnlyReason = caseItem.positiveOnlyReason ?? null;
+      entry.notes.push('POSITIVE_ONLY: ' + (caseItem.positiveOnlyReason ?? 'no reason recorded'));
+    } else if (!named) {
       entry.notes.push('CASE_HAS_NO_CORPUS_NEGATIVE: only the harness control gives this case a negative');
       report.warnings.push(`${caseItem.id}: the corpus gives this case no negative that S03 can assert (only the harness control does)`);
     }
@@ -190,15 +197,16 @@ export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date
       need = await fx.createNeedFromFacts(requester, facts, {path, nowMs, interval: times.interval});
     } catch (error) {
       const failedStep = error.ex06Step ?? null;
-      // A call that timed out (the 30 s abort signal) is the harness or the chain failing, not the product refusing a task: it stays a harness error at every step.
-      const aborted = /AbortError|TimeoutError|operation was aborted|aborted due to timeout/i.test(String(error?.message ?? error));
-      if (path === 'product' && failedStep && !INFRA_STEPS.includes(failedStep) && !aborted) {
+      // A call that timed out (the 30 s abort signal), an aborted call, a conversation that cannot be opened and a turn that cannot be CLAIMED are the harness or the chain failing, not the
+      // product refusing a task: they stay harness errors at every step. A refusal of the proposals themselves (provider_turns: the service RPC validates the corpus's own facts) is the
+      // product refusing THIS case: a finding of the case, not the end of the whole run.
+      if (path === 'product' && failedStep && !isInfrastructureFailure(failedStep, error)) {
         entry.status = 'PRODUCT_PATH_REFUSED';
         entry.step = failedStep;
         entry.error = String(error.message).slice(0, 400);
         entry.materialisation = 'PRODUCT_PATH_REFUSED';
-        addFinding(report, caseItem.id, '-', 'PRODUCT_PATH_REFUSED_READY_CASE', 'the product path publishes this READY case', `refused at ${failedStep}: ${entry.error}`, bodies,
-          {kind: 'PRODUCT_PATH_REFUSED_READY_CASE', materialisation: 'PRODUCT_PATH'});
+        addFinding(report, caseItem.id, '-', REFUSED_KIND, 'the product path publishes this READY case', `refused at ${failedStep}: ${entry.error}`, bodies,
+          {kind: REFUSED_KIND, materialisation: 'PRODUCT_PATH'});
         say('FINDING case ' + caseItem.id + ' (the product path refused it at ' + failedStep + ')');
         return entry;
       }
@@ -236,6 +244,19 @@ export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date
       precondition(report);
     }
     entry.readBack.workers = Object.fromEntries([...workerBacks].map(([label, row]) => [label, compact(row)]));
+
+    // ---- a schedule shape the CORPUS asked for that could not be built: SHAPE_DEGRADED (never a quiet available-now-only worker). Only workers of the corpus carry the shape they were asked
+    // for (annotations.corpusAvailability); the shape the harness picks for a derived worker is its own default and is not a promise of the corpus.
+    const degradedShape = built.filter(item => item.annotations?.corpusAvailability && item.worker.shapeCoverage?.wanted === true && item.worker.shapeCoverage.got === 'NONE');
+    const shapeDegradedLabels = new Set(degradedShape.map(item => item.label));
+    if (degradedShape.length) {
+      entry.shapeDegraded = true;
+      entry.shapeDegradedWorkers = degradedShape.map(item => ({worker: item.label, shape: item.worker.shapeCoverage.shape, wanted: true, got: item.worker.shapeCoverage.got}));
+      for (const item of degradedShape) {
+        entry.notes.push(`SHAPE_DEGRADED ${item.label}: the corpus asks for ${item.worker.shapeCoverage.shape} (a weekly rule or window covers the task time) but the task has no window (schedule kind ${entry.scheduleKind ?? 'unknown'}): built as ${item.worker.spec?.availability?.availableNow ? 'available now' : 'not available now'} only`);
+      }
+      if (needBack.row.starts_at && needBack.row.ends_at) entry.notes.push(`the product stored a window (${needBack.row.starts_at} .. ${needBack.row.ends_at}) the intent did not name: a covering rule could be built after the publish (not done)`);
+    }
 
     // ---- the publish enqueued the task
     stepOf.current = 'schedule';
@@ -300,25 +321,31 @@ export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date
       const actual = {hardBlockers: sortedSet(match.hardBlockers), dispatchBlockers: sortedSet(match.dispatchBlockers), dispatchEligible: match.dispatchEligible, responseAllowed: match.responseAllowed,
         reasonCodes: sortedSet(match.reasonCodes), delivery: deliveries.some(row => row.worker_profile_id === item.worker.profileId), event: events.length > 0};
       const worker = {label: item.label, note: item.note, control: item.control, profileStatus: item.profile.status ?? 'ACTIVE', rows: [], derivedRows: [], observedOnly: false, notes: item.worker.notes ?? [],
-        distance: item.distance ?? null, annotations: item.annotations ?? null,
+        distance: item.distance ?? null, annotations: item.annotations ?? null, shapeDegraded: shapeDegradedLabels.has(item.label), shapeCoverage: item.worker.shapeCoverage ?? null,
         observed: {hardBlockers: actual.hardBlockers, dispatchBlockers: actual.dispatchBlockers, dispatchEligible: actual.dispatchEligible, delivery: actual.delivery, event: actual.event, score: match.score}};
       if (item.expect) {
         const result = compareExpectation(item.expect, actual);
         worker.rows = comparisonRows(item.expect, actual);
         if (item.control) report.assertions.controls += result.asserted.length;
-        else tally(report, effectiveBucket, caseItem.id, item.label, item.expect, result.asserted);
+        else {
+          tally(report, effectiveBucket, caseItem.id, item.label, item.expect, result.asserted);
+          report.corpus.leavesComparedAtRun = (report.corpus.leavesComparedAtRun ?? 0) + result.asserted.length;   // the expectation leaves actually compared with the chain at run time
+        }
         if (isUnattributed(item.expect)) report.unattributed.push({caseId: caseItem.id, worker: item.label});
         for (const mismatch of result.mismatches) {
           reported.add(`${item.label}/${mismatch.field}`);
-          addFinding(report, caseItem.id, item.label, mismatch.field, mismatch.expected, mismatch.actual, bodies, {...where, ...(item.control ? {kind: 'CONTROL'} : {}),
-            ...(item.annotations?.sourceReadingPrediction ? {note: 'the corpus records a source-reading prediction that differs: ' + JSON.stringify(item.annotations.sourceReadingPrediction)} : {})});
+          // A finding on a worker that could not be built as the corpus describes (SHAPE_DEGRADED) may be the fixture's limit and not the matcher's: it is marked, not hidden.
+          addFinding(report, caseItem.id, item.label, mismatch.field, mismatch.expected, mismatch.actual, bodies, {...where, ...(item.control ? {kind: 'CONTROL'} : shapeDegradedLabels.has(item.label) ? {kind: 'SHAPE_DEGRADED_WORKER'} : {}),
+            ...(item.annotations?.sourceReadingPrediction ? {note: 'the corpus records a source-reading prediction that differs: ' + JSON.stringify(item.annotations.sourceReadingPrediction)} : {}),
+            ...(shapeDegradedLabels.has(item.label) && !item.control ? {shapeNote: 'this worker was built without the covering schedule the corpus shape promises (the task stores no window): the disagreement may be the fixture limit'} : {})});
         }
       } else {
         worker.observedOnly = true;
       }
-      // derived invariants: they follow from the matcher's own result and from what the wave does, whatever the corpus says
+      // derived invariants: they follow from the matcher's own result and from what the wave does, whatever the corpus says. An expectation that names notDeliveredBecause says on purpose that an
+      // eligible worker is not delivered (the world gate of the dispatch admission): then "eligible => delivered" does not apply to that worker (delivery:false is compared as an expectation).
       const derived = [
-        {field: 'eligible => delivered', applies: actual.dispatchEligible, ok: actual.delivery, positive: true, key: 'delivery', expected: true, actual: actual.delivery, kind: 'ELIGIBLE_NOT_DELIVERED'},
+        {field: 'eligible => delivered', applies: actual.dispatchEligible && !item.expect?.notDeliveredBecause, ok: actual.delivery, positive: true, key: 'delivery', expected: true, actual: actual.delivery, kind: 'ELIGIBLE_NOT_DELIVERED'},
         {field: 'not eligible => not delivered', applies: !actual.dispatchEligible, ok: !actual.delivery, positive: false, key: 'delivery', expected: false, actual: actual.delivery, kind: 'DELIVERED_BUT_NOT_ELIGIBLE'},
         {field: 'event iff delivery', applies: true, ok: actual.event === actual.delivery, positive: actual.delivery, key: 'event', expected: actual.delivery, actual: actual.event, kind: 'EVENT_DISAGREES_WITH_DELIVERY'},
       ];
@@ -357,8 +384,9 @@ export async function runCase(fx, caseItem, {report, matcherBodies, nowMs = Date
       }
     }
     if (entry.status !== 'UNASSERTED') {
-      entry.status = entry.workers.some(worker => worker.rows.some(row => row.verdict === 'FINDING') || worker.derivedRows.some(row => row.verdict === 'FINDING'))
-        || entry.checks.some(check => check.verdict === 'FINDING') ? 'FINDING' : 'PASS';
+      // precedence: FINDING > SHAPE_DEGRADED > POSITIVE_ONLY > PASS (a case that is not a plain PASS never reads as one)
+      const found = entry.workers.some(worker => worker.rows.some(row => row.verdict === 'FINDING') || worker.derivedRows.some(row => row.verdict === 'FINDING')) || entry.checks.some(check => check.verdict === 'FINDING');
+      entry.status = found ? 'FINDING' : entry.shapeDegraded ? 'SHAPE_DEGRADED' : entry.positiveOnly ? 'POSITIVE_ONLY' : 'PASS';
     }
   } catch (error) {
     entry.status = 'HARNESS_ERROR';
@@ -400,7 +428,9 @@ export async function runCanary(fx, {registry, nowMs = Date.now(), matcherBodies
 export function checkAssertions(report) {
   const strict = report.corpus.label === 'CORPUS';
   const a = report.assertions;
-  if (a.matcher === 0) harnessError(report, 'vacuous', new Error('PROOF_IS_VACUOUS: no worker expectation was asserted'));
+  // A diagnostic direct run (EX06_NEED_PATH=direct|auto) and an UNREACHABLE_STATE case assert against the chain too, in their own buckets (a.degraded / a.unreachable): the run is then PARTIAL
+  // (finalizeResult), not vacuous. A run in which nothing at all was compared with the chain (the product refused every case, no worker had an expectation) is vacuous.
+  if (a.matcher + a.degraded + a.unreachable === 0) harnessError(report, 'vacuous', new Error('PROOF_IS_VACUOUS: no worker expectation was asserted'));
   const quiet = (condition, code, text) => {
     if (!condition) return;
     if (strict) harnessError(report, 'vacuous', new Error(code + ': ' + text));
@@ -411,17 +441,25 @@ export function checkAssertions(report) {
   if (report.unattributed.length) report.warnings.push(`${report.unattributed.length} negative expectation(s) name no cause (reasonUnspecified): listed as UNATTRIBUTED`);
   if (report.degradedCases.length) report.warnings.push(`${report.degradedCases.length} case(s) were DEGRADED (a direct insert replaced the product path): their assertions are counted apart and the result is PARTIAL`);
   if (report.unreachableCases.length) report.warnings.push(`${report.unreachableCases.length} case(s) are UNREACHABLE_STATE (the product cannot produce the task): counted apart`);
+  const scope = refreshScope(report);
+  if (scope.refused > 0) report.warnings.push(`${scope.refused} READY case(s) were REFUSED by the product path and NOT compared (the result is PARTIAL): ${report.cases.filter(item => item.status === 'PRODUCT_PATH_REFUSED').map(item => `${item.id}@${item.step}`).join(', ')}`);
+  if (scope.shapeDegraded > 0) report.warnings.push(`${scope.shapeDegraded} case(s) are SHAPE_DEGRADED (the schedule shape the corpus asked for could not be built, the task stores no window; the result is PARTIAL): ${report.cases.filter(item => item.shapeDegraded).map(item => item.id).join(', ')}`);
+  if (scope.positiveOnly > 0) report.warnings.push(`${scope.positiveOnly} case(s) are POSITIVE_ONLY (the corpus gives no matcher-level negative; compared, but an everyone-eligible matcher would pass them): ${report.cases.filter(item => item.positiveOnly).map(item => item.id).join(', ')}`);
 }
 
 /**
  * result and exit code. PASS | FINDINGS | SMOKE_ONLY | PARTIAL | HARNESS_BROKEN. Findings and differing pins never make the harness fail; a harness error always does;
- * EX06_STRICT_FINDINGS=1 makes findings exit 2. SMOKE never yields PASS; a capped run, a run with a buildable case that did not run, or a degraded case yields PARTIAL.
+ * EX06_STRICT_FINDINGS=1 makes findings exit 2. SMOKE never yields PASS; a capped run, a run with a buildable case that did not run, a degraded case (a direct insert), a case the product
+ * path REFUSED (never compared) or a SHAPE_DEGRADED case (the corpus's schedule shape not built) yields PARTIAL. The scope of what was compared (corpus.compared / refused / errored,
+ * corpus.leavesComparedAtRun, report.scope) is written with it: the result is never quoted without "PASS on N of M cases, K refused, L skipped, X of Y leaves compared".
+ * Cases skipped by design (WORKER family, tasks that publish nothing) do not make the result PARTIAL: they are listed with their reasons and counted in the scope.
  */
 export function finalizeResult(report, {strict = false} = {}) {
   const broken = report.harnessErrors.length > 0 || report.cases.some(item => item.status === 'HARNESS_ERROR');
   const c = report.corpus;
+  const scope = refreshScope(report);
   const buildable = c.buildable ?? Math.max(0, (c.totalCases ?? 0) - (c.skipped ?? []).length);
-  const partial = c.capped === true || (c.ran ?? report.cases.length) < buildable || report.degradedCases.length > 0;
+  const partial = c.capped === true || (c.ran ?? report.cases.length) < buildable || report.degradedCases.length > 0 || scope.refused > 0 || scope.shapeDegraded > 0;
   report.result = broken ? 'HARNESS_BROKEN' : c.label === 'SMOKE' ? 'SMOKE_ONLY' : partial ? 'PARTIAL' : report.findings.length ? 'FINDINGS' : 'PASS';
   return broken ? 1 : report.findings.length && strict ? 2 : 0;
 }
@@ -430,7 +468,9 @@ export function finalizeResult(report, {strict = false} = {}) {
 export function newReport({sourceSha = null, pinConvention = null, pinSource = null} = {}) {
   return {unit: 'EX06_S03_MATCHING_CONTRACT_PROOF', sourceSha, disposableDbOnly: true, devAccess: false, providerCalls: 0, deviceProven: false,
     result: 'RUNNING', evidenceLabel: 'CHAIN NOT READ', pinConvention, pinSource, needPath: null,
-    corpus: {label: 'NONE', id: null, version: null, totalCases: 0, buildable: 0, ran: 0, cap: null, capped: false, path: null, sha256: null, skipped: [], unconsumed: {total: 0, byKey: {}, list: []}, leaves: {present: 0, consumed: 0, unconsumed: 0}, rebase: null},
+    corpus: {label: 'NONE', id: null, version: null, totalCases: 0, buildable: 0, ran: 0, compared: 0, refused: 0, errored: 0, cap: null, capped: false, path: null, sha256: null, skipped: [], unconsumed: {total: 0, byKey: {}, list: []},
+      leaves: {present: 0, consumed: 0, unconsumed: 0, validatedOnly: 0, assertable: 0}, leavesComparedAtRun: 0, positiveOnly: [], rebase: null},
+    scope: null, auth: null, activeBackends: null,
     canary: null, stages: null, chain: {}, pinGate: null, pinRows: [], extraPinGate: null,
     digest: {before: null, after: null, startConsistent: null, unchanged: null, note: null},
     assertions: {matcher: 0, positive: 0, negative: 0, distinct: 0, derived: {positive: 0, negative: 0}, controls: 0, preconditions: 0, degraded: 0, unreachable: 0, kinds: {checked: 0, mismatched: 0}},

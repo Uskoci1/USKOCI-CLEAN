@@ -59,7 +59,7 @@ export const PINS = Object.freeze([
       + '(one of its 54 targets), which only pkg051a creates, so the extension applies pkg051a right before it (relaxed pre-image mode). No existing replay does this '
       + '(b24-conflict-codes-proof.yml uses a stand-in; the voice B1 chain applies part 2 only)',
     predecessors: [{md5: 'b8e7537d453069c82bc1f7a7ee6fb10a', label: 'source147 body (A1 and P4 push transport not replayed)'},
-      {md5: 'f946246b96985efefa26e2bd560cc897', label: 'A1 body (DEV ledger 209), the P4 push transport pre-image'},
+      {md5: 'f946246b96985efefa26e2bd560cc897', label: 'A1 body (DEV ledger 203), the P4 push transport pre-image'},
       {md5: 'ea801be7205a8b07c7c94e20af3bd90e', label: 'P4 push transport body (DEV ledger 210), the B24 part 1 pre-image (B24 part 1 not applied)'}],
     // A difference that is only B24 part 1 is machine-checked: the body with the quoted '40001' turned into 'PT409' must equal the pin.
     derivations: [{id: 'B24_PART1_PT409', column: 'derived_b24_part1_pt409',
@@ -186,20 +186,41 @@ export async function pinGate(runRows, {pins = PINS} = {}) {
 export function evidenceLabel(gate, covered = PROOF_POINT_PINS.length) {
   const bad = gate.different.length + gate.missing.length;
   if (bad === 0) {
+    // The harness reads the pins in TWO chain states (11 at the proof point, the 12th after the extension), so the one-gate 12-pin form below is only honest for a caller that really read all
+    // twelve in ONE state; it says so and is never the label of the second section (sectionLabel).
     return covered === PINS.length
-      ? `MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (${PINS.length} pins; ${LABEL_CAVEAT})`
+      ? `MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (${PINS.length} pins, all read in ONE chain state; ${LABEL_CAVEAT})`
       : `MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (${covered} of ${PINS.length} pins read at the proof point, all equal; the others are read after the extension; ${LABEL_CAVEAT})`;
   }
   return `MATCH/DISPATCH/EVENT FUNCTION BODIES != DEV (${bad} of ${covered} pins differ or are missing; ${LABEL_CAVEAT})`;
 }
 
-/** One report row per pin: name, role, reach, expected md5, actual md5, verdict (EQUAL / DIFFERENT / MISSING) and the explanation of a difference. */
+/**
+ * The label of the SECOND section, which joins two reads of DIFFERENT chain states: the 11 proof-point pins (read before the extension, with rpc_begin_push_send still at the source147 body)
+ * and the 12th (read after the extension). The 11 are not re-read after the extension, so a bare "12 pins == DEV" would over-claim; this label says which pins were read in which state.
+ * proofGate / extensionGate = the evaluatePins results of the two reads.
+ */
+export function sectionLabel(proofGate, extensionGate) {
+  const proofBad = proofGate.different.length + proofGate.missing.length;
+  const extensionBad = extensionGate.different.length + extensionGate.missing.length;
+  if (proofBad + extensionBad === 0) {
+    return `MATCH/DISPATCH/EVENT FUNCTION BODIES == DEV (${PROOF_POINT_PINS.length} pins equal at the proof point (chain without the extension) + the ${PINS.length}th equal after the extension (different chain state); ${LABEL_CAVEAT})`;
+  }
+  return `MATCH/DISPATCH/EVENT FUNCTION BODIES != DEV (${proofBad + extensionBad} of ${PINS.length} pins differ or are missing: ${proofBad} of ${PROOF_POINT_PINS.length} at the proof point (chain without the extension), ${extensionBad} of ${EXTENSION_PINS.length} after the extension (different chain state); ${LABEL_CAVEAT})`;
+}
+
+/**
+ * One report row per pin: name, role, reach, expected md5, actual md5, verdict (EQUAL / DIFFERENT / MISSING) and the explanation of a difference. A difference with no machine-checked
+ * explanation (no known predecessor, no derivation) falls back to what the pin records about itself (pin.evidence): the reason a pin is expected to differ by design (the informational
+ * certificate pin that voice B1 changed) is then in the table, not only in the source.
+ */
 export function pinRowsOf(gate, pins) {
   return pins.map(pin => {
     const different = gate.different.find(item => item.name === pin.name);
     const missing = gate.missing.includes(pin.name);
     return {name: pin.name, role: pin.role, reach: pin.reach, stage: pin.stage, expected: pin.md5, actual: missing ? 'MISSING' : different ? different.actual : pin.md5,
-      verdict: missing ? 'MISSING' : different ? 'DIFFERENT' : 'EQUAL', explanation: missing ? (pin.absentBefore ? 'absent: created by ' + pin.absentBefore : 'function not found') : different?.explanation ?? ''};
+      verdict: missing ? 'MISSING' : different ? 'DIFFERENT' : 'EQUAL',
+      explanation: missing ? (pin.absentBefore ? 'absent: created by ' + pin.absentBefore : 'function not found') : different ? (different.explanation || 'pin evidence: ' + pin.evidence) : ''};
   });
 }
 

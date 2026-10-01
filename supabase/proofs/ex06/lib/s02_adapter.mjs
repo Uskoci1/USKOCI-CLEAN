@@ -30,7 +30,7 @@ export const ROOT_KEYS = Object.freeze({
   statement: ignored('the corpus author\'s statement that all text is synthetic; the harness checks personal-data patterns itself'),
   language: ignored('language of the synthetic message texts (the harness never sends them)'),
   contractSources: ignored('pointers to the source files the expectations were read from (documentation of the corpus, not an expectation)'),
-  kindOutcomeValues: ignored('the closed list of kind outcomes; kind.expected is validated against workKinds + unclassified/refused instead'),
+  kindOutcomeValues: ignored('the closed list of kind outcomes; kind.expected of a READY case must be one of workKinds or "unclassified" (a "refused" kind on a READY case throws S02_KIND_UNKNOWN: such a case publishes nothing)'),
   consumerClassLegend: ignored('legend of matcherConsumerClasses (documentation)'),
   openAssumptions: ignored('the corpus author\'s open assumptions A1-A6 (documentation; A3 is the very thing S03 diffs)'),
   planCoverage: ignored('plan-chapter coverage map of the cases (coverage report input, not an expectation)'),
@@ -51,8 +51,8 @@ export const CASE_KEYS = Object.freeze({
   stemTrap: ignored('marks a case built to trip the work-kind stems; its effect is exactly what kind.expected and the reference workers assert'),
   licenceNote: ignored('a note about self-declared licences (no verification badge); documentation'),
   writerlessFields: ignored('lists the worker fields that have no product writer; the harness reports every bypass it uses itself'),
-  referenceAssumes: ignored('WORKER family: the profile defaults the reference tasks assume (the family is not consumed by S03)'),
-  referenceTasks: ignored('WORKER family: reference tasks of a worker (the family is not consumed by S03; its expectations are reported UNCONSUMED)'),
+  referenceAssumes: ignored('WORKER family: the profile defaults the reference tasks assume (the family is not consumed by S03; on a TASK-family case it throws S02_TASK_CASE_HAS_REFERENCE_TASKS)'),
+  referenceTasks: ignored('WORKER family: reference tasks of a worker (the family is not consumed by S03; its expectations are reported UNCONSUMED; on a TASK-family case it throws S02_TASK_CASE_HAS_REFERENCE_TASKS)'),
   note: ignored('free-text note of the case author'),
   startingCandidate: ignored('a candidate starting point recorded by the corpus author (documentation)'),
   openQuestion: ignored('an open owner question recorded by the corpus author (documentation)'),
@@ -64,7 +64,7 @@ export const TASK_EXPECTED_KEYS = Object.freeze({
   softFacts: ignored('facts the AI proposes as free text, compared by words in the AI slice'),
   unknownFacts: ignored('facts that must stay unknown in the AI slice'),
   mustNotFacts: ignored('facts the AI must not invent (AI slice)'),
-  publicationOutcome: ignored('publication-policy expectation (ALLOW / REVIEW / BLOCK); the product path of S03 records a synthetic ALLOW, the policy slice owns the rest'),
+  publicationOutcome: ignored('publication-policy expectation (ALLOW / REVIEW / BLOCK); the product path of S03 records a synthetic ALLOW, the policy slice owns the rest; TRIPWIRE: a READY case whose outcome is not ALLOW throws S02_READY_CASE_CONTRADICTS'),
   factsOptional: ignored('marks facts that need not be carried by the AI turn'),
   correctedKeys: ignored('keys a user correction turn changes (AI slice)'),
 });
@@ -79,11 +79,11 @@ export const REFERENCE_TASK_KEYS = Object.freeze({
 });
 export const REVIEW_KEYS = Object.freeze({
   state: mapped,
-  missingRequired: ignored('what the review still misses (AI / review slice)'),
+  missingRequired: ignored('what the review still misses (AI / review slice); TRIPWIRE: a READY case with a non-empty list throws S02_READY_CASE_CONTRADICTS'),
   askableMissing: ignored('what the interview may still ask (AI slice)'),
   mapPointsToConfirm: ignored('the map points the person confirms (the fixtures confirm every slot of the geography)'),
-  humanConfirmationRequired: ignored('review contract (the product path always goes through review and accept)'),
-  canPublishFromAiAlone: ignored('review contract (the product path always goes through review and accept)'),
+  humanConfirmationRequired: ignored('review contract (the product path always goes through review and accept); TRIPWIRE: false on a READY case throws S02_READY_CASE_CONTRADICTS'),
+  canPublishFromAiAlone: ignored('review contract (the product path always goes through review and accept); TRIPWIRE: true on a READY case throws S02_READY_CASE_CONTRADICTS'),
 });
 export const KIND_KEYS = Object.freeze({
   expected: mapped,
@@ -114,7 +114,7 @@ const isStringList = value => Array.isArray(value) && value.every(item => typeof
 
 // ------------------------------------------------------------------ bookkeeping
 function newBook() {
-  return {mapped: new Map(), ignored: new Map(), unconsumed: {total: 0, byKey: {}, list: []}, leaves: {present: 0, consumed: 0, unconsumed: 0},
+  return {mapped: new Map(), ignored: new Map(), unconsumed: {total: 0, byKey: {}, list: []}, leaves: {present: 0, consumed: 0, unconsumed: 0, validatedOnly: 0, assertable: 0},
     counts: {cases: {total: 0, task: 0, worker: 0, mapped: 0, skipped: 0}, workers: {rows: 0, built: 0, skipped: 0}}};
 }
 const bump = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
@@ -175,6 +175,11 @@ function checkClassConsistency(expect, where) {
   const checks = {ELIGIBLE: () => expect.responseAllowed === true && expect.dispatchEligible === true, MANUAL_ONLY: () => expect.responseAllowed === true && expect.dispatchEligible === false,
     HARD_BLOCKED: () => expect.responseAllowed === false && expect.dispatchEligible === false};
   if (!checks[cls]()) throw new HarnessInputError('S02_ELIGIBILITY_INCONSISTENT', `${where}: ${cls} with responseAllowed ${expect.responseAllowed} / dispatchEligible ${expect.dispatchEligible}`);
+  // The booleans must also agree with the blocker arrays, as the matcher's own invariants do (runner.mjs assertMatchShape): responseAllowed == no hard blocker, dispatchEligible == no blocker
+  // at all. A corpus that says ELIGIBLE with a hard blocker could never be met: it would be a permanent, misleading finding instead of an input error.
+  const hardNone = expect.hardBlockers.length === 0, anyNone = hardNone && expect.dispatchBlockers.length === 0;
+  if (expect.responseAllowed !== hardNone) throw new HarnessInputError('S02_ELIGIBILITY_INCONSISTENT', `${where}: responseAllowed ${expect.responseAllowed} with hardBlockers ${JSON.stringify(expect.hardBlockers)}`);
+  if (expect.dispatchEligible !== anyNone) throw new HarnessInputError('S02_ELIGIBILITY_INCONSISTENT', `${where}: dispatchEligible ${expect.dispatchEligible} with hardBlockers ${JSON.stringify(expect.hardBlockers)} / dispatchBlockers ${JSON.stringify(expect.dispatchBlockers)}`);
 }
 
 function workerFromRow(row, caseId, index, book, {consumeBusy}) {
@@ -216,7 +221,7 @@ function workerFromRow(row, caseId, index, book, {consumeBusy}) {
   worker.expect = {responseAllowed: e.responseAllowed, dispatchEligible: e.dispatchEligible, hardBlockers: [...e.hardBlockers], dispatchBlockers: [...e.dispatchBlockers]};
   // The leaves of this worker's `expect`: eligibility (validated against the booleans), responseAllowed, dispatchEligible, hardBlockers and dispatchBlockers are consumed unless the worker
   // is not built; applicationTimeBlockers never is.
-  let consumedLeaves = 5, unconsumedLeaves = 0;
+  let validatedLeaves = 1, assertableLeaves = 4, unconsumedLeaves = 0;   // eligibility is cross-checked at load only; the four others are compared with the chain
   if ('applicationTimeBlockers' in e) {
     if (!(Array.isArray(e.applicationTimeBlockers) && e.applicationTimeBlockers.every(item => typeof item === 'string'))) throw new HarnessInputError('S02_EXPECT_SHAPE', `${where}: applicationTimeBlockers`);
     unconsumedLeaves += 1;
@@ -235,12 +240,15 @@ function workerFromRow(row, caseId, index, book, {consumeBusy}) {
       worker.unconsumed.push(entry);
       addUnconsumed(book, entry, {leaf: false});
       worker.skip = 'busy OVERLAPS_TASK_WINDOW: UNCONSUMED (S03 does not book workers)';
-      unconsumedLeaves += consumedLeaves;
-      consumedLeaves = 0;
+      unconsumedLeaves += validatedLeaves + assertableLeaves;
+      validatedLeaves = 0;
+      assertableLeaves = 0;
     }
   }
   book.leaves.present += present;
-  book.leaves.consumed += consumedLeaves;
+  book.leaves.consumed += validatedLeaves + assertableLeaves;
+  book.leaves.validatedOnly += validatedLeaves;
+  book.leaves.assertable += assertableLeaves;
   book.leaves.unconsumed += unconsumedLeaves;
   return worker;
 }
@@ -267,6 +275,28 @@ function checkRoot(root, book) {
     throw new HarnessInputError('S02_CASE_COUNT_MISMATCH', JSON.stringify(root.caseCount) + ` vs ${total} cases (${family('TASK')} TASK, ${family('WORKER')} WORKER)`);
   }
   return clock;
+}
+
+/** Throws S02_READY_CASE_CONTRADICTS when the ignored publication / review keys of a READY_FOR_REVIEW case say it is not publishable by the human-confirmed path S03 drives. */
+function readyCaseMustNotContradict(item, id) {
+  const outcome = item.expected.publicationOutcome;
+  if (outcome !== undefined && !(isObject(outcome) && outcome.outcome === 'ALLOW')) throw new HarnessInputError('S02_READY_CASE_CONTRADICTS', `${id}: publicationOutcome ${JSON.stringify(outcome?.outcome ?? outcome)} on a READY_FOR_REVIEW case (S03 records a synthetic ALLOW)`);
+  const review = item.expected.review;
+  if (review.missingRequired !== undefined && !(Array.isArray(review.missingRequired) && review.missingRequired.length === 0)) throw new HarnessInputError('S02_READY_CASE_CONTRADICTS', `${id}: review.missingRequired ${JSON.stringify(review.missingRequired)} on a READY_FOR_REVIEW case`);
+  if (review.canPublishFromAiAlone === true) throw new HarnessInputError('S02_READY_CASE_CONTRADICTS', `${id}: review.canPublishFromAiAlone is true on a READY_FOR_REVIEW case (the product path always goes through review and accept)`);
+  if (review.humanConfirmationRequired === false) throw new HarnessInputError('S02_READY_CASE_CONTRADICTS', `${id}: review.humanConfirmationRequired is false on a READY_FOR_REVIEW case (the product path always goes through review and accept)`);
+}
+
+/**
+ * The explicit, listed reason a built case has no negative the matcher can assert, or null when it has one. A case whose only non-ELIGIBLE reference worker differs by applicationTimeBlockers
+ * (TEAM_CAPACITY_EXCEEDED: enforced when applying or selecting, not by match_detail or the wave) is positive-only ON PURPOSE: the corpus says so with that very key. A case with no negative and
+ * no such key is NOT marked: the runner refuses it as UNDISCRIMINATING_CASE.
+ */
+function positiveOnlyOf(workers) {
+  if (workers.some(worker => !worker.skip && worker.expect && (worker.expect.hardBlockers.length > 0 || worker.expect.dispatchBlockers.length > 0))) return null;
+  const causes = workers.flatMap(worker => worker.unconsumed.filter(entry => entry.key === 'applicationTimeBlockers' && entry.value.length > 0).map(entry => `${worker.label} differs only by applicationTimeBlockers ${JSON.stringify(entry.value)}`));
+  if (causes.length === 0) return null;
+  return `the corpus gives no matcher-level negative for this case: ${causes.join('; ')} (enforced when applying or selecting, not by match_detail or the dispatch wave)`;
 }
 
 function skippedTaskCase(item, book, reason) {
@@ -303,6 +333,10 @@ export function adaptS02(raw, {registry, label = 'CORPUS', consumeBusy = false} 
     book.counts.cases.total += 1;
     if (item.family === 'WORKER') {
       book.counts.cases.worker += 1;
+      // A key that belongs to the TASK family but sits on a WORKER case would be MAPPED and then never read: refuse it instead of dropping it (nothing is dropped silently).
+      for (const key of ['referenceWorkers', 'referenceWorkersNote']) {
+        if (key in item) throw new HarnessInputError('S02_WORKER_CASE_HAS_REFERENCE_WORKERS', `${id}: ${key} on a WORKER-family case would be dropped; decide what it means in lib/s02_adapter.mjs first`);
+      }
       classifyKeys(item.expected, WORKER_EXPECTED_KEYS, 'case.expected(WORKER)', book);
       for (const task of item.referenceTasks ?? []) {
         classifyKeys(task, REFERENCE_TASK_KEYS, 'case.referenceTasks[]', book);
@@ -318,6 +352,10 @@ export function adaptS02(raw, {registry, label = 'CORPUS', consumeBusy = false} 
     }
     if (item.family !== 'TASK') throw new HarnessInputError('S02_FAMILY_UNKNOWN', `${id}: ${String(item.family)}`);
     book.counts.cases.task += 1;
+    // The WORKER family's own keys on a TASK case: ignored for the WORKER family (with a reason there), but accepted without comment on a TASK case they would be dropped silently.
+    for (const key of ['referenceTasks', 'referenceAssumes']) {
+      if (key in item) throw new HarnessInputError('S02_TASK_CASE_HAS_REFERENCE_TASKS', `${id}: ${key} on a TASK-family case would be dropped; decide what it means in lib/s02_adapter.mjs first`);
+    }
     classifyKeys(item.expected, TASK_EXPECTED_KEYS, 'case.expected(TASK)', book);
     classifyKeys(item.expected.review, REVIEW_KEYS, 'case.expected.review', book);
     classifyKeys(item.expected.kind, KIND_KEYS, 'case.expected.kind', book);
@@ -330,6 +368,9 @@ export function adaptS02(raw, {registry, label = 'CORPUS', consumeBusy = false} 
       book.counts.cases.skipped += 1;
       continue;
     }
+    // TRIPWIRES for the keys the adapter ignores although they carry assertions about the READY state: every READY case is published on a synthetic ALLOW after a review and an acceptance,
+    // so a READY case whose corpus says otherwise would claim a contract state the product does not hold. Edit the corpus or decide here; never run it as READY.
+    readyCaseMustNotContradict(item, id);
     const facts = {};
     if (!isObject(item.expected.facts)) throw new HarnessInputError('CASE_FACTS_MISSING', id);
     for (const [key, value] of Object.entries(item.expected.facts)) facts[key] = factValue(key, value, `${id}.${key}`);
@@ -346,7 +387,8 @@ export function adaptS02(raw, {registry, label = 'CORPUS', consumeBusy = false} 
       return worker;
     });
     const annotations = {title: item.title ?? null, ...(item.referenceWorkersNote ? {referenceWorkersNote: item.referenceWorkersNote} : {})};
-    cases.push(finalizeCase({id, family: 'TASK', expectedFacts: facts, expectedKinds, referenceWorkers: workers, deriveWorkers: false, annotations}, {registry}));
+    const positive = positiveOnlyOf(workers);
+    cases.push(finalizeCase({id, family: 'TASK', expectedFacts: facts, expectedKinds, referenceWorkers: workers, deriveWorkers: false, annotations, ...(positive ? {positiveOnly: true, positiveOnlyReason: positive} : {})}, {registry}));
     book.counts.cases.mapped += 1;
   }
   if (cases.length === 0) throw new HarnessInputError('CORPUS_NOTHING_TO_RUN', `all ${raw.cases.length} cases were skipped`);

@@ -1,5 +1,5 @@
 // Offline tests of the TOTAL adapter of the S02 contract corpus (lib/s02_adapter.mjs), run against the REAL corpus file supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json and the real
-// need-fact registry (src/contracts/needFactsV2.ts): `node --test supabase/proofs/ex06/lib/`. No database, no network, no dependency.
+// need-fact registry (src/contracts/needFactsV2.ts): `node --test supabase/proofs/ex06/lib/*.test.mjs`. No database, no network, no dependency.
 // The counts below are a TRIPWIRE: when S02 gains or loses a case, a key or an expectation, this test fails until the adapter has decided what the new thing means and the numbers (and
 // README_S03.md) are updated. A new key can never be dropped silently: the adapter throws S02_KEY_UNKNOWN.
 process.env.EX06_QUIET = '1';
@@ -8,7 +8,7 @@ import test from 'node:test';
 import {CONTROL_RESTRICTED, normaliseCorpus, referenceWorkerPlan} from './corpus.mjs';
 import {ACTIVATION_PLACEHOLDER_SKILL, CASE_KEYS, EXPECT_KEYS, KIND_KEYS, PROFILE_KEYS, REFERENCE_TASK_KEYS, REVIEW_KEYS, ROOT_KEYS, TASK_EXPECTED_KEYS, WORKER_EXPECTED_KEYS, WORKER_ROW_KEYS,
   adaptS02, factValue, loadCorpus} from './s02_adapter.mjs';
-import {availabilityFor, computeRebase, materialiseTimes} from './timeutil.mjs';
+import {availabilityFor, computeRebase, materialiseTimes, parseIso, utcOffsetMinutes} from './timeutil.mjs';
 import {CORPUS_PATH, STAND_IN_REGISTRY, readText, registryFromSource} from './test_support.mjs';
 
 const registry = registryFromSource();
@@ -42,8 +42,10 @@ test('TRIPWIRE: the S02 corpus adapts to 37 buildable cases, 29 skipped with a r
 test('TRIPWIRE: 80 corpus expectations are reported UNCONSUMED (never dropped), with the leaf counts: 897 present, 545 consumed, 352 not consumed; 47 key paths mapped, 60 ignored with a reason', () => {
   assert.equal(adapted.unconsumed.total, 80);
   assert.deepEqual(adapted.unconsumed.byKey, {busy: 2, applicationTimeBlockers: 7, 'eligibility:NOT_PUBLISHABLE': 18, 'eligibility:NO_PUBLISHED_NEED': 21, 'referenceTasks[].expect': 32});
-  assert.deepEqual(adapted.leaves, {present: 897, consumed: 545, unconsumed: 352});
+  assert.deepEqual(adapted.leaves, {present: 897, consumed: 545, unconsumed: 352, validatedOnly: 109, assertable: 436});
   assert.equal(adapted.leaves.consumed + adapted.leaves.unconsumed, adapted.leaves.present);
+  assert.equal(adapted.leaves.validatedOnly + adapted.leaves.assertable, adapted.leaves.consumed, 'consumed = validated at load only (the eligibility class, 109 built workers) + asserted against the chain (4 fields each = 436)');
+  assert.equal(adapted.leaves.assertable, adapted.counts.workers.built * 4);
   assert.equal(Object.keys(adapted.keyCoverage.mapped).length, 47);
   assert.equal(Object.keys(adapted.keyCoverage.ignored).length, 60);
   for (const path of Object.keys(adapted.keyCoverage.ignored)) assert.ok(adapted.keyCoverage.ignoredReasons[path]?.length > 10, path + ' is ignored without a reason');
@@ -203,6 +205,73 @@ test('every adapted case builds a plan with the harness control, an eligible-wor
     assert.equal(plan.find(entry => entry.control).profile.skillsAfterActivation, undefined);
   }
   assert.deepEqual(noCorpusNegative, ['T-004', 'T-005', 'T-036']);
+  // ... and those three, and only those, are marked positiveOnly BY THE ADAPTER with the corpus's own reason (applicationTimeBlockers): explicit, listed, never silently accepted
+  assert.deepEqual(adapted.cases.filter(item => item.positiveOnly).map(item => item.id), noCorpusNegative);
+  for (const id of noCorpusNegative) {
+    const reason = caseById(id).positiveOnlyReason;
+    assert.match(reason, /applicationTimeBlockers \["TEAM_CAPACITY_EXCEEDED"\]/, id);
+    assert.match(reason, /not by match_detail or the dispatch wave/, id);
+  }
+  assert.ok(adapted.cases.filter(item => !item.positiveOnly).every(item => item.positiveOnlyReason === null));
+});
+
+test('a case with no negative and no applicationTimeBlockers reason is NOT marked positive-only (the runner refuses it as UNDISCRIMINATING_CASE); the marker needs its reason', () => {
+  const raw = fresh();
+  for (const row of raw.cases.find(item => item.id === 'T-004').referenceWorkers) row.expect.applicationTimeBlockers = [];
+  const mutated = adaptS02(raw, {registry});
+  assert.equal(mutated.cases.find(item => item.id === 'T-004').positiveOnly, false, 'with no reason in the corpus nothing opts the case out');
+  assert.equal(mutated.cases.filter(item => item.positiveOnly).length, 2);
+  const native = patch => ({synthetic: true, cases: [{id: 'p1', expectedFacts: caseById('T-001').expectedFacts, expectedEligibility: {fit: {hardBlockers: []}}, ...patch}]});
+  assert.throws(() => normaliseCorpus(native({positiveOnly: true}), {registry}), /POSITIVE_ONLY_NEEDS_A_REASON/);
+  assert.throws(() => normaliseCorpus(native({positiveOnly: true, positiveOnlyReason: 'too short'}), {registry}), /POSITIVE_ONLY_NEEDS_A_REASON/);
+  assert.throws(() => normaliseCorpus(native({positiveOnlyReason: 'a reason without the flag, twenty characters'}), {registry}), /POSITIVE_ONLY_REASON_WITHOUT_FLAG/);
+  assert.equal(normaliseCorpus(native({positiveOnly: true, positiveOnlyReason: 'the corpus names no negative: twenty characters'}), {registry}).cases[0].positiveOnly, true);
+});
+
+test('TRIPWIRE: a READY case whose ignored publication / review keys contradict READY throws S02_READY_CASE_CONTRADICTS (it would be published on a synthetic ALLOW and claim a state the product does not hold)', () => {
+  const run = patch => { const raw = fresh(); patch(raw.cases.find(item => item.id === 'T-001')); return () => adaptS02(raw, {registry}); };
+  assert.throws(run(task => { task.expected.publicationOutcome = {outcome: 'BLOCK', rule: 'RS-MIN-007'}; }), /S02_READY_CASE_CONTRADICTS.*publicationOutcome "BLOCK"/);
+  assert.throws(run(task => { task.expected.publicationOutcome = {outcome: 'REVIEW'}; }), /S02_READY_CASE_CONTRADICTS/);
+  assert.throws(run(task => { task.expected.review.missingRequired = ['need.price_mode']; }), /S02_READY_CASE_CONTRADICTS.*missingRequired/);
+  assert.throws(run(task => { task.expected.review.canPublishFromAiAlone = true; }), /S02_READY_CASE_CONTRADICTS.*canPublishFromAiAlone/);
+  assert.throws(run(task => { task.expected.review.humanConfirmationRequired = false; }), /S02_READY_CASE_CONTRADICTS.*humanConfirmationRequired/);
+  assert.doesNotThrow(run(task => { task.expected.publicationOutcome = {outcome: 'ALLOW', rule: 'RS-MIN-001'}; task.expected.review.missingRequired = []; }), 'ALLOW and an empty list are what READY means');
+  // a case that publishes nothing keeps its BLOCK / REVIEW outcome without a tripwire (it is skipped, with the reason)
+  assert.ok(adapted.skipped.some(item => item.id === 'T-016'));
+});
+
+test('nothing is dropped silently: a TASK-family key on a WORKER case and a WORKER-family key on a TASK case throw; the corpus must agree with itself about the blockers, not only about the booleans', () => {
+  const fromId = (raw, id) => raw.cases.find(item => item.id === id);
+  let raw = fresh();
+  fromId(raw, 'W-001').referenceWorkers = fromId(raw, 'T-001').referenceWorkers;
+  assert.throws(() => adaptS02(raw, {registry}), /S02_WORKER_CASE_HAS_REFERENCE_WORKERS.*referenceWorkers/);
+  raw = fresh();
+  fromId(raw, 'W-001').referenceWorkersNote = 'a note';
+  assert.throws(() => adaptS02(raw, {registry}), /S02_WORKER_CASE_HAS_REFERENCE_WORKERS.*referenceWorkersNote/);
+  raw = fresh();
+  fromId(raw, 'W-001').expected.facts = {'need.title': 'x'};
+  assert.throws(() => adaptS02(raw, {registry}), /S02_KEY_UNKNOWN.*facts/, 'expected.facts on a WORKER case is an unknown key');
+  raw = fresh();
+  fromId(raw, 'T-001').referenceTasks = [{label: 'x'}];
+  assert.throws(() => adaptS02(raw, {registry}), /S02_TASK_CASE_HAS_REFERENCE_TASKS.*referenceTasks/);
+  raw = fresh();
+  fromId(raw, 'T-001').referenceAssumes = {};
+  assert.throws(() => adaptS02(raw, {registry}), /S02_TASK_CASE_HAS_REFERENCE_TASKS.*referenceAssumes/);
+  // ELIGIBLE with all booleans true but a hard blocker, or a dispatch blocker, is an input error (the matcher's own invariants could never produce it)
+  raw = fresh();
+  fromId(raw, 'T-001').referenceWorkers[0].expect.hardBlockers = ['MISSING_REQUIRED_TOOL'];
+  assert.throws(() => adaptS02(raw, {registry}), /S02_ELIGIBILITY_INCONSISTENT.*responseAllowed true with hardBlockers/);
+  raw = fresh();
+  fromId(raw, 'T-001').referenceWorkers[0].expect.dispatchBlockers = ['OUTSIDE_AVAILABILITY'];
+  assert.throws(() => adaptS02(raw, {registry}), /S02_ELIGIBILITY_INCONSISTENT.*dispatchEligible true with/);
+  raw = fresh();
+  const doesNotFit = fromId(raw, 'T-001').referenceWorkers[1];   // MANUAL_ONLY: responseAllowed true, dispatchEligible false, a dispatch blocker
+  doesNotFit.expect.dispatchBlockers = [];
+  assert.throws(() => adaptS02(raw, {registry}), /S02_ELIGIBILITY_INCONSISTENT.*dispatchEligible false with/);
+  raw = fresh();
+  const hard = fromId(raw, 'T-010').referenceWorkers.find(item => item.expect.eligibility === 'HARD_BLOCKED');
+  hard.expect.hardBlockers = [];
+  assert.throws(() => adaptS02(raw, {registry}), /S02_ELIGIBILITY_INCONSISTENT.*responseAllowed false with hardBlockers \[\]/);
 });
 
 test('the S02 absolute times rebase into the future for any CI date up to a few days before the earliest window, and a stale corpus is refused; every fit worker resolves its availability shape', () => {
@@ -223,6 +292,23 @@ test('the S02 absolute times rebase into the future for any CI date up to a few 
   assert.throws(() => materialiseTimes(dated.expectedFacts, {nowMs: Date.parse('2026-12-01T00:00:00Z'), rebase: null}), /CASE_TIME_NOT_FUTURE/, 'without the rebase the corpus has aged out');
   const late = computeRebase({ciNowMs: Date.parse('2026-12-01T00:00:00Z'), corpusNowUtc: adapted.clock.nowUtc});
   assert.doesNotThrow(() => materialiseTimes(dated.expectedFacts, {nowMs: Date.parse('2026-12-01T00:00:00Z'), rebase: late}), 'the rebase keeps the lead of the window');
+});
+
+test('every rebased S02 time is written with Belgrade\'s REAL offset at the new instant (a window moved across a DST change reads +02:00 / +01:00 as the zone does), and the instant, the duration and the lead are unchanged by it', () => {
+  const offsetOf = text => (text === 'Z' ? 0 : (text[0] === '-' ? -1 : 1) * (Number(text.slice(1, 3)) * 60 + Number(text.slice(4, 6))));
+  for (const ci of ['2026-10-01T12:00:00Z', '2026-10-28T10:00:00Z', '2027-03-20T09:00:00Z', '2027-04-02T09:00:00Z']) {
+    const nowMs = Date.parse(ci), rebase = computeRebase({ciNowMs: nowMs, corpusNowUtc: adapted.clock.nowUtc});
+    for (const item of adapted.cases.filter(entry => entry.expectedFacts['need.starts_at'])) {
+      const times = materialiseTimes(item.expectedFacts, {nowMs, rebase});
+      for (const key of ['need.starts_at', 'need.ends_at']) {
+        const parsed = parseIso(times.facts[key]), original = parseIso(item.expectedFacts[key]);
+        assert.equal(parsed.ms, original.ms + rebase.deltaMs, `${item.id} ${key} at ${ci}: the instant is the original instant shifted by the delta`);
+        assert.equal(parsed.offsetMinutes, utcOffsetMinutes(parsed.ms), `${item.id} ${key} at ${ci}: ${times.facts[key]} is not Belgrade's offset at that instant`);
+        assert.equal(offsetOf(parsed.offsetText), parsed.offsetMinutes);
+      }
+      assert.equal(times.interval.endMs - times.interval.startMs, parseIso(item.expectedFacts['need.ends_at']).ms - parseIso(item.expectedFacts['need.starts_at']).ms, 'the duration is preserved');
+    }
+  }
 });
 
 test('with the corpus clock and a CI clock a few days before the earliest window every window stays at least 28 hours ahead (a run of an hour does not age it out)', () => {

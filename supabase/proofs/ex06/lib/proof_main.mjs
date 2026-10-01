@@ -6,22 +6,25 @@
 //   (1) the pin gate: the 11 S01 function-body pins that stage 18 reaches (equal or not, REPORTED, never fatal), the md5 of the dependency functions, the sha256 of the dispatch config
 //       rows and a catalog fingerprint (every function body and trigger of public and private) for information;
 //   (2) the certificate: certified, live, erasure source and binding must be equal and ready at the start, and unchanged at the end; the catalog fingerprint unchanged at the end;
-//   (3) the CANARY (three product-path cases): any disagreement is a HARNESS_ERROR, never a finding;
+//   (3) the CANARY (seven product-path cases: stationary, scheduled, radius, REMOTE, POINT_TO_POINT, MULTI_STOP, the world gate): any disagreement is a HARNESS_ERROR, never a finding;
 //   (4) for each task case of the corpus (the S02 contract corpus through lib/s02_adapter.mjs, else the SMOKE corpus): build the task through the product path and its reference workers
 //       through the product's writers (lib/fixtures.mjs), read every fixture back, read the matcher (private.match_detail), run ONE dispatch wave (private.dispatch_next_wave), read the
 //       deliveries and OPPORTUNITY_AVAILABLE events, compare with the corpus expectation (lib/runner.mjs);
 //   (5) ex06-s03-report.json and a markdown expected-versus-actual table.
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
-import {createFixtures} from './fixtures.mjs';
+import {ABORT_PATTERN, createFixtures} from './fixtures.mjs';
 import {DEV_CERTIFICATE_DIGEST_AT_S01, EXTENSION_PINS, EXTRA_PINS, PIN_CONVENTION, PIN_SOURCE, PROOF_POINT_PINS, bodyMd5Map, catalogLines, catalogQuery, configQuery, dependencyBodies,
   dependencyQuery, evaluatePins, evidenceLabel, pinQuery, pinRowsOf} from './pins.mjs';
-import {HarnessInputError, failedNegativeControls, renderMarkdown} from './compare.mjs';
+import {HarnessInputError, failedNegativeControls, refreshScope, renderMarkdown} from './compare.mjs';
 import {SMOKE_CORPUS, capFromEnv, chooseCorpusPath, normaliseCorpus, sha256Hex} from './corpus.mjs';
 import {loadCorpus} from './s02_adapter.mjs';
 import {computeRebase} from './timeutil.mjs';
 import {HarnessFailure, checkAssertions, finalizeResult, harnessError, matcherBodiesOf, newReport, runCanary, runCase, say} from './runner.mjs';
 
 const consistent = state => state.ready === true && state.live === state.certified && state.live === state.erasure && state.live === state.binding;
+
+/** True when a call of the run was aborted or timed out (the 30 s signal, the Auth timeout): a harness error or a case error that carries the abort / timeout signature. */
+const anyAbort = report => report.harnessErrors.some(item => ABORT_PATTERN.test(String(item.message))) || report.cases.some(item => ABORT_PATTERN.test(String(item.error ?? '')));
 
 /** The stage lines the workflow wrote (NN-name START / exit=K / SKIPPED), so the report says which stages ran. */
 function readStages(env) {
@@ -44,7 +47,10 @@ export async function runProof({rt, env, registry, sources = null, fixtureOption
   const catalogPath = env.EX06_CATALOG_FILE ?? privateDir + '/ex06-catalog-before-extension.json';
   const strict = env.EX06_STRICT_FINDINGS === '1';
   const report = newReport({sourceSha: env.GITHUB_SHA ?? null, pinConvention: PIN_CONVENTION, pinSource: PIN_SOURCE});
+  let fx = null;
   const save = () => {
+    refreshScope(report);
+    if (fx) report.auth = fx.authStats();
     writeFileSync(jsonPath, JSON.stringify(report, null, 2) + '\n');
     writeFileSync(markdownPath, renderMarkdown(report));
   };
@@ -60,7 +66,7 @@ export async function runProof({rt, env, registry, sources = null, fixtureOption
     report.sources = sources;
     report.stages = readStages(env);
 
-    const fx = createFixtures(rt, {needPath: env.EX06_NEED_PATH ?? 'product', ...fixtureOptions});
+    fx = createFixtures(rt, {needPath: env.EX06_NEED_PATH ?? 'product', ...fixtureOptions});
     report.needPath = fx.defaultPath;
     if (fx.defaultPath !== 'product') report.warnings.push(`EX06_NEED_PATH=${fx.defaultPath}: a diagnostic mode; a task the product refuses may be matched on a direct insert, and every such case is DEGRADED`);
     await fx.reloadSchema();
@@ -68,7 +74,17 @@ export async function runProof({rt, env, registry, sources = null, fixtureOption
     say('SCHEDULERS ' + JSON.stringify(report.schedulers));
     const foreignTokens = [];
     // Whatever happens next (a canary failure, a harness error, a normal end), the fixtures are retired and the workers that were on the chain before the harness are put back as they were.
+    // When a call was ABORTED or TIMED OUT (the 30 s signal; PostgREST 14 re-executes a function that raises 40001 without end, and the proof runs before the extension that carries B24 part 1)
+    // the active backends are recorded first, WHICH query is still running, and the stuck ones are terminated: they would hold the locks the retirement below needs. Disposable database only.
     cleanup = () => {
+      if (anyAbort(report)) {
+        try {
+          report.activeBackends = fx.diagnoseActiveBackends({terminate: true});
+          say('ACTIVE_BACKENDS after an aborted call: ' + report.activeBackends.backends.length + ', terminated ' + report.activeBackends.terminated.length);
+        } catch (error) {
+          report.warnings.push('the active backends could not be read after an aborted call: ' + String(error?.message ?? error).slice(0, 300));
+        }
+      }
       fx.parkAll();
       for (const token of foreignTokens) report.foreign.restored += fx.restoreForeign(token);
     };
@@ -118,6 +134,7 @@ export async function runProof({rt, env, registry, sources = null, fixtureOption
     const rebase = corpus.clock?.nowUtc ? computeRebase({ciNowMs: nowMs, corpusNowUtc: corpus.clock.nowUtc}) : null;
     Object.assign(report.corpus, {id: corpus.id, version: corpus.version, totalCases: corpus.totalCases, buildable: corpus.cases.length, cap, capped: cap !== null && cap < corpus.cases.length,
       skipped: corpus.skipped, unconsumed: corpus.unconsumed, leaves: corpus.leaves, rebase, counts: corpus.counts ?? null,
+      positiveOnly: corpus.cases.filter(item => item.positiveOnly).map(item => ({id: item.id, reason: item.positiveOnlyReason})),
       adapter: corpus.keyCoverage ? {mappedKeyPaths: Object.keys(corpus.keyCoverage.mapped).length, ignoredKeyPaths: Object.keys(corpus.keyCoverage.ignored).length, ignoredReasons: corpus.keyCoverage.ignoredReasons} : null});
     if (report.corpus.capped) report.warnings.push(`EX06_MAX_CASES=${cap}: only ${selected.length} of ${corpus.cases.length} buildable cases ran (the result is PARTIAL)`);
     pass('CORPUS_LOADED_ADAPTED_AND_VALIDATED_AGAINST_THE_REAL_FACT_REGISTRY');
@@ -135,7 +152,7 @@ export async function runProof({rt, env, registry, sources = null, fixtureOption
     report.canary = canary;
     save();
     if (canary.status !== 'PASS') throw new HarnessFailure('CANARY_FAILED', canary.problems.join(' ; ') || 'a canary case did not pass');
-    pass('CANARY_FIT_UNFIT_SCHEDULED_AND_RADIUS_CASES_PASS_ON_THE_PRODUCT_PATH');
+    pass('CANARY_FIT_UNFIT_SCHEDULED_RADIUS_EVERY_GEOGRAPHY_AND_WORLD_CASES_PASS_ON_THE_PRODUCT_PATH');
 
     // ---------------------------------------------------------------- (4) the corpus cases
     const ctx = {report, matcherBodies, nowMs, rebase, corpusLabel: report.corpus.label, needPath: fx.defaultPath, controls: true, foreignTokens};

@@ -43,10 +43,10 @@ export function agreeing(label, caseId) {
   if (label === 'paused') return {...base, dispatchBlockers: ['CURRENT_AVAILABILITY_PAUSED', 'OUTSIDE_AVAILABILITY'], dispatchEligible: false};
   if (label === 'draft' || label === 'control-restricted') return {...base, hardBlockers: ['ACCOUNT_OR_PROFILE_RESTRICTED'], dispatchEligible: false, responseAllowed: false};
   if (label === 'far') return {...base, dispatchBlockers: ['OUTSIDE_PREFERRED_RADIUS'], dispatchEligible: false};
-  return base;
+  return base;   // 'test-world' is eligible for the matcher too: only the dispatch admission refuses it (it is simply not in `delivered`)
 }
 
-const KNOWN_LABELS = ['fit', 'unfit', 'unknown', 'paused', 'draft', 'far', 'booked', 'second', 'control-restricted', 'fits', 'does-not-fit', 'unknown-capability'];
+const KNOWN_LABELS = ['fit', 'unfit', 'unknown', 'paused', 'draft', 'far', 'booked', 'second', 'control-restricted', 'fits', 'does-not-fit', 'unknown-capability', 'test-world'];
 
 /**
  * A scripted fixture factory for the runner. Options (all optional):
@@ -54,9 +54,10 @@ const KNOWN_LABELS = ['fit', 'unfit', 'unknown', 'paused', 'draft', 'far', 'book
  *   failWorker: a label whose createWorker throws          wave / rounds / schedule / need / needBack / workerBack: scripted answers (a function receives the default)
  *   kinds: what kindsOfStoredNeed returns                  foreignActive: what countForeignActive returns         refuseAt: product path step that throws (error.ex06Step)
  *   matchPatch(label, match) -> patched match (e.g. null)  distance: the distanceToStartKm every non-remote match reports (default 0)
+ *   shapeGot: {label: 'NONE' | 'RULE' | 'WINDOW'} the coverage createWorker reports for the labelled worker (default: no shapeCoverage at all, like a derived worker)
  */
 export function fakeFixtures({caseId, outcome = agreeing, delivered = ['fit', 'fits'], alsoDeliver = [], failWorker = null, wave = null, rounds = null, schedule = null, need = null, needBack = null,
-  workerBack = null, kinds = null, foreignActive = 0, refuseAt = null, refuseMessage = null, matchPatch = null, distance = 0, materialisation = 'PRODUCT_PATH', droppedFacts = []} = {}) {
+  workerBack = null, kinds = null, foreignActive = 0, refuseAt = null, refuseMessage = null, matchPatch = null, distance = 0, materialisation = 'PRODUCT_PATH', droppedFacts = [], shapeGot = {}} = {}) {
   const calls = {retired: [], marks: 0, waves: 0, workers: [], specs: [], parked: 0, needs: [], paths: []};
   const labelOfProfile = new Map();
   const labelOf = text => KNOWN_LABELS.filter(label => text.startsWith(label + '-')).sort((a, b) => b.length - a.length)[0] ?? text;
@@ -70,7 +71,8 @@ export function fakeFixtures({caseId, outcome = agreeing, delivered = ['fit', 'f
     createWorker: async spec => {
       const label = labelOf(spec.label);
       if (failWorker === label) throw new Error('FIXTURE_WORKER_FAILED');
-      const worker = {id: 'acct-' + label, profileId: 'prof-' + label, bypassed: [], notes: [], label};
+      const worker = {id: 'acct-' + label, profileId: 'prof-' + label, bypassed: [], notes: [], label,
+        ...(label in shapeGot ? {shapeCoverage: {shape: 'AVAILABLE_NOW_AND_SCHEDULED', wanted: true, got: shapeGot[label]}} : {})};
       labelOfProfile.set(worker.profileId, label);
       calls.workers.push(label);
       calls.specs.push({label, spec});
@@ -135,6 +137,8 @@ export function fakeRuntime({flowFails = false, rows: rowsOverride = null, sqlAn
     rpc_complete_ai_task_review_evaluation_service: {state: 'DONE'},
     rpc_submit_response: {responseId: 'resp-1', version: 1, needRevision: 1, contentHash: 'h'}, rpc_select_response: {agreementId: 'agr-1'},
     rpc_withdraw_response: {state: 'WITHDRAWN'}, rpc_cancel_need: {state: 'CANCELLED'}, rpc_admit_account_lineage_service: {changed: true},
+    rpc_read_account_lineage_service: {lineage: 'UNCLASSIFIED', revision: 0},
+    rpc_get_need_location_review: {revision: 'l'.repeat(64)}, rpc_prepare_ai_task_review: {canAccept: true, reviewId: 'rev-2', displayedContentDigest: 'dig'},
   };
   const makeClient = who => ({
     rpc: (name, args) => {

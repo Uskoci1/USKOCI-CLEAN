@@ -41,10 +41,21 @@ export function pinFor(slot, city) {
   return {slot, latitudeE6: Math.round((centre.latitude + PIN_CELL_OFFSET_DEGREES) * 1e6), longitudeE6: Math.round((centre.longitude + PIN_CELL_OFFSET_DEGREES) * 1e6), origin: {kind: 'MANUAL_PIN'}};
 }
 
-/** The city a task's geography is anchored on (the start of the route, else the service area), or null when the task is remote. */
+/** The city TEXT of a task (needs.approximate_city): the start of the route, else the service area, or null when the task is remote. */
 export function primaryCity(geography) {
   if (!geography || geography.mode === 'REMOTE') return null;
   return geography.start?.city ?? geography.serviceArea?.city ?? null;
+}
+
+/**
+ * The city whose point the product stores as the task's coarse coordinates (needs.approximate_lat / approximate_lng): for AREA_BASED with a service area it is the SERVICE AREA's point
+ * (20260910130851_clean_w02_resolved_location_authority.sql anchors the coordinates on it) even when the route also names a start in another city; otherwise the first point,
+ * i.e. primaryCity. The city TEXT stays primaryCity (start first). Null when the task is remote.
+ */
+export function anchorCity(geography) {
+  if (!geography || geography.mode === 'REMOTE') return null;
+  if (geography.mode === 'AREA_BASED' && geography.serviceArea?.city) return geography.serviceArea.city;
+  return primaryCity(geography);
 }
 
 /** private.haversine_km: round(6371 * 2 * asin(least(1, sqrt(...))), 2), null when a coordinate is missing. */

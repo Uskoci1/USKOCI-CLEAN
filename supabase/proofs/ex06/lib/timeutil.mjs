@@ -61,11 +61,20 @@ export function parseIso(value) {
   return {ms, offsetMinutes, offsetText};
 }
 
-/** The instant shifted by deltaMs and written with the SAME offset text as the original ('+02:00' stays '+02:00'): durations are preserved, fractions of a second are dropped. */
-export function rebaseIso(value, deltaMs) {
-  const {ms, offsetMinutes, offsetText} = parseIso(value);
-  const local = new Date(ms + deltaMs + offsetMinutes * MINUTE).toISOString().slice(0, 19);
-  return local + offsetText;
+const formatOffset = minutes => `${minutes < 0 ? '-' : '+'}${two(Math.floor(Math.abs(minutes) / 60))}:${two(Math.abs(minutes) % 60)}`;
+
+/**
+ * The instant shifted by deltaMs; the SAME instant arithmetic, so durations are preserved and fractions of a second are dropped. The offset text: when the original offset WAS the zone's own
+ * offset at the original instant (a Belgrade '+02:00' in summer, '+01:00' in winter) the rebased instant is re-expressed with the zone's real offset at the NEW instant, so a window moved
+ * from winter into summer reads '+02:00', not a stale '+01:00' (the instant and every availability derived from it are the same either way); any other offset ('Z', '+05:30') is kept as written.
+ */
+export function rebaseIso(value, deltaMs, {tz = BELGRADE} = {}) {
+  const {ms, offsetMinutes, offsetText: originalText} = parseIso(value);
+  const moved = ms + deltaMs;
+  const zoned = originalText !== 'Z' && offsetMinutes === utcOffsetMinutes(ms, tz);
+  const minutes = zoned ? utcOffsetMinutes(moved, tz) : offsetMinutes;
+  const local = new Date(moved + minutes * MINUTE).toISOString().slice(0, 19);
+  return local + (zoned ? formatOffset(minutes) : originalText);
 }
 
 /** delta = CI now - corpus clock. Recorded in the report so a reader can reverse it. */
@@ -126,6 +135,9 @@ export const AVAILABILITY_SHAPES = Object.freeze({
   NONE_DECLARED: 'availableNow false and nothing covers the task time',
 });
 
+/** True for the shapes that promise a weekly rule or window covering the task time (AVAILABLE_NOW_AND_SCHEDULED, SCHEDULED_ONLY): what `coverage: 'NONE'` then means is a shape that was NOT built. */
+export const shapeWantsCoverage = shape => shape === 'AVAILABLE_NOW_AND_SCHEDULED' || shape === 'SCHEDULED_ONLY';
+
 /** {startMs, endMs} of a task window: given as such, or read from materialised task facts ('need.starts_at' / 'need.ends_at'); null for a task without one. */
 export function intervalOf(taskFactsOrInterval) {
   const value = taskFactsOrInterval;
@@ -143,7 +155,7 @@ export function intervalOf(taskFactsOrInterval) {
 export function availabilityFor(shape, taskFactsOrInterval, {tz = BELGRADE, newId = randomUUID} = {}) {
   const interval = intervalOf(taskFactsOrInterval);
   if (!(shape in AVAILABILITY_SHAPES)) throw new HarnessInputError('AVAILABILITY_SHAPE_UNKNOWN', String(shape));
-  const wantsCoverage = shape === 'AVAILABLE_NOW_AND_SCHEDULED' || shape === 'SCHEDULED_ONLY';
+  const wantsCoverage = shapeWantsCoverage(shape);
   const availableNow = shape === 'AVAILABLE_NOW_AND_SCHEDULED' || shape === 'AVAILABLE_NOW_ONLY';
   if (!wantsCoverage || !interval) {
     if (shape === 'SCHEDULED_ONLY' && !interval) throw new HarnessInputError('AVAILABILITY_SHAPE_NEEDS_A_TASK_WINDOW', shape);

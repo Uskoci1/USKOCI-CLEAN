@@ -6,7 +6,7 @@ name: EX-06 S03 matching contract proof
 # recorded, only to reach the post-B24 body of public.rpc_begin_push_send (the 12th S01 pin) and to report which objects the extension changed (a second, small report section).
 # No matching assertion is made on the extended chain.
 #
-# THE PROOF (stage 19, supabase/proofs/ex06/ex06_s03_proof.mjs). A canary (three product-path cases) first: any disagreement is a harness error, never a finding. Then for each task case of the
+# THE PROOF (stage 19, supabase/proofs/ex06/ex06_s03_proof.mjs). A canary (seven product-path cases: stationary, scheduled, radius, REMOTE, POINT_TO_POINT, MULTI_STOP, the world gate) first: any disagreement is a harness error, never a finding. Then for each task case of the
 # S02 contract corpus (supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, through the total adapter lib/s02_adapter.mjs): the task is published through the product path (never a silent
 # direct insert), the reference workers are built through the product's own writers, every fixture is read back, private.match_detail is read, private.dispatch_next_wave runs once, the
 # deliveries and OPPORTUNITY_AVAILABLE events are read and compared with the corpus. A disagreement is a FINDING, never adjusted and never fixed here. EX06_REQUIRE_CORPUS=1: a missing
@@ -19,14 +19,45 @@ name: EX-06 S03 matching contract proof
 # needs private.platform_price_add_version, one of its 54 targets, which only pkg051a creates (the target check has no relaxed mode), so pkg051a runs right before it. The pins cover function
 # bodies only: helper functions, marketplace_config rows and triggers are recorded for information and not pinned (see the label). A differing pin only downgrades the label.
 # No DEV, provider or device access. Every outcome destroys the disposable stack.
+#
+# TRIGGERS. Every file the proof reads or imports re-runs it: the harness, the S02 corpus, the need-fact registry (src/contracts/needFactsV2.ts: loaded by ts_loader and parsed by the offline
+# tests), the proof adapter (closure_runtime.mjs and what it imports: ru5_device_ui_local_guard.mjs, history_snapshot.mjs), the TypeScript loader, the product-path helpers
+# (pkg023_flow.mjs and publication_fixtures.mjs), the S01 baseline document the offline tests read, the stack script, and every candidate and proof script the extension stages apply.
+# Documentation under supabase/proofs/ex06 (README, review dispositions) does NOT start the job: it is a chain of about 90 minutes.
 on:
   push:
     branches: [work/uskoci-ui-unification-20260924]
     paths:
       - '.github/workflows/ex06-s03-matching-proof.yml'
       - 'supabase/proofs/ex06/**'
+      - '!supabase/proofs/ex06/*.md'
+      - '!supabase/proofs/ex06/**/*.md'
       - 'supabase/proofs/ai/corpus/**'
+      - 'src/contracts/needFactsV2.ts'
+      - 'supabase/proofs/pre_v3/closure_runtime.mjs'
+      - 'supabase/proofs/pre_v3/history_snapshot.mjs'
+      - 'supabase/proofs/ru5_device_ui_local_guard.mjs'
+      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
+      - 'supabase/proofs/ex04/ts_loader.mjs'
+      - 'supabase/proofs/pkg023/pkg023_flow.mjs'
+      - 'supabase/proofs/policy/publication_fixtures.mjs'
+      - 'docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_S01_DEV_BEFORE_BASELINE_20261001.md'
+      - 'supabase/candidates/pkg051a_platform_price_list.sql'
+      - 'supabase/candidates/b24_nonretried_conflicts_part1.sql'
+      - 'supabase/candidates/chat_p4_push_event_transport.sql'
+      - 'supabase/candidates/chat_p4_exact_message_event_resolver.sql'
+      - 'supabase/candidates/chat_b3c_private_invalidation_dev_application.sql'
+      - 'supabase/candidates/discovery_p0_exact_public_landing.sql'
+      - 'supabase/candidates/worker_profile_licenses_owned_projection.sql'
+      - 'supabase/proofs/chat/prepare_notification_a1.mjs'
+      - 'supabase/proofs/chat/private_history_read_proof.mjs'
+      - 'supabase/proofs/chat/message_window_proof.mjs'
   workflow_dispatch:
+    inputs:
+      max_cases:
+        description: 'EX06_MAX_CASES: cap the corpus cases for a cheap first run (a positive integer; empty = all; a capped run is PARTIAL)'
+        required: false
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -49,6 +80,7 @@ jobs:
       EX06_STAGES_FILE: /tmp/ex06-s03-artifacts/stages.txt
       EX06_NEED_PATH: product
       EX06_REQUIRE_CORPUS: '1'
+      EX06_MAX_CASES: ${{ github.event.inputs.max_cases }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -125,10 +157,15 @@ jobs:
           run_stage 17-pkg040 node supabase/proofs/pkg042/pkg042_proof.mjs replay
           run_stage 18-pkg042-to-pkg050 node supabase/proofs/pkg050/pkg050_proof.mjs
       - name: Corpus-driven matching proof on exactly the ex04d-proven chain (actual Auth and PostgREST; canary, pin gate, certificate, expected versus actual)
+        timeout-minutes: 45
         run: |
           set -euo pipefail
           umask 077
           proof_exit=0
+          # The run signs in about 200 Auth accounts (every other proof makes ten or fewer). The disposable stack was created by `supabase init` with the CLI's default [auth.rate_limit]; print
+          # the limits into the job summary BEFORE the proof, so the first run records what GoTrue enforces (the harness retries a 429 with a bounded back-off and reports the retries).
+          config=/tmp/uskoci-ru5-device-ui/supabase/config.toml
+          { printf '### Auth rate limits of the disposable stack (%s)\n\n```\n' "$config"; if [ -f "$config" ]; then grep -A12 '^\[auth.rate_limit\]' "$config" || printf 'no [auth.rate_limit] section in the config (GoTrue defaults apply)\n'; else printf 'config.toml not found\n'; fi; printf '```\n\n'; } | tee -a "$EX06_ARTIFACT_DIR/auth-rate-limits.txt" >> "$GITHUB_STEP_SUMMARY"
           printf '19-ex06-s03-proof START\n' | tee -a "$EX06_ARTIFACT_DIR/stages.txt"
           node supabase/proofs/ex06/ex06_s03_proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/19-ex06-s03-proof.log" || proof_exit=${PIPESTATUS[0]}
           printf '19-ex06-s03-proof exit=%s\n' "$proof_exit" | tee -a "$EX06_ARTIFACT_DIR/stages.txt"
@@ -139,6 +176,7 @@ jobs:
           exit "$proof_exit"
       - name: Fidelity extension for public.rpc_begin_push_send (A1, B3a, B3b, P0, P4 resolver, P5, B3c, P4 push transport, pkg051a, B24 part 1 relaxed). Non-blocking, unproven, recorded; then the second report section
         if: always()
+        timeout-minutes: 40
         run: |
           set -uo pipefail
           umask 077
@@ -217,6 +255,7 @@ jobs:
             /tmp/ex06-s03-artifacts/stage-failures.txt
             /tmp/ex06-s03-artifacts/extension-failures.txt
             /tmp/ex06-s03-artifacts/proof-tail.txt
+            /tmp/ex06-s03-artifacts/auth-rate-limits.txt
             /tmp/ex06-s03-artifacts/ex06-s03-report.json
             /tmp/ex06-s03-artifacts/ex06-s03-report.md
             /tmp/ex06-s03-artifacts/ex06-s03-extension-report.json
