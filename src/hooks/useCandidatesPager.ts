@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { CandidatesScope } from '../data/candidatesPage';
 import { createCandidatesPager, type CandidatesPageReader } from '../data/candidatesPager';
+import { ex04TestCandidatesPageLimit } from '../data/ex04TestPageLimit';
 import { usePagedList } from './usePagedList';
 
 /**
@@ -10,7 +11,7 @@ import { usePagedList } from './usePagedList';
  */
 const SCOPE: CandidatesScope = 'ALL';
 export function useCandidatesPager(readPage: CandidatesPageReader, complete: boolean) {
-  const create = useCallback((isCurrent: () => boolean) => createCandidatesPager({ readPage, isCurrent }), [readPage]);
+  const create = useCallback((isCurrent: () => boolean) => createCandidatesPager({ readPage, isCurrent, limit: ex04TestCandidatesPageLimit() }), [readPage]);
   const { state, pager } = usePagedList(create, SCOPE, complete, 'activate');
   return { state, pager };
 }

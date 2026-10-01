@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { MojaPrijavaProjekcija } from '../contracts/projections';
 import type { OwnApplicationsScope } from '../data/ownApplicationsPage';
+import { ex04TestPageLimit } from '../data/ex04TestPageLimit';
 import { createOwnApplicationsPager, type OwnApplicationsPageReader } from '../data/ownApplicationsPager';
 import { usePagedList } from './usePagedList';
 
@@ -11,7 +12,7 @@ import { usePagedList } from './usePagedList';
  * more once it is on screen.
  */
 export function useOwnApplicationsPager(readPage: OwnApplicationsPageReader, scope: OwnApplicationsScope | null, destination: string | null) {
-  const create = useCallback((isCurrent: () => boolean) => createOwnApplicationsPager({ readPage, isCurrent }), [readPage]);
+  const create = useCallback((isCurrent: () => boolean) => createOwnApplicationsPager({ readPage, isCurrent, limit: ex04TestPageLimit() }), [readPage]);
   const until = useCallback((items: readonly MojaPrijavaProjekcija[]) => items.some(item => item.prijavaId === destination), [destination]);
   const { state, pager } = usePagedList(create, scope, destination !== null, 'activate', until);
   return { state, pager };

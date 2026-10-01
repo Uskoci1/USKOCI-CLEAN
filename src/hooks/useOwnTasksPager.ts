@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { OwnTasksScope } from '../data/ownTasksPage';
+import { ex04TestPageLimit } from '../data/ex04TestPageLimit';
 import { createOwnTasksPager, type OwnTasksPageReader } from '../data/ownTasksPager';
 import { usePagedList } from './usePagedList';
 
@@ -8,7 +9,7 @@ import { usePagedList } from './usePagedList';
  * and the "read the whole set" flag are inputs; everything a page may or may not do is `createOwnTasksPager`'s.
  */
 export function useOwnTasksPager(readPage: OwnTasksPageReader, scope: OwnTasksScope | null, complete: boolean) {
-  const create = useCallback((isCurrent: () => boolean) => createOwnTasksPager({ readPage, isCurrent }), [readPage]);
+  const create = useCallback((isCurrent: () => boolean) => createOwnTasksPager({ readPage, isCurrent, limit: ex04TestPageLimit() }), [readPage]);
   const { state, pager } = usePagedList(create, scope, complete, 'start');
   return { ...state, loadMore: pager.loadMore, refresh: pager.refresh };
 }
