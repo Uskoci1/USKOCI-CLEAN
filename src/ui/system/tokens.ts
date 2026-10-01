@@ -223,7 +223,8 @@ export const sheetLift = {
 /** The one text field: 52px high, control corners, the strong hairline, body text. A multiline field adds its height. */
 export const fieldBox = { minHeight: 52, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
   paddingHorizontal: 14, paddingVertical: 12, backgroundColor: sys.color.surface } satisfies ViewStyle;
-export const field = { ...fieldBox, ...withInter(sys.type.body), color: sys.color.ink } satisfies TextStyle;
+/** Without `cursor`: expo's react-native-web typings widen TextStyle.cursor to `string`, which a Press (a ViewStyle) refuses; no field sets a cursor. */
+export const field: Omit<TextStyle, 'cursor'> = { ...fieldBox, ...withInter(sys.type.body), color: sys.color.ink };
 /** A note inside a screen or a card: a flat tint, no border, no shadow. */
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 /**
