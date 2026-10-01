@@ -251,8 +251,23 @@ export type StanjeMojePrijave =
   | 'SELECTED'
   | 'CLOSED';
 
+/**
+ * EX-04 S2 (B10): the facts of the task that an application card needs and the whole-list read never carried (R18-E03): the full term, the execution mode,
+ * the zone the term is written in, and what the price is for. Present only on the paged read; every field is the task's own column, never inferred.
+ */
+export type ApplicationTaskFacts = {
+  raspored: NeedScheduleProjection;
+  rezimLokacije: import('./needFactsV2').NeedTaskGeographyMode | null;
+  vremenskaZona: string | null;
+  rezimCene: RezimCene;
+  osnovaCene: 'TOTAL' | 'PER_PERSON' | null;
+  potrebnoMesta: number;
+};
+
 /** RU-5 / P0C-03 — Worker-facing own Application lifecycle DTO. */
 export type MojaPrijavaProjekcija = {
+  /** Paged read only (EX-04 S2); absent from the whole-list read, which keeps its older wording of place and time. */
+  zadatak?: ApplicationTaskFacts;
   prijavaId: string;
   potrebaId: string;
   potrebaRevizija: number;

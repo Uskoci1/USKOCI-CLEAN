@@ -22,6 +22,7 @@ import type {
 } from '../contracts/projections';
 import type { TaskRelationIndex } from './taskRelation';
 import type { HomeAttentionPreview } from './homeSnapshot';
+import type { OwnApplicationsPage, OwnApplicationsPageRequest } from './ownApplicationsPage';
 import type { OwnTasksPage, OwnTasksPageRequest } from './ownTasksPage';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
@@ -74,6 +75,8 @@ export interface PrijaveCitanje {
   prijaveZaPotrebu(potrebaId: string): Promise<KandidatProjekcija[]>;
   /** W06 / P0C-03 — kanonska projekcija sopstvenih Prijava. */
   mojePrijave(): Promise<MojaPrijavaProjekcija[]>;
+  /** EX-04 S2 (B10) — one keyset page of my own applications in one of the screen's sets, in the whole-list order. Needs the ex04b server contract: a build flag keeps the screen on `mojePrijave` until DEV has it. */
+  mojePrijaveStrana(request: OwnApplicationsPageRequest): Promise<OwnApplicationsPage>;
 }
 
 export interface DogovoriCitanje {

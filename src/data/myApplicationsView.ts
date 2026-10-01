@@ -7,7 +7,7 @@ import type { MojaPrijavaProjekcija } from '../contracts/projections';
  * everything else — selected, withdrawn, closed — is finished.
  */
 export type ApplicationSection = 'attention' | 'active' | 'finished';
-export function applicationSection(p: MojaPrijavaProjekcija): ApplicationSection {
+export function applicationSection(p: Pick<MojaPrijavaProjekcija, 'traziPaznju' | 'stanje'>): ApplicationSection {
   if (p.traziPaznju) return 'attention';
   return ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(p.stanje) ? 'active' : 'finished';
 }

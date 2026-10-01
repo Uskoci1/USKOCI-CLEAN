@@ -28,6 +28,8 @@ import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from './marketplaceView';
+import { applicationCounts } from './myApplicationsView';
+import { applicationRank, ownApplicationsScopeRank } from './ownApplicationsPage';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 import { sesijaSada } from '../store/sesija';
 
@@ -525,6 +527,19 @@ export const lazniIzvor: Izvor = {
           traziPaznju: !!allocation || stale,
         } satisfies MojaPrijavaProjekcija;
       });
+  },
+
+  // EX-04 S2: the same sets, counted and paged by the client's own rules over the local list, in the server's order (what waits for me, the open ones, the rest;
+  // inside a rank the local order). The cursor is a position here, never a timestamp.
+  async mojePrijaveStrana(request) {
+    await kasnjenje();
+    const all = await lazniIzvor.mojePrijave();
+    const ranked = all.map((row, index) => ({ row, index })).sort((a, b) => applicationRank(a.row) - applicationRank(b.row) || a.index - b.index).map(entry => entry.row);
+    const wanted = ownApplicationsScopeRank(request.scope), inScope = wanted === null ? ranked : ranked.filter(row => applicationRank(row) === wanted);
+    const start = request.cursor ? Number(request.cursor.at) : 0, items = inScope.slice(start, start + request.limit), end = start + items.length;
+    const last = items[items.length - 1];
+    return { items, hasMore: end < inScope.length, counts: request.cursor ? null : applicationCounts(all),
+      cursor: last ? { at: String(end), id: last.prijavaId, rank: applicationRank(last) } : null, asOf: new Date().toISOString() };
   },
 
   async mojiDogovori() {
