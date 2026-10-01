@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T21:53:29Z",
+  "osvezeno": "2026-10-01T21:54:15Z",
   "grana": "HEAD",
-  "head": "8edadfa1",
-  "head_poruka": "docs(control): B22 / RNR-01 decided by the owner - no patch-package, monitored limit",
+  "head": "3ff68dcc",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8267,7 +8267,7 @@
    "id": "B22",
    "oblast": "Reanimated poplava (ANR / zastoji)",
    "nalaz_16_09": "Reanimated 4.5.1 ponavlja neuspele native izmene za poglede koji nisu montirani; počinje pri prijavi, pre P6 koda; CI emulator: 111 623 neuspele izmene, zastoji do 10,1 s i jedan ANR; telefon (stari čitač): 17 637 linija, najduži frejm 919 ms, bez ANR-a. Pri dugim listama na telefonu nepoznato.",
-   "sada": "ODLUČENO 1.10. (vlasnik: „onda necem“): BEZ patch-package, biblioteka ostaje, izvori mrtvih unosa se i dalje uklanjaju u aplikaciji. B22 prestaje da bude vlasnikova otvorena odluka; ostaje PRAĆENO: otvara se ponovo samo na stvaran, reprodukovan ANR/zastoj/UX problem koji tekuća ispravka ne rešava, a u završnom prolazu pred izdanje (duža sesija na HONOR-u) se broje „failed“ linije i zastoji (ako merenje padne, zakrpa se predlaže ponovo uz vlasnikovo odobrenje za paket). Zakrpa bi smanjila ponavljan rad i upozorenja u logu, ne ubrzava aplikaciju koju osećaš; efekat na preostalih ~2.800 linija po prolazu nije izmeren. STARI NALAZ I MEHANIZAM (neizmenjeno): mehanizam ustanovljen 30.09. analizom izvora Reanimated 4.5.1 (nije merenje na telefonu): NodesManager.performNonLayoutOperations primenjuje svaku zadržanu registraciju pri svakom draw-pass događaju; neuspela synchronouslyUpdateUIProps samo loguje upozorenje sa izuzetkom (dubok stack) i nikad ne uklanja mrtav unos; react-native-svg šalje događaj usred crtanja pa svaki SVG draw pokreće ceo prolaz. U aplikaciji su mrtvi unosi nastajali pri svakom dodiru pina: redovi liste su se ponovo kreirali jer je ključ ćelije pratio potpis rasporeda koji je sadržao karticu; izmena e87ed466 (redovi ostaju montirani, test prvo, CI run 36770243152 zelen) uklanja taj izvor u aplikaciji; IZMERENO na HONOR-u 30.09. u 22:25 (APK 11574c02): linija „failed“ Reanimated-a u logu po frejmu oko 12,4 → 5,1 → 1,2 (37.135 → 5.956 → 2.811 linija u tri uporediva fokusirana prolaza različite dužine: pre EX-03, posle EX-03a+c, posle redova-ostaju-montirani), frejmova preko 700 ms 11→0, ANR 0; preostale linije dolaze iz drugih izvora (prijava i ostali ekrani), poplava nije nula. Provera uzvodno 30.09.: najnovije izdanje je 4.7.0; NodesManager.kt i DrawPassDetector.kt su identični kao u 4.5.1, a NativeProxy i dalje hvata i loguje svaki neuspeo tag, pa sama promena verzije ne gasi poplavu (i izlazi iz Expo SDK 57 skupa). Ostaje vlasnikova odluka o zavisnosti: mala zakrpa (patch-package: logovati jednom, odbaciti neuspeli tag) ili ostaviti biblioteku i nastaviti uklanjati izvore mrtvih unosa u aplikaciji; blokira izlazak, ne P6",
+   "sada": "OTVORENO — RNR-01: mehanizam ustanovljen 30.09. analizom izvora Reanimated 4.5.1 (nije merenje na telefonu): NodesManager.performNonLayoutOperations primenjuje svaku zadržanu registraciju pri svakom draw-pass događaju; neuspela synchronouslyUpdateUIProps samo loguje upozorenje sa izuzetkom (dubok stack) i nikad ne uklanja mrtav unos; react-native-svg šalje događaj usred crtanja pa svaki SVG draw pokreće ceo prolaz. U aplikaciji su mrtvi unosi nastajali pri svakom dodiru pina: redovi liste su se ponovo kreirali jer je ključ ćelije pratio potpis rasporeda koji je sadržao karticu; izmena e87ed466 (redovi ostaju montirani, test prvo, CI run 36770243152 zelen) uklanja taj izvor u aplikaciji; IZMERENO na HONOR-u 30.09. u 22:25 (APK 11574c02): linija „failed“ Reanimated-a u logu po frejmu oko 12,4 → 5,1 → 1,2 (37.135 → 5.956 → 2.811 linija u tri uporediva fokusirana prolaza različite dužine: pre EX-03, posle EX-03a+c, posle redova-ostaju-montirani), frejmova preko 700 ms 11→0, ANR 0; preostale linije dolaze iz drugih izvora (prijava i ostali ekrani), poplava nije nula. Provera uzvodno 30.09.: najnovije izdanje je 4.7.0; NodesManager.kt i DrawPassDetector.kt su identični kao u 4.5.1, a NativeProxy i dalje hvata i loguje svaki neuspeo tag, pa sama promena verzije ne gasi poplavu (i izlazi iz Expo SDK 57 skupa). Ostaje vlasnikova odluka o zavisnosti: mala zakrpa (patch-package: logovati jednom, odbaciti neuspeli tag) ili ostaviti biblioteku i nastaviti uklanjati izvore mrtvih unosa u aplikaciji; blokira izlazak, ne P6",
    "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_70_P6_NATIVE_ACCEPTANCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_CLOSURE_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/EX03_DISCOVERY_POLISH_20260930.md (odeljak EX-03d)"
   },
   {
@@ -8550,5 +8550,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36931606720,
+   "ime": "Control tracker refresh",
+   "sha": "8edadfa1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:53:13Z"
+  },
+  {
+   "id": 36931086522,
+   "ime": "Build Android development APK",
+   "sha": "fb865dd7",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-01T21:48:25Z"
+  },
+  {
+   "id": 36929784190,
+   "ime": "Control tracker refresh",
+   "sha": "d63779b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:36:22Z"
+  },
+  {
+   "id": 36925081287,
+   "ime": "Control tracker refresh",
+   "sha": "0042d82a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:55:13Z"
+  },
+  {
+   "id": 36924665165,
+   "ime": "Control tracker refresh",
+   "sha": "83a18b15",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:51:44Z"
+  },
+  {
+   "id": 36923900555,
+   "ime": "Control tracker refresh",
+   "sha": "13680e55",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:45:25Z"
+  },
+  {
+   "id": 36915024215,
+   "ime": "Control tracker refresh",
+   "sha": "7a5712b8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T19:32:21Z"
+  },
+  {
+   "id": 36910942456,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "b00f62f3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T18:59:20Z"
+  },
+  {
+   "id": 36901457675,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "852cf658",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:43:17Z"
+  },
+  {
+   "id": 36901345565,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:42:23Z"
+  },
+  {
+   "id": 36901222769,
+   "ime": "Control tracker refresh",
+   "sha": "60da5a05",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:41:23Z"
+  },
+  {
+   "id": 36899935334,
+   "ime": "Control tracker refresh",
+   "sha": "c97be190",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:30:52Z"
+  }
+ ]
 }
