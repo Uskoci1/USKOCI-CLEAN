@@ -8,12 +8,14 @@ import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
+import { decodeOwnTasksPage } from './ownTasksPage';
+import { readOwnedResult } from './serverReceipt';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba'>;
+type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba' | 'mojePotrebeStrana'>;
 
 
 function stanje(
@@ -152,6 +154,25 @@ export const needClientService: NeedReadService = {
     // Home counts do not consume urgency badges. A skipped read stays unobserved, never inferred NORMAL.
     const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(data);
     return data.map(row => ({ ...mapNeed(row), urgency: urgency?.get(row.id) }));
+  },
+
+  /**
+   * EX-04 S1 (A09): one keyset page of my own tasks, read by `rpc_list_my_needs_page`. Each item is the same `rpc_read_task` document the whole list
+   * returns and goes through the same `mapNeed`, so a card cannot differ from the one the whole-list read draws. The first page also answers the five
+   * counts of the sets. A page that does not add up is an invalid read, never a short one; the optional urgency badges share their own 4 s budget.
+   */
+  async mojePotrebeStrana(request, options) {
+    const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
+    if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; }
+    const result = await readOwnedResult({
+      request: () => supabase.rpc('rpc_list_my_needs_page', args),
+      decode: raw => decodeOwnTasksPage(raw, request, mapNeed),
+      errors: {}, fallback: 'OWN_TASKS_PAGE_UNAVAILABLE', invalid: 'OWN_TASKS_PAGE_INVALID',
+    });
+    if (!result.ok) throw new Error(result.kod);
+    const { documents, ...page } = result.podatak;
+    const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(documents);
+    return { ...page, items: page.items.map(item => ({ ...item, urgency: urgency?.get(item.id) })) };
   },
 
   async potreba(id) {

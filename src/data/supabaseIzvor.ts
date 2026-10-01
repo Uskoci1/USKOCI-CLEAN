@@ -178,6 +178,7 @@ type SupabaseIzvor = Omit<
   | 'odgovoriNaIzmenu'
   | 'posaljiPoruku'
   | 'mojePotrebe'
+  | 'mojePotrebeStrana'
   | 'potreba'
   | 'prijaveZaPotrebu'
   | 'oznaciPrijavuVidjenom'

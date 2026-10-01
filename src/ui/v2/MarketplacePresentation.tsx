@@ -3,7 +3,7 @@ import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRen
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, SlidersHorizontal, X } from 'phosphor-react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
-import type { MarketplaceItem, MarketplaceView } from '../../data/marketplaceView';
+import type { MarketplaceItem, MarketplaceView, OwnedTaskCounts } from '../../data/marketplaceView';
 import { initialMarketplaceView, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
@@ -20,7 +20,15 @@ import { withInter } from '../interFont';
 import { TaskCard } from './TaskCard';
 import { V2Action } from './V2Action';
 
+/**
+ * EX-04 S1: what a paged read of my own tasks says besides the tasks. Absent, the list is the whole list and counts itself; present, the tasks are the
+ * ones loaded so far, the counts are the server's, and the foot offers the next page.
+ */
+export type MarketplacePaging = { counts: OwnedTaskCounts | null; hasMore: boolean; loadingMore: boolean; moreError: boolean; onLoadMore: () => void };
+
 export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
+  /** Paged builds only (the ex04a package). */
+  paging?: MarketplacePaging;
   view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
   /** The card's foot opens the applications that wait for my choice. */
@@ -34,6 +42,11 @@ const SECTION_TITLES: Record<MarketplaceView['section'], string> = { active: 'Ak
 const SECTION_SAYS: Partial<Record<MarketplaceView['section'], StanjePotrebe>> = { drafts: 'NACRT', history: 'ZATVORENA' };
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
 const Separator = () => <View style={{ height: 12 }} />;
+/** How many tasks the set the person is looking at holds, by the server's counts. */
+function setCount(counts: OwnedTaskCounts, view: MarketplaceView): number {
+  if (view.attention) return view.section === 'drafts' || view.section === 'history' ? 0 : counts.waiting;
+  return view.section === 'active' ? counts.active : view.section === 'drafts' ? counts.drafts : view.section === 'history' ? counts.history : counts.total;
+}
 const keyOf = (item: MarketplaceItem) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input that could lose focus. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
@@ -88,7 +101,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   [items, view, priceDraft, attentionDraft, loading, error]);
   // How many active tasks wait for my choice, the badge on "Aktivni". Početna does not repeat it: there what waits is
   // said once, under "Čeka te", from the server's own attention list.
-  const attentionCount = useMemo(() => ownedTaskCounts(items).waiting, [items]);
+  // Paged: the server's own count, never the number that happens to be loaded.
+  const attentionCount = useMemo(() => props.paging ? props.paging.counts?.waiting ?? 0 : ownedTaskCounts(items).waiting, [items, props.paging?.counts]);
   const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount
     ? { ...option, badge: attentionCount, badgeLabel: `Za tvoj izbor: ${zadataka(attentionCount)}` } : option), [attentionCount]);
   const hasFilter = !!view.query || view.price !== 'all' || view.attention || view.section !== 'active';
@@ -100,7 +114,13 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // destination is retired.
   const sectionTitle = SECTION_TITLES[view.section];
   const sectionSays = SECTION_SAYS[view.section];
-  const count = loading || error ? null : visible.length;
+  // Paged: an exact number only when it is the server's count of an unrefined set, or the refined set was read to its end; otherwise none (never a partial number).
+  const refined = !!view.query.trim() || view.price !== 'all', paging = props.paging;
+  const count = loading || error ? null : !paging ? visible.length
+    : refined ? (paging.hasMore || paging.loadingMore ? null : visible.length)
+      : paging.counts ? setCount(paging.counts, view) : paging.hasMore ? null : visible.length;
+  // A refinement of a set that is still being read has no answer yet, so it says it is reading instead of saying there is nothing.
+  const reading = loading || (!!paging && visible.length === 0 && !paging.moreError && (paging.hasMore || paging.loadingMore));
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
   // A task that arrives while you are looking says so; the ones that were already there do not
   // replay every time the list is pulled. `Appear` holds that distinction.
@@ -115,7 +135,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
-    {loading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
+    {reading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
       : error ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."
@@ -150,6 +170,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         // scroll fills in quickly without holding the whole list mounted.
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
         ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
+        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
+        ListFooterComponent={paging && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
+          {paging.moreError ? <>
+            <T variant="note" tone="muted">Nije uspelo učitavanje još zadataka.</T>
+            <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
+          </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još zadataka…</T>
+            : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
+        </View> : null}
         ListHeaderComponent={count ? <View style={s.countRow}>
           <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>
         </View> : null} />
@@ -170,7 +198,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           <View style={[s.check, attentionDraft && s.checked]}>{attentionDraft ? <Check size={14} weight="bold" color={sys.color.surface} /> : null}</View>
           <View style={s.grow}><T variant="bodyStrong" style={s.optionText}>Treba moja radnja</T><T variant="note" tone="muted">Zadaci sa prijavama koje možeš da izabereš.</T></View>
         </Press>
-        <V2Action label={draftCount === null ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
+        <V2Action label={draftCount === null || paging?.hasMore ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
           onPress={() => { change({ price: priceDraft, attention: attentionDraft, selectedId: null }); dismiss(); }} style={brandAction} />
         <View style={s.sheetRow}>
           <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setPriceDraft('all'); setAttentionDraft(false); }} />
@@ -184,6 +212,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
   countRow: { paddingBottom: 8 },
+  foot: { paddingTop: 16, alignItems: 'center', gap: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
   input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: 10 }),

@@ -27,6 +27,7 @@ import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
+import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from './marketplaceView';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 import { sesijaSada } from '../store/sesija';
 
@@ -381,6 +382,18 @@ export const lazniIzvor: Izvor = {
   async mojePotrebe() {
     await kasnjenje();
     return [await potrebaProjekcija()];
+  },
+
+  // EX-04 S1: the same sets, counted and paged by the client's own rules over the local list (the cursor is a position here, never a timestamp).
+  async mojePotrebeStrana(request) {
+    await kasnjenje();
+    const all = await lazniIzvor.mojePotrebe({ includeUrgency: false });
+    const section = { ALL: 'all', ACTIVE: 'active', DRAFTS: 'drafts', HISTORY: 'history' } as const;
+    const inScope = request.scope === 'WAITING' ? all.filter(hasNeedAttention)
+      : marketplaceItems(all, { ...initialMarketplaceView(), section: section[request.scope] }, true).filter(isOwnedNeed);
+    const start = request.cursor ? Number(request.cursor.at) : 0, items = inScope.slice(start, start + request.limit), end = start + items.length;
+    return { items, hasMore: end < inScope.length, counts: request.cursor ? null : ownedTaskCounts(all),
+      cursor: items.length ? { at: String(end), id: items[items.length - 1].id } : null, asOf: new Date().toISOString() };
   },
 
   async potreba(id) {
