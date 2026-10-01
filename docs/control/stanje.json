@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T10:16:14Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "001b4b1d",
-  "head_poruka": "fix(ex04): the proofs' TS loader supplies AbortController and the interval timers (the S3 old-path reproduction runs the real withAgreementRatings), and the S4 inactive worker is SUSPENDED (PAUSED is not a profile status)",
+  "osvezeno": "2026-10-01T10:17:59Z",
+  "grana": "HEAD",
+  "head": "92fa9d45",
+  "head_poruka": "feat(ex04): S4 client (A11 candidates) behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (off) and the round 76 receipt - S3 and S4 are source and disposable-CI proven (runs 36846103770, 36846103824), NOTHING applied to DEV",
   "server": {
    "snimljeno": "2026-10-01T07:03:07Z",
    "migracije": 215,
@@ -7806,102 +7806,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36846103943,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103824,
-   "ime": "EX-04 S4 candidates page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103774,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36846103770,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "001b4b1d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:57:58Z"
-  },
-  {
-   "id": 36844727502,
-   "ime": "EX-04 S4 candidates page proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36844727458,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36844727454,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36844727415,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "ab35d833",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:44:57Z"
-  },
-  {
-   "id": 36843942412,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "1ecd8f4b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:37:34Z"
-  },
-  {
-   "id": 36843942278,
-   "ime": "EX-04 S1 own tasks page proof",
-   "sha": "1ecd8f4b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:37:34Z"
-  },
-  {
-   "id": 36843942206,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "1ecd8f4b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T09:37:34Z"
-  },
-  {
-   "id": 36843355897,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "3384da84",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T09:32:06Z"
-  }
- ]
+ "ci": null
 }
