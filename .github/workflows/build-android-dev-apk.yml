@@ -40,9 +40,6 @@ env:
   EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
   EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
   EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
-  # EX-04 PAGE-BOUNDARY TEST INSTRUMENT (owner decision 2026-10-01, option A) - NOT A PRODUCT VALUE. Pages of 2 (candidates: 1) so the physical-device check crosses the page boundary with the data
-  # the test account really has. TEMPORARY: this line is removed the same day after the check; it must appear in no other file (src/data/__tests__/ex04-test-page-limit-guard.test.ts).
-  EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT: '2'
   CI: '1'
   NODE_ENV: production
 

@@ -430,6 +430,12 @@
       "run": null,
       "sha": null,
       "result": "Vlasnik 1.10. (kasnije): F1 - ODOBRENO pripremiti i dokazati kandidata, DEV primena NIJE odobrena. Semantika: „sutra“ = odgovarajući sledeći lokalni kalendarski dan; „ove nedelje“ = preostali deo odgovarajuće lokalne nedelje; ne izmišljati sate ni uži prozor koji korisnik nije dao. Source/test/disposable dokaz pa poseban approval block za eventualno PRIMENI. Vlasnik 1.10. (kasnije): elektro/vodoinstalaterski radovi (obični ili regulisani) i radna imena novih vrsta poslova (rad na daljinu, podovi, ljubimci, pakovanje) se NE zaključavaju kao nove product odluke - evidentirani kao OTVORENE KLASIFIKACIONE STAVKE do odluke. S07 i plaćeni S08 ostaju zatvoreni. Nastavlja se po kanonskom LIVE planu bez čekanja vlasnika za source/test/CI/disposable rad; svaka nova state-changing DEV/PROD promena traži poseban „primeni“."
+    },
+    {
+      "id": "EX04-OPTION-A-WINDOW-RUN1-20261001",
+      "run": 36873169662,
+      "sha": "52a66a7638ff55549825b0dccee331c28a979886",
+      "result": "PROZOR 1.10. (vlasnikovo „SAD“, 274 s, test APK 9ef10b67 sa PAGE_LIMIT=2 instaliran sa install -r, firstInstallTime nepromenjen, sesija i podaci sačuvani; prvi pokušaj je zaustavljen jer ADB interfejs nije bio vidljiv, ništa nije poslato telefonu): DELIMIČNO DOKAZANO. Granica strane je prelazena na telefonu: S1 Istorija foot „Prikaži još“ viđen na prvoj strani i radi, lista dalje raste kroz onEndReached, šetnja do kraja = 11 kartica = pozicije 6..16 od 17, uzastopne, isti redosled kao baza, bez duplikata/anomalije/greške, završava poslednjom karticom baze; S1 Aktivni 2/2; S2 Sve 4/4 isti redosled kao baza bez duplikata (druga strana pročitana); ciklusi S2 6/6; bez pada i ANR (nema FATAL/ANR, nema izlaza procesa u prozoru); jank 3,58 %, p99 19 ms. NIJE dokazano: S4 Kandidati (korak navigacije pao na AssertionError bez poruke; rpc_list_need_candidates_page 5->5), pull-to-refresh i prve 4-6 kartice S1 (moja provera „vrh liste“ je pogrešno prepoznala zaglavlje), ciklusi Kandidata 0/10; Back posle dubokog skrola vraća najviše 5 strana (projektovano, reloadPages=5). Test linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 UKLONJENA iz normalne build konfiguracije (guard 8/8); test APK ostaje na telefonu do sledećeg normalnog DEV build-a i NIJE proizvodni build; PAGE_LIMIT=2 je bio ISKLJUČIVO test instrument. EX-04 NIJE zatvoren. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md"
     }
   ]
 }
