@@ -160,7 +160,7 @@ async function main() {
   }
   // The closure-restricted account: the platform fences it at the API, and by its own predicate it is never eligible; the other side of its Dogovor still is.
   assert.equal((await R.client.rpc('rpc_list_my_agreements_page', {p_scope: 'ALL', p_limit: 5})).error?.message, 'ACCOUNT_CLOSING', 'THE_PLATFORM_FENCES_A_CLOSING_ACCOUNT');
-  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'f', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_ELIGIBLE');
+  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'false', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_ELIGIBLE');
   assert.equal(await eligible(O.client, f.restrictedId), true, 'THE_OTHER_SIDE_OF_THAT_DOGOVOR_STILL_IS');
   assert.equal(before.P.items.length, SPEC.length); assert.equal(before.Q.items.length, SPEC.length + 1); assert.equal(before.S.items.length, 1); assert.equal(before.E.items.length, 0);
   assert.equal(before.U.items.length, 4); assert.equal(before.B1.items.length, 230); assert.equal(before.B1.pages, 3);
@@ -237,8 +237,8 @@ async function main() {
   assert.ok(after.B1.home.ratings.due > 20 && after.B1.home.ratings.dueAgreementId === null);
   pass('THE_HOME_AGGREGATE_EQUALS_THE_AUTHORITY_FOR_NONE_ONE_AND_MANY_AND_NOTHING_ELSE_CHANGED');
   // The closure-restricted account (claims set directly: the platform fences it at the API): never due on the page, as by the authority; the other side of that Dogovor is due.
-  assert.equal(asClaims(R.id, "(public.rpc_list_my_agreements_page('ALL',100,null,null)->'items'->0->>'ratingDue')"), 'f', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_DUE_ON_THE_PAGE');
-  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'f');
+  assert.equal(asClaims(R.id, "(public.rpc_list_my_agreements_page('ALL',100,null,null)->'items'->0->>'ratingDue')"), 'false', 'A_CLOSURE_RESTRICTED_ACCOUNT_IS_NEVER_DUE_ON_THE_PAGE');
+  assert.equal(asClaims(R.id, `(public.rpc_get_my_agreement_review(${q(f.restrictedId)}::uuid)->>'eligible')`), 'false');
   const otherSide = (await readPages(O.client)).items.find(item => item.id === f.restrictedId);
   assert.equal(otherSide.ratingDue, true, 'THE_OTHER_SIDE_OF_THAT_DOGOVOR_IS_DUE'); assert.equal(otherSide.ratingDue, await eligible(O.client, f.restrictedId));
   assert.equal((await R.client.rpc('rpc_home_attention')).error?.message, 'ACCOUNT_CLOSING');
