@@ -1,5 +1,7 @@
 # Round35 — P2 application compose / edit / withdraw source closure
 
+> **UPDATE 2026-10-01: the "independent server price-authority question" named below was checked read-only against live DEV and is answered - the server already enforces the requester-fixed price for MY_PRICE (private.assert_application_price_v5, live since ledger 189 / PKG-033a). See `b09/B09_PRICE_AUTHORITY_FINDING_20261001.md`. The text below is the state at the time of writing; it is kept as it was.**
+
 Date: 2026-09-28. Current branch is code-equivalent for these surfaces to tested code `b06480512d197168c0ef857bb151a0e143b3a667`; later commits in this session only update control/evidence documents.
 
 ## Product review
