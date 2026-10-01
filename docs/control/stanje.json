@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T20:51:59Z",
+  "osvezeno": "2026-10-01T20:54:42Z",
   "grana": "HEAD",
-  "head": "83a18b15",
-  "head_poruka": "docs(ex05): canonical scope record for EX-05 (Komunikacija), registry anchor and LIVE state",
+  "head": "7d4e37df",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -703,6 +703,156 @@
    ],
    "withdrawn": "Nijedna stavka nije povučena; 13 predloga je označeno kao NIJE KANONSKO u planu (odeljak 10) i ne gradi se po pretpostavci.",
    "done": "Plan 12.5 DONE: oba intervjua završavaju sačuvanim, od čoveka potvrđenim rezultatom; klasifikacija bez duplikata; matcher koristi stvarne uslove (tvrda podobnost pre rangiranja); pravi tok radnik -> zadatak -> dispatch -> prijava/izbor sa pozitivnim I negativnim kandidatima; trajne činjenice vode ograničenom, relevantnom obaveštenju; izveštaj korpusa bez izmišljenog praga; nivoi dokaza odvojeni (SOURCE / CI / DEV_APPLIED / CLIENT_WIRED / APK_BUILT / DEVICE / PROVIDER)."
+  },
+  "ex07": {
+   "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / 6_OF_7_AREAS / SCOPE_RECORD_ONLY",
+   "canonical": "LIVE Master Plan 5.4 row EX-07 (\"Nalog\"): plan-predloženi radni paket, ne vlasnikom odobren obim. EX-07 'Nalog' is a single row in LIVE plan section 5.4: deliverable Auth/email/profil/safety/support/export/closure; precondition: legal matrices prepared in parallel; measure: no active fake command and no policy gap. It is a work unit inside the existing plan, not a tracker. It has no scope record yet: there is no finalization.ex07 block in docs/control/redovi.json and no EX07 doc, while EX-06 does have one and EX-",
+   "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX07_CANONICAL_SCOPE_20261001.md",
+   "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex07/EX07_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
+   "provenance": "workflow canonical-scope-check-generic: 7 oblasti, svaka sa skeptikom, kritičar i sintetizator, sve na modelu roditelja (Sonnet 5.5). 6 od 7 oblasti završeno, 244 nalaza, 0 opovrgnuto, 26 delimično ispravljeno; zbog prekida API-ja nedostaju: map:owner-gates, verify:plan (resume iz keša ih popunjava).",
+   "first_open_row": "EX07-S00 first (records scope, conflicts and owner questions; no code, no DEV); ask the owner for the acceptance bar and boundary answers in the same hand-off.",
+   "first_owner_boundary": "Everything through the candidate stage can proceed without the owner: S00 (docs/tracker), S01 and S02 (client/UI), S03 (CI proof), S04 (legal drafts), S08 (tests) and the candidate-only parts of S05, S06, S07, S09. The first unavoidable owner boundary is (a) his confirmation of the acceptance bar and the boundary rows so S00 becomes final, and (b) the first DEV action of any kind: an exact 'primeni' per server package that names a certificate re-bind where the digest moves (S07, any new document kind or CHECK), his word for every DEV write (operator grant, policy publish, disposable subject, closure start), and legal/operator/retention inputs before any publication. No slice may write to DEV",
+   "slices": {
+    "EX07-S00": {
+     "title": "Canonical scope record, boundary disclosure and tracker refresh",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "none",
+     "first_owner_boundary": "None for the document itself (it records proposals). The owner's confirmation of the acceptance bar (C01) and the boundary list (C02) makes it final; no server work starts from it."
+    },
+    "EX07-S01": {
+     "title": "Honest-copy and fake-command audit (UI-only)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00 (for the boundary list)",
+     "first_owner_boundary": "A decision to remove/hide any command or to give the Task Q&A report a handler (ownership unassigned)."
+    },
+    "EX07-S02": {
+     "title": "Sign-in failure classes (client)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "none",
+     "first_owner_boundary": "None for source; the real provider behaviour check needs the owner's disposable account (S10)."
+    },
+    "EX07-S03": {
+     "title": "Disposable-chain proof for signup confirmation and recovery callbacks",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "none",
+     "first_owner_boundary": "Real provider evidence (dashboard allowlist, sender, disposable mailbox) is the owner's (gap G06)."
+    },
+    "EX07-S04": {
+     "title": "Legal matrices in parallel (technical drafts only)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00",
+     "first_owner_boundary": "Any value for [[OPERATER]] fields, retention periods, legal bases or counsel review."
+    },
+    "EX07-S05": {
+     "title": "Support/safety operator procedure and proof refresh",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00",
+     "first_owner_boundary": "The owner names the operator account, provides the service-role route himself (no key is requested from him in chat) and says 'primeni' for the DEV grant; creating the author/third test accounts needs his approval."
+    },
+    "EX07-S06": {
+     "title": "N06/N07 target identity (function-only server candidate + client behind a flag)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00",
+     "first_owner_boundary": "The owner's exact 'primeni' for the server function (AGENTS 3.1.2); native N06/N07 acceptance waits for S10."
+    },
+    "EX07-S07": {
+     "title": "N10 second-device closure discovery (certificate-moving candidate)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00; the owner's sequencing answer for D12 (one or two re-binds)",
+     "first_owner_boundary": "An explicit approval block that NAMES the certificate re-bind, a compatible APK rollout and the owner's 'primeni'."
+    },
+    "EX07-S08": {
+     "title": "S01/S02 lifecycle inventory and regression tests",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "none",
+     "first_owner_boundary": "Native proof needs the HONOR window and test accounts (S10)."
+    },
+    "EX07-S09": {
+     "title": "Policy publication mechanism candidate (no values)",
+     "status": "NOT STARTED",
+     "autonomous": true,
+     "depends_on": "EX07-S00; S04 scope map; owner's EX-07/EX-08 retention boundary answer",
+     "first_owner_boundary": "Real approved content (operator data, Privacy URL/hash, periods from counsel) and 'primeni' for DEV."
+    },
+    "EX07-S10": {
+     "title": "Native and provider acceptance round",
+     "status": "NOT STARTED",
+     "autonomous": false,
+     "depends_on": "S01, S02, S03, S05-S09 applied or explicitly deferred; owner gates",
+     "first_owner_boundary": "The owner's phone window, the disposable subject and test accounts, the operator grant and the real mailbox/provider."
+    }
+   },
+   "open_items": [
+    "G01 - No EX-07 scope record and no owner decision on boundary rows",
+    "G02 - Misleading copy on reachable controls (fake-command surface)",
+    "G03 - Export gate is not shown before the person taps",
+    "G04 - Sign-in failure classes are collapsed (offline shown as wrong credentials)",
+    "G05 - Signup-confirmation redirect and callback have no provider-level evidence, not even on the disposable chain",
+    "G06 - Real provider configuration and sender are unknown and external",
+    "G07 - No production procedure to register legal documents or to publish export_delivery / a full retention policy",
+    "G08 - No approved legal content, operator data, retention periods or domain",
+    "G09 - No moderation/support operator and no operating path",
+    "G10 - Public/legal text promises moderation effects that cannot exist",
+    "G11 - N06/N07: displayed target name is not bound to the target ID",
+    "G12 - N10: second device cannot discover a running closure",
+    "G13 - Closure parks indefinitely for any account with a support case or safety report",
+    "G14 - No out-of-app (web) account-deletion request path",
+    "G15 - No consent gate, no age/18+ statement, no acceptance requirement on any command",
+    "G16 - Export scope is not mapped per data class against the closure/redaction scope",
+    "G17 - N05: no personal-city writer; direct client writes to profile tables are permitted by the DB",
+    "G18 - S01/S02 owner inventory not done; native A->B->A and cold-start unproven",
+    "G19 - Support quota scope differs from the accepted contract; no report-abuse rule",
+    "G20 - No export-ready, support-reply or closure-complete notification",
+    "G21 - Legal matrices incomplete and behind DEV",
+    "G22 - Stale registry/state text",
+    "G23 - No hosted end-to-end evidence for any account flow",
+    "G24 - Native/device evidence is the weakest light",
+    "G25 - Block-conflict copy discloses a block to either party"
+   ],
+   "owner_questions": [
+    "Acceptance bar and platforms: does EX-07 close as a work unit on its row measure (honest controls + explicit release blockers + prepared matrices + candidates), or only when every N01-N10/S01/S02 card DONE box is met with current-build phone evidence? Does iOS enter the first release, so that iPhone evidence is required (OWNER_INPUTS input 3)?",
+    "Scope boundary: which rows besides N01-N10, S01, S02 and the account-screen readouts of N11 belong to EX-07 - S03/S04, B01-B03, P02/P03, the safety half of B08/N06, D12, the Task Q&A 'Prijava pitanja' command, hub regrouping Lično/Radno/Nalog and a Dogovori/finished-jobs overview in the profile?",
+    "Moderation/support operator: who is the named operator and what is the intake channel (AF-D18 names you as sole operator for the private test)? May an operator grant be seeded on DEV (a service-role DEV write that needs your word and your key handling), and may author/third test accounts be created for the report-to-reply test?",
+    "Disposable subject: do you approve a disposable account on canonical DEV for the real export and closure end-to-end test (including the hosted-GoTrue soft-delete outcome), and when (a DEV write)?",
+    "Operator/company data and external accounts: the legal form and data (OP-01..05), domain/hosting, public URL, email sender with SPF/DKIM or SMTP, a disposable mailbox, the Supabase Auth dashboard allowlist/Site URL, and whether the EAS production environment (recovery redirect variable, separate production project instead of the DEV URL in eas.json) is set by you; also which RC2 file is the base (2026-08-18 master vs the unreachable 2026-09-10 reconciled file) - please supply it if it exists.",
+    "Retention: the 12 decisions in LEG-10 section 6 (including export file/snapshot/download lifetimes and the inactive-account rule) with counsel review; which proposal AGENTS 1.3.7 'old retention proposal' means; and whether adopting and activating the retention/export policy is EX-07 or waits for EX-08 'rokovi'.",
+    "Legal registry structure and consent: Safety/ADR rules as an annex of Terms or as a new registry document kind (a certificate-moving CHECK change that also needs an https URL); when acceptance is required (first entry, first action, before UGC), what happens on refusal, and the age/country decision.",
+    "Certificate sequencing: should N10 second-device discovery and D12 share one re-bind or be applied in sequence, and will your 'primeni' blocks name the re-bind and a compatible APK rollout?",
+    "Closure exceptions: is the AF-D22 limit acceptable and to be disclosed in the public text (an account with any support case or safety report parks at EXCEPTIONS_PENDING with ordinary data erased and no cancel), or do you want retention/hold-release rules for safety and support evidence?",
+    "Web deletion path: who processes requests from people without app access, how is identity confirmed without new data, which domain/hosting, and do you permit publishing that public page (LEG-08, GPL-04)?",
+    "Personal-city writer: should N05 get a server-authority writer in V1 (a server package, certificate if a guard trigger changes), or should the city stay display-only without a pencil?",
+    "Notifications and policy: add export-ready/support-reply/closure-complete notifications (push enablement, CHECK change, EX-05) or keep in-app status only; and the quota policy for safety reports (abuse protection vs AF-D17) and for CONTENT_NOTICE/SERVICE_COMPLAINT topics."
+   ],
+   "owner_gates": [
+    "Server/Edge/certificate application: explicit 'primeni' per package, no blanket approval; a state-changing DEV/PROD change needs a separate word | izvor: AGENTS 3.1.2, 3.1.8; master-plan-live-state.json OWNER-DECISION-F1-AND-OPEN-ITEMS-20261001 | blokira: Applying any EX-07 candidate on DEV: target-identity function, N10 discovery, policy/legal publication mechanism, operator grant",
+    "Closure certificate re-bind (digest 58447d77): isolated recertification + explicit owner approval AND compatible APK; the approval block must name the re-bind (Voice B1 and D12 precedent) | izvor: AGENTS 3.1.4; D12_WRITTEN_REVIEW_DESIGN_20261001 s16 | blokira: N10 second-device discovery, a new legal-document kind, support priority/notification CHECKs, REQUESTER profile guard trigger change, D12 table",
+    "Operator/company data (OP-01..05, domain, hosting, responsible persons, contact channels, countries, 18+) | izvor: AGENTS 3.4.5; runbook P7 item 8; AF-D10; legal-drafts LEG-01 | blokira: Publishing Terms/Privacy/Safety/ADR/Support/Deletion pages, N04, N02 real email, store forms",
+    "Retention periods and the 12 LEG-10 s6 decisions (incl. export artifact/snapshot/download lifetimes) with counsel review | izvor: AGENTS 3.4.5; AF-D22; D-0141; plan 21.1 | blokira: N09 activation (export_delivery binding), N10 public claims, N11, LEG-10 final",
+    "Named moderation/support operator and intake channel; seeding the support operator grant on DEV (service-role-only, exactly one active account) | izvor: AF-D18; plan 13.3, N07/N08 step 4; AGENTS 3.1.8 | blokira: N07 'report works to processing', N08, GPL-06/APL-06 evidence",
+    "Disposable subject (and approved test accounts: author + third account) for destructive export/closure and safety tests; never the owner's account | izvor: Runbook s1 and P7 item 7; plan 13.4, 19.3; AGENTS 3.1.8 | blokira: N09/N10 end-to-end proof, J16/J17, B07 'Brisanje naloga'",
+    "External accounts and keys: email sender/SMTP with SPF/DKIM, disposable mailbox, Supabase Auth dashboard (Site URL, redirect allowlist), service-role key handled only by the owner | izvor: AGENTS 3.1.1, 3.4.1; OWNER_INPUTS_NEEDED input 7; plan 2.2 | blokira: N02/N03 real-provider proof, operator grant execution",
+    "EAS production environment variables and Play Console steps (recovery redirect var); production points at the DEV project today | izvor: AGENTS 3.1.1; eas.json build.production.env; plan 17.1; OWNER_INPUTS input 5 | blokira: Password recovery in a store build; provider evidence transfer to a future production project",
+    "Physical HONOR: use only in the owner's window ('sad' = 6 minutes), never sign out, clear data or change data without his explicit OK; second device later | izvor: AGENTS 3.2.1, 3.3.5 | blokira: N01/N03/S01/S02/N10 native scenarios (logout, A->B->A, closure)",
+    "Push: no global enabling; one-owner-device/one-event proof only after approval; notification kinds for export-ready/support-reply need a CHECK change | izvor: AGENTS 3.1.7; NOTIFICATION_MATRIX; OWNER_INPUTS input 12 | blokira: Any export-ready / support-reply / closure-complete notification",
+    "New dependencies and new CodeQL alerts need the owner's decision; none is needed for known EX-07 work | izvor: AGENTS 3.1.5 | blokira: Any new package (for example a web-form stack for the deletion path)",
+    "Two privacy branches (AI context minimization d18e830a, processor inventory 1ab01e78) deferred to the final whole-app privacy pass (EX-08) | izvor: AGENTS 4.5 | blokira: N11 branch work, stale OpenAI row in the processor inventory, LEG-04 s7 / LEG-11 publication",
+    "Publishing public content (deletion/support/legal web pages) and store release | izvor: AGENTS 3 'Explicit permission required'; plan 5.2, 24.3 | blokira: LEG-08 public deletion path, public legal texts",
+    "iOS in the first release (decision) and iPhone evidence | izvor: OWNER_INPUTS_NEEDED input 3; plan N01/N02/N03/S02 native scenarios; registry B12 | blokira: The iPhone half of every N01-N03/S02 DONE box"
+   ],
+   "withdrawn": "Nijedna stavka nije povučena; 17 predloga je zabeleženo kao NIJE KANONSKO (odeljak 10 zapisa obima) i ne ulazi u plan bez posebne odluke.",
+   "not_in_scope": [
+    "svaka primena na DEV/PROD, plaćeni poziv, nalog, zavisnost ili uređaj bez posebne vlasnikove reči",
+    "tuđi redovi plana (EX-04, EX-06, EX-09 i ostali) osim tamo gde ih zapis obima izričito vezuje"
+   ]
   },
   "ex09": {
    "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PROD / NO_PAID_CALL / 6_OF_7_AREAS / RELEASE_NOT_READY / LAST_IN_CANONICAL_ORDER",
@@ -8399,5 +8549,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36924665165,
+   "ime": "Control tracker refresh",
+   "sha": "83a18b15",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:51:44Z"
+  },
+  {
+   "id": 36923900555,
+   "ime": "Control tracker refresh",
+   "sha": "13680e55",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:45:25Z"
+  },
+  {
+   "id": 36915024215,
+   "ime": "Control tracker refresh",
+   "sha": "7a5712b8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T19:32:21Z"
+  },
+  {
+   "id": 36910942456,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "b00f62f3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T18:59:20Z"
+  },
+  {
+   "id": 36901457675,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "852cf658",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:43:17Z"
+  },
+  {
+   "id": 36901345565,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:42:23Z"
+  },
+  {
+   "id": 36901222769,
+   "ime": "Control tracker refresh",
+   "sha": "60da5a05",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:41:23Z"
+  },
+  {
+   "id": 36899935334,
+   "ime": "Control tracker refresh",
+   "sha": "c97be190",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:30:52Z"
+  },
+  {
+   "id": 36896019778,
+   "ime": "Control tracker refresh",
+   "sha": "995f507b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:59:10Z"
+  },
+  {
+   "id": 36895021919,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "e27e76db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:50:45Z"
+  },
+  {
+   "id": 36892351679,
+   "ime": "Control tracker refresh",
+   "sha": "2f3d7390",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:29:12Z"
+  },
+  {
+   "id": 36890566753,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "e7f129d5",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:15:04Z"
+  }
+ ]
 }
