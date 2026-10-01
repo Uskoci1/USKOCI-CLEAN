@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T17:42:00Z",
-  "grana": "HEAD",
-  "head": "60da5a05",
-  "head_poruka": "docs(ex04): round 79 - page-boundary check on the physical HONOR in the owner's SAD window (test APK 9ef10b67, PAGE_LIMIT=2): PARTIALLY PROVEN - S1 and S2 crossed the page boundary with correct content, order and no duplicate, no crash or ANR, 6 of 6 S2 cycles; S4 Kandidati, pull-to-refresh, the first S1 cards and the candidate loop NOT proven (a navigation step failed, a top-of-list check in the script was wrong); the test-only EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 line is REMOVED from the normal build configuration (guard 8/8), PAGE_LIMIT=2 was only a test instrument; EX-04 stays open",
+  "osvezeno": "2026-10-01T19:30:47Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "b00f62f3",
+  "head_poruka": "feat(b09): PKG-049 characterization proof, round 3 (40 offline tests) - direct PostgREST table-write attacks on the price tables (18 attacks + a control, nothing changes), strict in-proof B24 stage (only documented drift guards tolerated; P4(h) PT409/HTTP 409 whenever the resolver is the DEV body), label wording (CHAIN == DEV only for the price-chain bodies, chain lacks listed), exact refusal outcomes, falsifiable platform-cost and P9 checks, labelled D1/D4/D6 cells, rpc_read_task pinned, CRLF-tolerant tests, wider path filter; NO server change, nothing against DEV",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -208,7 +208,7 @@
    "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "ex04": {
-   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_WINDOW_RUN_1_PARTIAL_INSTRUMENT_REMOVED_FROM_CONFIG_S4_AND_REFRESH_NOT_PROVEN",
+   "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_WINDOW_RUN_1_PARTIAL_INSTRUMENT_REMOVED_FROM_CONFIG / WINDOW_2_PARTIAL_REFRESH_AND_FIRST_8_CARDS_PROVEN_PAGING_ERROR_ROW_CAUSE_UNDETERMINED_S4_NOT_PROVEN",
    "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
    "flows_p2": [
@@ -329,10 +329,11 @@
    "option_a_test_apk": "Test APK IZGRAĐEN I VERIFIKOVAN 1.10.: workflow run 36873169662 (pokušaj 2; pokušaj 1 pao na prolaznoj grešci preuzimanja Kotlin kompajlera, HTTP 500), izvor 52a66a7638ff55549825b0dccee331c28a979886, USKOCI-DEV.apk 71.250.306 bajtova, sha256 9ef10b674a9b4f323542225b2e5414ff28301d8d06418b59d8bf73b3b90a18ab (podudara se sa .sha256 fajlom i obe atestacije PASS na istom hash-u i izvoru), paket rs.uskoci.dev versionCode 35, native-code arm64-v8a, potpis fac61745dc09… identičan potpisu instaliranog APK-a (adb install -r je moguć bez deinstalacije), okruženje build-a pokazuje EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uz tri EX-04 flaga. NIJE instaliran na telefon i telefon nije dirnut; čeka vlasnikovo „SAD“. Skript ex04_boundary.py (install -r, tri prelaska granice + Back, pull-to-refresh, S1/S2/S4 do kraja, ciklusi, crash/ANR sken) ima tvrd budžet i staje ako izgubi foreground ili zazvoni telefon. Posle testa: brisanje linije iz DEV workflow-a i evidencija da je PAGE_LIMIT=2 bio isključivo test instrument.",
    "owner_decision_20261001_sad_attempt": "Vlasnik 1.10. (kasnije): „SAD“ za EX-04 test prozor (do 4,5 min ekskluzivnog HONOR-a, sesija i podaci sačuvani, bez reseta i bez ičeg van EX-04 testa); posle testa se test-only linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uklanja iz normalne build konfiguracije, a rezultat se evidentira u receipt, registar i LIVE plan. ISHOD POKUŠAJA: telefon je fizički povezan (HONOR 600 Pro vidljiv u Windows-u) ali ADB interfejs nije vidljiv (adb devices prazno; verovatno isključen USB debugging) - NIŠTA nije poslato telefonu, prozor nije potrošen, podešavanja telefona se ne menjaju; čeka se ponovno „SAD“ posle uključenog USB debugging-a.",
    "option_a_window_result": "PROZOR 1.10. (vlasnikovo „SAD“, 274 s, test APK 9ef10b67 sa PAGE_LIMIT=2 instaliran sa install -r, firstInstallTime nepromenjen, sesija i podaci sačuvani; prvi pokušaj je zaustavljen jer ADB interfejs nije bio vidljiv, ništa nije poslato telefonu): DELIMIČNO DOKAZANO. Granica strane je prelazena na telefonu: S1 Istorija foot „Prikaži još“ viđen na prvoj strani i radi, lista dalje raste kroz onEndReached, šetnja do kraja = 11 kartica = pozicije 6..16 od 17, uzastopne, isti redosled kao baza, bez duplikata/anomalije/greške, završava poslednjom karticom baze; S1 Aktivni 2/2; S2 Sve 4/4 isti redosled kao baza bez duplikata (druga strana pročitana); ciklusi S2 6/6; bez pada i ANR (nema FATAL/ANR, nema izlaza procesa u prozoru); jank 3,58 %, p99 19 ms. NIJE dokazano: S4 Kandidati (korak navigacije pao na AssertionError bez poruke; rpc_list_need_candidates_page 5->5), pull-to-refresh i prve 4-6 kartice S1 (moja provera „vrh liste“ je pogrešno prepoznala zaglavlje), ciklusi Kandidata 0/10; Back posle dubokog skrola vraća najviše 5 strana (projektovano, reloadPages=5). Test linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 UKLONJENA iz normalne build konfiguracije (guard 8/8); test APK ostaje na telefonu do sledećeg normalnog DEV build-a i NIJE proizvodni build; PAGE_LIMIT=2 je bio ISKLJUČIVO test instrument. EX-04 NIJE zatvoren. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md",
+   "option_a_window2_result": "PROZOR 2 (vlasnikovo drugo „SAD“, oko 3 min, skripta 124 s, 20:31-20:33 po telefonu, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, posle prozora telefon nije diran): DELIMIČNO DOKAZANO. DOKAZANO: pull-to-refresh sa pravog vrha (prva kartica na ekranu = prva kartica baze, 0 krugova skrola) vraća listu na prvu stranu (2 kartice, prva = pozicija 0, foot „Prikaži još“); posle refresha prvih 8 kartica = pozicije 0..7 od 17, isti redosled i tekst, bez duplikata/anomalije; jedan tap na „Prikaži još“, ostalo kroz onEndReached; bez pada i ANR; 2217 frejmova, janky 1,13 %, p99 15 ms, PSS 271 MB. UOČENO PRVI PUT, UZROK NEODREĐEN: posle 8. kartice foot je prikazao „Nije uspelo učitavanje još zadataka.“ uz „Pokušaj ponovo“ (lista ostaje na ekranu, projektovano ponašanje moreError). Poznato: prozor 1 je pročitao svih 17 bez te greške; DEV edge_logs (lossy, 19 redova za 16 min) pokazuju 5 poziva rpc_list_my_needs_page 18:31:27-18:32:11 UTC, svi HTTP 200; postgres_logs bez ERROR/FATAL za 18:20-18:36 UTC; nijedan red needs nije menjan posle 17:30 UTC osim jednog novog PUBLISHED zadatka 18:04:49 UTC (Aktivni, pre prozora); šesti zahtev nije u logovima; čitač strane svaku grešku svodi na jednu poruku (greška servera, mreža/15 s timeout, promena revizije naloga, nevažeći odgovor), pa KLASA uzroka nije utvrđena - ne tvrdim ni defekt ni prolaznu smetnju. NIJE dokazano: S4 Kandidati i ciklusi kandidata (korak s4 pao na „open Aktivni tab“ - ekran je još bio Istorija na dnu sa redom greške, snimak fail_s4_candidates.png; korak cycles pao jer ciljna kartica nije bila na prvom ekranu Aktivnih („3 zadatka“, novi zadatak od 18:04 UTC, skripta ne skroluje); rpc_list_need_candidates_page nije pozvan), šetnja do kraja 17 kartica, odbijanje mešanih revizija, loading skeleton, pozitivan put ocene. EX-04 NE ispunjava native closure kriterijum. Sledeće (samo uz vlasnikovo „SAD“, oko 2,5 min): skripta koja skroluje do ciljne kartice, tap „Pokušaj ponovo“ posle greške i čitanje app loga (samo čitanje). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 5)",
    "open_items": [
     "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
     "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)",
-    "Preostalo za EX-04 na telefonu posle prozora 1 (ROUND_79): S4 Kandidati (granica strane + ciklusi), pull-to-refresh i prve kartice S1 posle prelaska granice - traži drugi kratki prozor (oko 3 min) sa ispravljenim skriptom; test APK je još instaliran pa novi build nije potreban; mešana revizija, loading/error i pozitivan put ocene ostaju nedokazani",
+    "Preostalo za EX-04 na telefonu posle prozora 2 (ROUND_79 odeljak 5): S4 Kandidati (granica strane + ciklusi), uzrok reda greške „Nije uspelo učitavanje još zadataka.“ posle 8. kartice S1 Istorija (tap „Pokušaj ponovo“ + app log), šetnja do kraja 17 kartica; traži treći kratki prozor (oko 2,5 min, samo uz vlasnikovo „SAD“) sa skriptom koja skroluje do ciljne kartice; test APK je još instaliran pa novi build nije potreban; mešana revizija, loading/error stanje i pozitivan put ocene ostaju nedokazani. Dokazano u prozoru 2: pull-to-refresh sa pravog vrha i prvih 8 kartica posle njega.",
     "Nije dokazano: HTTP/JWT poziv novih čitača kroz PostgREST kao zaseban posmatrani događaj (aplikacijini pozivi novih RPC-ova uspeli su i vidljivi su u pg_stat_statements), troškovi na produkcijskom obimu",
     "Vlasnikove odluke koje ostaju: B09/PKG-049 (serverska cena) i pisani komentar D12; svaki revert traži novo posebno PRIMENI"
    ],
@@ -399,7 +400,7 @@
     },
     "S03": {
      "title": "Corpus-driven matching contract proof on a disposable chain (positive and negative candidates)",
-     "status": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md",
+     "status": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md SECOND CI RUN 2026-10-01 (harness round 3, 127 offline tests, CI 36901457675, source 852cf658): result PARTIAL (honest enum) - 37 of 66 cases compared, 0 refused, 29 skipped, 436 of 897 leaves compared, 6 SHAPE_DEGRADED (T-003, T-006, T-007, T-008, T-026, T-027: the task stores no window) and 3 POSITIVE_ONLY (T-004, T-005, T-036), the same 11 findings in the same 3 cases, 0 harness errors, canary 7/7, 219 Auth accounts, 0 retries; 12 of 12 pins equal DEV (the 12th after the extension). Reports ex06/s03_run_36901457675/; ROUND_78 section 6.",
      "autonomous": true,
      "depends_on": "S01 (md5 pins), S02 (corpus)",
      "first_owner_boundary": "None for the proof. PRIMENI is needed only for a follow-up candidate."
@@ -3599,7 +3600,8 @@
     "status": "ANALIZA_ODOBRENA_20260922"
    },
    "finalization": {
-    "owner_decision_20261001_zero_change": "Vlasnik 1.10. (kasnije): B09 = ZERO-CHANGE. D1, D2, D3 i D4 ostaju podrazumevano bez promene; osvežiti i završiti dokaz; ne menjati server samo zato što je stara pretpostavka bila pogrešna. Osvežen dokaz je u toku (runda 2 prošla CI 36895021919, runda 3 ispravki u toku).",
+    "b09_closure_20261001": "ZATVORENO 1.10. kao ZERO-CHANGE: server je već autoritet za cenu MY_PRICE (private.assert_application_price_v5, md5 bd7ef029…), PRIMENI B09/PKG-049 se NE traži (ponovna primena bi bila bajt-identičan no-op). Runda 3 dokaza: CI run 36910942456, izvor b00f62f39d94bd6162fc7eaa6ff0b00a92eecdbd, PASS - 40/40 offline testova, 12/12 pinovanih tela lanca cene bajt-jednaka DEV čitanju od 1.10. (label „PRICE-CHAIN BODIES == DEV; the chain is NOT DEV“), 142 odbijanja sa tačnom porukom/SQLSTATE/HTTP i 23 iznosa sačuvana verbatim sa hash-om, 18 direktnih upisa u tabele cena izmenjenim klijentom + pozitivna kontrola (svaki odbijen ili filtriran sa pinovanim ishodom, površina cene bajt-identična), replay prethodi proveri cene, izbor kopira cenu sačuvane verzije, PT409 viđen kao HTTP 409, 7/7 slabljenja otkriveno i vraćeno tačno, torke cena nepromenjene, sertifikat nepomeren. D1, D2, D3, D4 (i D6) ostaju otvorene i bez promene po podrazumevanoj odluci. NIJE dokazano: ništa nije pokrenuto protiv DEV-a (0 otvorenih MY_PRICE zadataka), lanac nije DEV (nema pkg051a, A1/P0/P4/P5/B3, PKG-045b P0, Voice B1, EX-04A-C), tri napada na needs su specifična za lanac, PostgREST 14.5 nije posmatran, nema nativnog ponašanja na uređaju. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_ZERO_CHANGE_CLOSURE_20261001.md",
+    "owner_decision_20261001_zero_change": "Vlasnik 1.10. (kasnije): B09 = ZERO-CHANGE. D1, D2, D3 i D4 ostaju podrazumevano bez promene; osvežiti i završiti dokaz; ne menjati server samo zato što je stara pretpostavka bila pogrešna. Osvežen dokaz je ZAVRŠEN (runda 2 CI 36895021919, runda 3 CI 36910942456, oba PASS); zatvoreno kao „već sprovedeno na DEV-u, dokaz osvežen, bez izmene servera“.",
     "b09_proof_20261001": "OSVEŽEN DOKAZ (1.10., CI run 36895021919, izvor e27e76db, runda 2 harnessa, bez izmene servera): disposable lanac, pravi Auth i PostgREST (JWT), pravi klijentski TypeScript; label CHAIN == DEV - svih 11 pinovanih tela lanca cene (submit, select, helper, stale resolver, oba need_candidate_states_v5, propose, respond i susedna tri) bajt-jednaka DEV čitanju od 1.10. (posle in-proof konverzije dve PRE-B24 funkcije sa izvedenim md5 koji je jednak DEV-u pre izvršenja). 142 odbijanja potvrđena tačnom porukom, SQLSTATE i HTTP 400 uz „ništa upisano“ i 23 iznosa sačuvana verbatim sa hash-om koji ih vezuje (46 redova PINNED_TO_TODAY pod otvorenim D1/D4/D6); replay prethodi proveri cene; ponovna potvrda posle izmene zadatka; izbor kopira cenu sačuvane verzije; svih 7 slabljenja (helper no-op i svaki od pet pozivalaca) OTKRIVENO uočenim ishodom i vraćeno tačno. D3 KARAKTERIZOVAN (ne presuđen): Dogovor se uz pristanak obe strane može preceniti na bilo koji ceo broj (u dokazu 1 i 2147483647), a kartica ponude u Moje prijave ostaje na staroj ceni (3000 naspram 1). NIJE dokazano: napadi direktnim upisom u tabele cena (round 3), PostgREST 14.5 (lanac 16.1), pkg051a/A1/P0/P4/P5/B3/PKG-045b P0/Voice B1/EX-04A-C na lancu, DEV bez otvorenih MY_PRICE zadataka. docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/ci_run_36895021919/pkg049-report.md",
     "b09_finding_20261001": "NALAZ PROVERE 1.10. (živi DEV samo čitanje, 13 agenata + nezavisna provera korenske sesije): premisa B09 je OPOVRGNUTA za živi DEV. private.assert_application_price_v5 (md5 bd7ef02925c03d99ff7fd549219214cb) sprovodi cenu naručioca za MY_PRICE (NULL osnova: jednakost; PER_PERSON: cena x broj mesta; TOTAL: sva mesta i jednakost; MY_PRICE bez cene: FIXED_PRICE_NOT_READY) i poziva ga rpc_submit_response (c98e5bee…), rpc_select_response (7cbb8390…), rpc_resolve_stale_response_after_need_edit (96cb9aac…) i oba need_candidate_states_v5; živo od ledgera 189 (PKG-033a, 21.09.), pre prijema od 23.09. Izbor i Dogovor v1 nikad ne primaju cenu od klijenta (iznos = cena sačuvane verzije prijave). Stvarni preostali otvoreni delovi: izmena cene Dogovora uz pristanak obe strane (D3), granica cene za OFFERS (D4), odbij-naspram-izvedi (D2), NULL osnova za nove MY_PRICE zadatke sa više ljudi (D1); 0 postojećih redova bi bilo odbijeno ili promenjeno. PRIMENI B09/PKG-049 se NE traži: ponovna primena bi bila bajt-identičan no-op. Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PRICE_AUTHORITY_FINDING_20261001.md; sirovi rezultat: docs/implementation/product-v1-closure-20260926/finalization-20260927/b09/B09_PHASE1_WORKFLOW_RESULT_20261001.json",
     "owner_decision_20261001": "Vlasnik 1.10. (kasnije): ŽELI SERVERSKI AUTORITET ZA CENU U V1 - cena i prihvaćeni iznos u poslovnom toku ne zavise od klijentske vrednosti kad server može biti kanonski autoritet. To je proizvodna odluka. PKG-049 se NE primenjuje na osnovu te poruke: prvo provera kanonskog obima (kandidat kao fajl NE postoji, samo predlog), šta danas određuje cenu, šta server smatra autoritetom, lanac task -> prijava/ponuda -> izbor -> Dogovor -> prihvaćena cena -> readback, semantika TOTAL / PER_PERSON / OFFERS, dokaz da se postojeći podaci ne menjaju, test-first/disposable dokaz, tačan revert i svež read-only DEV preflight; tek tada poseban approval block koji traži „PRIMENI B09/PKG-049“.",
@@ -8015,5 +8017,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36910942456,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "b00f62f3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T18:59:20Z"
+  },
+  {
+   "id": 36901457675,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "852cf658",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:43:17Z"
+  },
+  {
+   "id": 36901345565,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:42:23Z"
+  },
+  {
+   "id": 36901222769,
+   "ime": "Control tracker refresh",
+   "sha": "60da5a05",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:41:23Z"
+  },
+  {
+   "id": 36899935334,
+   "ime": "Control tracker refresh",
+   "sha": "c97be190",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T17:30:52Z"
+  },
+  {
+   "id": 36896019778,
+   "ime": "Control tracker refresh",
+   "sha": "995f507b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:59:10Z"
+  },
+  {
+   "id": 36895021919,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "e27e76db",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:50:45Z"
+  },
+  {
+   "id": 36892351679,
+   "ime": "Control tracker refresh",
+   "sha": "2f3d7390",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:29:12Z"
+  },
+  {
+   "id": 36890566753,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "e7f129d5",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T16:15:04Z"
+  },
+  {
+   "id": 36880192681,
+   "ime": "Control tracker refresh",
+   "sha": "34d6d06c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:55:26Z"
+  },
+  {
+   "id": 36879449522,
+   "ime": "Control tracker refresh",
+   "sha": "5f5930ed",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:49:53Z"
+  },
+  {
+   "id": 36875994563,
+   "ime": "Control tracker refresh",
+   "sha": "b1f280de",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T14:23:46Z"
+  }
+ ]
 }
