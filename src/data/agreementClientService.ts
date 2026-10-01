@@ -598,6 +598,16 @@ export const agreementClientService: AgreementService = {
     // Calendar and support use Agreement facts, not rating actions. An omitted read is unknown, never NOT_DUE.
     if (options?.includeRatings === false) return agreements.map(row => row.stanje === 'COMPLETED'
       ? { ...row, ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' as const } : row);
+    // EX-04 S3 (RC-03). A server that says, in the page itself, whether MY rating of a finished Dogovor is still due (`ratingDue`, the same answer as
+    // rpc_get_my_agreement_review's `eligible`) makes the per-row review reads unnecessary: no request per finished Dogovor, nothing for a stalled read to
+    // withhold. All or none: one finished Dogovor without the fact means an older server, and then every row is asked the old way, never a mixture.
+    const finished = agreements.map((row, index) => ({ row, raw: rows[index] as { ratingDue?: unknown } })).filter(entry => entry.row.stanje === 'COMPLETED');
+    if (finished.every(entry => typeof entry.raw.ratingDue === 'boolean')) {
+      if (!ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
+      const due = new Map(finished.map(entry => [entry.row.id, entry.raw.ratingDue === true]));
+      return agreements.map(row => row.stanje === 'COMPLETED'
+        ? { ...row, ocenaMoguca: due.get(row.id) === true, stanjeProvereOcene: due.get(row.id) === true ? 'DUE' as const : 'NOT_DUE' as const } : row);
+    }
     return withAgreementRatings(agreements, owner);
   },
 

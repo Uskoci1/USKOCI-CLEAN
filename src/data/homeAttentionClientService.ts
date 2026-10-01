@@ -57,7 +57,14 @@ export function decodeHomeAttention(raw: unknown): HomeAttentionPreview | null {
         taskTitle: row.taskTitle, detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES', needId: id } });
     }
   }
-  return { rows, more: c.attentionMore, asOf: data.asOf };
+  // EX-04 S3 (RC-03): the rating aggregate is optional (an older server has none) and strict when it is there: a count, and the id exactly when the count is one.
+  let ratings: HomeAttentionPreview['ratings'];
+  if (Object.prototype.hasOwnProperty.call(data, 'ratings')) {
+    const r = record(data.ratings);
+    if (!r || !Number.isSafeInteger(r.due) || (r.due as number) < 0 || (r.due === 1 ? !uuid(r.dueAgreementId) : r.dueAgreementId !== null)) return null;
+    ratings = { due: r.due as number, agreementId: r.due === 1 ? r.dueAgreementId as string : null };
+  }
+  return { rows, more: c.attentionMore, asOf: data.asOf, ...(ratings ? { ratings } : {}) };
 }
 
 export const homeAttentionClientService: Pick<Izvor, 'paznjaZaPocetnu'> = {

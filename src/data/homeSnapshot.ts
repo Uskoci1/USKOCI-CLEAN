@@ -25,7 +25,12 @@ export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget;
   /** Structured by the live attention decoder. Legacy proof/gallery rows retain their combined detail. */
   taskTitle?: string };
-export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string };
+export type HomeAttentionPreview = { rows: HomeAttention[]; more: number; asOf: string;
+  /**
+   * EX-04 S3 (RC-03): the server's own count of finished Dogovori that wait for MY rating, and the id when exactly one does. Absent from an older server, and then Početna
+   * counts from the Dogovori read as before. Present, it is exact and bounded: it does not depend on how many Dogovori there are, or on any list being read.
+   */
+  ratings?: { due: number; agreementId: string | null } };
 export type HomeRow = { id: string; title: string; detail: string; target: HomeTarget;
   /** A future accepted term on a CONFIRMED Agreement, never the source task's time. */
   upcoming?: true;
@@ -123,7 +128,9 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     })
     .map(entry => ({ ...agreementRow(entry.row), ...(entry.upcoming !== null ? { upcoming: true as const } : {}) }));
   const due = (agreements ?? []).filter(ratingDue);
-  const ratingsKnown = agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
+  const serverRatings = serverAttention?.kind === 'known' ? serverAttention.value.ratings : undefined;
+  // The server's aggregate is the whole answer when it is there: a failed or slow Dogovori read then withholds the Dogovori, never the number of ratings.
+  const ratingsKnown = !!serverRatings || agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
   const partial = !ratingsKnown || serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   return {
@@ -136,7 +143,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       applications: applications ? { kind: 'known', value: applicationCounts(applications) } : { kind: 'unavailable' } },
     partial,
     firstRun: !partial && !attention.length && !needs?.length && !applications?.length && !agreements?.length,
-    ratingsDue: ratingsKnown ? due.length : null,
-    ratingDueAgreementId: ratingsKnown && due.length === 1 ? due[0].id : null,
+    ratingsDue: serverRatings ? serverRatings.due : ratingsKnown ? due.length : null,
+    ratingDueAgreementId: serverRatings ? serverRatings.agreementId : ratingsKnown && due.length === 1 ? due[0].id : null,
   };
 }
