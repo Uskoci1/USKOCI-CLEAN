@@ -496,6 +496,12 @@
       "run": 36931086522,
       "sha": "fb865dd79ac303ffd6ee67c693ef6442755f41ae",
       "result": "PHYSICAL DEVICE: normal DEV APK 81b8a833 installed over the test APK (install -r, session kept); list routine 236 s: 0.014 failed Reanimated lines per frame (77 lines, 2 dead tags), janky 0.99 %, no crash/ANR; map-pin and sign-in routine not yet measured; EX04-L7 closed"
+    },
+    {
+      "id": "HONOR-WINDOW5-B22-BEFORE-TOUR-20261002",
+      "run": 36931086522,
+      "sha": "fb865dd79ac303ffd6ee67c693ef6442755f41ae",
+      "result": "PHYSICAL DEVICE (owner fifth SAD window, normal unpatched DEV APK 81b8a833, read-only screen tour 242 s): 2,699 failed Reanimated lines on 3,932 frames = 0.686 per frame from 39 dead tags, 465,742 log lines in 4 bursts of ~10 s, janky 1.93 %, p99 22 ms, no crash/ANR; this is the BEFORE for the B22 patch"
     }
   ]
 }

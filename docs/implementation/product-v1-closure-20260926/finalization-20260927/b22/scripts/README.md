@@ -1,0 +1,3 @@
+# B22 measurement scripts (frozen evidence artefacts, 2026-10-02)
+
+`window4_baseline.py` (one `adb install -r` + the list routine) and `window5_tour.py` (the read-only screen tour) with the helpers they import (`ui.py`, `ex04_boundary.py`, `ex04_boundary3.py`). They are evidence of HOW the numbers were produced, not reusable tooling: they hardcode the serial of the owner's phone. Rules they obey: taps, swipes, Back and reads only (plus the one install in window 4), a foreground guard before every input, a hard time budget, a stop when a call is in progress. The AFTER measurement must run `window5_tour.py` UNCHANGED on the patched build.
