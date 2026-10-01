@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T17:41:12Z",
+  "osvezeno": "2026-10-01T17:42:00Z",
   "grana": "HEAD",
-  "head": "9beba1dd",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "60da5a05",
+  "head_poruka": "docs(ex04): round 79 - page-boundary check on the physical HONOR in the owner's SAD window (test APK 9ef10b67, PAGE_LIMIT=2): PARTIALLY PROVEN - S1 and S2 crossed the page boundary with correct content, order and no duplicate, no crash or ANR, 6 of 6 S2 cycles; S4 Kandidati, pull-to-refresh, the first S1 cards and the candidate loop NOT proven (a navigation step failed, a top-of-list check in the script was wrong); the test-only EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 line is REMOVED from the normal build configuration (guard 8/8), PAGE_LIMIT=2 was only a test instrument; EX-04 stays open",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8015,102 +8015,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36899935334,
-   "ime": "Control tracker refresh",
-   "sha": "c97be190",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:30:52Z"
-  },
-  {
-   "id": 36896019778,
-   "ime": "Control tracker refresh",
-   "sha": "995f507b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:59:10Z"
-  },
-  {
-   "id": 36895021919,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "e27e76db",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:50:45Z"
-  },
-  {
-   "id": 36892351679,
-   "ime": "Control tracker refresh",
-   "sha": "2f3d7390",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:29:12Z"
-  },
-  {
-   "id": 36890566753,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "e7f129d5",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:15:04Z"
-  },
-  {
-   "id": 36880192681,
-   "ime": "Control tracker refresh",
-   "sha": "34d6d06c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:55:26Z"
-  },
-  {
-   "id": 36879449522,
-   "ime": "Control tracker refresh",
-   "sha": "5f5930ed",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:49:53Z"
-  },
-  {
-   "id": 36875994563,
-   "ime": "Control tracker refresh",
-   "sha": "b1f280de",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:23:46Z"
-  },
-  {
-   "id": 36875676769,
-   "ime": "Control tracker refresh",
-   "sha": "202c2577",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:21:20Z"
-  },
-  {
-   "id": 36875025074,
-   "ime": "Control tracker refresh",
-   "sha": "552d7ac7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:16:19Z"
-  },
-  {
-   "id": 36875025066,
-   "ime": "P5 ready task and matching contract",
-   "sha": "552d7ac7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:16:19Z"
-  },
-  {
-   "id": 36873883166,
-   "ime": "Control tracker refresh",
-   "sha": "ce8daef9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:07:31Z"
-  }
- ]
+ "ci": null
 }
