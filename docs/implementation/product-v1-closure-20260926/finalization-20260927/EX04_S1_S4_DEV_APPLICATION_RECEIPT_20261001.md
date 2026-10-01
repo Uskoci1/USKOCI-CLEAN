@@ -1,5 +1,7 @@
 # EX-04 S1-S4 - DEV application receipt (2026-10-01)
 
+> **UPDATE 2026-10-01 (later the same day): on the owner's separate approval the three client flags were turned ON in the DEV APK workflow only (`bf48a5db`) and EX-04 was checked on the physical HONOR - see `ROUND_77_EX04_NATIVE_HONOR_CHECK_20261001.md`. The status line below ("no client flag, no APK, no HONOR run") is the state at the time of the DEV application; it is kept as it was.**
+
 **Status: the four candidates are APPLIED to canonical DEV `leqcwgzvjsxugfgzdmth`, one atomic migration each, in the order S1, S2, S4, S3, on the owner's explicit PRIMENI. The closure/privacy certificate is unchanged (`58447d77…`) and ready. Ledger 215 -> 219. Every postflight returned `problems: []`. Nothing else was changed: no client flag, no APK, no HONOR run, no revert, nothing on PROD.**
 Machine-readable twin: `supabase/operations/dev-alpha/ledger/20261001_ex04_s1_s4_application.receipt.json`. Source and proofs: `ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md`, `ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md`.
 
