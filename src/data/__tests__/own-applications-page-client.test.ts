@@ -1,5 +1,5 @@
 import { applicationClientService } from '../applicationClientService';
-import { applicationRank, decodeOwnApplicationsPage, ownApplicationsScope, ownApplicationsScopeRank } from '../ownApplicationsPage';
+import { applicationRank, decodeOwnApplicationsPage, ownApplicationsScope, ownApplicationsScopeRank, type OwnApplicationsPageRequest } from '../ownApplicationsPage';
 
 /**
  * EX-04 S2 (B10): the client end of `rpc_list_my_applications_page`. A page is the application documents of the whole-list read plus the task facts the card needs
@@ -85,7 +85,7 @@ it('the first page answers the four counts, a later page answers none, and an em
 });
 
 const withFirst = (mutate: (item: any) => void) => (page: any) => mutate(page.items[1]);
-it.each([
+it.each<[string, OwnApplicationsPageRequest, (page: any) => void]>([
   ['the first page without counts', first, (p: any) => { p.counts = null; }],
   ['a missing count', first, (p: any) => { delete p.counts.active; }],
   ['a negative count', first, (p: any) => { p.counts.finished = -1; }],
