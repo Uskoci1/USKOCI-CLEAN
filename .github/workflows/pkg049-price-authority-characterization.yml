@@ -3,15 +3,19 @@ name: PKG-049 price authority characterization
 # rpc_submit_response, rpc_select_response, rpc_resolve_stale_response_after_need_edit and both need_candidate_states_v5 overloads) is already live on canonical DEV since ledger 189 (PKG-033a).
 # This job is the EVIDENCE REFRESH (docs: b09/B09_PRICE_AUTHORITY_FINDING_20261001.md, section 10 T0-T8): on a DISPOSABLE DEV-equivalent chain (the unchanged source147 -> PKG-050 stages, plus the
 # exact EX-04D candidate text inside the proof for the second need_candidate_states_v5 overload, plus an in-proof conversion of exactly two PRE-B24 bodies) with actual Auth and actual PostgREST
-# (real JWTs) and the real client TypeScript it proves, as a modified client would meet it: the refusals (exact message, SQLSTATE, HTTP 400, nothing written), replay and idempotency, stale
-# reconfirm, selection with no price argument and bound to the pinned (revision, version, hash), the readback, and it CHARACTERISES (does not judge) the Agreement change flow as open owner
-# decision D3. Phase P8 weakens the rule on purpose, on the chain only, to prove the proof turns RED (a probe is detected only by the OBSERVED weakened outcome).
+# (real JWTs) and the real client TypeScript it proves, as a modified client would meet it: DIRECT PostgREST TABLE WRITES on the response, Agreement, selection and task tables (price integrity is claimed
+# to be RPC-only: each attack must give the pinned outcome and leave the stored price surface byte-identical), the RPC refusals (exact message, SQLSTATE, HTTP 400, nothing written), replay and
+# idempotency, stale reconfirm, selection with no price argument and bound to the pinned (revision, version, hash), the readback, and it CHARACTERISES (does not judge) the Agreement change flow as open
+# owner decision D3. Phase P8 weakens the rule on purpose, on the chain only, to prove the proof turns RED (a probe is detected only by the OBSERVED weakened outcome).
 # CHAIN FIDELITY. The chain is NOT DEV. It lacks the DEV ledger 202-219 items pkg051a, A1/P0/P4/P5/B3a-c, PKG-045b P0 (needs column ACL, certificate re-bind), P6 rollout v3, B24 Part 1/2, Voice B1 and
 # EX-04A-C; its certified set and certificate are chain-internal (before = after only). B24 Part 1 as a whole cannot apply (relaxed mode relaxes only the md5 pins and the closed name lists, NOT
 # existence, uniqueness or the quoted-site count: private.platform_price_add_version exists only after pkg051a, and later push bodies drift the site count), so the proof converts exactly the two
-# price-chain bodies d37c4f7c -> 96cb9aac (stale resolver) and dfa1a809 -> 450b6f8d (rpc_confirm_need_edit) with B24's own mechanics, after measuring the derived md5 against the DEV md5.
-# The pin gate FAILS the run when a core pin differs without an explanation, when the helper vocabulary differs or when a swallow list has a gap; its label says "CHAIN == DEV" or which differences are explained.
-# The path filter below names every file the proof or its unit tests read, and the unit tests require it to cover the real client module graph.
+# price-chain bodies d37c4f7c -> 96cb9aac (stale resolver) and dfa1a809 -> 450b6f8d (rpc_confirm_need_edit), ONE TRANSACTION EACH, with B24's own mechanics, after measuring the derived md5 against the DEV md5.
+# Only four documented chain-drift guards are tolerated by that stage; any other failure fails the run. When the stale resolver is not the DEV body, the PT409 (HTTP 409) coverage is a recorded GAP and the
+# result is PASS_WITH_GAPS.
+# The pin gate FAILS the run when a core pin differs without an explanation, when the helper vocabulary or its raise count differs or when a swallow list has a gap. Its label says "PRICE-CHAIN BODIES == DEV"
+# (the pinned function bodies ONLY, never the chain) or which differences are explained, and every pass line carries it.
+# The path filter below names every file the proof or its unit tests read, the real client module graph, and the files that DEFINE the chain (the unit tests require all of them to be covered).
 # No DEV, provider or device access. Every outcome destroys the disposable stack.
 on:
   push:
@@ -23,16 +27,43 @@ on:
       - 'supabase/proofs/pre_v3/closure_runtime.mjs'
       - 'supabase/proofs/pre_v3/history_snapshot.mjs'
       - 'supabase/proofs/ru5_device_ui_local_guard.mjs'
+      - 'supabase/proofs/ru5_device_ui_live79_env.sh'
       - 'supabase/proofs/pkg023/pkg023_surface.sql'
       - 'supabase/proofs/b24/b24_inventory.tsv'
-      - 'supabase/candidates/pkg033a_application_admission_parity.sql'
-      - 'supabase/candidates/pkg035a_selectable_application_counts.sql'
       - 'supabase/candidates/ex04d_candidates_page.sql'
       - 'supabase/candidates/b24_nonretried_conflicts_part1.sql'
-      - 'supabase/candidates/pkg051a_platform_price_list.sql'
-      - 'supabase/migrations/20260904214500_clean_ru4_owner_edit_lock.sql'
-      - 'supabase/migrations/20260910130851_clean_w02_resolved_location_authority.sql'
-      - 'supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json'
+      - 'supabase/operations/dev-alpha/ledger/**'
+      # the files that DEFINE the chain this evidence is about (round 3): every migration, every pkg candidate the replay stages apply (pkg033a, pkg035a, pkg045a, pkg051a ... are all pkg*), the replay
+      # and stage proof scripts and the proof directories they read, the Edge sources, and the few non-supabase inputs the stage scripts read. Documents that only MENTION a path are intentionally outside.
+      - 'supabase/migrations/**'
+      - 'supabase/candidates/pkg*.sql'
+      - 'supabase/functions/**'
+      - 'supabase/proofs/pkg023j/replay_source147.py'
+      - 'supabase/proofs/pkg027/**'
+      - 'supabase/proofs/pkg028/**'
+      - 'supabase/proofs/pkg029/**'
+      - 'supabase/proofs/pkg030/**'
+      - 'supabase/proofs/pkg031/**'
+      - 'supabase/proofs/pkg032/**'
+      - 'supabase/proofs/pkg033/**'
+      - 'supabase/proofs/pkg034/**'
+      - 'supabase/proofs/pkg035/**'
+      - 'supabase/proofs/pkg037/**'
+      - 'supabase/proofs/pkg038/**'
+      - 'supabase/proofs/pkg039/**'
+      - 'supabase/proofs/pkg040/**'
+      - 'supabase/proofs/pkg042/**'
+      - 'supabase/proofs/pkg050/**'
+      - 'supabase/proofs/ai/**'
+      - 'supabase/proofs/completion/**'
+      - 'supabase/proofs/legal/**'
+      - 'supabase/proofs/policy/**'
+      - 'supabase/proofs/notifications/**'
+      - 'docs/implementation/v5-ai-first/PRESELECTION_QA_EXECUTABLE_POLICY.json'
+      - 'docs/implementation/v5-ai-first/pkg042/FUNCTION_PINS_20260922.json'
+      - 'scripts/render-qa-policy-bundle.mjs'
+      - 'src/contracts/qaSubmission.ts'
+      - 'src/lib/qaTextHash.ts'
       - 'src/data/agreementClientService.ts'
       - 'src/data/agreementCompletion.ts'
       - 'src/data/agreementRatingsRead.ts'
@@ -95,7 +126,7 @@ jobs:
         with:
           version: 2.116.0
           github-token: ${{ github.token }}
-      - name: Bind exact source, check the proof files, install the dependencies and run the pure unit tests (pins, gate, B24 derivation, model, weakening plan, workflow coverage)
+      - name: Bind exact source, check the proof files, install the dependencies and run the pure unit tests (pins, gate, B24 derivation, model, weakening plan, workflow coverage, dry runs of the P0 stage loop and of P1b)
         run: |
           set -euo pipefail
           umask 077
@@ -103,7 +134,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
           git rev-parse HEAD 'HEAD^{tree}' > "$PKG049_ARTIFACT_DIR/source-binding.txt"
-          for file in pkg049_pins.mjs pkg049_lib.mjs pkg049_proof.mjs pkg049_pins.test.mjs pkg049_lib.test.mjs; do node --check "supabase/proofs/pkg049/$file"; done
+          for file in pkg049_pins.mjs pkg049_lib.mjs pkg049_proof.mjs pkg049_pins.test.mjs pkg049_lib.test.mjs pkg049_blocks.test.mjs; do node --check "supabase/proofs/pkg049/$file"; done
           dependency_exit=0
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/01-dependencies.log" 2>&1 || dependency_exit=$?
           printf '01-dependencies exit=%s\n' "$dependency_exit" | tee "$PKG049_ARTIFACT_DIR/stages.txt"
@@ -156,7 +187,7 @@ jobs:
           run_stage 16-pkg039 node supabase/proofs/pkg040/pkg040_proof.mjs replay
           run_stage 17-pkg040 node supabase/proofs/pkg042/pkg042_proof.mjs replay
           run_stage 18-pkg042-to-pkg050 node supabase/proofs/pkg050/pkg050_proof.mjs
-      - name: Pin gate, modified-client matrix, replay, stale reconfirm, selection, real client, Agreement change (D3), weakening probes, neutrality (actual Auth and PostgREST)
+      - name: Pin gate, direct table writes (P1b), modified-client matrix, replay, stale reconfirm, selection, real client, Agreement change (D3), weakening probes, neutrality (actual Auth and PostgREST)
         run: |
           set -euo pipefail
           umask 077
@@ -165,7 +196,7 @@ jobs:
           printf '19-pkg049-proof exit=%s\n' "$proof_exit" | tee -a "$PKG049_ARTIFACT_DIR/stages.txt"
           cp "$PRE_V3_ARTIFACT_DIR/pkg049-report.json" "$PKG049_ARTIFACT_DIR/pkg049-report.json" || true
           cp "$PRE_V3_ARTIFACT_DIR/pkg049-report.md" "$PKG049_ARTIFACT_DIR/pkg049-report.md" || true
-          { echo '## PKG-049 price authority characterization (the label comes first: this is evidence about the disposable CHAIN, not about DEV, unless it says CHAIN == DEV)'; echo; head -c 60000 "$PKG049_ARTIFACT_DIR/pkg049-report.md" 2>/dev/null || echo "(no markdown report: proof exit $proof_exit)"; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '## PKG-049 price authority characterization (the label comes first: this is evidence about the disposable CHAIN, never about DEV; "PRICE-CHAIN BODIES == DEV" means ONLY that the pinned price-chain function bodies are byte-equal to the 2026-10-01 DEV readback, the chain otherwise lacks pkg051a, PKG-045b P0, B24 Part 2, Voice B1 and more; a PASS_WITH_GAPS result lists what was NOT demonstrated)'; echo; head -c 60000 "$PKG049_ARTIFACT_DIR/pkg049-report.md" 2>/dev/null || echo "(no markdown report: proof exit $proof_exit)"; } >> "$GITHUB_STEP_SUMMARY"
           exit "$proof_exit"
       - name: Always discard the disposable database
         if: always()

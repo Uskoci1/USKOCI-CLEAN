@@ -4,6 +4,8 @@ Source: three independent reviews of the round-1 proof (lenses FALSE-PASS / VACU
 Round 2 applied every major and every minor finding. Result: **30 FIXED, 0 DEFERRED**. Where a finding's proposed fix was changed on purpose, the "how" column says so.
 File:line references are to the round-1 files (the line numbers in the review); the round-2 files are `pkg049_pins.mjs`, `pkg049_lib.mjs`, `pkg049_proof.mjs`, the two test files and the workflow.
 
+**Round 3 note.** This file is HISTORY. Values quoted below (the label `CHAIN == DEV`, 11 pins, 25 unit tests) are the round-2 values; round 3 renamed the label to `PRICE-CHAIN BODIES == DEV (n/n pinned bodies; the chain is NOT DEV)`, pins 12 functions and runs 40 unit tests (`B09_REVIEW_DISPOSITION_R2.md`).
+
 **Evidence honesty.** Nothing here has run against a database. The unit tests ran offline (see the report of the round: `node --test supabase/proofs/pkg049/*.test.mjs`, 25 tests, all passing, which include the B24 derivation from the repository
 sources and the workflow-coverage check against the real client module graph). Every database and HTTP assertion added in round 2 is unobserved until the first CI run.
 
@@ -55,5 +57,5 @@ sources and the workflow-coverage check against the real client module graph). E
 ## Additions that are not review findings
 
 - `call()` re-sends only after PostgREST answers PGRST000/001/002 (HTTP 503: schema cache reloading after DDL, the request was not executed); the count is in `report.transientRetries`.
-- P2/P5/P6/P7/P8 pass names and the report carry the label; the workflow summary shows it first.
+- P2/P5/P6/P7/P8 pass names and the report carry the label; the workflow summary shows it first. (CORRECTION, round 3, review R2 finding F0.7: in the round-2 CODE only the P1 pass name carried the label, so this sentence was not true when written. Since round 3 `pass()` prefixes EVERY pass line with the short label and stores it with the check; see `B09_REVIEW_DISPOSITION_R2.md`.)
 - The workflow now runs `npm ci` before the unit tests (the workflow-coverage test loads the real client modules with `typescript`) and runs every `*.test.mjs`.

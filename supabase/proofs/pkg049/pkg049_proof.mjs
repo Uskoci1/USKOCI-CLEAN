@@ -1,17 +1,20 @@
-// B09 / PKG-049 SERVER PRICE AUTHORITY: CHARACTERIZATION PROOF (round 2, after the three-lens review R1). No server change is made or proposed here: the authority
+// B09 / PKG-049 SERVER PRICE AUTHORITY: CHARACTERIZATION PROOF (round 3, after the three-lens reviews R1 and R2). No server change is made or proposed here: the authority
 // (private.assert_application_price_v5, called by rpc_submit_response, rpc_select_response, rpc_resolve_stale_response_after_need_edit and both need_candidate_states_v5 overloads)
 // is ALREADY live on canonical DEV since ledger 189 (PKG-033a). This proof is the EVIDENCE REFRESH the owner asked for (docs: b09/B09_PRICE_AUTHORITY_FINDING_20261001.md): it runs on a
 // DISPOSABLE chain with actual Auth and actual PostgREST (real JWTs), through the REAL client TypeScript, and it is built to turn RED if the rule is weakened (phase P8 weakens it on purpose,
 // on the disposable chain only). Nothing in this file has run against a database at the time of writing: the first CI run is the first observation.
 //
-// Phases:  P0 chain stages (EX-04D candidate, in-proof B24 conversion of the two price-chain functions)    P1 pin gate (FAILS on a core difference), vocabulary, authority
+// Phases:  P0 people and historical rows (created through the RPCs BEFORE any chain stage), chain stages (EX-04D candidate, in-proof B24 conversion of the two price-chain functions, one transaction each)
+//          P1 pin gate (FAILS on a core difference), vocabulary, authority      P1b DIRECT PostgREST TABLE WRITES as a modified client (price integrity is claimed to be RPC-only)
 //          P2 modified-client matrix      P3 replay and idempotency      P4 stale reconfirm      P5 selection, the accepted amount, hash/version pins, several applications
 //          P6 the real client services: task read, submit, readback, refusal mapping      P7 Agreement change (CHARACTERISED, open owner decision D3)
-//          P8 weakening probes (non-vacuity: observed outcome equals the weakened outcome)      P9 data neutrality (seeded historical rows), certificate, catalog.
-// Label: every verdict holds for the CHAIN. The pin gate says whether the chain's price-chain bodies equal the 2026-10-01 DEV readback ("CHAIN == DEV") or which differences are explained.
+//          P8 weakening probes (non-vacuity: observed outcome equals the weakened outcome)      P9 data neutrality (rows from before the chain stages AND from P2..P7), certificate, catalog.
+// Label: every verdict holds for the CHAIN, never for DEV. The pin gate says whether the chain's price-chain BODIES equal the 2026-10-01 DEV readback ("PRICE-CHAIN BODIES == DEV": those bodies only)
+// or which differences are explained; every pass line carries the short label and the list of packages the chain lacks.
 // B24 HAZARD: the chain's stale-resolver and legacy rpc_confirm_need_edit are the PRE-B24 bodies (they raise SQLSTATE 40001 for a stale version or revision) and PostgREST 14 re-executes
-// a 40001 without end. The in-proof stage converts exactly those two bodies (the md5 it produces is measured against the DEV md5 BEFORE anything is executed); if it cannot be applied, no call
-// below ever triggers the 40001 sites, and every HTTP call has a deadline.
+// a 40001 without end. The in-proof stage converts exactly those two bodies, ONE TRANSACTION EACH (the md5 it produces is measured against the DEV md5 BEFORE anything is executed). Only the four
+// documented chain-drift guards may be tolerated; any other failure of the stage (a SQL defect, a timeout) fails the run. P4(h) (HTTP 409 / PT409) runs whenever the stale resolver IS the DEV
+// body; when it is not, no call below can trigger a 40001 site, the skip is a recorded GAP and the result is PASS_WITH_GAPS. Every HTTP call has a deadline.
 import {readFileSync, writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as rt from '../pre_v3/closure_runtime.mjs';
@@ -33,10 +36,11 @@ const DEADLINE_MS = 30000;
 const reportPath = env.PRE_V3_ARTIFACT_DIR + '/pkg049-report.json', markdownPath = env.PRE_V3_ARTIFACT_DIR + '/pkg049-report.md';
 const report = {
   package: 'PKG-049 / B09 server price authority: characterization proof (no server change)', sourceSha: env.GITHUB_SHA, disposableDbOnly: true, devAccess: false, providerCalls: 0, serverChange: false,
-  label: null, result: 'RUNNING', stages: {}, checks: [], matrix: [], replay: {}, stale: {}, selection: {}, client: {}, d3: null, weakening: null, neutrality: null, notVerified: [], transientRetries: 0,
+  label: null, labelShort: null, result: 'RUNNING', gaps: [], stages: {}, checks: [], directWrites: null, matrix: [], replay: {}, stale: {}, selection: {}, client: {}, clientFlows: [], d3: null, weakening: null, neutrality: null, notVerified: [], transientRetries: 0,
 };
 const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
-const pass = name => { report.checks.push({name, result: 'PASS'}); save(); console.log('PASS ' + name); };
+/** Every pass line carries the SHORT label first (it is evidence about the disposable chain, never about DEV) and is stored with it: the markdown and the workflow summary print it too. */
+const pass = name => { report.checks.push({name, labelShort: report.labelShort, result: 'PASS'}); save(); console.log(lib.passLine(report.labelShort, name)); };
 const sha = text => createHash('sha256').update(text).digest('hex');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const flag = value => value === 't';
@@ -44,29 +48,32 @@ const flag = value => value === 't';
 const plain = value => JSON.parse(JSON.stringify(value));
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// transport: one PostgREST call with a deadline and a plain {status, data, error} answer (a refusal is data here, never a throw)
+// transport: one PostgREST request (an RPC or a table request) with a deadline and a plain {status, data, error} answer (a refusal is data here, never a throw)
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-async function callOnce(client, name, args) {
+async function settle(label, factory) {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), DEADLINE_MS);
   let response;
-  try { response = await client.rpc(name, args).abortSignal(controller.signal); }
-  catch (error) { throw new Error(`HTTP_TRANSPORT_FAILURE ${name}: ${String(error?.message ?? error).slice(0, 200)}`); }
+  try { response = await factory().abortSignal(controller.signal); }
+  catch (error) { throw new Error(`HTTP_TRANSPORT_FAILURE ${label}: ${String(error?.message ?? error).slice(0, 200)}`); }
   finally { clearTimeout(timer); }
-  if (response.status === 0 || /abort/i.test(String(response.error?.message ?? ''))) throw new Error(`HTTP_DEADLINE_${DEADLINE_MS}ms ${name} (a SQLSTATE 40001 retried without end by PostgREST 14 would hang here: see the B24 note in the header)`);
+  if (response.status === 0 || /abort/i.test(String(response.error?.message ?? ''))) throw new Error(`HTTP_DEADLINE_${DEADLINE_MS}ms ${label} (a SQLSTATE 40001 retried without end by PostgREST 14 would hang here: see the B24 note in the header)`);
   return {status: response.status, data: response.data ?? null, error: response.error ? {code: response.error.code ?? null, message: response.error.message ?? null, details: response.error.details ?? null, hint: response.error.hint ?? null} : null};
 }
 /** PostgREST answers PGRST000/001/002 (HTTP 503) while it reloads its schema cache after DDL: the request was NOT executed, so it is sent again (counted in the report). Nothing else is ever retried. */
 const SCHEMA_CACHE_UNAVAILABLE = new Set(['PGRST000', 'PGRST001', 'PGRST002']);
-async function call(client, name, args) {
+async function resend(send) {
   for (let attempt = 0; ; attempt++) {
-    const answer = await callOnce(client, name, args);
+    const answer = await send();
     if (answer.error && (SCHEMA_CACHE_UNAVAILABLE.has(answer.error.code) || answer.status === 503) && attempt < 20) { report.transientRetries += 1; await sleep(500); continue; }
     return answer;
   }
 }
+const call = (client, name, args) => resend(() => settle(name, () => client.rpc(name, args)));
+/** A TABLE request as a modified client sends it (`factory` builds the supabase-js request each time it is sent). */
+const callTable = (label, factory) => resend(() => settle(label, factory));
 const mustOk = (response, label) => { assert.equal(response.error, null, `${label}: expected success, got ${JSON.stringify(response.error)}`); return response.data; };
 /** SQLSTATEs of the refusals that are not the helper's (read from the RPC sources: ru5 submit, p0d03 select, ru4 stale resolver). */
-const OTHER_SQLSTATE = {STALE_REVIEW_REQUIRED: 'P0001', RESPONSE_NOT_SELECTABLE: 'P0001', IDEMPOTENCY_KEY_REUSED: '22023', NEED_REMAINING_CAPACITY_EXCEEDED: '22023', INVALID_COVERED_SLOTS: '22023',
+const OTHER_SQLSTATE = {STALE_REVIEW_REQUIRED: 'P0001', RESPONSE_NOT_SELECTABLE: 'P0001', NEED_NOT_OPEN: 'P0001', IDEMPOTENCY_KEY_REUSED: '22023', NEED_REMAINING_CAPACITY_EXCEEDED: '22023', INVALID_COVERED_SLOTS: '22023',
   TEAM_CAPACITY_EXCEEDED: '22023', NOT_REQUESTER: '42501', PROFILE_NOT_OWNED_BY_ACCOUNT: '42501'};
 /** PostgREST: 42501 is 403 (401 for an anonymous caller), PT409 is 409, every other SQLSTATE used here is 400. */
 const httpFor = sqlstate => sqlstate === '42501' ? 403 : sqlstate === 'PT409' ? 409 : 400;
@@ -162,6 +169,27 @@ function newNeed(task, title) {
       statement_timestamp() + interval '2 days', statement_timestamp(), ${taskSql(task.price)}, ${task.basis === null || task.basis === undefined ? 'null' : q(task.basis)}); commit;`);
   return id;
 }
+/** A DRAFT task of the requester (the positive control of P1b: the owner may edit a DRAFT directly, and a DRAFT has no applications by construction). Inserted as the database owner, like newNeed. */
+function newDraftNeed(task, title) {
+  const id = randomUUID();
+  sql(`insert into public.needs(id, requester_account_id, requester_profile_id, status, title, description, category, approximate_city, approximate_area, mode, required_slots, schedule_kind, requester_price_rsd, price_basis)
+    values(${q(id)}, ${q(requester.id)}, ${q(requester.profile)}, 'DRAFT', ${q('PKG-049 ' + title)}, 'Disposable PKG-049 fixture', 'PROOF', 'Novi Sad', 'Liman', ${q(task.mode)}, ${task.slots}, 'FLEXIBLE', ${taskSql(task.price)}, ${task.basis === null || task.basis === undefined ? 'null' : q(task.basis)});`);
+  assert.equal(needStatus(id), 'DRAFT');
+  return id;
+}
+/** The ids of the price-bearing rows (needs, applications, Agreements) in scope: `all` = every row of the database, `ours` = the rows of the accounts THIS proof created. */
+const rowIds = scope => JSON.parse(sql(scope === 'all'
+  ? `select jsonb_build_object('needs', (select coalesce(jsonb_agg(id order by id), '[]') from public.needs), 'responses', (select coalesce(jsonb_agg(id order by id), '[]') from public.marketplace_responses),
+      'agreements', (select coalesce(jsonb_agg(id order by id), '[]') from public.agreements))`
+  : `select jsonb_build_object('needs', (select coalesce(jsonb_agg(id order by id), '[]') from public.needs where requester_account_id = ${q(requester.id)}),
+      'responses', (select coalesce(jsonb_agg(id order by id), '[]') from public.marketplace_responses where worker_account_id in (${[worker, reader, stranger].map(person => q(person.id)).join(', ')})),
+      'agreements', (select coalesce(jsonb_agg(id order by id), '[]') from public.agreements where requester_account_id = ${q(requester.id)}))`));
+/** The price tuples of the given rows as one fingerprint per table (a tuple that moves, or a row that disappears, changes the md5). */
+const priceTuples = ids => JSON.parse(sql(`select jsonb_build_object(
+  'needs', (select md5(coalesce(string_agg(id::text || ':' || mode || ':' || coalesce(price_basis, '-') || ':' || coalesce(requester_price_rsd::text, '-') || ':' || required_slots, ',' order by id), '')) from public.needs where id in (select jsonb_array_elements_text(${q(JSON.stringify(ids.needs))}::jsonb)::uuid)),
+  'responses', (select md5(coalesce(string_agg(id::text || ':' || current_version || ':' || price_rsd || ':' || covered_slots, ',' order by id), '')) from public.marketplace_responses where id in (select jsonb_array_elements_text(${q(JSON.stringify(ids.responses))}::jsonb)::uuid)),
+  'versions', (select md5(coalesce(string_agg(response_id::text || ':' || version || ':' || price_rsd || ':' || covered_slots || ':' || content_hash, ',' order by response_id, version), '')) from public.marketplace_response_versions where response_id in (select jsonb_array_elements_text(${q(JSON.stringify(ids.responses))}::jsonb)::uuid)),
+  'agreement_versions', (select md5(coalesce(string_agg(agreement_id::text || ':' || version || ':' || coalesce(terms->>'price_rsd', '-') || ':' || coalesce(terms->>'covered_slots', '-') || ':' || content_hash, ',' order by agreement_id, version), '')) from public.agreement_versions where agreement_id in (select jsonb_array_elements_text(${q(JSON.stringify(ids.agreements))}::jsonb)::uuid)))`));
 /** A task edit after publication: the guard's own CONFIRM_EDIT token (revision + 1, the after_need_revision trigger stales the applications), then the task is published again.
  * Fixture-level: the real command (rpc_confirm_need_edit_from_review) needs AI review artifacts, and publication is the owner's, so the republish bypasses triggers. Returns the new revision. */
 function editTask(need, changes) {
@@ -211,8 +239,14 @@ async function seedHistory() {
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 async function main() {
-  // =============================================================== P0 the chain this proof runs on
-  const closureStage = closure(); assert.equal(closureStage.ready, true); assert.equal(closureStage.live, closureStage.certified);
+  // =============================================================== P0 people and historical rows (BEFORE any chain stage), then the chain stages
+  const closureStart = closure(); assert.equal(closureStart.ready, true); assert.equal(closureStart.live, closureStart.certified);
+  // people through the real Auth path: a requester, a worker who may bring up to 50 people, a second worker for the real-client flows, a stranger (capacity 1)
+  requester = await person('requester'); worker = await person('worker', {capacity: 50}); reader = await person('reader', {capacity: 6}); stranger = await person('stranger');
+  // historical applications and Agreements through the real RPCs, created BEFORE the chain stages and BEFORE the snapshot: a stage that rewrote data would change the tuples P9 compares at the end
+  const seeds = await seedHistory();
+  const existing = rowIds('all'), tuplesBefore = priceTuples(existing);
+  report.neutrality = {preexistingRows: {needs: existing.needs.length, responses: existing.responses.length, agreements: existing.agreements.length}, seeded: seeds, tuplesBefore};
   const candidateText = readFileSync(EX04D_CANDIDATE, 'utf8');
   assert.equal(sha(candidateText.replace(/\n$/, '')), EX04D_SHA256, 'EX04D_RECORDED_TEXT_DRIFT');
   if (!exists(SIG.ncs_2)) {
@@ -227,38 +261,49 @@ async function main() {
   const b24Observed = rows(`select n.nspname || '.' || p.proname fn, count(*) overloads, max((length(p.prosrc) - length(replace(p.prosrc, '''40001''', ''))) / 7) sites, bool_or(position('PT409' in p.prosrc) > 0) has_pt409
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname || '.' || p.proname = any(array[${b24Targets.map(target => q(target.fn)).join(', ')}]::text[]) group by 1`);
   const b24Part1 = {targets: b24Targets.length, ...pins.b24Applicability(b24Targets, b24Observed)};
-  // the tolerant in-proof stage: exactly the two price-chain functions of B24 Part 1, only when their bodies are the known pre-image and the derived md5 equals the DEV md5
+  // the in-proof stage: B24 Part 1's own mechanics for exactly the two price-chain functions, ONE TRANSACTION EACH (an uncalled rpc_confirm_need_edit cannot veto the stale resolver conversion P4(h) needs).
+  // Only the four documented chain-drift guards are tolerated (the pin gate reports the drift); any other error, and a drift guard on a body that WAS the known pre-image, FAILS the run.
   const b24PriceChain = pins.b24PriceChainTargets();
   assert.deepEqual(b24PriceChain.map(target => target.id), ['stale_resolver', 'confirm_need_edit']);
-  let b24Applied = false;
-  if (b24PriceChain.every(target => readMd5(target.signature) === target.devMd5)) report.stages.b24PriceChain = 'NOT NEEDED (both bodies already equal the DEV bodies)';
-  else {
-    try { sql(pins.b24PriceChainSql(q)); b24Applied = true; report.stages.b24PriceChain = 'APPLIED (' + b24PriceChain.map(target => target.id + ' ' + target.preMd5.slice(0, 8) + ' -> ' + target.devMd5.slice(0, 8)).join(', ') + '; the derived md5 equalled the DEV md5 before anything was executed)'; }
-    catch (error) { report.stages.b24PriceChain = 'NOT APPLIED (the label keeps PRE_B24, and no call below can reach a 40001 site): ' + String(error?.message ?? error).slice(0, 300); }
+  const b24Stages = [];
+  for (const target of b24PriceChain) {
+    const decision = pins.b24StageDecision(readMd5(target.signature), target), conversion = target.preMd5.slice(0, 8) + ' -> ' + target.devMd5.slice(0, 8);
+    if (decision.action === 'NOT_NEEDED') { b24Stages.push({id: target.id, applied: false, status: 'NOT NEEDED (the body already equals the DEV body)'}); continue; }
+    try { sql(pins.b24PriceChainSql(q, [target])); b24Stages.push({id: target.id, applied: true, status: 'APPLIED (' + conversion + '; the derived md5 equalled the DEV md5 before anything was executed)'}); }
+    catch (error) {
+      const verdict = pins.classifyB24StageError(error?.message, {preImageMatched: decision.preImageMatched});
+      if (!verdict.tolerated) throw new Error('B24_PRICE_CHAIN_STAGE_FAILED ' + target.id + ' (' + verdict.reason + '): ' + String(error?.message ?? error).slice(0, 600));
+      b24Stages.push({id: target.id, applied: false, guard: verdict.guard, status: 'NOT APPLIED (' + verdict.guard + ': the chain body is not the pinned pre-image; the pin gate reports it)'});
+    }
   }
+  report.stages.b24PriceChain = pins.summarizeB24Stages(b24Stages); report.stages.b24PriceChainDetail = b24Stages;
   sql("notify pgrst, 'reload schema'");
-  const closureBefore = closure(); assert.deepEqual(closureBefore, closureStage, 'THE_CHAIN_STAGES_MOVED_THE_CERTIFICATE');
+  const closureBefore = closure(); assert.deepEqual(closureBefore, closureStart, 'THE_PEOPLE_THE_HISTORY_AND_THE_CHAIN_STAGES_MOVED_THE_CERTIFICATE');
   report.closureBefore = closureBefore;
   const surfaceBefore = surface();
   const serverHeader = await fetch(env.RU5_DEVICE_SUPABASE_URL + '/rest/v1/', {headers: {apikey: env.RU5_DEVICE_ANON_KEY}}).then(response => ({server: response.headers.get('server'), via: response.headers.get('via')})).catch(() => ({server: null, via: null}));
   report.postgrestHeader = serverHeader;
-  pass('P0_CHAIN_STAGES_EX04D_AND_B24_PRICE_CHAIN_RECORDED_CERTIFICATE_BEFORE_RECORDED');
+  // the pin gate is READ here (it needs only the catalog) so that every pass line from now on carries its label; its failure rule is asserted in P1
+  const gate = pins.runPinGate(readMd5, pins.PINS, report.stages.b24PriceChain);
+  report.pinGate = gate; report.label = gate.label; report.labelShort = gate.labelShort; save();
+  console.log('LABEL: ' + gate.label);
+  // the P0 and P1 pass names say which packages the chain lacks (the later passes carry the short label, which says the chain is NOT DEV)
+  const labelWithLacks = gate.label.includes(pins.CHAIN_LACKS_TOKEN) ? gate.label : gate.label + '; ' + pins.CHAIN_LACKS_TOKEN;
+  pass('P0_PEOPLE_AND_SEEDED_HISTORY_BEFORE_THE_CHAIN_STAGES_THEN_EX04D_AND_THE_B24_PRICE_CHAIN_CONVERSION_ONE_TRANSACTION_EACH_CERTIFICATE_UNMOVED (' + pins.CHAIN_LACKS_TOKEN + ')');
 
   // =============================================================== P1 pins, vocabulary, authority (the gate FAILS the run on a core difference)
-  const gate = pins.runPinGate(readMd5);
-  const vocabulary = exists(SIG.helper) ? pins.compareVocabulary(pins.extractVocabulary(bodyOf(SIG.helper))) : {equal: false, added: [], removed: pins.HELPER_VOCABULARY};
+  const helperBody = exists(SIG.helper) ? bodyOf(SIG.helper) : null;
+  const vocabulary = helperBody !== null ? pins.compareVocabulary(pins.extractVocabulary(helperBody), pins.HELPER_VOCABULARY, pins.helperRaiseCheck(helperBody)) : {equal: false, added: [], removed: [...pins.HELPER_VOCABULARY], raiseProblems: ['HELPER_ABSENT']};
   const swallow = {ncs_1: exists(SIG.ncs_1) ? pins.swallowListMissing(bodyOf(SIG.ncs_1)) : ['(absent)'], ncs_2: exists(SIG.ncs_2) ? pins.swallowListMissing(bodyOf(SIG.ncs_2)) : ['(absent)']};
   const evaluation = pins.evaluatePinGate(gate, {vocabulary, swallow});
-  report.pinGate = gate; report.pinEvaluation = evaluation; report.label = gate.label; report.vocabulary = {...vocabulary, swallowListMissing: swallow}; save();
-  console.log('LABEL: ' + gate.label);
+  report.pinEvaluation = evaluation; report.vocabulary = {...vocabulary, swallowListMissing: swallow}; save();
   console.log('PIN_GATE ' + (evaluation.ok ? 'PASS' : 'FAIL') + ' | equal=' + gate.equal.join(',') + ' | different=' + gate.different.map(item => item.id + (item.explanation === 'UNEXPLAINED' ? '(UNEXPLAINED)' : '')).join(',') + ' | missing=' + gate.missing.map(item => item.id).join(',')
     + (evaluation.warnings.length ? ' | warnings=' + evaluation.warnings.join(';') : ''));
   assert.deepEqual(evaluation.failures, [], 'PIN_GATE_FAILED (a core pin differs without an explanation, the helper vocabulary changed or a swallow list has a gap): ' + gate.label);
   report.chainFidelity = {
     note: 'The chain is the DEV-equivalent replay source147 -> PKG-050 plus the exact EX-04D text and the in-proof conversion of exactly two PRE-B24 bodies. It does NOT carry the DEV ledger 202-219 items listed in chainLacks; '
       + 'its certified set (76) and needs column ACL differ from DEV (88 functions, column grants after PKG-045b P0), and its certificate is chain-internal only (before = after, never equal to DEV 58447d77).',
-    chainLacks: ['pkg051a (platform price list)', 'A1/P0/P4/P5/B3a-c', 'PKG-045b P0 (needs column ACL and certificate re-bind: the chain still has table-level SELECT on public.needs)', 'P6 rollout v3', 'B24 Part 1 (54 functions) and Part 2 (certified, re-bind) except the two price-chain functions converted in-proof',
-      'Voice B1 (certificate 58447d77, 12 voice functions)', 'EX-04A-C'],
+    chainLacks: [...pins.CHAIN_LACKS],
     b24PriceChainStage: report.stages.b24PriceChain,
     b24Part1,
     fortyZeroOneInBody: Object.fromEntries(pins.PINS.filter(pin => exists(pin.signature)).map(pin => [pin.id, flag(sql(`select position('40001' in prosrc) > 0 from pg_proc where oid = to_regprocedure(${q(pin.signature)})`))])),
@@ -280,24 +325,98 @@ async function main() {
   assert.equal(argumentsOf(SIG.select), 'p_need_id uuid, p_need_revision integer, p_response_id uuid, p_response_version integer, p_content_hash text, p_client_request_id text', 'SELECTION_HAS_NO_PRICE_ARGUMENT');
   assert.equal(argumentsOf(SIG.respond), 'p_proposal_id uuid, p_accept boolean', 'THE_ACCEPT_CALL_CARRIES_NO_AMOUNT');
   report.signatures = {submit: argumentsOf(SIG.submit), select: argumentsOf(SIG.select), respond: argumentsOf(SIG.respond)};
-  pass('P1_PIN_GATE_PASSED_VOCABULARY_AND_SWALLOW_LISTS_EQUAL_AND_AUTHORITY_RECORDED (' + gate.label + ')');
+  pass('P1_PIN_GATE_PASSED_VOCABULARY_RAISE_COUNT_AND_SWALLOW_LISTS_EQUAL_AND_AUTHORITY_RECORDED (' + labelWithLacks + ')');
 
-  // people: a requester, a worker who may bring up to 50 people, a second worker for the real-client flows, a stranger (capacity 1)
-  requester = await person('requester'); worker = await person('worker', {capacity: 50}); reader = await person('reader', {capacity: 6}); stranger = await person('stranger');
-  pass('P1_PEOPLE_CREATED_THROUGH_THE_REAL_AUTH_PATH');
-  // historical rows through the real RPCs, BEFORE the snapshot: P9 would otherwise compare two empty fingerprints
-  const seeds = await seedHistory();
-  pass('P1_HISTORICAL_APPLICATIONS_AND_AGREEMENTS_SEEDED_THROUGH_THE_RPCS');
-  // rows that existed BEFORE the proof exercises anything: their price tuples must be identical at the end (P9)
-  const existing = JSON.parse(sql(`select jsonb_build_object('needs', (select coalesce(jsonb_agg(id), '[]') from public.needs), 'responses', (select coalesce(jsonb_agg(id), '[]') from public.marketplace_responses),
-    'agreements', (select coalesce(jsonb_agg(id), '[]') from public.agreements))`));
-  const tuples = () => JSON.parse(sql(`select jsonb_build_object(
-    'needs', (select md5(coalesce(string_agg(id::text || ':' || mode || ':' || coalesce(price_basis, '-') || ':' || coalesce(requester_price_rsd::text, '-') || ':' || required_slots, ',' order by id), '')) from public.needs where id in (select jsonb_array_elements_text(${q(JSON.stringify(existing.needs))}::jsonb)::uuid)),
-    'responses', (select md5(coalesce(string_agg(id::text || ':' || current_version || ':' || price_rsd || ':' || covered_slots, ',' order by id), '')) from public.marketplace_responses where id in (select jsonb_array_elements_text(${q(JSON.stringify(existing.responses))}::jsonb)::uuid)),
-    'versions', (select md5(coalesce(string_agg(response_id::text || ':' || version || ':' || price_rsd || ':' || covered_slots || ':' || content_hash, ',' order by response_id, version), '')) from public.marketplace_response_versions where response_id in (select jsonb_array_elements_text(${q(JSON.stringify(existing.responses))}::jsonb)::uuid)),
-    'agreement_versions', (select md5(coalesce(string_agg(agreement_id::text || ':' || version || ':' || coalesce(terms->>'price_rsd', '-') || ':' || coalesce(terms->>'covered_slots', '-') || ':' || content_hash, ',' order by agreement_id, version), '')) from public.agreement_versions where agreement_id in (select jsonb_array_elements_text(${q(JSON.stringify(existing.agreements))}::jsonb)::uuid)))`));
-  const tuplesBefore = tuples();
-  report.neutrality = {preexistingRows: {needs: existing.needs.length, responses: existing.responses.length, agreements: existing.agreements.length}, seeded: seeds, tuplesBefore};
+  // =============================================================== P1b DIRECT PostgREST TABLE WRITES as a modified client
+  // The premise of the whole authority claim is "price integrity is RPC-only" (finding section 6, PF-4). Every attack of lib.DIRECT_WRITE_PLAN is sent with a real JWT and must give the pinned outcome (the
+  // expected outcome is derived from the migration sources the unit tests tie the plan to) AND leave the stored price surface byte-identical. Only the positive control writes.
+  {
+    const per = {mode: 'MY_PRICE', price: 3000, basis: 'PER_PERSON', slots: 3};
+    const application = await applyCanonical(per, 2, 'direct writes application');
+    const selected = await applyCanonical(per, 2, 'direct writes agreement');
+    const agreementId = mustOk(await call(requester.client, 'rpc_select_response', selectArgs(selected.need, selected.receipt)), 'direct writes: select');
+    const selectionId = sql(`select id from public.need_selections where need_id = ${q(selected.need)}`);
+    assert.match(selectionId, /^[0-9a-f-]{36}$/);
+    const draft = newDraftNeed(per, 'direct writes control');
+    const R1 = application.receipt.responseId, N1 = application.need, R2 = selected.receipt.responseId, N2 = selected.need, w = worker.client, r = requester.client;
+    const forged = {
+      version: {response_id: R1, version: 99, need_revision: 1, price_rsd: 1, covered_slots: 2, content_hash: 'f'.repeat(64)},
+      response: {need_id: N1, worker_account_id: worker.id, worker_profile_id: worker.workerProfile, response_kind: 'APPLICATION', status: 'SUBMITTED', submitted_against_need_revision: 1, price_rsd: 1, covered_slots: 1},
+      agreementVersion: {agreement_id: agreementId, version: 99, status: 'CONFIRMED', terms: {price_rsd: 1, covered_slots: 2, response_version: 1}, content_hash: 'f'.repeat(64), created_by_account_id: requester.id},
+      agreement: {need_id: N2, selection_id: selectionId, selected_response_id: R2, requester_account_id: requester.id, requester_profile_id: requester.profile, worker_account_id: worker.id, worker_profile_id: worker.workerProfile, status: 'CONFIRMED'},
+      selection: {need_id: N2, need_revision: 1, selected_by_account_id: requester.id, client_request_id: 'pkg049-forged-' + randomUUID(), covered_slots: 1},
+    };
+    const REQUESTS = {
+      worker_update_response_versions: () => w.from('marketplace_response_versions').update({price_rsd: 1}).eq('response_id', R1).select(),
+      worker_insert_response_versions: () => w.from('marketplace_response_versions').insert(forged.version).select(),
+      worker_delete_response_versions: () => w.from('marketplace_response_versions').delete().eq('response_id', R1).select(),
+      worker_update_responses: () => w.from('marketplace_responses').update({price_rsd: 1}).eq('id', R1).select(),
+      worker_insert_responses: () => w.from('marketplace_responses').insert(forged.response).select(),
+      worker_delete_responses: () => w.from('marketplace_responses').delete().eq('id', R1).select(),
+      requester_update_agreement_versions: () => r.from('agreement_versions').update({terms: {price_rsd: 1, covered_slots: 2, response_version: 1}}).eq('agreement_id', agreementId).select(),
+      requester_insert_agreement_versions: () => r.from('agreement_versions').insert(forged.agreementVersion).select(),
+      requester_delete_agreement_versions: () => r.from('agreement_versions').delete().eq('agreement_id', agreementId).select(),
+      requester_update_agreements: () => r.from('agreements').update({current_version: 99}).eq('id', agreementId).select(),
+      requester_insert_agreements: () => r.from('agreements').insert(forged.agreement).select(),
+      requester_delete_agreements: () => r.from('agreements').delete().eq('id', agreementId).select(),
+      requester_update_need_selections: () => r.from('need_selections').update({covered_slots: 1}).eq('need_id', N2).select(),
+      requester_insert_need_selections: () => r.from('need_selections').insert(forged.selection).select(),
+      requester_delete_need_selections: () => r.from('need_selections').delete().eq('need_id', N2).select(),
+      requester_update_needs_price: () => r.from('needs').update({requester_price_rsd: 1}).eq('id', N1).select(),
+      requester_update_needs_basis: () => r.from('needs').update({price_basis: 'TOTAL'}).eq('id', N1).select(),
+      requester_delete_needs: () => r.from('needs').delete().eq('id', N1).select(),
+      control_requester_update_draft_needs_price: () => r.from('needs').update({requester_price_rsd: 3100}).eq('id', draft).select(),
+    };
+    assert.deepEqual(Object.keys(REQUESTS).sort(), lib.DIRECT_WRITE_PLAN.map(item => item.id).sort(), 'EVERY_ATTACK_OF_THE_PLAN_HAS_A_REQUEST_AND_NO_REQUEST_IS_OFF_PLAN');
+    assert.deepEqual(lib.directWritePlanProblems(), [], 'THE_DIRECT_WRITE_PLAN_IS_SOUND');
+    // the price surface an attack must leave alone: every column of the rows an attack targets (a changed updated_at is a change), plus the counts of the tables an insert would grow
+    const surfaceOf = () => JSON.parse(sql(`select jsonb_build_object(
+      'need_with_application', (select to_jsonb(n) from public.needs n where n.id = ${q(N1)}),
+      'application', (select to_jsonb(x) from public.marketplace_responses x where x.id = ${q(R1)}),
+      'application_versions', (select coalesce(jsonb_agg(to_jsonb(v) order by v.version), '[]') from public.marketplace_response_versions v where v.response_id = ${q(R1)}),
+      'need_with_agreement', (select to_jsonb(n) from public.needs n where n.id = ${q(N2)}),
+      'selected_response', (select to_jsonb(x) from public.marketplace_responses x where x.id = ${q(R2)}),
+      'selected_response_versions', (select coalesce(jsonb_agg(to_jsonb(v) order by v.version), '[]') from public.marketplace_response_versions v where v.response_id = ${q(R2)}),
+      'selections', (select coalesce(jsonb_agg(to_jsonb(s) order by s.id), '[]') from public.need_selections s where s.need_id = ${q(N2)}),
+      'agreements', (select coalesce(jsonb_agg(to_jsonb(a) order by a.id), '[]') from public.agreements a where a.need_id = ${q(N2)}),
+      'agreement_versions', (select coalesce(jsonb_agg(to_jsonb(av) order by av.agreement_id, av.version), '[]') from public.agreement_versions av join public.agreements a on a.id = av.agreement_id where a.need_id = ${q(N2)}),
+      'counts', jsonb_build_object('responses', (select count(*) from public.marketplace_responses where need_id in (${q(N1)}, ${q(N2)})), 'selections', (select count(*) from public.need_selections where need_id in (${q(N1)}, ${q(N2)})),
+        'agreements', (select count(*) from public.agreements where need_id in (${q(N1)}, ${q(N2)}))))`));
+    // read controls: the same people CAN read what they cannot write, so a refusal below is about the write and not about a request that never authenticated
+    const readControls = {
+      workerReadsOwnApplication: (await call(worker.client, 'rpc_list_my_applications', {})).data?.some?.(entry => entry.applicationId === R1) === true,
+      workerReadsOwnResponseRow: (await callTable('read control: worker reads his response row', () => w.from('marketplace_responses').select('id, price_rsd').eq('id', R1))).data?.length === 1,
+      requesterReadsTheAgreementVersion: (await callTable('read control: requester reads the agreement version', () => r.from('agreement_versions').select('agreement_id, terms').eq('agreement_id', agreementId))).data?.length === 1,
+      requesterReadsTheTask: (await callTable('read control: requester reads his published task', () => r.from('needs').select('id, requester_price_rsd').eq('id', N1))).data?.length === 1,
+    };
+    for (const [name, value] of Object.entries(readControls)) assert.equal(value, true, 'READ_CONTROL_' + name);
+    let last = surfaceOf(), lastFp = fp();
+    assert.equal(last.counts.responses, 2); assert.equal(last.counts.agreements, 1); assert.equal(last.counts.selections, 1);
+    const outcomes = [];
+    for (const item of lib.DIRECT_WRITE_PLAN) {
+      const response = await callTable(item.id, REQUESTS[item.id]);
+      const problems = lib.directWriteProblems(response, item.kind, item.table);
+      const now = surfaceOf(), nowFp = fp(), identical = lib.sameJson(last, now) && lib.sameJson(lastFp, nowFp);
+      if (item.control) {
+        const stored = Number(sql(`select requester_price_rsd from public.needs where id = ${q(draft)}`));
+        if (stored !== 3100) problems.push(`the control did not write: the DRAFT price is ${stored}, expected 3100`);
+        if (Array.isArray(response.data) && response.data[0]?.requester_price_rsd !== 3100) problems.push('the control representation does not show the written price 3100');
+      }
+      outcomes.push({id: item.id, actor: item.actor, table: item.table, op: item.op, kind: item.kind, control: item.control === true, chainSpecific: item.chainSpecific === true, note: item.note ?? null,
+        observed: response.error ? `HTTP ${response.status} ${response.error.code} ${response.error.message}` : `HTTP ${response.status} ${Array.isArray(response.data) ? response.data.length + ' row(s)' : typeof response.data}`,
+        problems, surfaceIdentical: item.control ? null : identical});
+      last = now; lastFp = nowFp;   // the control writes, so the baseline moves with it (it is the last attack)
+    }
+    const attacks = outcomes.filter(item => !item.control);
+    report.directWrites = {note: 'Expected outcomes are DERIVED from the migration sources (the response tables revoke insert, update, delete from anon and authenticated; agreements, agreement_versions and need_selections hold table-level grants and RLS with SELECT policies only; '
+      + 'needs_owner_update is DRAFT-only and DELETE is revoked) and tied to them by the unit tests: the first CI run is the first observation. Rows marked chain-specific depend on the needs privileges of THIS chain (table-level SELECT; DEV has PKG-045b P0 column privileges and is not observed).',
+      readControls, fixtures: {applicationNeed: N1, applicationResponse: R1, agreementNeed: N2, agreement: agreementId, selection: selectionId, draftNeed: draft}, rows: outcomes, attacks: attacks.length, chainSpecificAttacks: attacks.filter(item => item.chainSpecific).length};
+    save();
+    const failures = outcomes.flatMap(item => [...item.problems.map(problem => `${item.id}: ${problem} (observed ${item.observed})`), ...(item.surfaceIdentical === false ? [`${item.id}: THE_STORED_PRICE_SURFACE_CHANGED`] : [])]);
+    assert.deepEqual(failures, [], 'P1B_DIRECT_TABLE_WRITES: every attack must give the pinned outcome and leave the stored price surface byte-identical');
+    assert.equal(outcomes.length, lib.DIRECT_WRITE_PLAN.length); assert.equal(attacks.length, 18, 'P1B_ATTACK_COUNT_FLOOR');
+    pass(`P1B_${attacks.length}_DIRECT_TABLE_WRITES_BY_A_MODIFIED_CLIENT_REFUSED_OR_FILTERED_WITH_THE_PINNED_OUTCOME_THE_STORED_PRICE_SURFACE_BYTE_IDENTICAL_AND_THE_POSITIVE_CONTROL_WRITES (${report.directWrites.chainSpecificAttacks} needs attacks are chain-specific: the chain has table-level needs privileges, DEV has PKG-045b P0 column privileges)`);
+  }
 
   // =============================================================== P2 the modified-client matrix over real PostgREST
   {
@@ -356,6 +475,7 @@ async function main() {
     const teamNeed = newNeed({mode: 'MY_PRICE', price: 9000, basis: 'TOTAL', slots: 3}, 'team capacity first');
     const team = await call(stranger.client, 'rpc_submit_response', submitArgs(teamNeed, {covered: 3, price: 1, profile: stranger.workerProfile}));
     mustRefuse(team, 'TEAM_CAPACITY_EXCEEDED', 'team capacity (stranger, capacity 1, covers 3) precedes the price (sent 1 would be FIXED_PRICE_MISMATCH)');
+    assert.equal(team.error.details, 'covered=3,teamCapacity=1', 'THE_SUBMIT_DOOR_SAYS_HOW_MANY_PEOPLE_WERE_COVERED_AND_THE_TEAM_CAPACITY (the detail of ru5 submit; the stale-reconfirm door raises the same message with no detail)');
     assert.deepEqual(needState(capacity), {responses: 0, versions: 0, selections: 0, agreements: 0}); assert.deepEqual(needState(teamNeed), {responses: 0, versions: 0, selections: 0, agreements: 0});
     report.matrixCapacity = {remainingCapacityBeforePrice: true, coveredSlotsBeforePrice: true, teamCapacityBeforePrice: true, teamCapacityDetail: team.error.details};
     // anonymous callers and a stranger's profile: EXACT outcomes
@@ -473,14 +593,14 @@ async function main() {
       assert.equal(stored(receipt.responseId, 'MY_PRICE').head_covered, 3); assert.equal(stored(receipt.responseId, 'MY_PRICE').head_price, 9000);
       report.stale.basisEdit = {keepRefused: 'TOTAL_PRICE_REQUIRES_ALL_SLOTS', updateWholeTaskAccepted: stored(receipt.responseId, 'MY_PRICE').head_price};
     }
-    // (d) a flat (null basis) task moves 3000 -> 3500
+    // (d) a flat (null basis) task for TWO people moves 3000 -> 3500: the open owner decision D1 (NULL basis with more than one person), characterised as it behaves today, not judged
     {
       const flat = {mode: 'MY_PRICE', price: 3000, basis: null, slots: 2};
       const {need, receipt} = await applyCanonical(flat, 2, 'stale flat');
       const revision = editTask(need, {price: 3500});
       await refuseResolve(receipt.responseId, 1, revision, 'KEEP', {}, 'FIXED_PRICE_MISMATCH', 'KEEP of 3000 under a flat 3500'); refusals.keep += 1;
       assert.equal(mustOk(await resolve(receipt.responseId, 1, revision, 'UPDATE', {covered: 2, price: 3500}), 'UPDATE to the flat 3500').version, 2);
-      report.stale.flatEdit = {keepRefused: 'FIXED_PRICE_MISMATCH', updateAccepted: stored(receipt.responseId, flat.mode).head_price};
+      report.stale.flatEdit = {keepRefused: 'FIXED_PRICE_MISMATCH', updateAccepted: stored(receipt.responseId, flat.mode).head_price, ...lib.cellReport(lib.OPEN_CELLS.D1)};
     }
     // (e) the number of people moves 2 -> 3 on a TOTAL task: the application that covered the whole task no longer does
     {
@@ -491,14 +611,14 @@ async function main() {
       assert.equal(mustOk(await resolve(receipt.responseId, 1, revision, 'UPDATE', {covered: 3, price: 6000}), 'UPDATE to all 3 at the TOTAL').version, 2);
       report.stale.slotsEdit = {keepRefused: 'TOTAL_PRICE_REQUIRES_ALL_SLOTS', updateAllSlotsAccepted: stored(receipt.responseId, total.mode).head_price};
     }
-    // (f) OFFERS: the rule is "positive", on this door too
+    // (f) OFFERS: the rule is "positive", on this door too. The zero refusal is canon; the acceptance of the amount 1 is the open owner decision D4 (the OFFERS bounds), characterised, not judged
     {
       const offers = {mode: 'OFFERS', price: null, basis: null, slots: 2};
       const need = newNeed(offers, 'stale offers'), first = mustOk(await call(worker.client, 'rpc_submit_response', submitArgs(need, {covered: 2, price: 5000})), 'offers submit');
       const revision = editTask(need, {title: 'PKG-049 stale offers edited'});
       await refuseResolve(first.responseId, 1, revision, 'UPDATE', {covered: 2, price: 0}, 'INVALID_PRICE', 'OFFERS update at zero'); refusals.update += 1;
       const kept = mustOk(await resolve(first.responseId, 1, revision, 'UPDATE', {covered: 2, price: 1}), 'OFFERS update at one'); assert.equal(kept.version, 2); assert.equal(stored(first.responseId, 'OFFERS').head_price, 1);
-      report.stale.offers = {zeroRefused: 'INVALID_PRICE', anyPositiveAccepted: stored(first.responseId, 'OFFERS').head_price};
+      report.stale.offers = {zeroRefused: 'INVALID_PRICE', zeroRefusedStatus: lib.statusOf({defined: true, decision: null}), anyPositiveAccepted: stored(first.responseId, 'OFFERS').head_price, ...lib.cellReport(lib.OPEN_CELLS.D4)};
     }
     // (g) capacity checks precede the price check at THIS door too (the price sent is wrong on purpose: 1 would be FIXED_PRICE_MISMATCH)
     {
@@ -510,24 +630,34 @@ async function main() {
       await refuseResolve(small.receipt.responseId, 1, smallRevision, 'UPDATE', {covered: 2, price: 1}, 'TEAM_CAPACITY_EXCEEDED', 'team capacity (stranger, 1) precedes the price at the reconfirmation door', {}, stranger); refusals.capacity += 1;
       report.stale.capacityBeforePrice = {invalidCoveredSlots: true, remainingCapacity: true, teamCapacity: true, refusals: refusals.capacity};
     }
-    // (h) B24: a stale version or revision is a deterministic conflict, so it must answer HTTP 409 (PT409) at once. Only when the in-proof conversion produced the DEV body: the pre-B24 body would hang PostgREST 14.
+    // (h) B24: a stale version or revision is a deterministic conflict, so it must answer HTTP 409 (PT409) at once. It runs WHENEVER the stale resolver on the chain IS the DEV body (read from the catalog: whether
+    // this process converted it or the chain already carried it); the pre-B24 body would hang PostgREST 14, so when it is not the DEV body the skip is a recorded GAP with the true reason (PASS_WITH_GAPS).
+    const resolverPin = pins.PINS.find(pin => pin.id === 'stale_resolver'), resolverMd5 = readMd5(SIG.stale_resolver);
     const resolverHas40001 = flag(sql(`select position('40001' in prosrc) > 0 from pg_proc where oid = to_regprocedure(${q(SIG.stale_resolver)})`));
-    if (b24Applied && !resolverHas40001) {
+    const resolverStage = b24Stages.find(stage => stage.id === 'stale_resolver');
+    if (resolverMd5 === resolverPin.devMd5 && !resolverHas40001) {
       const {receipt} = await applyCanonical(per, 2, 'pt409'), before = fp();
       mustRefuse(await resolve(receipt.responseId, 99, 1, 'KEEP'), 'STALE_REVIEW_REQUIRED', 'a stale response version raises PT409, answered by PostgREST with HTTP 409 at once', {sqlstate: 'PT409', status: 409});
       mustRefuse(await resolve(receipt.responseId, 1, 99, 'KEEP'), 'STALE_REVIEW_REQUIRED', 'a stale need revision raises PT409, answered by PostgREST with HTTP 409 at once', {sqlstate: 'PT409', status: 409});
-      assert.deepEqual(fp(), before); report.stale.pt409 = {status: 409, code: 'PT409', message: 'STALE_REVIEW_REQUIRED', cases: ['response version', 'need revision'], note: 'finding T14 / invariant I5; no hang, no retry'};
-    } else report.stale.pt409 = {skipped: true, reason: 'the stale resolver on this chain still carries 40001 (the in-proof B24 conversion did not apply): calling it would hang PostgREST 14'};
+      assert.deepEqual(fp(), before);
+      report.stale.pt409 = {status: 409, code: 'PT409', message: 'STALE_REVIEW_REQUIRED', cases: ['response version', 'need revision'], note: 'finding T14 / invariant I5; no hang, no retry', resolverMd5, resolverIsTheDevBody: true, convertedByThisRun: resolverStage?.applied === true};
+    } else {
+      const reason = `the stale resolver on this chain (md5 ${resolverMd5 ?? 'ABSENT'}) is not the DEV body (${resolverPin.devMd5})` + (resolverHas40001 ? ': it still carries the SQLSTATE 40001 sites that PostgREST 14 retries without end, so a stale version or revision call would hang' : '')
+        + `; the in-proof B24 conversion of the stale resolver: ${resolverStage?.status ?? 'not run'}`;
+      report.stale.pt409 = {skipped: true, reason, resolverMd5, resolverIsTheDevBody: false};
+      report.gaps.push('PT409 (HTTP 409 for a stale response version or need revision) NOT demonstrated: ' + reason);
+    }
     report.stale.refusalTotals = refusals;
     // floors, written down from the scenarios above: KEEP refused in (a), (c), (d), (e); UPDATE refused 5 x in (a), 2 x in (c), 1 x in (f); 3 through the real client; 3 capacity-before-price in (g)
     assert.deepEqual(refusals, {keep: 4, update: 8, viaClient: 3, capacity: 3}, 'P4_REFUSAL_FLOORS');
-    pass(`P4_STALE_RECONFIRM_KEEP_AND_UPDATE_ARE_JUDGED_AGAINST_THE_CURRENT_TASK_EXACT_REFUSALS_STILL_STALE_NOTHING_WRITTEN_REAL_CLIENT_AND_CAPACITY_BEFORE_PRICE (${refusals.keep} KEEP, ${refusals.update} UPDATE, ${refusals.viaClient} via the client, ${refusals.capacity} capacity)`);
+    pass(`P4_STALE_RECONFIRM_KEEP_AND_UPDATE_ARE_JUDGED_AGAINST_THE_CURRENT_TASK_EXACT_REFUSALS_STILL_STALE_NOTHING_WRITTEN_REAL_CLIENT_AND_CAPACITY_BEFORE_PRICE (${refusals.keep} KEEP, ${refusals.update} UPDATE, ${refusals.viaClient} via the client, ${refusals.capacity} capacity; `
+      + `PT409 / HTTP 409 coverage: ${report.stale.pt409.skipped ? 'NOT RUN, a recorded gap' : 'observed'}; scenario (d) is the open D1 cell, the acceptance of the amount 1 in (f) the open D4 cell)`);
   }
 
   // =============================================================== P5 selection: no price argument, and the accepted amount is the stored version price
   const agreements = [];
   {
-    const one = async (id, task, covered, price) => {
+    const one = async (id, task, covered, price, openCell = null) => {
       const {need, receipt} = price === undefined ? await applyCanonical(task, covered, 'select ' + id) : {need: newNeed(task, 'select ' + id), receipt: null};
       const app = receipt ?? mustOk(await call(worker.client, 'rpc_submit_response', submitArgs(need, {covered, price})), 'offers submit ' + id);
       const sent = price ?? lib.canonicalPrice(task, covered), key = randomUUID();
@@ -538,27 +668,32 @@ async function main() {
       assert.equal(version.price_rsd, sent, id); assert.equal(Number(terms.terms.price_rsd), version.price_rsd, id + ': the Agreement amount is the stored version price');
       assert.equal(terms.terms.covered_slots, version.covered_slots, id); assert.equal(terms.terms.response_version, app.version, id); assert.equal(terms.content_hash, version.content_hash, id);
       assert.equal(terms.content_hash, app.contentHash, id + ': the pinned hash is the Agreement hash');
-      const platform = Number(sql(`select platform_cost_rsd from private.connection_activations where agreement_id = ${q(agreementId)}`)); assert.equal(platform, 0, 'THE_PLATFORM_COST_IS_ITS_OWN_ZERO');
+      // the activation row exists exactly once per Agreement and carries platform cost 0: that zero is guaranteed by the table's own CHECK (platform_cost_rsd = 0) and by the policy row, NOT by the price rule
+      const activations = rows(`select platform_cost_rsd from private.connection_activations where agreement_id = ${q(agreementId)}`);
+      assert.equal(activations.length, 1, 'ONE_ACTIVATION_ROW_PER_AGREEMENT ' + id); assert.equal(activations[0].platform_cost_rsd, 0, 'THE_PLATFORM_COST_IS_ITS_OWN_ZERO ' + id);
+      const platform = activations[0].platform_cost_rsd;
       assert.equal(Number(sql(`select count(*) from public.agreements where need_id = ${q(need)}`)), 1);
       // selection replay: the same key is the same Agreement and writes nothing
       const afterSelect = fp(), replay = mustOk(await call(requester.client, 'rpc_select_response', selectArgs(need, app, key)), 'select replay ' + id);
       assert.equal(replay, agreementId); assert.deepEqual(fp(), afterSelect);
-      // a new key after the selection: the task is full (NEED_NOT_OPEN, the task is ACTIVE) or the application is no longer selectable; both are P0001 and write nothing
+      // a new key after the selection: a task that is now full is ACTIVE and refused first (NEED_NOT_OPEN, detail ACTIVE); a task with room is open, so the application's own status refuses it (RESPONSE_NOT_SELECTABLE,
+      // detail SELECTED). The message is PINNED per scenario (never "either"); both are P0001 (HTTP 400) and write nothing
+      const expectedSecond = lib.secondSelectionOutcome(task.slots, covered);
       const again = await call(requester.client, 'rpc_select_response', selectArgs(need, app));
-      assert.ok(again.error && again.error.code === 'P0001' && again.status === 400 && ['NEED_NOT_OPEN', 'RESPONSE_NOT_SELECTABLE'].includes(again.error.message), 'A_SECOND_SELECTION_IS_REFUSED ' + JSON.stringify(again)); assert.deepEqual(fp(), afterSelect);
+      mustRefuse(again, expectedSecond.message, 'A_SECOND_SELECTION_IS_REFUSED ' + id); assert.equal(again.error.details, expectedSecond.detail, 'THE_DETAIL_SAYS_WHICH_STATUS_REFUSED ' + id); assert.deepEqual(fp(), afterSelect);
       agreements.push({id, agreementId, need, responseId: app.responseId, task, covered, taskPrice: task.price, versionPrice: version.price_rsd, requester: requester.id, worker: worker.id});
       report.selection[id] = {taskPrice: task.price, basis: task.basis, covered, storedVersionPrice: version.price_rsd, agreementV1Price: Number(terms.terms.price_rsd), agreementCovered: terms.terms.covered_slots, hashEqual: terms.content_hash === version.content_hash,
-        platformCostRsd: platform, replayAgreement: replay === agreementId, secondSelectionRefused: again.error.message};
+        platformCostRsd: platform, activationRows: activations.length, replayAgreement: replay === agreementId, secondSelectionRefused: again.error.message, secondSelectionDetail: again.error.details, ...(openCell === null ? {} : lib.cellReport(openCell))};
     };
     await one('null_basis', {mode: 'MY_PRICE', price: 3000, basis: null, slots: 1}, 1);
     await one('per_person', {mode: 'MY_PRICE', price: 3000, basis: 'PER_PERSON', slots: 6}, 2);
     await one('total', {mode: 'MY_PRICE', price: 9000, basis: 'TOTAL', slots: 3}, 3);
-    await one('offers_int4_max', {mode: 'OFFERS', price: null, basis: null, slots: 2}, 2, lib.INT4_MAX);
-    pass('P5_SELECTION_COPIES_THE_STORED_VERSION_PRICE_REPLAYS_AND_COSTS_THE_PLATFORM_NOTHING');
+    await one('offers_int4_max', {mode: 'OFFERS', price: null, basis: null, slots: 2}, 2, lib.INT4_MAX, lib.OPEN_CELLS.D4);   // the int4-max acceptance is the open OFFERS bound D4
+    pass('P5_SELECTION_COPIES_THE_STORED_VERSION_PRICE_REPLAYS_ONE_ACTIVATION_ROW_EACH_AND_A_SECOND_SELECTION_IS_REFUSED_WITH_THE_PINNED_MESSAGE_AND_DETAIL (the platform cost 0 is the activation table CHECK, not the price rule; offers_int4_max is the open D4 cell)');
 
     // several applications to ONE task: each selected application becomes its own Agreement at its own price (finding section 5)
     {
-      const multi = async (id, task, plan) => {
+      const multi = async (id, task, plan, openCell = null) => {
         const need = newNeed(task, 'multi ' + id), submitted = [];
         for (const entry of plan) {
           const price = entry.price ?? lib.canonicalPrice(task, entry.covered);
@@ -573,13 +708,13 @@ async function main() {
         }
         assert.equal(needState(need).agreements, plan.length, id + ': one Agreement per selected application'); assert.equal(new Set(made.map(item => item.agreementId)).size, plan.length);
         assert.equal(needStatus(need), 'ACTIVE', id + ': the task is full once every place is taken');
-        report.selection[id] = {agreements: made.length, prices: made.map(item => item.price), covered: made.map(item => item.covered), needStatus: needStatus(need)};
+        report.selection[id] = {agreements: made.length, prices: made.map(item => item.price), covered: made.map(item => item.covered), needStatus: needStatus(need), ...(openCell === null ? {} : lib.cellReport(openCell))};
       };
       await multi('two_partial_per_person', {mode: 'MY_PRICE', price: 3000, basis: 'PER_PERSON', slots: 6}, [{actor: worker, covered: 2}, {actor: reader, covered: 4}]);   // 2 x 3000 and 4 x 3000
       assert.deepEqual(report.selection.two_partial_per_person.prices, [6000, 12000]);
-      await multi('two_offers', {mode: 'OFFERS', price: null, basis: null, slots: 3}, [{actor: worker, covered: 1, price: 5000}, {actor: reader, covered: 2, price: 12345}]);
+      await multi('two_offers', {mode: 'OFFERS', price: null, basis: null, slots: 3}, [{actor: worker, covered: 1, price: 5000}, {actor: reader, covered: 2, price: 12345}], lib.OPEN_CELLS.D4);   // the accepted OFFERS amounts are the open D4 cell
       assert.deepEqual(report.selection.two_offers.prices, [5000, 12345]);
-      pass('P5_TWO_PARTIAL_APPLICATIONS_ON_ONE_TASK_EACH_BECOME_THEIR_OWN_AGREEMENT_AT_THEIR_OWN_PRICE_PER_PERSON_AND_OFFERS');
+      pass('P5_TWO_PARTIAL_APPLICATIONS_ON_ONE_TASK_EACH_BECOME_THEIR_OWN_AGREEMENT_AT_THEIR_OWN_PRICE_PER_PERSON_AND_OFFERS (the OFFERS amounts 5000 and 12345 are the open D4 cell)');
     }
 
     // the call carries no price: the signature (P1) and an attempt to give it one. Exact outcomes.
@@ -600,17 +735,22 @@ async function main() {
       const flipHex = hash => hash.slice(0, 63) + (hash.endsWith('0') ? '1' : '0');
       const otherPriceHash = hashOf(receipt.responseId, per.mode, 6001);
       assert.match(otherPriceHash, /^[a-f0-9]{64}$/); assert.notEqual(otherPriceHash, receipt.contentHash, 'A_DIFFERENT_PRICE_GIVES_A_DIFFERENT_HASH'); assert.equal(hashOf(receipt.responseId, per.mode, 6000), receipt.contentHash, 'THE_HASH_FORMULA_REPRODUCES_THE_SERVERS');
-      const attempts = [['a flipped hex digit of the content hash', {...receipt, contentHash: flipHex(receipt.contentHash)}], ['a content hash that binds ANOTHER price (6001)', {...receipt, contentHash: otherPriceHash}],
-        ['a response version that is not the current one', {...receipt, version: receipt.version + 1}], ['a need revision that is not the current one', {...receipt, needRevision: receipt.needRevision + 1}]];
-      for (const [label, forged] of attempts) {
-        const refusal = await call(requester.client, 'rpc_select_response', selectArgs(need, forged));
-        mustRefuse(refusal, 'STALE_REVIEW_REQUIRED', 'selection with ' + label);
-        assert.deepEqual(fp(), before, 'NOTHING_WRITTEN ' + label); assert.equal(needState(need).agreements, 0); assert.equal(stored(receipt.responseId, per.mode).status, 'SUBMITTED');
+      // the SAME message (STALE_REVIEW_REQUIRED, P0001) comes from five guards: the DETAIL says WHICH one refused, so each attempt is tied to its own guard (lib.FORGED_PIN_PLAN, tied to the p0d03 source by a unit test)
+      const forgedFor = {flipped_hash_digit: {...receipt, contentHash: flipHex(receipt.contentHash)}, hash_binding_another_price: {...receipt, contentHash: otherPriceHash},
+        response_version_plus_one: {...receipt, version: receipt.version + 1}, need_revision_plus_one: {...receipt, needRevision: receipt.needRevision + 1}};
+      assert.deepEqual(Object.keys(forgedFor).sort(), lib.FORGED_PIN_PLAN.map(item => item.id).sort(), 'EVERY_FORGED_ATTEMPT_OF_THE_PLAN_IS_BUILT');
+      const refusedBy = {};
+      for (const item of lib.FORGED_PIN_PLAN) {
+        const refusal = await call(requester.client, 'rpc_select_response', selectArgs(need, forgedFor[item.id]));
+        mustRefuse(refusal, 'STALE_REVIEW_REQUIRED', 'selection with ' + item.label);
+        assert.equal(refusal.error.details, item.detail, `THE_DETAIL_NAMES_THE_GUARD_THAT_REFUSED (${item.label} -> ${item.detail}): ${JSON.stringify(refusal.error)}`); refusedBy[item.id] = refusal.error.details;
+        assert.deepEqual(fp(), before, 'NOTHING_WRITTEN ' + item.label); assert.equal(needState(need).agreements, 0); assert.equal(stored(receipt.responseId, per.mode).status, 'SUBMITTED');
       }
+      assert.deepEqual([...new Set(Object.values(refusedBy))].sort(), ['content_hash', 'need_revision', 'response_version'], 'THREE_DISTINCT_GUARDS_WERE_REACHED');
       const agreementId = mustOk(await call(requester.client, 'rpc_select_response', selectArgs(need, receipt)), 'the pinned (revision, version, hash) selects');
       assert.equal(Number(agreementTerms(agreementId, 1).terms.price_rsd), 6000, 'THE_AGREEMENT_IS_AT_THE_STORED_PRICE_AFTER_THE_FORGED_ATTEMPTS');
-      report.selection.pinnedTriple = {forgedAttemptsRefused: attempts.map(([label]) => label), refusal: 'STALE_REVIEW_REQUIRED P0001 HTTP 400', agreementPrice: 6000};
-      pass('P5_SELECTION_IS_BOUND_TO_THE_PINNED_REVISION_VERSION_AND_CONTENT_HASH_A_HASH_THAT_BINDS_ANOTHER_PRICE_IS_REFUSED');
+      report.selection.pinnedTriple = {forgedAttemptsRefused: lib.FORGED_PIN_PLAN.map(item => item.label), refusedByGuard: refusedBy, refusal: 'STALE_REVIEW_REQUIRED P0001 HTTP 400', agreementPrice: 6000};
+      pass('P5_SELECTION_IS_BOUND_TO_THE_PINNED_REVISION_VERSION_AND_CONTENT_HASH_EACH_FORGED_ATTEMPT_IS_REFUSED_BY_ITS_OWN_GUARD_AND_A_HASH_THAT_BINDS_ANOTHER_PRICE_IS_REFUSED (content_hash x2, response_version, need_revision)');
     }
 
     // selection re-asserts the rule against the CURRENT task (the helper's own refusals; no earlier guard can fire here: the status, revision, version and hash are all valid)
@@ -670,10 +810,10 @@ async function main() {
     const agreementService = rMods.load('data/agreementClientService').agreementClientService;
     // D1: a NULL-basis task for several people is open (characterised, not judged); D4: the amount an OFFERS applicant types is open
     const flows = [
-      {id: 'null_basis', task: {mode: 'MY_PRICE', price: 3000, basis: null, slots: 3}, people: 2, typed: null, label: {defined: false, decision: 'D1'}},
+      {id: 'null_basis', task: {mode: 'MY_PRICE', price: 3000, basis: null, slots: 3}, people: 2, typed: null, label: lib.OPEN_CELLS.D1},
       {id: 'per_person', task: {mode: 'MY_PRICE', price: 3000, basis: 'PER_PERSON', slots: 3}, people: 2, typed: null, label: {defined: true, decision: null}},
       {id: 'total', task: {mode: 'MY_PRICE', price: 9000, basis: 'TOTAL', slots: 3}, people: null, typed: null, label: {defined: true, decision: null}},
-      {id: 'offers', task: {mode: 'OFFERS', price: null, basis: null, slots: 3}, people: 2, typed: 12345, label: {defined: false, decision: 'D4'}},
+      {id: 'offers', task: {mode: 'OFFERS', price: null, basis: null, slots: 3}, people: 2, typed: 12345, label: lib.OPEN_CELLS.D4},
     ];
     for (const flow of flows) {
       const need = newNeed(flow.task, 'client ' + flow.id);
@@ -702,6 +842,7 @@ async function main() {
         workerReadback: own.cena.prikaz, requesterReadback: listed.cena.prikaz, agreementReadback: agreement.cena.prikaz};
     }
     assert.equal(Object.keys(report.client).filter(key => flows.some(flow => flow.id === key)).length, flows.length);
+    report.clientFlows = flows.map(flow => ({id: flow.id, ...report.client[flow.id]}));   // rendered as a table in the markdown report and the workflow summary (the CANON / PINNED_TO_TODAY status of null_basis D1 and offers D4 is visible there)
     pass('P6_THE_TASK_DECODED_BY_THE_REAL_CLIENT_GIVES_THE_PRICE_THE_SERVER_ACCEPTS_AND_EVERY_READBACK_SHOWS_THE_SERVER_PRICE (null_basis D1 and offers D4 pinned to today)');
     // refusals through the real client: the Serbian sentence is the outcome, compared with the LITERAL owner copy (lib.SERBIAN_COPY); whether it is "conclusive" is RECORDED (finding D10), not judged
     const refusalFlows = [
@@ -744,17 +885,18 @@ async function main() {
 
   // =============================================================== P7 Agreement change: CHARACTERISED, not judged. OPEN OWNER DECISION D3.
   {
-    const D3 = {defined: false, decision: 'D3'};
+    const D3 = lib.OPEN_CELLS.D3;
     const d3 = {label: 'OPEN OWNER DECISION D3 (characterised as it behaves today, NOT judged): may a MY_PRICE Agreement be repriced by consent?', acceptCallArguments: report.signatures.respond, rows: [], invalidPatches: [], cellStatus: lib.statusOf(D3)};
     const propose = (client, agreement, version, patch, key = randomUUID()) => call(client, 'rpc_propose_agreement_change_v2', {p_agreement_id: agreement, p_expected_version: version, p_patch: patch, p_reason: 'PKG-049 D3 characterization', p_client_request_id: key});
     const respond = (client, proposal, accept) => call(client, 'rpc_respond_agreement_change', {p_proposal_id: proposal, p_accept: accept});
     const price = (agreement, version) => Number(agreementTerms(agreement, version).terms.price_rsd);
     const myPriceAgreements = agreements.filter(entry => entry.task.mode === 'MY_PRICE');
     assert.equal(myPriceAgreements.length, 3, 'P7_ONE_AGREEMENT_PER_BASIS (null, PER_PERSON, TOTAL)');
-    const hasPageReader = exists(AGREEMENTS_PAGE_SIGNATURE);
-    const offerCardPrice = async responseId => {
+    // the agreements page reader is NOT optional: pkg023a creates it (replayed by stage 04, pkg027 proof) and the leg below always runs. The EX-04C version of the same reader (rating state) is not on the chain: see notVerified.
+    assert.ok(exists(AGREEMENTS_PAGE_SIGNATURE), 'THE_AGREEMENTS_PAGE_READER_EXISTS (pkg023a, replayed by stage 04): the page-reader leg of the Agreement readback is mandatory');
+    const offerCard = async responseId => {
       const list = mustOk(await call(worker.client, 'rpc_list_my_applications', {}), 'my applications'), card = list.find(entry => entry.applicationId === responseId);
-      assert.ok(card, 'THE_OFFER_CARD_EXISTS'); return Number(card.priceRsd);
+      assert.ok(card, 'THE_OFFER_CARD_EXISTS'); return card;
     };
     for (const item of myPriceAgreements) {
       const rowReport = {basis: item.task.basis, taskPrice: item.taskPrice, covered: item.covered, agreementV1Price: price(item.agreementId, 1), accepted: [], status: lib.statusOf(D3)};
@@ -778,9 +920,11 @@ async function main() {
         if (rowReport.accepted.length === 1) {
           // the readback after the FIRST accepted amendment (amount 1): the Dogovor shows the amended amount while the worker's offer card keeps the application's own price: recorded, not judged (D3)
           const workspace = mustOk(await call(requester.client, 'rpc_get_agreement_workspace', {p_agreement_id: item.agreementId}), 'workspace after the amendment');
-          const card = await offerCardPrice(item.responseId);
-          assert.equal(Number(workspace.terms.price_rsd), amount, 'THE_DOGOVOR_SHOWS_THE_AMENDED_AMOUNT');
-          rowReport.offerCardDivergence = {offerCardPrice: card, dogovorPrice: Number(workspace.terms.price_rsd), diverges: card !== Number(workspace.terms.price_rsd), label: lib.statusOf(D3)};
+          const card = await offerCard(item.responseId), dogovorPrice = Number(workspace.terms.price_rsd);
+          assert.equal(dogovorPrice, amount, 'THE_DOGOVOR_SHOWS_THE_AMENDED_AMOUNT');
+          // ASSERTED (not merely recorded): the card key exists and is a whole number, the card keeps the application's own price and the Dogovor differs. An owner D3 lock turns exactly this assertion red, on purpose.
+          assert.deepEqual(lib.offerCardProblems(card, {applicationPrice: item.versionPrice, dogovorPrice}), [], 'THE_OFFER_CARD_KEEPS_THE_APPLICATION_PRICE_WHILE_THE_DOGOVOR_SHOWS_THE_AMENDED_AMOUNT (open D3, pinned to today)');
+          rowReport.offerCardDivergence = {offerCardPrice: card.priceRsd, dogovorPrice, diverges: card.priceRsd !== dogovorPrice, asserted: true, label: lib.statusOf(D3)};
           if (!d3.offerCardDivergence) d3.offerCardDivergence = {basis: item.task.basis, ...rowReport.offerCardDivergence};
         }
       }
@@ -795,12 +939,10 @@ async function main() {
       assert.equal(workspace.currentVersion, version); assert.equal(Number(workspace.terms.price_rsd), finalAmount, 'THE_WORKSPACE_TERMS_PRICE_IS_THE_LAST_ACCEPTED_AMOUNT'); assert.equal(workspace.terms.response_version, 1, 'THE_AMENDMENT_LEAVES_THE_RESPONSE_VERSION_ALONE');
       const listed = mustOk(await call(requester.client, 'rpc_list_my_agreements', {}), 'list').find(entry => entry.id === item.agreementId);
       assert.ok(listed, 'THE_LIST_HAS_THE_AGREEMENT'); assert.equal(listed.currentVersion, version); assert.equal(Number(listed.terms.price_rsd), finalAmount, 'THE_LIST_TERMS_PRICE_IS_THE_LAST_ACCEPTED_AMOUNT');
-      if (hasPageReader) {
-        const page = mustOk(await call(requester.client, 'rpc_list_my_agreements_page', {p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null}), 'list page');
-        const pageItem = page.items.find(entry => entry.id === item.agreementId);
-        assert.ok(pageItem, 'THE_PAGE_HAS_THE_AGREEMENT'); assert.equal(Number(pageItem.terms.price_rsd), finalAmount, 'THE_PAGE_TERMS_PRICE_IS_THE_LAST_ACCEPTED_AMOUNT');
-      }
-      rowReport.finalVersion = version; rowReport.finalAmount = finalAmount; rowReport.workspaceTermsPrice = Number(workspace.terms.price_rsd); rowReport.workspaceTermsPriceEqualsFinalAmount = true; rowReport.listReadersAgree = true; rowReport.pageReaderChecked = hasPageReader;
+      const page = mustOk(await call(requester.client, 'rpc_list_my_agreements_page', {p_scope: 'ALL', p_limit: 100, p_before_at: null, p_before_id: null}), 'list page');
+      const pageItem = page.items.find(entry => entry.id === item.agreementId);
+      assert.ok(pageItem, 'THE_PAGE_HAS_THE_AGREEMENT'); assert.equal(Number(pageItem.terms.price_rsd), finalAmount, 'THE_PAGE_TERMS_PRICE_IS_THE_LAST_ACCEPTED_AMOUNT');
+      rowReport.finalVersion = version; rowReport.finalAmount = finalAmount; rowReport.workspaceTermsPrice = Number(workspace.terms.price_rsd); rowReport.workspaceTermsPriceEqualsFinalAmount = true; rowReport.listReadersAgree = true; rowReport.pageReaderChecked = true;
       d3.rows.push(rowReport);
     }
     assert.equal(d3.rows.length, 3, 'P7_D3_ROWS'); assert.ok(d3.rows.every(row => row.accepted.length === 3), 'P7_THREE_ACCEPTED_AMENDMENTS_PER_ROW'); assert.ok(d3.offerCardDivergence, 'P7_THE_OFFER_CARD_DIVERGENCE_IS_RECORDED');
@@ -813,6 +955,12 @@ async function main() {
     report.d3 = d3;
     pass('P7_AGREEMENT_CHANGE_CHARACTERISED_ANY_WHOLE_NUMBER_BY_CONSENT_NO_AMOUNT_IN_THE_ACCEPT_CALL_READBACKS_SHOW_THE_LAST_ACCEPTED_AMOUNT_OPEN_OWNER_DECISION_D3');
   }
+
+  // the price tuples of EVERY row this run created in P1b..P7 (the rows P8 does not own), taken immediately before P8 and compared again in P9: the weaken/restore DDL of P8 must not have touched them
+  const known = new Set([...existing.needs, ...existing.responses, ...existing.agreements]), ours = rowIds('ours');
+  const createdIds = {needs: ours.needs.filter(id => !known.has(id)), responses: ours.responses.filter(id => !known.has(id)), agreements: ours.agreements.filter(id => !known.has(id))};
+  assert.ok(createdIds.needs.length >= 30 && createdIds.responses.length >= 25 && createdIds.agreements.length >= 12, 'P9_THE_SECOND_SNAPSHOT_IS_NOT_VACUOUS: ' + JSON.stringify({needs: createdIds.needs.length, responses: createdIds.responses.length, agreements: createdIds.agreements.length}));
+  const createdTuplesBeforeP8 = priceTuples(createdIds);
 
   // =============================================================== P8 weakening probes: the proof is not vacuous
   {
@@ -895,25 +1043,36 @@ async function main() {
     const pinsAfterProbes = pins.runPinGate(readMd5).observed;
     assert.deepEqual(pinsAfterProbes, pinsBeforeProbes, 'EVERY_WEAKENED_BODY_IS_RESTORED_BYTE_FOR_BYTE');
     assert.equal(outcomes.length, lib.PROBE_PLAN.length + 1, 'EVERY_PROBE_RAN'); assert.ok(outcomes.every(item => item.applied === true && item.detected === true), 'EVERY_PROBE_WAS_APPLIED_AND_DETECTED');
-    report.weakening = {control, probes: outcomes, applied: outcomes.filter(item => item.applied).length, detected: outcomes.filter(item => item.detected).length, total: outcomes.length};
-    pass(`P8_THE_PROOF_TURNS_RED_WHEN_THE_RULE_IS_WEAKENED (${report.weakening.detected} of ${report.weakening.total} probes detected by the OBSERVED weakened outcome; every body restored exactly)`);
+    // the select, candidates and page predicates set their state with flip(): a trigger-off fixture (defence in depth, R10), not a reachable state; the submit and keep predicates use the reachable edit
+    report.weakening = {control, probes: outcomes, applied: outcomes.filter(item => item.applied).length, detected: outcomes.filter(item => item.detected).length, total: outcomes.length,
+      fixturePredicates: ['select', 'candidates', 'page'], fixtureNote: FLIP_FIXTURE, fixture: FLIP_FIXTURE};
+    pass(`P8_THE_PROOF_TURNS_RED_WHEN_THE_RULE_IS_WEAKENED (${report.weakening.detected} of ${report.weakening.total} probes detected by the OBSERVED weakened outcome; every body restored exactly; the select, candidates and page predicates use a fixture: ${FLIP_FIXTURE})`);
   }
 
   // =============================================================== P9 data neutrality, certificate, catalog
   {
-    assert.ok(existing.needs.length >= 2 && existing.responses.length >= 2 && existing.agreements.length >= 2, 'P9_NOT_VACUOUS: the snapshot holds the seeded historical rows ' + JSON.stringify(report.neutrality.preexistingRows));
-    assert.deepEqual(tuples(), tuplesBefore, 'EXISTING_PRICE_TUPLES_ARE_BYTE_IDENTICAL');
+    // two snapshots, so the comparison CAN fail: (1) every row that existed BEFORE the chain stages, seeded applications and Agreements included (created through the RPCs before the EX-04D and B24 stages: a stage that rewrote
+    // data would move them); (2) every row created in P1b..P7, taken immediately before P8 (the weaken/restore DDL of P8 must not move them)
+    assert.ok(existing.needs.length >= 2 && existing.responses.length >= 2 && existing.agreements.length >= 2, 'P9_NOT_VACUOUS: the first snapshot holds the seeded historical rows ' + JSON.stringify(report.neutrality.preexistingRows));
+    const tuplesAfter = priceTuples(existing), createdTuplesAfter = priceTuples(createdIds);
+    assert.deepEqual(tuplesAfter, tuplesBefore, 'HISTORICAL_PRICE_TUPLES_FROM_BEFORE_EVERY_CHAIN_STAGE_ARE_BYTE_IDENTICAL');
+    assert.deepEqual(createdTuplesAfter, createdTuplesBeforeP8, 'PRICE_TUPLES_OF_THE_ROWS_CREATED_IN_P1B_TO_P7_ARE_BYTE_IDENTICAL_AFTER_P8');
     const closureAfter = closure(); assert.deepEqual(closureAfter, closureBefore, 'THE_CERTIFICATE_DID_NOT_MOVE');
     const surfaceAfter = surface();
     assert.deepEqual(surfaceAfter.filter(line => !surfaceBefore.includes(line)), [], 'NO_FUNCTION_CHANGED_OR_APPEARED'); assert.deepEqual(surfaceBefore.filter(line => !surfaceAfter.includes(line)), [], 'NO_FUNCTION_DISAPPEARED_OR_CHANGED');
     const finalGate = pins.runPinGate(readMd5); assert.deepEqual(finalGate.observed, gate.observed, 'THE_PIN_GATE_IS_THE_SAME_AFTER_THE_WHOLE_RUN');
-    report.neutrality = {...report.neutrality, tuplesAfter: tuples(), identical: true, certificateBefore: closureBefore, certificateAfter: closureAfter, catalogLinesBefore: surfaceBefore.length, catalogLinesAfter: surfaceAfter.length, catalogIdentical: true};
-    pass('P9_EXISTING_AND_SEEDED_PRICE_TUPLES_CERTIFICATE_AND_WHOLE_CATALOG_ARE_UNCHANGED_BY_THE_RUN (the certificate is chain-internal: before = after)');
+    report.neutrality = {...report.neutrality, tuplesAfter, identical: true, createdRows: {needs: createdIds.needs.length, responses: createdIds.responses.length, agreements: createdIds.agreements.length}, createdTuplesBeforeP8, createdTuplesAfter, createdIdentical: true,
+      certificateBefore: closureBefore, certificateAfter: closureAfter, catalogLinesBefore: surfaceBefore.length, catalogLinesAfter: surfaceAfter.length, catalogIdentical: true};
+    pass(`P9_PRICE_TUPLES_OF_${existing.needs.length}_NEEDS_${existing.responses.length}_APPLICATIONS_AND_${existing.agreements.length}_AGREEMENTS_FROM_BEFORE_EVERY_CHAIN_STAGE_AND_OF_${createdIds.needs.length}_NEEDS_${createdIds.responses.length}_APPLICATIONS_AND_${createdIds.agreements.length}_AGREEMENTS_OF_P1B_TO_P7_ARE_UNCHANGED_AND_THE_CERTIFICATE_AND_WHOLE_CATALOG_ARE_UNCHANGED_BY_THE_RUN (the certificate is chain-internal: before = after)`);
   }
   report.client.sources = [...new Map(loaders.flatMap(loader => loader.sources).map(item => [item.path, item])).values()].sort((a, b) => a.path.localeCompare(b.path));
   report.notVerified = [
     'DEV: nothing here ran against DEV (DEV has 0 open MY_PRICE tasks); the verdicts hold for the disposable chain and carry the label of the pin gate (' + gate.label + ')',
-    'the chain is not DEV: it lacks pkg051a, A1/P0/P4/P5/B3a-c, PKG-045b P0 (needs column ACL), P6 rollout v3, B24 Part 1/2 (except the two price-chain functions converted in-proof), Voice B1 and EX-04A-C; its certified set (76) and certificate are chain-internal (before = after only)',
+    'the chain is not DEV: ' + pins.CHAIN_LACKS.join('; ') + '; its certified set (76) and certificate are chain-internal (before = after only)',
+    'direct table writes (P1b): the expected outcomes are DERIVED from the migration sources and are first observed by the CI run; the needs attacks are chain-specific (the chain has table-level privileges on public.needs, DEV has the PKG-045b P0 column privileges, which this proof does not observe)',
+    'the Agreement page-reader leg reads the pkg023a version of rpc_list_my_agreements_page (replayed by stage 04); the EX-04C version (rating state) is not on the chain',
+    'rpc_read_task (pinned, adjacent) is SECURITY INVOKER: on DEV it runs under the PKG-045b P0 column grants, on this chain under table-level SELECT; P5, P6 and the P8 coupling probe read the task and the computed selectable_application_count only through it',
+    'NOT DEMONSTRATED (T6 / R10): a price_basis-only task edit through the REAL command is not characterised: price_basis is outside guard_need_write\'s material list, the legacy rpc_confirm_need_edit carries no basis, the owner\'s direct update is DRAFT-only, and editTask always bumps the revision by fixture, so whether a basis-only edit stales the applications through the real path is unobserved (a structural limit of this chain, so it is listed here and not as a run gap)',
     'PostgREST version: the disposable supabase CLI stack does not pin it (header recorded in the report); DEV runs 14.5; the 40001 retry hazard is avoided (or, with the in-proof conversion, replaced by an observed PT409 -> HTTP 409), not reproduced',
     'native device behaviour: the real client TypeScript ran under a transpile-only VM with the live Auth session; no React Native screen, no APK, no phone',
     'installed APKs older than 2026-09-21 (bare per-person amount): their server-side refusals are covered by the matrix, their on-screen behaviour is not',
@@ -923,8 +1082,9 @@ async function main() {
     'a refused RPC rolls its own transaction back, so "nothing written" is a transactional invariant, not independent evidence; the exact outcome (message, SQLSTATE, HTTP status) is the evidence',
     'the SQLSTATE of an amount above int4 (22003) is observed here for the first time; the proof tolerates 22003 and 22P02 and rejects PGRST202',
   ];
-  report.result = 'PASS'; save();
+  report.result = lib.resultOf(report.gaps); save();   // PASS_WITH_GAPS when something the proof was designed to demonstrate was left out (the gaps are in the report, the markdown and the workflow summary)
   writeFileSync(markdownPath, lib.renderReportMarkdown(report));
+  if (report.gaps.length) console.log('RESULT ' + report.result + ': ' + report.gaps.join(' | '));
 }
 
 main().catch(error => {
