@@ -11,7 +11,8 @@
  * - The counts come with the first page of ANY scope and are the only counts there are: a tab badge never counts what happens to be loaded.
  * - Returning to a screen re-reads as many pages as were loaded (bounded), so the reading position survives; a pull-to-refresh starts again from the top.
  * - `ensureComplete(true)` reads the rest of the set, one page at a time up to a bound, for as long as a search, a filter or a destination that must be found
- *   refines it: a refinement of an incomplete set would answer wrongly.
+ *   refines it: a refinement of an incomplete set would answer wrongly. With `until` it stops as soon as what is loaded satisfies it (the destination has been met),
+ *   checked before every further page, so a page is never read for something that is already on screen.
  * - A first page that fails shows an error only when nothing is on screen; a later page that fails keeps the list and asks for a retry at its foot.
  * - `reload` is the first page asked for by a screen that owns its own read (it answers whether the page is now fresh and on screen); `start` is the focus of a screen that
  *   lets the pager read for it.
@@ -56,7 +57,7 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
   const sets = new Map<Scope, SetState<Item, Cursor>>();
   const listeners = new Set<() => void>();
   const EMPTY: readonly Item[] = Object.freeze([]);
-  let scope: Scope | null = null, counts: Counts | null = null, complete = false, active = false, epoch = 0;
+  let scope: Scope | null = null, counts: Counts | null = null, complete = false, until: ((items: readonly Item[]) => boolean) | undefined, active = false, epoch = 0;
   let state: PagedListState<Item, Scope, Counts> = build();
 
   function ensure(key: Scope): SetState<Item, Cursor> {
@@ -139,7 +140,7 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
   function pump() {
     if (!complete || !active || !scope) return;
     const set = sets.get(scope);
-    if (set && set.loaded && set.hasMore && !set.moreFlight && !set.firstFlight && !set.moreError && set.pages < maxPages) void readMore(scope);
+    if (set && set.loaded && set.hasMore && !set.moreFlight && !set.firstFlight && !set.moreError && set.pages < maxPages && !until?.(set.items)) void readMore(scope);
   }
 
   return {
@@ -182,6 +183,11 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
     },
     /** Pull-to-refresh: the first page again, from the top; the set stays on screen while it is read. */
     refresh(): Promise<boolean> { return scope ? readFirst(scope, 'keep') : Promise.resolve(false); },
+    /** After a command that moved an item between sections: the sets that are not shown are dropped, so each is read again as new when it is asked for. */
+    forgetOtherSets() {
+      for (const key of [...sets.keys()]) if (key !== scope) sets.delete(key);
+      show();
+    },
     /** The next page; after a failed one, the same call is the retry. */
     loadMore(): Promise<void> {
       if (!scope) return Promise.resolve();
@@ -189,7 +195,7 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
       if (set?.moreError) { set.moreError = false; show(); }
       return readMore(scope);
     },
-    ensureComplete(on: boolean) { complete = on; pump(); },
+    ensureComplete(on: boolean, stop?: (items: readonly Item[]) => boolean) { complete = on; until = on ? stop : undefined; pump(); },
   };
 }
 export type PagedListPager<Item, Scope extends string, Cursor, Counts> = ReturnType<typeof createPagedListPager<Item, Scope, Cursor, Counts>>;

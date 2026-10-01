@@ -2,25 +2,49 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
-import type { Ishod, PovuciPrijavuKomanda } from '../../data/ports';
+import type { Ishod, Izvor, PovuciPrijavuKomanda } from '../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead } from '../../data/applicationSelectionClientService';
 import { readApplicationCommandState, readExistingApplicationInterval, type ApplicationCommandState } from '../../data/myApplicationsClientService';
 import { applicationSection } from '../../data/myApplicationsView';
+import { ownApplicationsScope, type OwnApplicationsPageRequest } from '../../data/ownApplicationsPage';
+import { ownApplicationsPagedBuilt } from '../../data/ownApplicationsPagedGate';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
 import { positiveInteger, sameId } from '../../data/serverReceipt';
 import { fixedApplicationPeople, fixedApplicationPrice, readableTitle } from '../../data/needDetailPresentation';
+import { useOwnApplicationsPager } from '../../hooks/useOwnApplicationsPager';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
 import { calendarInstant } from '../../lib/calendarTime';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
-import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
+import { MyApplicationsPresentation, type ApplicationsPaging, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'resolve'; command: Ru4RazresiPrijavuInput };
 type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
   result: 'receipt' | 'unknown' | 'rejected' | null; code: string | null };
 type Loaded = { rows: MojaPrijavaProjekcija[]; notice: string | null };
+const NO_ROWS: MojaPrijavaProjekcija[] = [];
+
+/**
+ * EX-04 S2 (B10): the same list a page at a time, in the server's own sets (one per tab). The screen's editor keeps owning the read, the reconciliation of a pending command and
+ * the commands; the pager owns the rows, the server's counts and the next page. Until the pager has answered for the tab now asked for, the screen is loading, never showing another
+ * set's applications under this one's title. `destination` is the application a notification named: the rest of the shown set is read until it is met.
+ */
+function usePagedApplications(source: Izvor, tab: ApplicationsTab, destination: string | null) {
+  const readPage = useCallback((request: OwnApplicationsPageRequest) => source.mojePrijaveStrana(request), [source]);
+  const scope = ownApplicationsScope(tab);
+  const { state, pager } = useOwnApplicationsPager(readPage, scope, destination);
+  const settled = state.scope === scope;
+  return { pager, state, settled, rows: settled ? state.items as MojaPrijavaProjekcija[] : NO_ROWS,
+    paging: { counts: state.counts, hasMore: settled && state.hasMore, loadingMore: settled && state.loadingMore, moreError: settled && state.moreError,
+      onLoadMore: () => { void pager.loadMore(); } } satisfies ApplicationsPaging };
+}
+type PagedApplications = ReturnType<typeof usePagedApplications>;
+const useNoPagedApplications = (_source: Izvor, _tab: ApplicationsTab, _destination: string | null): PagedApplications | null => null;
+// One reader per build: a compile-time flag, so the order of hooks never changes while the app runs.
+const usePagedApplicationRows: (source: Izvor, tab: ApplicationsTab, destination: string | null) => PagedApplications | null =
+  ownApplicationsPagedBuilt() ? usePagedApplications : useNoPagedApplications;
 function pricedOffer(draft: OfferEdit): OfferEdit {
   const fixedPeople = fixedApplicationPeople(draft.pricing);
   const people = fixedPeople === null ? draft.people : String(fixedPeople);
@@ -65,14 +89,22 @@ export default function MojePrijave() {
   const named = typeof params.prijavaId === 'string' ? params.prijavaId : null;
   const landing = useRef<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
-  useEffect(() => { landing.current = named; setFocusId(null); }, [named]);
+  // Paged builds only: a named application is not necessarily on the first page, so while it has not been met the rest of the set is read.
+  const [landingActive, setLandingActive] = useState(false);
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ focused: false, active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab,
+    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab, hardReload: false,
     expanded: null as string | null, draft: null as OfferEdit | null, pending: null as Pending | null, message: null as string | null }),
   [izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
+  // A destination named by a notification takes precedence over a retained filter: the one set that holds every application is "Sve".
+  useEffect(() => {
+    landing.current = named; setFocusId(null);
+    if (ownApplicationsPagedBuilt() && named) { session.tab = 'all'; setLandingActive(true); render(v => v + 1); } else setLandingActive(false);
+  }, [named]);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
+  const paged = usePagedApplicationRows(izvor, session.tab, landingActive ? named : null);
+  const pager = paged?.pager;
   const accountCurrent = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
     sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
   // Every retirement below also makes an open withdrawal question stale (its answer checks `editRevision`), so the
@@ -97,9 +129,12 @@ export default function MojePrijave() {
     const owned = () => session.focused && session.active && token === session.token && generation === session.readRevision && accountCurrent();
     const pending = session.pending && !session.pending.inFlight ? session.pending : null;
     if (pending) pending.reconciled = false;
+    const hard = session.hardReload; session.hardReload = false;
     try {
       const [rows, named] = await Promise.all([
-        boundedApplicationSelectionRead(izvor.mojePrijave()),
+        // Paged: the first page of the shown set is the read (the rows live in the pager); a page that did not arrive is a read that failed, like the whole list.
+        pager ? boundedApplicationSelectionRead(pager.reload(hard ? 'keep' : 'auto')).then(fresh => { if (!fresh) throw new Error('APPLICATIONS_PAGE_NOT_READ'); return NO_ROWS; })
+          : boundedApplicationSelectionRead(izvor.mojePrijave()),
         pending ? readApplicationCommandState(pending.row) : Promise.resolve(null),
       ]);
       if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne prijave.' };
@@ -117,25 +152,27 @@ export default function MojePrijave() {
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Pokušaj ponovo za trenutak.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
-  }, [session, izvor, accountCurrent, clearReview, resume]);
+  }, [session, izvor, accountCurrent, clearReview, resume, pager]);
   const editor = useOwnedEditor(read), data = editor.data;
+  // The applications on screen: the whole list's rows, or (paged) what the pager holds for the tab asked for.
+  const shownRows = paged ? paged.rows : data?.rows ?? NO_ROWS;
   // Every read closes any open review, so the named row is opened after one arrives, and only once:
   // closing it afterwards is the person's decision and is not undone on the next refresh.
   useEffect(() => {
     const id = landing.current;
     if (!id || editor.loading || !session.focused || !session.active || !accountCurrent()) return;
-    const row = data?.rows.find(row => row.prijavaId === id);
+    const row = shownRows.find(row => row.prijavaId === id);
     if (!row) return;
     // A new explicit destination takes precedence over a retained filter. Consume it once:
     // later tab choices and closing the review remain the person's own decisions.
     if (session.tab !== 'all' && session.tab !== applicationSection(row)) session.tab = 'all';
-    landing.current = null; session.expanded = id; setFocusId(id); render(v => v + 1);
-  }, [data, session, named, editor.loading, accountCurrent]);
+    landing.current = null; session.expanded = id; setFocusId(id); setLandingActive(false); render(v => v + 1);
+  }, [data, session, named, editor.loading, accountCurrent, shownRows]);
   const token = session.token, revision = session.readRevision, editRevision = session.editRevision;
   const current = () => session.focused && session.active && token === session.token && revision === session.readRevision && accountCurrent();
-  const rowCurrent = (p: MojaPrijavaProjekcija) => current() && !!data?.rows.some(row => identity(row) === identity(p));
+  const rowCurrent = (p: MojaPrijavaProjekcija) => current() && shownRows.some(row => identity(row) === identity(p));
   const idle = () => !session.reading && !session.pending && !editor.busy && !editor.uncertain && !session.editingLoading;
-  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) { session.hardReload = true; void editor.refresh(); } };
   const perform = (pending: Pending) => {
     if (!current() || !data || session.reading || pending.inFlight || editor.busy || editor.uncertain ||
         session.pending && (session.pending !== pending || !pending.reconciled)) return;
@@ -166,6 +203,8 @@ export default function MojePrijave() {
       if (!result.ok) return result;
       const fresh = await read();
       if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Radnja je potvrđena, ali lista nije učitana. Proveri sačuvano stanje.' };
+      // A command moves an application between sections: the sets that are not shown are read again as new when they are asked for.
+      pager?.forgetOtherSets();
       return fresh;
     });
   };
@@ -213,10 +252,13 @@ export default function MojePrijave() {
   };
   const navigate = (path: '/zadaci' | '/profil') => { if (current()) router.navigate(path); };
   const pending = session.pending, visible = current();
-  return <><MyApplicationsPresentation rows={visible ? data?.rows ?? [] : []} loading={!session.focused || !session.active || editor.loading}
-    unavailable={!data} message={session.message ?? editor.error} notice={data?.notice ?? null}
+  // Paged: nothing of another set is shown under this tab's title, a refresh keeps what is on screen, and a destination that is not in the shown set is never called missing.
+  const reading = !session.focused || !session.active || (paged ? !paged.settled || paged.state.loading || (editor.loading && shownRows.length === 0) : editor.loading);
+  const wholeSetKnown = !paged || (paged.settled && session.tab === 'all' && !paged.state.loading && !paged.state.hasMore && !paged.state.loadingMore);
+  return <><MyApplicationsPresentation rows={visible ? shownRows as MojaPrijavaProjekcija[] : []} loading={reading} paging={paged?.paging}
+    unavailable={!data || (!!paged && paged.settled && paged.state.error)} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
-    focusId={visible ? focusId : null} requestedId={visible ? named : null}
+    focusId={visible ? focusId : null} requestedId={visible && wholeSetKnown ? named : null}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
 // The same rule Početna's "Moje prijave" row counts by (2026-09-23).
-import { applicationSection, type ApplicationSection } from '../../data/myApplicationsView';
+import { applicationSection, type ApplicationCounts, type ApplicationSection } from '../../data/myApplicationsView';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
@@ -17,6 +17,11 @@ import { ApplicationCard } from './ApplicationFace';
 import { V2Action } from './V2Action';
 
 export type ApplicationsTab = 'all' | ApplicationSection;
+/**
+ * EX-04 S2: what a paged read of my own applications says besides the applications. Absent, the list is the whole list and counts itself; present, the rows are the ones
+ * loaded so far of the tab's own set, the counts are the server's, and the foot offers the next page.
+ */
+export type ApplicationsPaging = { counts: ApplicationCounts | null; hasMore: boolean; loadingMore: boolean; moreError: boolean; onLoadMore: () => void };
 export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null; pricing: ApplicationEditPricing };
 type Props = {
   rows: MojaPrijavaProjekcija[]; loading: boolean; unavailable: boolean; message: string | null; notice: string | null;
@@ -35,6 +40,8 @@ type Props = {
   requestedId?: string | null;
   /** The internal gallery draws the large-text card layout without changing the phone's setting. */
   largeText?: boolean;
+  /** Paged builds only (the ex04b package). */
+  paging?: ApplicationsPaging;
 };
 const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'all', label: 'Sve' }, { key: 'attention', label: 'Čeka te' },
   { key: 'active', label: 'Aktivne' }, { key: 'finished', label: 'Završene' }];
@@ -104,7 +111,12 @@ export function MyApplicationsPresentation(props: Props) {
       {props.expanded === p.prijavaId ? review : null}
     </ApplicationCard>
   </Appear>;
-  const count = (tab: ApplicationsTab) => tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
+  // Paged: the server's own counts, never the number that happens to be loaded.
+  const paging = props.paging, serverCounts = paging?.counts ?? null;
+  const count = (tab: ApplicationsTab) => paging ? (serverCounts ? (tab === 'all' ? serverCounts.total : serverCounts[tab]) : 0)
+    : tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
+  // Whether there is any application at all: a tab of a paged set can be empty while the others are not.
+  const hasAny = paging ? (serverCounts ? serverCounts.total > 0 : props.rows.length > 0) : props.rows.length > 0;
   const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeLabel: prijava(count(option.key)),
     badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
   // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
@@ -114,7 +126,7 @@ export function MyApplicationsPresentation(props: Props) {
       // (`busy` is a write, item 3); a read in flight shows the loading state above instead of this one.
       : props.unavailable ? <StateView kind="error" art="offers" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
-        : props.rows.length && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
+        : hasAny && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
           primary={{ label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
           : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju ponudu i svaki sledeći korak."
             primary={{ label: 'Istraži zadatke', onPress: props.onExplore }} />}
@@ -124,7 +136,7 @@ export function MyApplicationsPresentation(props: Props) {
     {/* The underlined tab row of Dogovori and the inbox: the tabs keep their spacing and slide sideways only where they do
         not fit (320 dp, large text), fading at the edge; the hairline under them spans the content. With no application at
         all there is nothing to switch between, so the first-run state stands alone under the bar. */}
-    {!props.unavailable && !props.loading && props.rows.length ? <View style={s.controls}>
+    {!props.unavailable && !props.loading && hasAny ? <View style={s.controls}>
       <View style={s.tabRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} fadingEdgeLength={24} style={s.grow}>
           <Segmented appearance="underline" style={s.tabTrack} value={props.tab} onChange={props.onTab} options={tabs} />
@@ -139,6 +151,14 @@ export function MyApplicationsPresentation(props: Props) {
         removeClippedSubviews={false} initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         refreshing={props.loading} onRefresh={props.onRefresh} ListEmptyComponent={empty} ItemSeparatorComponent={Separator}
+        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
+        ListFooterComponent={paging && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
+          {paging.moreError ? <>
+            <T variant="note" tone="muted">Nije uspelo učitavanje još prijava.</T>
+            <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
+          </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
+            : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
+        </View> : null}
         ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed) ? <View style={s.feedback}>
           {missingNamed ? <View style={[inset, s.notice]}><T variant="body" accessibilityRole="alert" style={s.ink}>Ova prijava trenutno nije dostupna</T>
             <T variant="note" tone="muted">Osveži spisak da proveriš njeno stanje.</T>
@@ -172,4 +192,5 @@ const s = StyleSheet.create({
   notice: { gap: 6, backgroundColor: sys.color.greenSoft }, noticeWarn: { backgroundColor: sys.color.warnSoft },
   pending: { gap: 8, backgroundColor: sys.color.wash },
   feedback: { gap: 10, marginBottom: 14 },
+  foot: { paddingTop: 16, alignItems: 'center', gap: 8 },
 });
