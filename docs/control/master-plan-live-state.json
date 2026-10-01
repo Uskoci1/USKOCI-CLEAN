@@ -394,6 +394,12 @@
       "run": null,
       "sha": null,
       "result": "PROJEKAT (1.10., samo čitanje, 13 agenata + nezavisna provera korenske sesije): kanon već traži funkciju (L-017: 1-5 zvezdica + OPCIONI kratak tekst posle završenog Dogovora) ali ne definiše ugovor (dužina, edit, moderacija, retention, vreme objave su OTVORENI). Živo: jedna tabela private.agreement_reviews, 7 redova, NEMA tekstualne kolone, RLS forsiran, 0 politika, trigger pre_v3_review_immutable. Predlog (SVE osim kanonskih činjenica je PREDLOG): zasebna tabela 1:1 po recenziji, nova imena funkcija (v2), stare funkcije bajt-identične (stari APK rade), komentar samo u istoj komandi kao zvezdice, 500 znakova, bez AI i plaćenog servisa, brisanje pri zatvaranju autorovog naloga kroz sertifikovani izvršilac, export sopstvenog komentara (52 skupa, V5_9 -> V5_10), bez edit/delete (kanon ga ne definiše). D12 NIJE samo-funkcije: nova tabela POMERA sertifikat zatvaranja 58447d77, pa se primena radi u jednoj atomskoj izjavi sa re-bindom na tri mesta i traži vlasnikovo izričito odobrenje koje IMENUJE re-bind. Dva pitanja blokiraju pisanje kandidata: D-DEC-2 (efekat i operator moderacije) i D-DEC-3 (pokazivač prijave). Dokument: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_WRITTEN_REVIEW_DESIGN_20261001.md"
+    },
+    {
+      "id": "EX06-S03-FIRST-CI-RUN-20261001",
+      "run": 36890566753,
+      "sha": "e7f129d5a4635ba418a4d983a24fd1f5cca788a8",
+      "result": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md"
     }
   ]
 }
