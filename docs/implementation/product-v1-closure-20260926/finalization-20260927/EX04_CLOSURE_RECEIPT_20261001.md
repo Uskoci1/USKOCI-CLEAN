@@ -29,7 +29,7 @@ SOURCE yes | CI yes (disposable chain, real Auth and PostgREST) | DEV-APPLIED ye
 | **EX04-L4 Home counts (A01)** | Home still reads the whole lists for two numbers (page 1 gives the same numbers, proven equal to the client rules); not done because the canonical card A01 names the rating supplement, not the counts | A Home package |
 | **EX04-L5 page sizes** | The phone ran the TEST sizes 2 / 2 / 1; the product sizes (30 / 30 / 50) cannot be crossed with the present data (at most 19 tasks, 6 applications, 2 candidates) | A state-changing fixture (needs the owner's word) or real data |
 | **EX04-L6 Back after a deep scroll** | Returning to a list re-reads at most 5 pages (150 cards at the product size), a designed bound | Design limit, not a defect |
-| **EX04-L7 the installed APK** | The HONOR carries the test artefact `9ef10b67` (tiny pages: the lists feel slow on it); it is not a product build | The next normal DEV build (run 36931086522 started 2026-10-01 night) replaces it with `adb install -r` in an owner window |
+| **EX04-L7 the installed APK** | CLOSED 2026-10-02 00:19: the test artefact `9ef10b67` was replaced on the HONOR by the normal DEV build `81b8a833...bcf5` (run 36931086522, source `fb865dd7`) with `adb install -r`, `firstInstallTime` unchanged, session and data kept; the lists now load at the product page sizes | Nothing; the product page sizes (30 / 30 / 50) are still not crossed (EX04-L5) |
 | **EX04-L8 sample and platform** | One phone, one account, one quiet database; no long session, no second Android device, no iOS; the HTTP/JWT call of the new readers as a separate observed event and the cost at production scale are not proven | Two-device test, release candidate |
 
 ## What this closure does not claim

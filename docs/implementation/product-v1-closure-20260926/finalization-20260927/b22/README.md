@@ -1,0 +1,5 @@
+# B22 / RNR-01 evidence (2026-10-02)
+
+`window4_before_lists_20261002.json`: the owner's fourth HONOR window ("sad"). One `adb install -r` of the normal DEV APK `81b8a833...bcf5` (source `fb865dd7`, CI run 36931086522, NO Reanimated patch; replaced the EX-04 test APK; `firstInstallTime` unchanged, session and data kept), then the list routine of window 3 for 236 s while a read-only `adb logcat` streamed to a file.
+
+**BEFORE baseline for the patch, lists only:** 77 `synchronouslyUpdateUIProps failed` lines over 5,437 frames = **0.014 per frame** (0.33 per second), from only TWO dead view tags (4814: 71 lines inside one second; 5182: 6 lines). Janky 0.99 %, p99 15 ms, no crash/ANR, PSS 378 MB. So on the list screens the flood is already negligible; the earlier large numbers (12.4 / 5.1 / 1.2 lines per frame) came from map pin touches and sign-in, which this routine does NOT exercise. A BEFORE for the map-pin routine on this same unpatched build is still needed before any AFTER comparison is honest. The raw log (about 87,000 lines) is not kept.

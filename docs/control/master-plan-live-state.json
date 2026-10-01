@@ -490,6 +490,12 @@
       "run": null,
       "sha": null,
       "result": "OWNER DECISION (his words \"uvedi zakrpu\"): introduce patch-package for the Reanimated 4.5.1 failed-update patch ONLY; test first, CI build, BEFORE/AFTER measurement on the HONOR closes B22"
+    },
+    {
+      "id": "HONOR-WINDOW4-NORMAL-APK-B22-BASELINE-20261002",
+      "run": 36931086522,
+      "sha": "fb865dd79ac303ffd6ee67c693ef6442755f41ae",
+      "result": "PHYSICAL DEVICE: normal DEV APK 81b8a833 installed over the test APK (install -r, session kept); list routine 236 s: 0.014 failed Reanimated lines per frame (77 lines, 2 dead tags), janky 0.99 %, no crash/ANR; map-pin and sign-in routine not yet measured; EX04-L7 closed"
     }
   ]
 }
