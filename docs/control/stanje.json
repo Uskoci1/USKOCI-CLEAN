@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T22:41:47Z",
-  "grana": "HEAD",
-  "head": "a07cebe8",
-  "head_poruka": "docs(b22): owner window 5 - BEFORE for a read-only screen tour on the unpatched build: 0.686 failed Reanimated lines per frame, 465,742 log lines in 4 bursts",
+  "osvezeno": "2026-10-01T23:27:04Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "c6c4d9ca",
+  "head_poruka": "feat(ex06): ex06a candidate - flexible-window dispatch fix (S03 finding F1), SOURCE + offline-tested, CI proof workflow; NOT applied, nothing against DEV",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8551,5 +8551,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36939555251,
+   "ime": "P5 ready task and matching contract",
+   "sha": "c6c4d9ca",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-01T23:12:45Z"
+  },
+  {
+   "id": 36939555154,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "c6c4d9ca",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-01T23:12:45Z"
+  },
+  {
+   "id": 36939555097,
+   "ime": "EX-06 S03 matching contract proof",
+   "sha": "c6c4d9ca",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T23:12:45Z"
+  },
+  {
+   "id": 36936575477,
+   "ime": "Control tracker refresh",
+   "sha": "a07cebe8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T22:41:32Z"
+  },
+  {
+   "id": 36935093671,
+   "ime": "Control tracker refresh",
+   "sha": "35943100",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T22:26:42Z"
+  },
+  {
+   "id": 36932778896,
+   "ime": "Control tracker refresh",
+   "sha": "78f021a7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T22:04:21Z"
+  },
+  {
+   "id": 36932301741,
+   "ime": "Control tracker refresh",
+   "sha": "9394e94f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:59:55Z"
+  },
+  {
+   "id": 36931740188,
+   "ime": "Control tracker refresh",
+   "sha": "e367336f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:54:31Z"
+  },
+  {
+   "id": 36931606720,
+   "ime": "Control tracker refresh",
+   "sha": "8edadfa1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:53:13Z"
+  },
+  {
+   "id": 36931086522,
+   "ime": "Build Android development APK",
+   "sha": "fb865dd7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:48:25Z"
+  },
+  {
+   "id": 36929784190,
+   "ime": "Control tracker refresh",
+   "sha": "d63779b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T21:36:22Z"
+  },
+  {
+   "id": 36925081287,
+   "ime": "Control tracker refresh",
+   "sha": "0042d82a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-01T20:55:13Z"
+  }
+ ]
 }
