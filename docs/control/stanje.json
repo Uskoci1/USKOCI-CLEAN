@@ -1,16 +1,16 @@
 {
  "meta": {
-  "osvezeno": "2026-09-30T23:26:30Z",
-  "grana": "HEAD",
-  "head": "93b6e3ac",
-  "head_poruka": "docs(ex03): EX-03 Discovery polish formally CLOSED WITH LIMITS on the owner's order - all five targets met on the HONOR (halo 85/91 ms, card 71/78 ms, Back to restored 162/218 ms with zero PAGE/MAP reads 7 of 7, no frame over 700 ms, janky 4.84 percent, no ANR); limits EX03-L1..L6 named and carried (visible return in pixels with the technical pointer, camera on selection, janky share, place card, sample, card design untouched); registry rows B04/B05, LIVE plan and evidence regenerated and checked",
+  "osvezeno": "2026-10-01T07:11:19Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "0d404549",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
-   "snimljeno": "2026-09-30T12:01:15Z",
-   "migracije": 212,
-   "dev_alpha": 64,
-   "poslednja": "dev_alpha_p6_discovery_rollout_v3",
-   "sertifikat_ok": null,
-   "privatni_status": "VERIFIED_IN_EXACT_PKG045B_AND_P6_V3_APPLICATION_TRANSACTIONS; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
+   "snimljeno": "2026-10-01T07:03:07Z",
+   "migracije": 215,
+   "dev_alpha": 67,
+   "poslednja": "dev_alpha_chat_voice_b1_dev_application",
+   "sertifikat_ok": true,
+   "privatni_status": "FRESH",
    "privatni_istorijski": null,
    "cron": [
     {
@@ -74,12 +74,12 @@
     },
     {
      "slug": "uskoci-media",
-     "version": 13,
+     "version": 14,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-account-closure-worker",
-     "version": 3,
+     "version": 4,
      "verify_jwt": false
     }
    ]
@@ -165,9 +165,11 @@
    "limits": "Nema dekodiranja/prihvatanja pravog snimka. Nema runtime importa, snimača, slanja ili plejera. B1/B2 i kompatibilnost starog B3 čitanja tek slede."
   },
   "voice_b1_b2": {
-   "state": "SERVER_PACKAGE_PROVEN_ON_DISPOSABLE_DEV_PREFLIGHTED_NOT_APPLIED / EDGE_NOT_DEPLOYED / CLIENT_B2A_HEADLESS_JEST_PROVEN / UI_NATIVE_NOT_STARTED",
+   "state": "B1_SERVER_APPLIED_ON_DEV_20261001 / EDGE_WORKER_V4_AND_MEDIA_V14_DEPLOYED_BYTE_EXACT / CLIENT_B2A_HEADLESS_JEST_PROVEN / FLAG_OFF / B2B_NATIVE_B2C_UI_NOT_STARTED",
    "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2_PLAN_20260930.md",
-   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md",
+   "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_DEV_APPLICATION_RECEIPT_20261001.md",
+   "checkpoint_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md",
+   "ledger_receipt": "supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json",
    "candidates": [
     "supabase/candidates/chat_voice_b1_dev_application.sql",
     "supabase/candidates/chat_voice_b1_revert.sql",
@@ -194,8 +196,16 @@
     "revert": "16/16, 10 odbijanja, katalog i digest vraćeni tačno",
     "client_b2a": "11 paketa / 182 testa"
    },
-   "dev_readonly": "preflight 2026-09-30T22:25:10Z: 0 problema, 25/25 i 26/26 pinova, sertifikat 707af7fc = živi digest, ledger 214, Edge uskoci-media v13 i closure worker v3",
-   "limits": "Ništa na DEV, nijedna Edge funkcija nije deployovana. Sertifikat se vezuje u tri mesta u istoj transakciji (novi digest se računa pri primeni, ne predviđa se). Čeka vlasnikov Edge deploy (closure worker pa uskoci-media), njegovo primeni za jedan atomski paket i odluku o UI predlogu, pravnim tekstovima i iOS mikrofonu. Nema UI, expo-audio ni native dokaza."
+   "dev_applied": {
+    "at": "2026-10-01 (owner PRIMENI; migration version 20261001065800)",
+    "edge": "uskoci-account-closure-worker v3 -> v4 (2026-10-01T04:07:10Z) and uskoci-media v13 -> v14 (04:11:51Z), every file byte-equal to git HEAD",
+    "preflight": "2026-10-01T04:13:11Z: problems [], 25 metadata + 26 body pins, ledger 214, certified = live = 707af7fc",
+    "migration": "dev_alpha_chat_voice_b1_dev_application, ledger 214 -> 215, stored span sha256 e0221f33b1fc5310b863a5fd5d7845b10d10db69e3a6a7d8627cd9c2e938aabe equals the trimmed candidate",
+    "postflight": "2026-10-01T06:59:09Z: problems [], 13 body pins, 15 function pins, 4 trigger pins, 52 export datasets, ledger 215",
+    "certificate": "707af7fcaa913736de910201dd6763b122285b94c5b774813be4dafaef4f33e1 -> 58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46 in closure_source_v5, closure_erasure_source_v5, retention_ai_source_ready() literal and closure_erasure_binding_v5() (ready true)",
+    "data": "8 agreements and 10 messages unchanged, 0 voice rows, 0 voice objects, 3 private buckets, 0 closures executing"
+   },
+   "limits": "Klijentski Voice flag EXPO_PUBLIC_VOICE_MESSAGES je isključen u svakom buildu; nema UI, expo-audio ni native/telefon dokaza. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om na DEV-u, prava likvidacija naloga posle re-bind-a. Ništa na PROD (isti paket sa B24 delovima mora na svaki budući produkcioni projekat pre prvog pravog korisnika). Revert nije primenjen i traži zasebno PRIMENI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst."
   },
   "consolidated_apk": {
    "status": "RESTORED_WITH_R_INSTALLED_SHA_MATCHED_SESSION_PRESERVED",
@@ -3792,18 +3802,17 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "crveno",
+    "server": "zeleno",
     "test": "zeleno",
     "telefon": "zuto"
    },
    "note": {
-    "server": "Aplikacija poziva, a na serveru nema: rpc_send_agreement_voice_message_v1, rpc_read_agreement_messages_page_v2, rpc_read_agreement_message_window_v2",
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
     "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
-   "problem": "Text/history/B3 source je sada široko regresiono zelen, ali trenutni exact APK nema novi two-device realtime/reconnect/ACK dokaz. Glasovne poruke korisniku nisu isporučene: serverski paket (B1) je dokazan na disposable lancu ali nije primenjen na DEV; klijent B2-a je headless (bez UI-ja, bez expo-audio, bez native dokaza).",
-   "sledece": "Na objedinjenom APK-u dokazati dve strane: text arrival, reconnect, older/newer anchor i displayed ACK. Voice: prvo zasebno odobriti B1 server/closure-export paket i B2 native audio dependency/implementation; ne dodavati lažno mic dugme pre read/write kompatibilnosti. 30.09. plan glasovnih poruka (B1 server sa zatvaranjem naloga/izvozom/zadržavanjem u istom atomskom kandidatu, B2 klijent, vrata vlasnika) napisan na osnovu tri čitanja izvora: docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2_PLAN_20260930.md. 30.09. kasnije: serverski kandidati B1-a i B1-b dokazani na disposable bazi (16/16 + 21/21). 1.10.: DEV oblik paketa B1-d (jedna atomska izjava chat_voice_b1_dev_application.sql, sha256 416ba145…898e, 97.331 B; tačni DEV pinovi, sertifikat vezan u tri mesta u istoj transakciji, post-state pinovi) DOKAZAN na disposable lancu sa DEV površinom zatvaranja (B3c aplikacija + B24 deo 2, 14/14 tela jednaka DEV priznanici): run 36785614498 i 36788595185, 17/17 provera, 8 odbijanja, 9 kasnijih drifta, dva puna zatvaranja kroz stvarni worker, read-only postflight prazan. Read-only preflight na DEV (30.09. 22:25:10Z): 0 problema, 25/25 i 26/26 pinova, sertifikat 707af7fc… = živi digest. Pripremljen i dokazan REVERT (chat_voice_b1_revert.sql, run 36789867392: 16/16, 10 odbijanja, kompletan katalog i digest vraćeni tačno; odbija dok postoje glasovni podaci). B1-c Edge offline 79/79 i end-to-end protiv prave SQL+Storage. Klijent B2-a: headless model snimanja/slanja i reprodukcije, file seam i purge pri odjavi (182 testa). NIŠTA nije primenjeno na DEV, nijedna Edge funkcija nije deployovana, telefon nije korišćen. Čeka: njegov Edge deploy (closure worker pa uskoci-media), jedno njegovo primeni za atomski paket sa rebindingom sertifikata, odluka o UI predlogu, pravni tekstovi i iOS mikrofon. Zapisnik: docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md.",
+   "problem": "Text/history/B3 source je sada široko regresiono zelen, ali trenutni exact APK nema novi two-device realtime/reconnect/ACK dokaz. Glasovne poruke korisniku još nisu isporučene: serverski paket B1 je PRIMENJEN na DEV (1.10., ledger 215; Edge closure worker v4 i uskoci-media v14), ali nema klijentskog UI-ja, klijentski Voice flag je isključen u svakom buildu, nema expo-audio ni native/telefon dokaza.",
+   "sledece": "Na objedinjenom APK-u dokazati dve strane: text arrival, reconnect, older/newer anchor i displayed ACK. Voice: B1 server paket je PRIMENJEN na DEV 1.10. na vlasnikovo PRIMENI; sledi B2-b (native snimanje i reprodukcija iza flag-a EXPO_PUBLIC_VOICE_MESSAGES, expo-audio samo posle provere kompatibilnosti sa postojećim audio kodom, bez paralelnog steka) pa B2-c UI uz vlasnikovu odluku o predlogu; ne dodavati lažno mic dugme pre toga. 30.09. plan glasovnih poruka napisan na osnovu tri čitanja izvora: docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2_PLAN_20260930.md. 30.09.: serverski kandidati B1-a i B1-b dokazani na disposable bazi (16/16 + 21/21). 1.10.: DEV oblik paketa B1-d (jedna atomska izjava chat_voice_b1_dev_application.sql, sha256 416ba145…898e, 97.331 B) dokazan na disposable lancu sa DEV površinom zatvaranja (run 36785614498 i 36788595185: 17/17 provera, 8 odbijanja, 9 kasnijih drifta, dva puna zatvaranja kroz stvarni worker, postflight prazan); REVERT dokazan (run 36789867392: 16/16, 10 odbijanja; NIJE primenjen); B1-c Edge offline 79/79. 1.10. PRIMENJENO NA DEV po vlasnikovom redosledu: Edge uskoci-account-closure-worker v4 (04:07Z) i uskoci-media v14 (04:11Z) bajt-tačno prema gitu; preflight 04:13Z čist; jedna atomska migracija 20261001065800 dev_alpha_chat_voice_b1_dev_application (ledger 214→215; tekst u ledger-u bajt-tačan, sha256 raspona e0221f33…); postflight 06:59Z prazan (13/15/4 pina, 52 izvozna skupa); sertifikat zatvaranja pomeren i vezan na 58447d77… na sva tri mesta (stari 707af7fc… nigde); postojeći podaci netaknuti (8 Dogovora, 10 poruka, 0 glasovnih redova); klijentski flag isključen, telefon nije korišćen, ništa na PROD. Nije dokazano: poziv novih RPC-ova i Edge operacija kroz HTTP sa pravim JWT-om, prava likvidacija naloga posle re-bind-a, native i UI. Čeka: odluka o UI predlogu, pravni tekstovi LEG-09..12, iOS mikrofon tekst. Zapisnik: docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_DEV_APPLICATION_RECEIPT_20261001.md; ledger receipt supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3826,9 +3835,9 @@
     "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
     "test": "Round37 / run36400916665: agreement message client/history/read/chat/recovery suite-ovi PASS; full Jest 342/7.214 PASS; TypeScript PASS. B0 voice validator ostaje zaseban 36/36 source proof, ne audio device proof.",
     "device_proof": "Current exact APK nije u ovoj sesiji proveren na dva uređaja za realtime/reconnect/read; voice nije isporučen pa nema native record/play proof.",
-    "status": "TEXT/B3 SOURCE+DEV WIRED / CURRENT TWO-DEVICE NATIVE PENDING / VOICE B1+B2 BLOCKED",
+    "status": "TEXT/B3 SOURCE+DEV WIRED / CURRENT TWO-DEVICE NATIVE PENDING / VOICE B1 SERVER APPLIED ON DEV 2026-10-01, B2 NATIVE+UI NOT STARTED",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_CLIENT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_DEV_APPLICATION_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_37_P3_CHAT_CORE_AND_VOICE_BOUNDARY_20260928.md",
-    "voice": "B0 struktura AAC36/36PASS, bez dekodiranja ili pravog snimka. Glasovne poruke nisu isporučene. docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md",
+    "voice": "B0 struktura AAC36/36PASS, bez dekodiranja ili pravog snimka. B1 serverski paket primenjen na DEV 1.10. (ledger 215; Edge worker v4 i uskoci-media v14); klijent B2-a headless, flag isključen. Glasovne poruke korisniku nisu isporučene. docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_DEV_APPLICATION_RECEIPT_20261001.md",
     "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
     "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
     "round37": {
@@ -6543,11 +6552,7 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [
-  "rpc_read_agreement_message_window_v2",
-  "rpc_read_agreement_messages_page_v2",
-  "rpc_send_agreement_voice_message_v1"
- ],
+ "aplikacija_zove_a_server_nema": [],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
   "stavke": [
@@ -7253,11 +7258,7 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [
-   "rpc_read_agreement_message_window_v2",
-   "rpc_read_agreement_messages_page_v2",
-   "rpc_send_agreement_voice_message_v1"
-  ],
+  "novo_slomljeno": [],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [
@@ -7426,7 +7427,7 @@
    "id": "B24",
    "oblast": "PostgREST ponavlja deterministički konflikt verzije (SQLSTATE 40001)",
    "nalaz_16_09": "Jedna PostgREST sesija na DEV-u (pid 3480518, od 2026-09-25) ponavljala je MEDIA_VERSION_CONFLICT bez kraja: 6 010 651 zapisa samo 30.09. (jedini izvor 40001/40P01 tog dana), ~100 zapisa u sekundi, ~470 rollback-ova u sekundi; kapija ne beleži nijedan zahtev sa „avatar“ u prethodnih 85 minuta. rpc_apply_profile_avatar baca kod kad se očekivana putanja avatara ne poklapa (supabase/migrations/20260912224647_clean_v5_owned_media.sql:287).",
-   "sada": "ZATVORENO NA DEV 30.09. — OBA DELA PRIMENJENA NA VLASNIKOVO „PRIMENI“ i „primeni deo 2“ (migracije 20260930194403 i 20260930202551, ledger 212→214; receipt-i supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json i 20260930_b24_part2_application.receipt.json): svih 68 funkcija / 110 mesta sada bacaju PT409 (HTTP 409 za nekoliko ms) umesto 40001 i nijedna funkcija više ne baca 40001; ACL/owner/security/config/komentar svake isti (proveren u samoj transakciji), tekst obe migracije u ledger-u bajt-tačan, isti pet advisor nalaza, nijedna aktivna sesija. Sertifikat zatvaranja: Deo 1 ga ne pomera (86ba3751… nepromenjen); Deo 2 ga je pomerio i ponovo vezao na 707af7fc… na sva tri mesta i u erasure binding-u (ready true); u istoj transakciji dokazano da sa 14 starih tela digest daje staru vrednost, dakle novu vrednost odražava samo ta izmena. OSTAJE: HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi); prava probna likvidacija naloga posle re-bind-a nije rađena (pravi nalog na deljenom DEV-u, pitati vlasnika); ista dva kandidata moraju na svaki budući produkcioni projekat pre prvog pravog korisnika; 14 repo dokaza koji tvrde 40001 i pkg023c (na čekanju) treba ažurirati. Dokaz pre primene: disposable PostgREST 14.5 (run 36752869572, izvor 160e74a8, 28 provera / 0 palih). Tačan uticaj: 68 funkcija / 110 mesta (klasifikovana svako: nijedno nije pravi serialization slučaj, 0 ostaje na 40001). Ugovor: 40001 → PT409, HTTP 409 za nekoliko ms umesto zahteva koji nikad ne vraća odgovor; poruka/argumenti/rezultat/ACL isti. Klijent: 2 servisa prihvataju oba koda (testovi prvo), 2 ostaju; Edge: nema izmene. Povratak: dva tačna revert kandidata. Redosled: preporučen je klijentski build prvo, ali je vlasnik odobrio primenu pre novog builda; instalirani APK-ovi (HONOR, emulator) nemaju prihvatanje PT409, pa za 2 toka (poruke Dogovora, podešavanja obaveštenja) pokazuju opšti tekst umesto teksta konflikta (ranije ti konflikti uopšte nisu odgovarali, dakle nije regresija). HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi). Ostaje ranije utvrđeni mehanizam: (1) disposable dokaz, run 36745783626 (PostgREST 14.5, Postgres 17.11): funkcija koja baca 40001 nikad ne vrati odgovor, a posle odlaska klijenta nastavlja da se izvršava (~14 000 izvršavanja u sekundi, pg 85 % i PostgREST 69 % CPU, još aktivno ~2 min kasnije); P0001 odgovara za 2 ms; (2) Supabase sam dokumentuje isti defekt (PostgREST 14 pogođen, 16 ispravljen; preporuka: raise exception 'PORUKA' = P0001 ili PT409). Repozitorijum baca 40001 na 134 linije u 33 primenjene migracije, a klijent mapira kod 40001 u 4 servisa (poruke agreement, akcije agreement, kalendar, podešavanja obaveštenja) koji se na PostgREST 14 ne mogu dostići jer odgovor nikad ne stiže. DEV: 30.09. 16:43:09Z pg_terminate_backend(3480518) ograničen na tu sesiju (vendorov dokumentovan postupak; moja procena u okviru opšteg DEV odobrenja, BEZ prethodnog pitanja vlasniku, što je trebalo; vlasnik je kasnije istog dana potvrdio da je ta konkretna radnja bila u redu i odredio da se ubuduće za state-changing DEV/PROD radnje prvo pita, osim pri neposrednom riziku gubitka podataka); sesija nestala, ništa nije upisano. Naknadno čitanje logova odbio je auto-mode klasifikator i nije zaobiđeno. Blokira javni izlazak (dostupnost, bezbednost), ne P6.",
+   "sada": "ZATVORENO NA DEV 30.09. — OBA DELA PRIMENJENA NA VLASNIKOVO „PRIMENI“ i „primeni deo 2“ (migracije 20260930194403 i 20260930202551, ledger 212→214; receipt-i supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json i 20260930_b24_part2_application.receipt.json): svih 68 funkcija / 110 mesta sada bacaju PT409 (HTTP 409 za nekoliko ms) umesto 40001 i nijedna funkcija više ne baca 40001; ACL/owner/security/config/komentar svake isti (proveren u samoj transakciji), tekst obe migracije u ledger-u bajt-tačan, isti pet advisor nalaza, nijedna aktivna sesija. Sertifikat zatvaranja: Deo 1 ga ne pomera (86ba3751… nepromenjen); Deo 2 ga je pomerio i ponovo vezao na 707af7fc… na sva tri mesta i u erasure binding-u (ready true; 1.10. ga je Voice B1 paket zatim pomerio na 58447d77… i ponovo vezao, ledger 215, vidi D03); u istoj transakciji dokazano da sa 14 starih tela digest daje staru vrednost, dakle novu vrednost odražava samo ta izmena. OSTAJE: HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi); prava probna likvidacija naloga posle re-bind-a nije rađena (pravi nalog na deljenom DEV-u, pitati vlasnika); ista dva kandidata moraju na svaki budući produkcioni projekat pre prvog pravog korisnika; 14 repo dokaza koji tvrde 40001 i pkg023c (na čekanju) treba ažurirati. Dokaz pre primene: disposable PostgREST 14.5 (run 36752869572, izvor 160e74a8, 28 provera / 0 palih). Tačan uticaj: 68 funkcija / 110 mesta (klasifikovana svako: nijedno nije pravi serialization slučaj, 0 ostaje na 40001). Ugovor: 40001 → PT409, HTTP 409 za nekoliko ms umesto zahteva koji nikad ne vraća odgovor; poruka/argumenti/rezultat/ACL isti. Klijent: 2 servisa prihvataju oba koda (testovi prvo), 2 ostaju; Edge: nema izmene. Povratak: dva tačna revert kandidata. Redosled: preporučen je klijentski build prvo, ali je vlasnik odobrio primenu pre novog builda; instalirani APK-ovi (HONOR, emulator) nemaju prihvatanje PT409, pa za 2 toka (poruke Dogovora, podešavanja obaveštenja) pokazuju opšti tekst umesto teksta konflikta (ranije ti konflikti uopšte nisu odgovarali, dakle nije regresija). HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi). Ostaje ranije utvrđeni mehanizam: (1) disposable dokaz, run 36745783626 (PostgREST 14.5, Postgres 17.11): funkcija koja baca 40001 nikad ne vrati odgovor, a posle odlaska klijenta nastavlja da se izvršava (~14 000 izvršavanja u sekundi, pg 85 % i PostgREST 69 % CPU, još aktivno ~2 min kasnije); P0001 odgovara za 2 ms; (2) Supabase sam dokumentuje isti defekt (PostgREST 14 pogođen, 16 ispravljen; preporuka: raise exception 'PORUKA' = P0001 ili PT409). Repozitorijum baca 40001 na 134 linije u 33 primenjene migracije, a klijent mapira kod 40001 u 4 servisa (poruke agreement, akcije agreement, kalendar, podešavanja obaveštenja) koji se na PostgREST 14 ne mogu dostići jer odgovor nikad ne stiže. DEV: 30.09. 16:43:09Z pg_terminate_backend(3480518) ograničen na tu sesiju (vendorov dokumentovan postupak; moja procena u okviru opšteg DEV odobrenja, BEZ prethodnog pitanja vlasniku, što je trebalo; vlasnik je kasnije istog dana potvrdio da je ta konkretna radnja bila u redu i odredio da se ubuduće za state-changing DEV/PROD radnje prvo pita, osim pri neposrednom riziku gubitka podataka); sesija nestala, ništa nije upisano. Naknadno čitanje logova odbio je auto-mode klasifikator i nije zaobiđeno. Blokira javni izlazak (dostupnost, bezbednost), ne P6.",
    "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/b24/B24_IMPACT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/b24/B24_SITE_CLASSIFICATION.md; supabase/candidates/b24_nonretried_conflicts_part1.sql; supabase/candidates/b24_nonretried_conflicts_part2_certified.sql; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md; supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json; supabase/operations/dev-alpha/ledger/20260930_b24_part2_application.receipt.json"
   }
  ],
@@ -7695,5 +7696,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36791068621,
+   "ime": "Control tracker refresh",
+   "sha": "93b6e3ac",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:26:11Z"
+  },
+  {
+   "id": 36790757905,
+   "ime": "Control tracker refresh",
+   "sha": "9d2225da",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:22:37Z"
+  },
+  {
+   "id": 36789867392,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "5b70d237",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T23:12:36Z"
+  },
+  {
+   "id": 36789349043,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "57b3e7b9",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T23:06:47Z"
+  },
+  {
+   "id": 36788595185,
+   "ime": "Chat voice B1 DEV application file proof",
+   "sha": "49d5c0b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T22:58:38Z"
+  },
+  {
+   "id": 36788437703,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "a905a78c",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T22:56:52Z"
+  },
+  {
+   "id": 36787712656,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "96f6920b",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-09-30T22:49:02Z"
+  },
+  {
+   "id": 36787652414,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "f0163f9d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T22:48:22Z"
+  },
+  {
+   "id": 36786887149,
+   "ime": "Chat voice B1-c media Edge offline proof",
+   "sha": "7a795daf",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T22:40:11Z"
+  },
+  {
+   "id": 36786883950,
+   "ime": "Chat voice B1 disposable feature-chain proof",
+   "sha": "7a795daf",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T22:40:09Z"
+  },
+  {
+   "id": 36786821366,
+   "ime": "Chat voice B1 revert package proof",
+   "sha": "7a795daf",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-09-30T22:39:29Z"
+  },
+  {
+   "id": 36785614624,
+   "ime": "P7 signup confirmation recovery",
+   "sha": "132c1f6c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-09-30T22:26:50Z"
+  }
+ ]
 }

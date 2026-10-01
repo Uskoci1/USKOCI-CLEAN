@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-30T12:01:15Z",
-  "ledger_total": 212,
-  "ledger_dev_alpha": 64,
-  "ledger_last": "dev_alpha_p6_discovery_rollout_v3",
-  "certificate_certified": "86ba37518263930961e254be85569db75257da53d4725c8c186c632dc11de41b",
+  "generated_at": "2026-10-01T07:03:07Z",
+  "ledger_total": 215,
+  "ledger_dev_alpha": 67,
+  "ledger_last": "dev_alpha_chat_voice_b1_dev_application",
+  "certificate_certified": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -28,6 +28,8 @@
     "rpc_agreement_invalidation_visible_v1",
     "rpc_agreement_photo_read_service_v5",
     "rpc_agreement_photo_upload_service_v5",
+    "rpc_agreement_voice_read_service_v1",
+    "rpc_agreement_voice_upload_service_v1",
     "rpc_ai_abandon_need_conversation_v2",
     "rpc_ai_apply_interview_turn_service",
     "rpc_ai_apply_interview_turn_v2_service",
@@ -167,7 +169,9 @@
     "rpc_read_agreement_current_location",
     "rpc_read_agreement_location_command",
     "rpc_read_agreement_message_window_v1",
+    "rpc_read_agreement_message_window_v2",
     "rpc_read_agreement_messages_page_v1",
+    "rpc_read_agreement_messages_page_v2",
     "rpc_read_agreement_photo_messages_v5",
     "rpc_read_ai_task_review",
     "rpc_read_group_command_v5",
@@ -225,6 +229,7 @@
     "rpc_send_agreement_message",
     "rpc_send_agreement_message_v2",
     "rpc_send_agreement_photo_message_v5",
+    "rpc_send_agreement_voice_message_v1",
     "rpc_send_group_message_v5",
     "rpc_set_account_block",
     "rpc_set_contact_grant",
@@ -353,7 +358,9 @@
     "rpc_read_agreement_current_location",
     "rpc_read_agreement_location_command",
     "rpc_read_agreement_message_window_v1",
+    "rpc_read_agreement_message_window_v2",
     "rpc_read_agreement_messages_page_v1",
+    "rpc_read_agreement_messages_page_v2",
     "rpc_read_agreement_photo_messages_v5",
     "rpc_read_ai_task_review",
     "rpc_read_group_command_v5",
@@ -400,6 +407,7 @@
     "rpc_send_agreement_message",
     "rpc_send_agreement_message_v2",
     "rpc_send_agreement_photo_message_v5",
+    "rpc_send_agreement_voice_message_v1",
     "rpc_send_group_message_v5",
     "rpc_set_account_block",
     "rpc_set_contact_grant",
@@ -425,12 +433,12 @@
     "rpc_write_agreement_current_location"
   ],
   "project": "leqcwgzvjsxugfgzdmth",
-  "certificate_live": "86ba37518263930961e254be85569db75257da53d4725c8c186c632dc11de41b",
+  "certificate_live": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "retention_ai_ready": true,
-  "how": "Catalog, cron and certified row read at generated_at (12:01 UTC, after both the owner-approved PKG045b apply and the P6 rollout v3 apply). Private digest/binding/readiness were verified atomically by the exact PKG045b and P6 v3 application transactions; not executed directly by a read-only role. The Edge list (11 ACTIVE functions, versions unchanged) was read with list_edge_functions at the same time.",
-  "private_current_status": "VERIFIED_IN_EXACT_PKG045B_AND_P6_V3_APPLICATION_TRANSACTIONS; DIRECT_READ_ONLY_FUNCTION_EXECUTION_DENIED",
-  "private_observed_at": "2026-09-30T11:06:18Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20260930_p6_rollout_v3_application.receipt.json",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (07:03 UTC), after the owner-approved Voice B1 apply (ledger 215, migration 20261001065800) and its two Edge deploys. The erasure binding and the exact applied pins were read by the voice postflight at 06:59:09Z (problems: none). The Edge list (11 ACTIVE functions; uskoci-account-closure-worker v4 and uskoci-media v14 are the new versions) was read with list_edge_functions at 07:00 UTC.",
+  "private_current_status": "FRESH",
+  "private_observed_at": "2026-10-01T07:03:07Z",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -479,12 +487,12 @@
     },
     {
       "slug": "uskoci-media",
-      "version": 13,
+      "version": 14,
       "verify_jwt": true
     },
     {
       "slug": "uskoci-account-closure-worker",
-      "version": 3,
+      "version": 4,
       "verify_jwt": false
     }
   ],
@@ -493,5 +501,17 @@
     "helper": "rls_private.p6_discovery_test_world_accounts() present",
     "pkg045b": "applied 2026-09-30T10:28:45Z (ledger 211)",
     "p6_v3": "applied 2026-09-30T11:06:18Z (ledger 212)"
+  },
+  "voice_b1": {
+    "migration": "20261001065800 dev_alpha_chat_voice_b1_dev_application (ledger 215)",
+    "edge": "uskoci-account-closure-worker v4 (2026-10-01T04:07:10Z), uskoci-media v14 (2026-10-01T04:11:51Z)",
+    "new_rpc": [
+      "rpc_send_agreement_voice_message_v1",
+      "rpc_read_agreement_messages_page_v2",
+      "rpc_read_agreement_message_window_v2",
+      "rpc_agreement_voice_upload_service_v1 (service role)",
+      "rpc_agreement_voice_read_service_v1 (service role)"
+    ],
+    "client_flag": "EXPO_PUBLIC_VOICE_MESSAGES is off in every build"
   }
 }
