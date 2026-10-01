@@ -123,14 +123,23 @@ function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void 
 }
 
 /**
+ * EX-04 S4 (A11): what a list read a page at a time says besides its rows. `total` is the number of applications the server counted on the first page (null until it answered);
+ * the rows are the ones loaded so far, in the whole-list order, and the foot offers the next page, or says it failed and offers the same call again. A list without this prop is the
+ * whole list and draws exactly what it always drew.
+ */
+export type CandidatesPaging = { total: number | null; hasMore: boolean; loadingMore: boolean; moreError: boolean; onLoadMore: () => void };
+
+/**
  * Candidates of one Task (owner's step 7, 2026-09-24): the offers as person-first cards (`CandidateFace`), or side by
  * side for a fast decision (owner decision 3, TARG-034). Two columns only while they fit: a phone at least 360 wide and a
  * text size under the owner's Large (read rounded, since Android hands Large over as 1.2999999523). Every list row gives
  * identity and terms their own width. An offer opens as a sheet over this list, so the list is still where the person
  * left it when they close it.
  */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
+  /** Present only when the list is read a page at a time (EX-04 S4); `candidates` are then the ones loaded so far. */
+  paging?: CandidatesPaging;
   /** The row at the top opens the Task these offers answer. */
   openTask?: () => void;
   /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
@@ -175,8 +184,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
   // PKG-035: the list keeps every application, historical ones included; the ones that can still be
   // chosen are a different number and are named as such, never mixed into the total.
+  // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
+  const known = !paging || !paging.hasMore;
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
-  const counts = `${prijava(candidates.length)}${selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
+  const counts = `${prijava(known ? candidates.length : paging?.total ?? candidates.length)}${known && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
   // An offer that can be read but not chosen says why on its own card; this says once what that means.
   const unavailable = candidates.some(k => k.stanje !== 'SELECTABLE' && k.stanje !== 'SELECTED');
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}
@@ -202,7 +213,14 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
         body="Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde."
         quiet={{ label: 'Osveži prijave', onPress: refresh }} />}
       renderItem={renderItem}
+      onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
       ListFooterComponent={candidates.length ? <View style={s.listFooter}>
+        {paging && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.pagingFoot}>
+          {paging.moreError ? <>
+            <T variant="note" tone="muted">Nije uspelo učitavanje još prijava.</T>
+            <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
+          </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
+            : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}</View> : null}
         {unavailable ? <View style={s.footnote}><FactArt kind="info" size={20} muted />
           <T variant="note" tone="muted" style={s.grow}>Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš. Razlog piše na njenoj kartici.</T></View> : null}
         <V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />
@@ -366,6 +384,7 @@ const s = StyleSheet.create({
   separator: { height: sys.space.sm },
   columnRow: { gap: sys.space.md },
   listFooter: { gap: 4, paddingTop: 12 },
+  pagingFoot: { alignItems: 'center', gap: 8, paddingBottom: 4 },
   footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8 },
   footerAction: { alignSelf: 'center', marginTop: 8 },
   // The offer sheet: its pinned actions, a state band on a flat tint (never a card inside the sheet), the outcome.

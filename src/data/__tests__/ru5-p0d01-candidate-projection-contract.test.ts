@@ -11,10 +11,14 @@ describe('RU-5 P0D-01 candidate projection source cutover', () => {
     expect(indexSource).toContain("import { candidateClientService } from './candidateClientService';");
     expect(indexSource).toContain('...candidateClientService,');
     expect(candidateSource).toContain("supabase.rpc('rpc_list_need_candidates'");
-    expect(candidateSource).toContain("type CandidateService = Pick<Izvor, 'prijaveZaPotrebu'>;");
+    expect(candidateSource).toContain("type CandidateService = Pick<Izvor, 'prijaveZaPotrebu' | 'prijaveZaPotrebuStrana'>;");
+    // EX-04 S4: the page of the same candidates has the same single owner.
+    expect(candidateSource).toContain("supabase.rpc('rpc_list_need_candidates_page'");
 
     expect(baselineSource).toContain("| 'prijaveZaPotrebu'");
+    expect(baselineSource).toContain("| 'prijaveZaPotrebuStrana'");
     expect(baselineSource).not.toContain('async prijaveZaPotrebu(');
+    expect(baselineSource).not.toContain('async prijaveZaPotrebuStrana(');
     expect(baselineSource).not.toContain("from('marketplace_responses')");
   });
 

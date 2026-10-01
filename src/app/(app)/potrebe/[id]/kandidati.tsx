@@ -3,19 +3,43 @@ import { AppState } from 'react-native';
 import { ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
-import type { Ishod, IzborKomanda } from '../../../../data/ports';
+import type { Ishod, Izvor, IzborKomanda } from '../../../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead, readSelectedAgreement } from '../../../../data/applicationSelectionClientService';
+import type { CandidatesPageRequest } from '../../../../data/candidatesPage';
+import { candidatesPagedBuilt } from '../../../../data/candidatesPagedGate';
+import { useCandidatesPager } from '../../../../hooks/useCandidatesPager';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
-import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
+import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidatesPaging, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
 import { useSafetyEntry } from '../../../../ui/safety/useSafetyEntry';
 import { Avatar, type AvatarSize } from '../../../../ui/system/Avatar';
 type Receipt = { dogovorId: string };
 type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
 type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; receipt: Receipt | null };
 type Viewed = { state: 'PENDING' | 'CONFIRMED' | 'UNCONFIRMED' };
+const NO_ROWS: KandidatProjekcija[] = [];
+/** One sentence for the one refusal: the task changed between two reads, so the applications read before it are not the applications of what it is now. */
+const STALE_REVIEW_MESSAGE = 'Zadatak se upravo promenio. Učitaj Prijave ponovo.';
+
+/**
+ * EX-04 S4 (A11): the same applications a page at a time, in the whole-list order. The screen's editor keeps owning the read of the task, the revision check, the offer sheet and the
+ * choice; the pager owns the rows, the server's total and the next page. `complete` asks for the whole set (the order by price and the comparison are only right over every application).
+ */
+function usePagedCandidates(source: Izvor, taskId: string | undefined, complete: boolean) {
+  const readPage = useCallback((request: CandidatesPageRequest) => taskId ? source.prijaveZaPotrebuStrana(taskId, { limit: request.limit, cursor: request.cursor })
+    : Promise.reject(new Error('CANDIDATE_PAGE_NEED_REQUIRED')), [source, taskId]);
+  const { state, pager } = useCandidatesPager(readPage, complete);
+  return { pager, state, rows: state.items as KandidatProjekcija[],
+    paging: { total: state.counts?.total ?? null, hasMore: state.hasMore, loadingMore: state.loadingMore, moreError: state.moreError,
+      onLoadMore: () => { void pager.loadMore(); } } satisfies CandidatesPaging };
+}
+type PagedCandidates = ReturnType<typeof usePagedCandidates>;
+const useNoPagedCandidates = (_source: Izvor, _taskId: string | undefined, _complete: boolean): PagedCandidates | null => null;
+// One reader per build: a compile-time flag, so the order of hooks never changes while the app runs.
+const usePagedCandidateRows: (source: Izvor, taskId: string | undefined, complete: boolean) => PagedCandidates | null =
+  candidatesPagedBuilt() ? usePagedCandidates : useNoPagedCandidates;
 export default function Kandidati() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
@@ -23,7 +47,7 @@ export default function Kandidati() {
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false,
     active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', focused: false,
-    focusToken: 0, readRevision: 0, reading: false, compare: false }), [id, izvor, user?.id, accountRevision]);
+    focusToken: 0, readRevision: 0, reading: false, compare: false, hardReload: false }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
   const currentAccount = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
     sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
@@ -32,6 +56,10 @@ export default function Kandidati() {
   // this account only, and it is a view of rows already read, never a new request.
   const sortScope = `${id ?? ''}:${user?.id ?? ''}:${accountRevision}`;
   const [sorted, setSorted] = useState<{ scope: string; sort: CandidateSort } | null>(null);
+  const sort = sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL';
+  // Paged builds only. The order by price and the comparison are only right over every application: while either is on, the rest of the set is read, a page at a time and up to a bound.
+  const paged = usePagedCandidateRows(izvor, id, sort === 'PRICE' || session.compare);
+  const pager = paged?.pager;
   // A person's photo by their verified public profile id; without one (or while it cannot be read) the one Avatar with the
   // letters the candidate read already carries. One function for the life of the screen, so the memoised rows keep.
   const photo = useCallback((k: KandidatProjekcija, size: AvatarSize) => <ProfilePhoto profileId={k.radnikProfilId} size={size} initial={null}
@@ -55,30 +83,36 @@ export default function Kandidati() {
   const read = useCallback(async (): Promise<Ishod<Loaded>> => {
     const generation = ++session.readRevision, token = session.focusToken; session.reading = true;
     session.navigated = false;
+    const hard = session.hardReload; session.hardReload = false;
     if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Zadatak nije dostupan.' }; }
     try {
-      const [need, candidates] = await boundedApplicationSelectionRead(Promise.all([izvor.potreba(id), izvor.prijaveZaPotrebu(id)]));
+      const [need, candidates] = await boundedApplicationSelectionRead(Promise.all([izvor.potreba(id),
+        // Paged: the first page of the set is the read (the rows live in the pager); a page that did not arrive is a read that failed, like the whole list.
+        pager ? pager.reload(hard ? 'keep' : 'auto').then(fresh => { if (!fresh) throw new Error('CANDIDATES_PAGE_NOT_READ'); return pager.snapshot().items as KandidatProjekcija[]; })
+          : izvor.prijaveZaPotrebu(id)]));
       if (!need) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Zadatak nije dostupan.' };
       // RPC needRevision is the current Need revision for every row, including
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
-      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' };
+      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: STALE_REVIEW_MESSAGE };
       if (generation !== session.readRevision || token !== session.focusToken || !session.focused || !session.active || !currentAccount())
         return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
-      return { ok: true, podatak: { need, candidates, receipt: result?.ok ? result.podatak : null } };
+      return { ok: true, podatak: { need, candidates: pager ? NO_ROWS : candidates, receipt: result?.ok ? result.podatak : null } };
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Prijave trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
-  }, [id, izvor, session, currentAccount, resume]);
+  }, [id, izvor, session, currentAccount, resume, pager]);
   const editor = useOwnedEditor(read), data = editor.data;
+  // The applications on screen: the whole list's rows, or (paged) what the pager holds for this task.
+  const shownRows = paged ? paged.rows : data?.candidates ?? NO_ROWS;
   const pending = session.pending;
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
   // F05: a candidate is a person; the server resolves the safety target before bezbednost opens.
   const safety = useSafetyEntry(candidate?.radnikProfilId, { needId: id ?? null });
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const current = () => session.focused && session.active && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
-  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) void editor.refresh(); };
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) { session.hardReload = true; void editor.refresh(); } };
   const back = () => {
     if (!current()) return;
     // An offer still open on screen closes first. One left behind by a fresh read (the band's "Osveži prijave" brings new
@@ -110,7 +144,7 @@ export default function Kandidati() {
   };
   const openOffer = (k: KandidatProjekcija) => {
     if (!current() || session.navigated || session.reading || editor.busy || editor.loading || !data ||
-        !data.candidates.includes(k)) return;
+        !shownRows.includes(k)) return;
     setOpened({ data, candidate: k });
     const previous = session.viewed.get(k.prijavaId);
     if (previous && previous.state !== 'UNCONFIRMED') return;
@@ -143,11 +177,15 @@ export default function Kandidati() {
     // `current` reads the render's focus token and read revision and the account; those are the dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needId, chosenId, focusToken, readRevision, user?.id, accountRevision, session]);
-  if (!session.focused || !session.active || editor.loading || !data)
-    return <SelectionUnavailable loading={!session.focused || !session.active || editor.loading} message={editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
+  // Paged: a later page may have been read after the task changed under the first one. Applications of two revisions are never shown together: the same refusal the whole list makes,
+  // unless a choice is already being decided (its sheet is what matters then).
+  const mixed = !!paged && !!data && !pending && paged.rows.some(k => k.potrebaRevizija !== data.need.revizija);
+  if (!session.focused || !session.active || editor.loading || !data || mixed)
+    return <SelectionUnavailable loading={!session.focused || !session.active || editor.loading}
+      message={mixed ? STALE_REVIEW_MESSAGE : editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
-  const list = <CandidateListPresentation need={data.need} candidates={data.candidates} back={back} refresh={refresh}
-    open={openOffer} openTask={openTask} sort={sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL'}
+  const list = <CandidateListPresentation need={data.need} candidates={shownRows} back={back} refresh={refresh} paging={paged?.paging}
+    open={openOffer} openTask={openTask} sort={sort}
     onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
     comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} />;
   if (!candidate) return list;
