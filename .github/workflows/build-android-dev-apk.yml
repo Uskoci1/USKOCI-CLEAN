@@ -35,6 +35,11 @@ env:
   # canonical DEV project carries it; a build for a backend without it must leave this out (or set it to '0'). It is a compile-time switch:
   # recompiling without it is the kill switch.
   EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
+  # EX-04 (2026-10-01, owner-approved native check on the HONOR): the paged own-task (S1), own-application (S2) and candidate (S4) readers. ex04a/b/c/d are applied on the
+  # canonical DEV project (ledger 219); a build for a backend without them must leave these out. Compile-time switches, one per package; recompiling without them is the kill switch.
+  EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
+  EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
+  EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
   CI: '1'
   NODE_ENV: production
 
