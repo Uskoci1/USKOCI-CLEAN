@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-01T16:57:16Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "e27e76db",
-  "head_poruka": "feat(b09): PKG-049 price-authority CHARACTERIZATION proof, round 2 (author + two review rounds, 25 offline tests) - disposable chain, actual Auth and PostgREST, real client TypeScript: modified-client matrix per mode and basis (refusals asserted by exact message, SQLSTATE and status, nothing written), replay precedes the price check, stale reconfirm, selection with pinned revision/version/content hash, Agreement price copy, Agreement change characterised as open decision D3, weakening probes with detected-means-expected-outcome, pin gate that fails on unexplained core differences, in-proof B24 conversion of two functions; NO server change, nothing applied, nothing against DEV",
+  "osvezeno": "2026-10-01T16:59:27Z",
+  "grana": "HEAD",
+  "head": "995f507b",
+  "head_poruka": "docs(b09): refreshed price-authority evidence (CI run 36895021919, round-2 harness, NO server change): label CHAIN == DEV (11 price-chain bodies byte-equal to DEV), 142 refusals and 23 verbatim amounts through real PostgREST, all 7 weakening probes detected, Agreement change characterised as open decision D3 (any whole number by consent; the offer card keeps the old price); direct table-write attacks and PostgREST 14.5 not yet covered (round 3)",
   "server": {
    "snimljeno": "2026-10-01T11:42:55Z",
    "migracije": 219,
@@ -8010,102 +8010,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36895021919,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "e27e76db",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:50:45Z"
-  },
-  {
-   "id": 36892351679,
-   "ime": "Control tracker refresh",
-   "sha": "2f3d7390",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:29:12Z"
-  },
-  {
-   "id": 36890566753,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "e7f129d5",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T16:15:04Z"
-  },
-  {
-   "id": 36880192681,
-   "ime": "Control tracker refresh",
-   "sha": "34d6d06c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:55:26Z"
-  },
-  {
-   "id": 36879449522,
-   "ime": "Control tracker refresh",
-   "sha": "5f5930ed",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:49:53Z"
-  },
-  {
-   "id": 36875994563,
-   "ime": "Control tracker refresh",
-   "sha": "b1f280de",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:23:46Z"
-  },
-  {
-   "id": 36875676769,
-   "ime": "Control tracker refresh",
-   "sha": "202c2577",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:21:20Z"
-  },
-  {
-   "id": 36875025074,
-   "ime": "Control tracker refresh",
-   "sha": "552d7ac7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:16:19Z"
-  },
-  {
-   "id": 36875025066,
-   "ime": "P5 ready task and matching contract",
-   "sha": "552d7ac7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:16:19Z"
-  },
-  {
-   "id": 36873883166,
-   "ime": "Control tracker refresh",
-   "sha": "ce8daef9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:07:31Z"
-  },
-  {
-   "id": 36873169662,
-   "ime": "Build Android development APK",
-   "sha": "52a66a76",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T14:01:59Z"
-  },
-  {
-   "id": 36870759897,
-   "ime": "Control tracker refresh",
-   "sha": "d7c93511",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T13:43:08Z"
-  }
- ]
+ "ci": null
 }
