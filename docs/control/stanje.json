@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T11:53:17Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "07424d9f",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "osvezeno": "2026-10-02T11:53:42Z",
+  "grana": "HEAD",
+  "head": "832f188e",
+  "head_poruka": "docs(ui): record verified W2 and own-task emulator pass",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -8845,102 +8845,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37000515232,
-   "ime": "Build Android development APK",
-   "sha": "7c920070",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T11:21:00Z"
-  },
-  {
-   "id": 37000497104,
-   "ime": "Control tracker refresh",
-   "sha": "7c920070",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T11:20:49Z"
-  },
-  {
-   "id": 36999466792,
-   "ime": "Build Android development APK",
-   "sha": "0fed2a1b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T11:09:39Z"
-  },
-  {
-   "id": 36999185774,
-   "ime": "Control tracker refresh",
-   "sha": "0c77fdc4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T11:06:34Z"
-  },
-  {
-   "id": 36997943005,
-   "ime": "EX05-S01 chat server proofs re-proof",
-   "sha": "a96543c0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:53:08Z"
-  },
-  {
-   "id": 36997942991,
-   "ime": "Control tracker refresh",
-   "sha": "a96543c0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:53:08Z"
-  },
-  {
-   "id": 36994975017,
-   "ime": "EX-07 S03 auth callbacks proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974997,
-   "ime": "EX-06 S04 dispatch lifecycle proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974974,
-   "ime": "EX05-S01 chat server proofs re-proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974932,
-   "ime": "P7 signup confirmation recovery",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974917,
-   "ime": "Control tracker refresh",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974890,
-   "ime": "P5 ready task and matching contract",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  }
- ]
+ "ci": null
 }
