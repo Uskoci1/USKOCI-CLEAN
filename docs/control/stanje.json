@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T21:59:21Z",
+  "osvezeno": "2026-10-02T22:00:22Z",
   "grana": "HEAD",
-  "head": "99e0c3df",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "9cdbe3b0",
+  "head_poruka": "Compose tactile discovery, identity-first profile and clearer messaging controls",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 223,
@@ -8976,102 +8976,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37065317713,
-   "ime": "Build Android development APK",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:19Z"
-  },
-  {
-   "id": 37065287243,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T21:11:02Z"
-  },
-  {
-   "id": 37065287241,
-   "ime": "Control tracker refresh",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:02Z"
-  },
-  {
-   "id": 37065287208,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:02Z"
-  },
-  {
-   "id": 37065287195,
-   "ime": "D12 written review comment proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:02Z"
-  },
-  {
-   "id": 37065287140,
-   "ime": "EX-04 S4 candidates page proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:01Z"
-  },
-  {
-   "id": 37065287132,
-   "ime": "EX-04 S3 rating state proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:01Z"
-  },
-  {
-   "id": 37065287115,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T21:11:01Z"
-  },
-  {
-   "id": 37065287086,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:01Z"
-  },
-  {
-   "id": 37065287085,
-   "ime": "EX-04 S2 own applications page proof",
-   "sha": "688d2c78",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T21:11:01Z"
-  },
-  {
-   "id": 37061255937,
-   "ime": "Build Android development APK",
-   "sha": "7a41f34e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T20:32:39Z"
-  },
-  {
-   "id": 37061247960,
-   "ime": "Control tracker refresh",
-   "sha": "7a41f34e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T20:32:35Z"
-  }
- ]
+ "ci": null
 }
