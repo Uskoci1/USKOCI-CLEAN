@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, Star } from 'phosphor-react-native';
 import type { ReviewTag } from '../../data/reviewsClientService';
@@ -12,6 +12,8 @@ import { plural } from '../system/plural';
 import { brandAction, inset, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { ReviewCommentField, type ReviewCommentFieldView } from './ReviewCommentField';
+import { ReviewCommentText } from './ReviewCommentText';
 
 /*
  * The rating screen as it is drawn (round 6, unit `prijava`, 2026-09-24), apart from the screen that reads and saves it
@@ -34,21 +36,27 @@ export type ReviewPerson = { name: string; initials: string; profileId: string |
 export type ReviewView =
   | { kind: 'loading' } | { kind: 'none' } | { kind: 'unavailable' }
   | { kind: 'error'; message: string }
-  | { kind: 'saved'; rating: number; tags: readonly ReviewTag[]; fresh: boolean }
+  | { kind: 'saved'; rating: number; tags: readonly ReviewTag[]; fresh: boolean;
+      /** D12: the person's own comment as the server stored it. Absent when there is none, and in a build without comments. */
+      comment?: string | null }
   | { kind: 'eligible'; catalog: { maxTags: number; tags: readonly ReviewTag[] }; rating: number; tags: readonly ReviewTag[]; editable: boolean;
       attempt: boolean; onRate: (value: number) => void; onToggleTag: (tag: ReviewTag) => void;
-      save: { label: string; loading: boolean; disabled: boolean; reason: string | null; onPress: () => void } };
+      save: { label: string; loading: boolean; disabled: boolean; reason: string | null; onPress: () => void };
+      /** D12: the optional comment. Absent when the build or the backend has no comments: then nothing of it is drawn. */
+      comment?: ReviewCommentFieldView };
 type ReviewRetry = { label: string; disabled: boolean; onPress: () => void };
 
 /**
  * The rating screen as it is drawn, from its state alone (the internal gallery draws it with fixtures). Presentation
  * only: every press is the screen's own handler, which keeps its guards.
  */
-export function AgreementReviewPresentation({ backLabel, onBack, view, retry, notice, person, photo }: {
+export function AgreementReviewPresentation({ backLabel, onBack, view, retry, notice, person, photo, keyboardAware = false }: {
   backLabel: string; onBack: () => void; view: ReviewView; retry: ReviewRetry;
   /** A failure with the rating still on screen: said in the foot, beside the one way to check again. */
   notice: string | null;
   person: ReviewPerson | null; photo?: (profileId: string, fallback: ReactNode) => ReactNode;
+  /** D12: a comment can be typed on this screen, so the save stays above the keyboard. Off, the screen is laid out exactly as it always was. */
+  keyboardAware?: boolean;
 }) {
   const { width } = useWindowDimensions();
   const star = Math.max(STAR_MIN, Math.min(STAR_MAX, Math.floor((width - 2 * SIDE) / 5)));
@@ -73,9 +81,9 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
       reason={view.save.reason} onPress={view.save.onPress} style={brandAction} />
     : null;
   const [errorTitle, errorBody] = view.kind === 'error' ? firstSentence(view.message) : ['', null];
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+  const screen = <>
     <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
-    <ScrollView contentContainerStyle={s.content}>
+    <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps={keyboardAware ? 'handled' : undefined}>
       {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, variant: 'person' }} />
         : view.kind === 'error' ? <StateView kind="error" title={errorTitle} body={errorBody ?? undefined}
           primary={{ label: retry.label, onPress: retry.onPress, disabled: retry.disabled }} />
@@ -91,6 +99,10 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
           </View>
           <T variant="body" style={s.ink}>{`Tvoja ocena: ${view.rating} od 5`}</T>
           {view.tags.length ? <T variant="note" tone="muted">{reviewedTags(view.tags)}</T> : null}
+          {view.comment ? <View style={s.savedComment}>
+            <T variant="meta" tone="muted">Tvoj komentar</T>
+            <ReviewCommentText text={view.comment} />
+          </View> : null}
           <T variant="meta" tone="muted">Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.</T>
         </View> : view.kind === 'eligible' ? <>
           {person ? <View accessible accessibilityLabel={[person.name, person.role, person.task].filter(Boolean).join(', ')} style={s.person}>
@@ -131,11 +143,16 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
             </View>
             {tagsFull && view.editable ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{fullHint(view.catalog.maxTags)}</T> : null}
           </View>
+          {view.comment ? <ReviewCommentField field={view.comment} /> : null}
           {view.attempt ? <T variant="meta" tone="muted">Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.</T> : null}
         </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena još nije dostupna" body="Oceni saradnju kad Dogovor bude završen."
           primary={{ label: backLabel, onPress: onBack }} /> : null}
     </ScrollView>
     {footer ? <View style={s.footer}>{footer}</View> : null}
+  </>;
+  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+    {/* The same bar, scroll and foot; with a comment field on screen they sit in one avoiding view, so the save is never under the keyboard. */}
+    {keyboardAware ? <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{screen}</KeyboardAvoidingView> : screen}
   </SafeAreaView>;
 }
 
@@ -165,6 +182,7 @@ const s = StyleSheet.create({
   tagSelected: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   tagTextSelected: { color: sys.color.green, fontWeight: '700' }, tagTextCapped: { color: sys.color.muted },
   saved: { gap: sys.space.md, alignItems: 'flex-start', paddingTop: sys.space.sm },
+  savedComment: { alignSelf: 'stretch', gap: sys.space.xs },
   savedPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, alignSelf: 'stretch' },
   notice: { ...inset, backgroundColor: sys.color.warnSoft },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },

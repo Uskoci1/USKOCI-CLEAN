@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { reviewCommentBuilt } from '../../data/reviewCommentGate';
 import { accountReputationLabel, reviewsClientService, type AccountReputation as Reputation } from '../../data/reviewsClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
+import { ReviewCommentsSection, type ReviewCommentPhoto } from './ReviewCommentsSection';
 
 /**
  * Only a real aggregate is drawn: anything without a numeric count (a read that is not this one) draws nothing, and a
@@ -17,16 +19,28 @@ const isReputation = (value: unknown): value is Reputation => {
   return typeof reviewCount === 'number' && (reviewCount === 0 || (typeof averageRating === 'number' && Number.isFinite(averageRating)));
 };
 
-/** One account reputation in both intents; an unavailable read is not zero reviews. */
-export function AccountReputation({ accountId }: { accountId: string }) {
+/**
+ * One account reputation in both intents; an unavailable read is not zero reviews.
+ *
+ * With the D12 build flag on and a profile to read, the written comments about the person follow the rating line ("Komentari",
+ * `ReviewCommentsSection`). Without the flag, or without a profile id, this is the rating line alone, exactly as it always was.
+ */
+export function AccountReputation({ accountId, commentsProfileId, commentPhoto }: {
+  accountId: string;
+  /** The profile whose comments are listed under the rating (any profile of the account: the list is account-level). */
+  commentsProfileId?: string | null;
+  /** How a reviewer's photo is drawn; the route that owns the media code hands it in. */
+  commentPhoto?: ReviewCommentPhoto;
+}) {
   const load = useCallback(async () => {
     const result = await reviewsClientService.reputation(accountId);
     if (!result.ok) throw new Error('REPUTATION_NOT_AVAILABLE');
     return result.podatak;
   }, [accountId]);
   const reputation = useFocusedResource(load);
-  return <ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
+  const line = <ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
     onRetry={() => { void reputation.refresh(); }} />;
+  return commentsProfileId && reviewCommentBuilt() ? <>{line}<ReviewCommentsSection profileId={commentsProfileId} photo={commentPhoto} /></> : line;
 }
 
 /**

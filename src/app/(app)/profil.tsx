@@ -5,12 +5,15 @@ import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
+import type { ReviewCommentPhoto } from '../../ui/reviews/ReviewCommentsSection';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { Avatar } from '../../ui/system/Avatar';
 import { inicijali } from '../../lib/inicijali';
 import { PROFILE_AVATAR, ProfileHub, type ProfileHubIdentity, type ProfileHubPath } from '../../ui/profile/ProfileHubPresentation';
 
 type ActionScope = { accountId: string; accountRevision: number; busy: boolean };
+/** A reviewer's photo under "Komentari" (D12, only in a build with the flag): the same profile photo as everywhere, at 40. */
+const commentPhoto: ReviewCommentPhoto = (profileId, size, fallback) => <ProfilePhoto profileId={profileId} size={size} fallback={fallback} />;
 
 export default function Profil() {
   const { user, accountRevision } = useSesija();
@@ -97,7 +100,8 @@ export default function Profil() {
         // Nothing in the app sets the requester's city, so "Grad još nije unet" invited an action that did not exist.
         place: identity?.grad?.trim() || capability?.grad?.trim() || null,
         photo: identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={PROFILE_AVATAR} fallback={avatar} /> : avatar,
-        photoReady, openPhoto, reputation: accountId ? <AccountReputation accountId={accountId} /> : null };
+        photoReady, openPhoto, reputation: accountId
+          ? <AccountReputation accountId={accountId} commentsProfileId={identity?.profileId ?? null} commentPhoto={commentPhoto} /> : null };
 
   // A work profile without an area says so, as the worker screen does; without a work profile the row has nothing to say.
   const workArea = capability?.grad?.trim() || (capability ? 'Nije podešeno' : undefined);

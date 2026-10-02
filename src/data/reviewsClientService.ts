@@ -8,12 +8,18 @@ import { failure, readOwnedResult, record, sameId, timestamp, uuid, type Receipt
 export const REVIEW_TAGS = ['AS_AGREED', 'CAREFUL', 'CLEAR_COMMUNICATION', 'ON_TIME', 'RELIABLE', 'RESPECTFUL'] as const;
 export type ReviewTag = typeof REVIEW_TAGS[number];
 export type ReviewCommand = { agreementId: string; targetAccountId: string; rating: number;
-  tags: readonly ReviewTag[]; clientRequestId: string };
+  tags: readonly ReviewTag[]; clientRequestId: string;
+  /** D12 (build flag EXPO_PUBLIC_D12_REVIEW_COMMENT): the optional written comment, already prepared by `reviewCommentText`.
+   *  THIS service never reads, sends or echoes it: only `reviewCommentsClientService` does, and it refuses to drop one silently. */
+  comment?: string | null };
 export type ReviewReceipt = ReviewCommand & { reviewId: string; reviewerAccountId: string;
   createdAt: string; idempotentReplay: boolean; authoritative: true };
+/** What the v2 context says about comments (D12); only `reviewCommentsClientService` ever fills it, so a legacy read has none. */
+export type ReviewCommentPolicy = { supported: true; maxLength: 500; version: 'REVIEW_COMMENT_V1' };
 export type ReviewContext = { accountId: string; agreementId: string; targetAccountId: string;
   eligible: boolean; review: ReviewReceipt | null; authoritative: true;
-  tagCatalog: { version: 'PRE_V3_REVIEW_TAGS_V1'; maxTags: 3; tags: readonly ReviewTag[] } };
+  tagCatalog: { version: 'PRE_V3_REVIEW_TAGS_V1'; maxTags: 3; tags: readonly ReviewTag[] };
+  commentPolicy?: ReviewCommentPolicy };
 export type AccountReputation = { accountId: string; reviewCount: number; averageRating: number | null;
   state: 'NO_REVIEWS' | 'RATED'; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
@@ -105,3 +111,8 @@ export const reviewsClientService = {
       } });
   },
 };
+/**
+ * The pieces the D12 comment client (`reviewCommentsClientService`) shares with this service, so the comment path validates
+ * and decodes exactly as the legacy path does and there is one copy of each rule. Nothing here changes what this service does.
+ */
+export const reviewInternals = { errors, isRating: rating, normalizeTags: tags, scope, decodeReceipt: receipt } as const;
