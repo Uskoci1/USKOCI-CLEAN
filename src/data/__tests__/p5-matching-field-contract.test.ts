@@ -243,12 +243,14 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       'supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql', // closure reset to {}
       'supabase/candidates/chat_voice_b1_revert.sql', // copy of the erasure body
       'supabase/candidates/pkg023c_public_pin_100m.sql', // copy of the erasure body (NOT applied)
+      'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: byte copy of the pre-image of closure_redaction_patch_v5 (the profile reset text), NOT applied
       K31, // kinds arm
     ]],
     ['app_profiles.minimum_fee_rsd', /minimum_fee_rsd/, [
       'supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql', DE,
       'supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql',
       'supabase/candidates/chat_voice_b1_revert.sql', 'supabase/candidates/pkg023c_public_pin_100m.sql',
+      'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: copy of the erasure body (pre-image of closure_redaction_patch_v5), NOT applied
     ]],
     ['app_profiles.years_experience', /years_experience/, [
       'supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql', DE,
@@ -256,6 +258,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       G174, // comment: self-declared fields pass through freely
       'supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql',
       'supabase/candidates/chat_voice_b1_revert.sql', 'supabase/candidates/pkg023c_public_pin_100m.sql',
+      'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: copy of the erasure body (pre-image of closure_redaction_patch_v5), NOT applied
     ]],
     ['worker_match_preferences.proactive_notifications', /proactive_notifications/, [
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE]],
@@ -263,7 +266,9 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE]],
     ['worker_match_preferences.buffer_minutes (X-01: no collector, no consumer)', /buffer_minutes/, [
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql']],
-    ['private.identity_admitted (G04-8)', /identity_admitted/, [DE]],
+    ['private.identity_admitted (G04-8)', /identity_admitted/, [DE,
+      X6, // EX-06 ex06a: a header COMMENT only ("the unchanged helpers ... identity_admitted ... are not pinned"); the candidate neither reads nor changes the function, NOT applied
+    ]],
   ];
 
   it.each(sourceFields)(

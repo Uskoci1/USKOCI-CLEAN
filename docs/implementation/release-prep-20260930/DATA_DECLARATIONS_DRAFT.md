@@ -234,3 +234,7 @@ Both stores treat the app as one with user-generated content (task text, photos,
 | P-26 audit and command keys | GS-20, AP-20 (D-09) |
 | P-27 local storage | not collected (on device) |
 | P-28 hosting, backups, platform logs | `UNKNOWN` (`[[PROVERITI]]`, LEG-09) |
+
+## D12 note (candidate, NOT applied)
+
+> Added 2026-10-01. The package "D12 written comment with the star rating" is only a candidate in the repository (`supabase/candidates/d12_review_comment.sql`); it is not applied to DEV and needs the owner's explicit decision. Until then every statement above that a review has no free text stays true and this document is unchanged. If the package is applied, the effect on this document is limited to: GS-23 and AP-14 (Other user-generated content would then include the free-text review comment) and section 7 (a report path for a comment uses the existing channels only). The optional written comment exists while the author's account exists; it is erased when the author account is closed; a comment hidden by moderation and a comment about a person who closed their account are retained (hidden from display); the retention period is an owner/legal input and no number is invented. Lawful basis, DPIA, moderator and response time stay open. Source: `supabase/proofs/d12/README_D12_CANDIDATE.md`.

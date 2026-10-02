@@ -116,3 +116,7 @@ Ovo su razlike između koda i onoga što bi javni tekstovi ili RC2 obećavali. N
 4. Posle integracije grana `d18e830a` i `1ab01e78` ponovo pročitati P-05, P-06, P-08 i G-01.
 5. Uporediti sa `USKOCI_DATA_FLOW_TRUTH_2026-09-27.md` kada bude dostupan.
 6. Popis polja osvežiti iz stvarnog kataloga baze (izvorni popis je ordinal 144).
+
+## D12 napomena (kandidat, NIJE primenjen)
+
+> Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: red P-19 (Ocene) i praznina G-10; klasa `AGREEMENT_REVIEWS` ostaje ista (nova klasa se ne dodaje). Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.

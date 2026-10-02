@@ -232,3 +232,7 @@ Pitanja o privatnosti: `[[OPERATER: email ili obrazac]]`. Poštanska adresa: `[[
 | 18 | RC2 Privacy §20; `pushNotificationCopy.mjs`; `PushPreferences.tsx:188` |
 | 19 | RC2 Privacy §21, Uslovi §4 |
 | 20 | RC2 Uslovi §3, §33 |
+
+## D12 napomena (kandidat, NIJE primenjen)
+
+> Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: odeljak 11 (Ocene): javno se i dalje prikazuje prosek i broj ocena; komentar bi bio vidljiv prijavljenim korisnicima u čitaču komentara, uz ime i ocenu autora. Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.

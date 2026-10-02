@@ -132,3 +132,7 @@ Bez ovih podataka ovaj dokument ne treba objaviti.
 | 10 | RC2 Reklamacije §11; `SUPPORT_CASE_CONTRACT_PROPOSAL.md` odeljak 2 |
 | 11 | RC2 Reklamacije §12; `SupportPresentation.tsx:24` |
 | 13 | RC2 Reklamacije §14; LEG-01 OP-10..OP-14 |
+
+## D12 napomena (kandidat, NIJE primenjen)
+
+> Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: tema „Prijava sadržaja ili recenzije“: moderacija kandidata sakriva samo tekst komentara, nikada ocenu ni prosek. Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.

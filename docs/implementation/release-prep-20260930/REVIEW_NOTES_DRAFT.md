@@ -170,3 +170,7 @@ The 16 `dizajn-*` routes and their fixture text, the "Ovo je test verzija" line,
 5. E-mail sender and confirmation flow tested end to end (N02).
 6. Whether push, dictation, voice messages, group chat and export are in the first release (edit the "NOT IN THIS BUILD" line and the permission table).
 7. Encryption export answer and, if iOS ships, the microphone declaration cleanup.
+
+## D12 note (candidate, NOT applied)
+
+> Added 2026-10-01. The package "D12 written comment with the star rating" is only a candidate in the repository (`supabase/candidates/d12_review_comment.sql`); it is not applied to DEV and needs the owner's explicit decision. Until then every statement above that a review has no free text stays true and this document is unchanged. If the package is applied, the effect on this document is limited to: the line "Ratings: stars and tags only; no free-text review comment exists": it changes only when the package ships. The optional written comment exists while the author's account exists; it is erased when the author account is closed; a comment hidden by moderation and a comment about a person who closed their account are retained (hidden from display); the retention period is an owner/legal input and no number is invented. Lawful basis, DPIA, moderator and response time stay open. Source: `supabase/proofs/d12/README_D12_CANDIDATE.md`.
