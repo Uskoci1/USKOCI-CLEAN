@@ -3,6 +3,7 @@ import { TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService, SAFETY_CATEGORIES, type SafetyCategory, type SafetyReportCommand, type SafetyReportReceipt } from '../../data/safetyClientService';
+import { safetyTargetNameBuilt } from '../../data/safetyTargetNameGate';
 import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
@@ -14,6 +15,7 @@ import { withInter } from '../interFont';
 import { sys } from '../system/tokens';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { vreme } from '../../lib/vreme';
+import { useSafetyTargetName } from './useSafetyTargetName';
 
 const safetyCategoryCopy: Record<SafetyCategory, string> = {
   HARASSMENT: 'Uznemiravanje', FRAUD: 'Prevara', UNSAFE_WORK: 'Nebezbedan rad', DISCRIMINATION: 'Diskriminacija', OTHER: 'Drugo',
@@ -22,7 +24,11 @@ type Context = { targetAccountId: string; needId: string | null; agreementId: st
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
 const blockConsequence = 'Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.';
 
-export function SafetyScreen(p: Context) {
+/**
+ * `profileId` (EX-07 S06) is the profile the person came from, handed on by the route only in a build compiled with the safety-target-name flag. It is an identifier,
+ * never a name: the screen asks the server for the name of that profile (see useSafetyTargetName) and keeps its generic copy when there is none.
+ */
+export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
   const questionGeneration = useRef(0);
@@ -66,6 +72,7 @@ export function SafetyScreen(p: Context) {
       tone: 'danger', onConfirm: changeBlock });
   };
   return <SettingsScreen title="Bezbednost" onBack={back}>
+    {profileId && safetyTargetNameBuilt() ? <TargetName profileId={profileId} targetAccountId={p.targetAccountId} /> : null}
     <T tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
     <SettingsPanel>
       <T variant="heading">Kontakt sa korisnikom</T>
@@ -93,6 +100,12 @@ export function SafetyScreen(p: Context) {
     </SettingsPanel>
     {confirmation.sheet}
   </SettingsScreen>;
+}
+
+/** The name of the person this screen is about, from the server's answer for the profile they came from; nothing at all while it is unknown (the generic copy below stays). */
+function TargetName({ profileId, targetAccountId }: { profileId: string; targetAccountId: string }) {
+  const name = useSafetyTargetName(profileId, targetAccountId);
+  return name ? <T variant="heading" accessibilityRole="header" numberOfLines={2} testID="safety-target-name">{name}</T> : null;
 }
 
 function PrivateReport(context: Context) {

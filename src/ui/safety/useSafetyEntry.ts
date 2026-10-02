@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService } from '../../data/safetyClientService';
+import { safetyTargetNameBuilt } from '../../data/safetyTargetNameGate';
 import type { SafetyEntry } from '../system/PublicProfileSheet';
 
 /**
@@ -38,7 +39,10 @@ export function useSafetyEntry(profileId: string | null | undefined,
       if (!result.ok) { setError(result.poruka); return; }
       const target = result.podatak.available ? result.podatak.target : null;
       if (!target) { setError('Korisnik trenutno nije dostupan.'); return; }
+      // EX-07 S06: a build compiled with the safety-target-name flag hands on the PROFILE this was opened from (an identifier), so the safety screen can ask the server for
+      // the name of that very profile. The name itself never travels in a route.
       router.navigate({ pathname: '/bezbednost', params: { targetAccountId: target.targetAccountId,
+        ...(safetyTargetNameBuilt() ? { profileId } : {}),
         ...(needId ? { needId } : {}), ...(agreementId ? { agreementId } : {}) } });
     }, () => { if (!current()) return; settle(); setError('Nismo uspeli da otvorimo bezbednost. Pokušaj ponovo.'); });
   }, [profileId, needId, agreementId]);

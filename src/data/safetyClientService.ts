@@ -2,6 +2,7 @@ import type { Ishod } from './ports';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { failure, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
+import { safetyTargetNameBuilt } from './safetyTargetNameGate';
 export const SAFETY_CATEGORIES = ['HARASSMENT', 'FRAUD', 'UNSAFE_WORK', 'DISCRIMINATION', 'OTHER'] as const;
 export type SafetyCategory = typeof SAFETY_CATEGORIES[number];
 export type AccountBlockState = { accountId: string; targetAccountId: string; blocked: boolean; revision: number; authoritative: true };
@@ -13,8 +14,10 @@ export type SafetyReportReceipt = { reportId: string; received: true; createdAt:
 export type MyBlockedAccounts = { accountId: string; items: Array<AccountBlockState & { displayName: string | null }>; nextCursor: string | null; authoritative: true };
 /** PKG-047: the person behind a public profile, so report and block can reach them from a screen that
  *  only ever knew the profile. `available` false is the server's own "this is not a target" — an unknown,
- *  inactive or hidden profile, the caller's own account, or a block in either direction — never an error. */
-export type SafetyTargetState = { profileId: string; available: boolean; target: AccountBlockState | null };
+ *  inactive or hidden profile, the caller's own account, or a block in either direction — never an error.
+ *  `displayName` (EX-07 S06) is the displayed name of THE profile that was asked for, as the server's result gives it: present only in a build compiled with the
+ *  safety-target-name flag and only for an available target, `null` when the server gave no name the screen could draw. It is never read from a route and never logged. */
+export type SafetyTargetState = { profileId: string; available: boolean; target: AccountBlockState | null; displayName?: string | null };
 export type MySafetyReportCommand = { accountId: string; clientRequestId: string; found: boolean; receipt: SafetyReportReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
@@ -40,6 +43,13 @@ function block(raw: unknown, accountId: string, target: string): AccountBlockSta
   if (!r || !sameId(r.accountId, accountId) || !sameId(r.targetAccountId, target) || typeof r.blocked !== 'boolean' ||
       !revision(r.revision) || r.authoritative !== true) return null;
   return { accountId, targetAccountId: target, blocked: r.blocked, revision: r.revision, authoritative: true };
+}
+/** The name the server gave for the profile that was asked for, or null. A name is a decoration of the safety action, never a condition of it: one the screen could not
+ *  draw safely (blank, over 200 characters, a control character, a lone surrogate) is null, and never a reason to refuse the target. */
+function shownName(value: unknown): string | null {
+  if (!text(value, 200, true)) return null;
+  const name = value.trim();
+  return /[\u0000-\u001f\u007f-\u009f]/.test(name) ? null : name;
 }
 function bad<T>(name: keyof typeof errors): Promise<Ishod<T>> { return Promise.resolve(failure(name, errors[name])); }
 function reportReceipt(raw: unknown, requestId: string): SafetyReportReceipt | null {
@@ -84,7 +94,11 @@ export const safetyClientService = {
         if (!r || !sameId(r.profileId, profileId) || typeof r.targetAccountId !== 'string' || !uuid(r.targetAccountId) ||
             sameId(r.targetAccountId, account.accountId)) return null;
         const target = block(r, account.accountId, r.targetAccountId);
-        return target ? { profileId, available: true, target } : null;
+        if (!target) return null;
+        const state: SafetyTargetState = { profileId, available: true, target };
+        // EX-07 S06: only a build compiled with the flag looks at the name; without it the receipt is exactly what it always was.
+        if (safetyTargetNameBuilt()) state.displayName = shownName(r.displayName);
+        return state;
       } });
   },
   readReportCommand(requestId: string, explicit?: ReceiptAccount): Promise<Ishod<MySafetyReportCommand>> {
