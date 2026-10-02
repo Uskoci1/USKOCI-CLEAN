@@ -217,8 +217,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
               accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
               onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }}>
               {p.openingArts?.[index] ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.openingArt}>
-                <FactArt kind={p.openingArts[index]} size={28} /></View> : null}
-              <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.green} /></Press>)}
+                <FactArt kind={p.openingArts[index]} size={24} cut="art" /></View> : null}
+              <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.muted} /></Press>)}
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
           {p.voice ? <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select"
@@ -323,7 +323,7 @@ function Mark() {
 function AssistantPresence() {
   return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
     <View style={s.presenceHalo} />
-    <View style={s.presenceDisc}><BrandMark size={48} /></View>
+    <View style={s.presenceDisc}><BrandMark size={40} /></View>
     <View style={s.presenceAccent} />
   </View>;
 }
@@ -363,20 +363,20 @@ const s = StyleSheet.create({
   turns: { gap: 20 }, inlineContext: { paddingBottom: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
-  presence: { width: 94, height: 94, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
-  presenceHalo: { position: 'absolute', width: 94, height: 94, borderRadius: 47, backgroundColor: sys.conversation.iconWell },
-  presenceDisc: { width: 76, height: 76, borderRadius: 26, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
+  presence: { width: 76, height: 76, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
+  presenceHalo: { position: 'absolute', width: 76, height: 76, borderRadius: 38, backgroundColor: sys.conversation.iconWell },
+  presenceDisc: { width: 62, height: 62, borderRadius: 22, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
   presenceAccent: { position: 'absolute', right: 4, top: 6, width: 16, height: 16, borderRadius: 8,
     backgroundColor: sys.color.orange, borderWidth: 3, borderColor: sys.conversation.ground },
-  welcomeTitle: { ...sys.type.hero, color: sys.color.green, textAlign: 'center' },
+  welcomeTitle: { ...sys.type.title, color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   openings: { gap: sys.space.sm, marginTop: sys.space.sm },
   // Three illustrated ways into the person's task, not generic command chips.
-  opening: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: sys.space.sm,
-    borderRadius: 20, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
-  openingArt: { width: 36, height: 36, borderRadius: 12, backgroundColor: sys.conversation.iconWell,
+  opening: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: sys.space.sm,
+    borderRadius: 16, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
+  openingArt: { width: 28, height: 28,
     alignItems: 'center', justifyContent: 'center' },
-  openingText: { flex: 1, color: sys.color.green, fontWeight: '600' },
+  openingText: { flex: 1, ...sys.type.copy, color: sys.color.ink },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
   // Long replies read on the canvas; alignment and the group label identify the speaker.
   assistant: { gap: 8, alignSelf: 'stretch', paddingVertical: 4, paddingHorizontal: 2 },

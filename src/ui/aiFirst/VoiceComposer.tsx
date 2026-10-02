@@ -334,7 +334,7 @@ const s = StyleSheet.create({
   saidText: { ...sys.type.body, color: sys.color.ink },
   answerBlock: { gap: 10 },
   answer: { ...sys.type.speechLarge, color: sys.color.ink },
-  prompt: { ...sys.type.display, color: sys.color.green },
+  prompt: { ...sys.type.display, color: sys.color.ink },
   controls: { gap: 12, paddingHorizontal: sys.space.lg, paddingTop: 8, paddingBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   big: { width: BIG, height: BIG, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',

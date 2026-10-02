@@ -212,7 +212,7 @@ export function IntakePresentation(props: Props) {
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
-    welcomeDetail="Opiši posao svojim rečima. Zajedno ćemo složiti detalje, a pre objave sve pregledaš."
+    welcomeDetail="Opiši posao svojim rečima. Pre objave sve pregledaš."
     openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={outsidePlace(props.onSend)}
