@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T18:04:52Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "545dafa0",
-  "head_poruka": "docs(media): normalize RC02 application record endings",
+  "osvezeno": "2026-10-02T18:06:16Z",
+  "grana": "HEAD",
+  "head": "4046bae3",
+  "head_poruka": "Finish AI location confirmation and task summary flow",
   "server": {
    "snimljeno": "2026-10-02T17:25:57Z",
    "migracije": 222,
@@ -8931,102 +8931,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37041163344,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "545dafa0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:30:25Z"
-  },
-  {
-   "id": 37041163284,
-   "ime": "D12 written review comment proof",
-   "sha": "545dafa0",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:30:25Z"
-  },
-  {
-   "id": 37041118062,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "cad94e20",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:30:04Z"
-  },
-  {
-   "id": 37041117981,
-   "ime": "D12 written review comment proof",
-   "sha": "cad94e20",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:30:03Z"
-  },
-  {
-   "id": 37041117961,
-   "ime": "Control tracker refresh",
-   "sha": "cad94e20",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T17:30:03Z"
-  },
-  {
-   "id": 37040460230,
-   "ime": "EX-06 ex06b alias registry proof",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37040460204,
-   "ime": "EX-06 S04 dispatch lifecycle proof",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37040460159,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37040460119,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37040460102,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37040460056,
-   "ime": "Control tracker refresh",
-   "sha": "7912806f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:24:12Z"
-  },
-  {
-   "id": 37037950035,
-   "ime": "Build Android development APK",
-   "sha": "5110ed03",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:01:58Z"
-  }
- ]
+ "ci": null
 }
