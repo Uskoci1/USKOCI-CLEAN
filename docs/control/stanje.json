@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T19:00:59Z",
+  "osvezeno": "2026-10-02T19:22:19Z",
   "grana": "HEAD",
-  "head": "6fb39b30",
-  "head_poruka": "Activate approved AI location dialogue on DEV and enable phone build",
+  "head": "4cd5d939",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 223,
@@ -1499,14 +1499,22 @@
      "nativeAcceptance": false,
      "naturalLocationDialogue": {
       "package": "supabase/candidates/ai-location-01-20261002/APPROVAL.md",
-      "status": "DEV_APPLIED_SQL_EDGE_EXACT_READBACK_PASS_CLIENT_FLAG_ON_PHONE_APK_PENDING",
+      "status": "DEV_APPLIED_PHONE_APK_VERIFIED_INSTALLED_OWNER_TRY_PENDING",
       "contract": "Existing AI interview plus locationReply mode; same budget/dispatch/idempotency/recovery. No coordinates from model, fixed phrase dictionary, extra provider or new raw-content table. Natural confirmation requires actual proposal, ALLOW and zero fact proposals.",
       "client": "Question/proposal/account/focus/revision lease; guarded same save awaits receipt; typed and held speech share existing journal. Lost/stale response never confirms a new pin. Contextual held speech retained after terminal failure/cancel. Saved summary remains editable.",
-      "limits": "No paid AI/geocoder calls, new tests or native acceptance. ARM64 DEV APK requested by owner; true live spoken AI remains separate unfinished work.",
+      "limits": "No paid AI/geocoder calls or new/manual tests. Exact ARM64 APK installed by owner request on HONOR with install -r; no UI/session inspection or whole-flow acceptance. True live spoken AI remains unfinished.",
       "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
       "migration": "20261002185306",
       "edgeVersion": 51,
-      "certificate": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23"
+      "certificate": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+      "phoneBuild": {
+       "run": 37051296452,
+       "source": "6fb39b301888527350701741c659bb32cbe617bd",
+       "sha256": "712b157892777b8131745ddf3cf0b88c556d3b6e5139bf8ab68f3f23c1fa0863",
+       "receipt": "docs/implementation/ui-ux-pass-20261002/AI_LOCATION_PHONE_APK_37051296452.json",
+       "installed": true,
+       "nativeAcceptance": false
+      }
      }
     },
     "ciReconciliation": {
@@ -8947,5 +8955,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37051296452,
+   "ime": "Build Android development APK",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:52Z"
+  },
+  {
+   "id": 37051283329,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:46Z"
+  },
+  {
+   "id": 37051282564,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "6fb39b30",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282439,
+   "ime": "D12 written review comment proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282377,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282366,
+   "ime": "Control tracker refresh",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282360,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282358,
+   "ime": "EX-06 ex06b alias registry proof",
+   "sha": "6fb39b30",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37050131389,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T18:50:18Z"
+  },
+  {
+   "id": 37050131381,
+   "ime": "P5 ready task and matching contract",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T18:50:18Z"
+  },
+  {
+   "id": 37050131370,
+   "ime": "D12 written review comment proof",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T18:50:18Z"
+  },
+  {
+   "id": 37050131332,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T18:50:18Z"
+  }
+ ]
 }

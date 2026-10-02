@@ -39,7 +39,7 @@ jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => `aaaaaaaa-
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options: unknown) => {
   mockVoiceOptions(options);
   if (mockRealVoice) return jest.requireActual('../../features/voice/useHoldToTalk').useHoldToTalk(options);
-  return { controller: { cancel: mockVoiceCancel, getSnapshot: () => ({ phase: mockVoicePhase }) },
+  return { controller: { cancel: mockVoiceCancel, getSnapshot: () => ({ phase: mockVoicePhase }), subscribe: () => () => {} },
     state: { phase: mockVoicePhase } }; } }));
 // The voice module has three parts since 2026-09-24 (the composer's microphone, its notice line and voice mode); the
 // harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.

@@ -15,6 +15,20 @@ Screen reviews must consider the whole purpose and journey: information order, p
 
 ## Završni presek tri agenta — kod, server i prodavnica
 
+### Najnovije stanje posle AI-LOCATION-01 — odgovor vlasniku
+
+Preseci i tabela talasa ispod čuvaju ranije stanje; sledeće dopune ih nadjačavaju za navedene stavke. Osnovni tok objava → prijava → izbor → Dogovor → završetak → obe ocene već ima raniji stvarni R18 dokaz. Izmene zadatka/prijave, termina, otkazivanje i safety ekrani postoje; to nije isto što i završna potvrda svih njihovih kombinacija u najnovijem APK-u.
+
+- **AI i mapa:** SQL20261002185306 i Edge51 primenjeni uz tačan readback, flag uključen posle provere. ARM64 phone build37051296452 uspešno sastavljen iz source6fb39b30; hash/tri attestacije provereni i paket instaliran na HONOR preko postojeće aplikacije. [Receipt](AI_LOCATION_PHONE_APK_37051296452.json). Prirodni odgovori, aktivna tačka rute i zadržani govor povezani; ne tvrditi probu na telefonu pre nje. Pravi AI koji odgovara glasom ostaje odvojen otvoren deo.
+- **Nalogu i privatnosti:** izvoz/zatvaranje imaju postojeće ekrane i serverske ugovore. N10 oporavak, završni EX08 i konkretni operativni/pravni uslovi ostaju otvoreni. Današnji tehnički digest nije pravna potvrda niti dokaz da je ceo korisnički tok zatvaranja gotov.
+- **Prijave, izmene i termini:** jezgro ostaje postojeće; završiti aktuelne povezane ekrane i preostale konkretne EX06 nalaze. Izmena objave i izmena već sklopljenog Dogovora imaju različite granice; ne zaobilaziti prihvaćene uslove. Ne otvarati ponovo kompletan razvoj prijava/izbora zbog nedostajućeg dokaza na novoj verziji.
+- **Blokiranje/prijavljivanje/podrška:** postojeći tokovi ostaju; konkretni safety-name/ulazi, uloge i operaterski završetak su otvorene stavke, bez nove blanket server dozvole.
+- **Ocene i pisani komentari:** zvezdice su deo ranije dokazanog toka. D12 server i deo klijenta postoje; pisani javni prikaz ostaje OFF dok se ne zatvori D12a autor/uloga/blokiranje i uslovi aktivacije.
+- **Premium UI:** crn/siv tekst, bele površine, odabrana 2.5D umetnost i povezani ekrani imaju više implementiranih talasa i ograničene ranije native preglede. Nijedan zbirni PASS ne pokriva sve ekrane, popunjena stanja, tastaturu, povratke i obe uloge na sadašnjem telefonu.
+- **Ranije prepreke:** RC02 je već primenjen; B2 glasovne poruke su povezane u kodu i uključene u DEV build, ali celokupni native tok nije konačno prihvaćen. Vlasnik je naknadno prijavio da je otvorio Personal Play nalog i da verifikacija traje; raniji navod ispod da nalog ne postoji više nije aktuelan. Odvojeni PROD i završna store priprema ostaju otvoreni.
+
+Posle vlasnikove probe: rešiti konkretne primedbe na novi APK, zatim završiti navedene korisničke tokove i njihove ekrane prema postojećim redovima, pa privatnost i izdanje. Ne praviti novi master niti pretvarati broj crvenih redova u procenat neispravnosti aplikacije.
+
 Tražen je detaljan pregled preostalih stvari, uz brzo doterivanje postojećeg proizvoda i bez novih testnih krugova. Izmene su poslate kao `a49132a8`; build37024029100 sastavlja isti aplikacioni izvor sa dokumentacionim dopunama `b4f8a2e9`. To je novi razvojni APK, ne store izdanje niti novo prihvatanje svih tokova.
 
 **APK je uspešno sastavljen:** [run37024029100](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/37024029100), isti sourceb4f8a2e9. Preuzet je i vezan za SHA-256 `60b2223d87764a1c6543e5ccd8d41694c8bf650c9d0b91c4e2a6097e7cb21b79`; recovery/icon/Reanimated attestation su PASS. Nije instaliran niti korišćen za novu native proveru. [Tačan receipt](FINISHING_APK_37024029100.json).

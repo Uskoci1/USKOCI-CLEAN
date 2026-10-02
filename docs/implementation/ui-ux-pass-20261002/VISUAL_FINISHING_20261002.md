@@ -204,3 +204,10 @@ The earlier [APK37045193094](https://github.com/Uskoci1/USKOCI-CLEAN/actions/run
 ### AI-LOCATION-01 owner-approved DEV activation
 
 Owner approved application and requested a phone APK. Migration20261002185306 applied the exact frozen candidate and isolated technical certificate transition; ledger223/75. Readback matches13 candidate bodies,3 unchanged definitions,17 function catalogs/ACLs and the sole readiness-digest replacement. Current certified/live digest3a785d42 agrees in both bindings. Existing AI Edge deployed asv51 with JWT verification retained; all five returned files match frozen hashes. The new client flag is enabled only after that readback. Phone ARM64 APK with Reanimated patch is the next artifact. Application receipt and limits: `supabase/candidates/ai-location-01-20261002/APPLICATION.md`. No paid provider probe, new test, native business mutation or phone acceptance is inferred from deployment.
+
+
+## AI-LOCATION-01 phone delivery — 2026-10-02 19:19 UTC
+
+Build37051296452 succeeded on exact source6fb39b301888527350701741c659bb32cbe617bd. ARM64 rs.uskoci.dev APK SHA-256 712b157892777b8131745ddf3cf0b88c556d3b6e5139bf8ab68f3f23c1fa0863; recovery/icon/Reanimated attestations PASS. Owner explicitly requested installation; HONOR returned Success for adb install -r and installed SHA matches. Existing UID and firstInstallTime unchanged. No data clear, uninstall, app UI navigation, paid provider probe or whole-flow/native acceptance. [Receipt](AI_LOCATION_PHONE_APK_37051296452.json), [owner guide](PHONE_TRY_AI_LOCATION_20261002.md).
+
+Three existing CI test expectations were reconciled after source review: missing voice-controller subscribe mock, ambiguity-first map presentation, and privacy-null comment withdrawal. No runtime changes in that reconciliation, no new tests or manual rerun; passing suites are not claimed. This documentation/test-only follow-up does not replace the APK source.

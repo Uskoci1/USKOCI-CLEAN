@@ -261,12 +261,12 @@ describe('autoLocate', () => {
 });
 
 describe('compact conversation proposal', () => {
-  it('places only the validated first proposal, hides the form, and confirms only on the explicit action', async () => {
+  it('places the single validated proposal, hides the form, and confirms only on the explicit action', async () => {
     const resolver = configured();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(map().props).toMatchObject({ position: candidate.position, height: 220 });
-    expect(text()).toContain('Proveri pin, pa potvrdi mesto.'); expect(text()).toContain(candidate.label);
+    expect(text()).toContain('Da li je ovo početak?'); expect(text()).toContain(candidate.label);
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
@@ -275,19 +275,25 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
   });
 
-  it('keeps ambiguous alternatives behind correction and saves only on explicit confirmation', async () => {
+  it('keeps ambiguous results unresolved, offers conversation correction, and confirms only an explicitly placed pin', async () => {
     const other = { ...candidate, label: 'Another actual result', position: { latitude: 45, longitude: 19 },
       origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
     const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
     const correct = jest.fn();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
-    await press('Nije tu'); await press('Izaberi predlog: ' + other.label);
-    expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
     expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
-    await press('Nije tu'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
-    await press('Ispravi u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
-    expect(props.onConfirm).not.toHaveBeenCalled(); expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('U kom gradu ili opštini je početak? Dopuni ulicu ili naziv mesta.');
+    await press('Dopuni mesto u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Označi na mapi'); expect(map().props.position).toBeNull();
+    await act(async () => map().props.onChoose(other.position));
+    expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45000000, longitudeE6: 19000000, origin: { kind: 'MANUAL_PIN' } });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -297,8 +303,10 @@ describe('compact conversation proposal', () => {
   ] as const)('asks for an actual manual pin without equating failure with no results: %j', async (result, copy) => {
     const resolver = configured(result);
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place' });
-    expect(text()).toContain(copy); expect(map().props.position).toBeNull();
+    expect(text()).toContain(copy);
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
     expect(button('Potvrdi tačku: Početak')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Označi na mapi'); expect(map().props.position).toBeNull();
     await act(async () => map().props.onChoose({ latitude: 45.2, longitude: 19.8 }));
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45200000, longitudeE6: 19800000, origin: { kind: 'MANUAL_PIN' } });
@@ -322,7 +330,8 @@ describe('compact conversation proposal', () => {
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
     const old = button('Ispravi u razgovoru').props.onPress;
     await update({ disabled: true }); await act(async () => { pending.resolve(proposals); old(); });
-    expect(map().props.position).toBeNull(); expect(correct).not.toHaveBeenCalled(); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined(); expect(correct).not.toHaveBeenCalled(); expect(props.onConfirm).not.toHaveBeenCalled();
   });
 });
 
@@ -383,15 +392,18 @@ describe('inert compact location gallery', () => {
     mockGalleryParams = { scene }; await mount();
     expect(tree.root.findByType(LocationPointEditor).props.presentation).toBe('conversation');
     expect(text()).toContain('lokalni primer, bez čuvanja');
-    if (scene === 'unavailable') {
-      expect(map().props.position).toBeNull(); expect(text()).toContain('Pretraga mesta nije uspela.');
+    if (scene === 'unavailable' || scene === 'ambiguous') {
+      expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+      expect(button('Potvrdi tačku: Mesto rada')).toBeUndefined();
+      if (scene === 'unavailable') expect(text()).toContain('Pretraga mesta nije uspela.');
+      else {
+        expect(text()).toContain('U kom gradu ili opštini je mesto rada? Dopuni ulicu ili naziv mesta.');
+        expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
+      }
+      await press('Označi na mapi'); expect(map().props.position).toBeNull();
       await act(async () => map().props.onChoose({ latitude: 45.25, longitude: 19.85 }));
+      expect(map().props.position).toEqual({ latitude: 45.25, longitude: 19.85 });
     } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });
-    if (scene === 'ambiguous') {
-      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
-      await press('Nije tu');
-      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(2);
-    }
     await press('Potvrdi tačku: Mesto rada');
     expect(text()).toContain('Tačka je potvrđena samo u ovoj probi.');
     expect(tree.root.findAllByType(LocationPointEditor)).toHaveLength(0);

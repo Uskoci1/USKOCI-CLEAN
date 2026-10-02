@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "AI i mapa povezani na DEV → ARM64 APK za vlasnikov telefon",
-    "note": "AI-LOCATION-01 primenjen po izričitom odobrenju: SQL20261002185306, Edge51, precizan readback funkcija/prava/pet Edge fajlova i usklađena tehnička evidencija. Prirodni odgovori vezani za trenutno pitanje/pin i tačku rute; ispravke koriste postojeće činjenice i pretragu. EXPO_PUBLIC_AI_LOCATION_DIALOGUE=1 uključen posle provere; sledi odgovarajući ARM64 DEV APK za vlasnikovu probu. Nema plaćenih AI proba, novih testova ili dokaza celog toka na telefonu. Prethodni4046 APK nije ovaj novi paket. Ostali otvoreni EX06/D12/support/privacy/store delovi i pravi glasovni AI ostaju u postojećem registru."
+    "title": "Novi AI/mapa APK instaliran → završna kompozicija povezanih ekrana",
+    "note": "AI-LOCATION-01 primenjen: SQL20261002185306 i Edge51, flag1. ARM64 build37051296452 source6fb39b30 uspešan; SHA i tri attestacije provereni, instaliran po vlasnikovom nalogu na HONOR sa install -r i identičnim hashom. Nema brisanja podataka, otvaranja sesije ili prihvatanja celog toka. Nastaviti ujednačavanje belih ekrana, crnog/sivog teksta, 2.5D ikona i jasnih radnji. Pravi glasovni AI, preostali EX06/D12/support/privacy/store delovi ostaju otvoreni."
   },
   "evidence": [
     {

@@ -202,12 +202,14 @@ describe('paging by keyset', () => {
     expect(texts().filter(text => text === 'Sve je proteklo kako treba.')).toHaveLength(1);
   });
 
-  it('a later page that is nothing here leaves what is shown and offers no more', async () => {
+  it('a later authoritative null withdraws earlier comments and offers no more', async () => {
     mockList.mockResolvedValueOnce(page([item()], { hasMore: true, nextAfter: cursor(R1) })).mockResolvedValueOnce({ ok: true, podatak: null });
     await draw();
-    await act(async () => tree.root.findByProps({ label: 'Prikaži još' }).props.onPress());
     expect(texts()).toContain('Sve je proteklo kako treba.');
+    await act(async () => tree.root.findByProps({ label: 'Prikaži još' }).props.onPress());
+    expect(texts()).not.toContain('Sve je proteklo kako treba.');
     expect(tree.root.findAllByProps({ label: 'Prikaži još' })).toHaveLength(0);
+    expect(tree.toJSON()).toBeNull();
   });
 });
 
