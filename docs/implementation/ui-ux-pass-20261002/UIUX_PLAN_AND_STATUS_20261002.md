@@ -29,7 +29,9 @@ Binding rules for every wave: `AGENTS.md` 3.6 (white reading surfaces, green pri
 
 First visible win (the plan's own words): W1 item 1.3, the FactArt size-aware mark cut with the one-tone rule (no ground smudge, no ticks on calendars, orange only for what waits): one file changes every icon on every list card, row and the tab bar on the HONOR at once, with no screen redesigned; ship it with the one-line TaskCard layout-class flip (item 1.5, first confirm the phone's real font scale in 1.1) in the same first APK so cards also stop looking like the stacked 'large text' layout.
 
-## The 13 owner questions (each has a default the team applies until he answers; none is a decision until he says so)
+## The 13 owner questions: ACCEPTED as proposed on 2026-10-02
+
+All 13 defaults below (U01-U13) and the six questions from the second design pass (U14-U19: green titles stay, the Dogovor stays a white surface, capsule segments yes and actions as A/B, price-capsule pin later, flat tab icons, no offline dependency) were accepted by the owner on 2026-10-02 (record: `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`). Before that each was a default applied as an A/B.
 
 1. Icon colour (reverses the 2026-09-22 two-tone 'identical look'): single brand tone in small icons, orange only for what waits, and which green (the FactArt #079C77 or the UI #076E4E). Default: yes, A/B card on the dizajn-tabla board, use the UI green so icons, titles and the primary button agree.
 2. Home doors: entry photographs (requester teal, worker orange) vs FactArt-built art. Default: photos on bounded white doors, FactArt art as the fallback if he dislikes them on the phone.

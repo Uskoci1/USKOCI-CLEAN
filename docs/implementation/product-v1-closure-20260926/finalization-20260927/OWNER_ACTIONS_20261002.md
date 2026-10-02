@@ -1,5 +1,7 @@
 # What only the owner can do or decide (2026-10-02)
 
+**Update 2026-10-02 11:02: the owner accepted all 75 proposals (record: `OWNER_DECISIONS_20261002_ALL75.md`).** What remains for him are the actions in section 2 and the exact "PRIMENI ..." words of section 3; the table of ten answers below is now a record of what was proposed and accepted.
+
 Answer to the owner's question "šta treba kroz mene" (what has to go through me). This is a **reading list, not a tracker**: the status registry stays `docs/control/redovi.json` and the plan stays `docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html`. Nothing below is a decision until the owner says so; every "default" is the team's proposal and is applied only as a working assumption (and recorded as such). The complete lists, with sources, live in the scope records: `EX05_CANONICAL_SCOPE_20261001.md` (sections 8-9), `EX06_CANONICAL_SCOPE_20261001.md` (owner questions Q1-Q7), `EX07_CANONICAL_SCOPE_20261001.md` (sections 8-9), `EX09_CANONICAL_SCOPE_20261001.md` and the `finalization.ex09` block of the registry (23 gates, 14 questions), and `docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md` (13 UI questions).
 
 The COMPLETE list (75 questions, a proposal for each, sources) is `OWNER_QUESTIONS_AND_PROPOSALS_20261002.md`, and the same list is an interactive page that saves the answers: https://claude.ai/artifact/9JRQthzUMM6M3qw4ZxCK2a (private, only the owner can open it). The ten below are the ones to answer first.

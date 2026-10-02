@@ -4436,6 +4436,7 @@
     }
   },
   "finalization": {
+    "owner_decision_20261002_all75": "2.10. 11:02: VLASNIK JE PRIHVATIO SVIH 75 PREDLOGA (stranica za odgovaranje https://claude.ai/artifact/9JRQthzUMM6M3qw4ZxCK2a, zapis u njenoj bazi: 75 dokumenata, svi „predlog“, bez napomena; pročitano 2.10.). Zapis odluka i posledica: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md. Isto veče: „Primeni, a SAD radi na android emulatoru“: „Primeni“ bez imena paketa shvaćeno kao pokretanje primene prihvaćenih odluka u RADU (nije reč iz AGENTS 3.1.2 za DEV/PROD; nijedan serverski paket nije spreman, svaki traži svoje „PRIMENI <ime>“ posle approval bloka); QA je od sada na Android emulatoru USKOCI_V5_TEST (AGENTS 3.2.1 dopunjen), HONOR samo na njegovo „sad“. Izmenjen AGENTS.md: 3.1.5 (expo-audio odobren, expo-location uslovno), 3.1.7 (povučena rečenica o zero-device backlog retirement), 3.2.1 (emulator), 3.5.5 (obim V1). Dodatak 3.6.9 (UI odluke) NIJE upisan (sistem ga je blokirao): UI odluke stoje u zapisu odluka i u UI planu.",
     "updated_at": "2026-09-28",
     "source_head": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
     "order": [

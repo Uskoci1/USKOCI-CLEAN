@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T08:57:45Z",
+  "osvezeno": "2026-10-02T09:13:51Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "0b9cd8c9",
-  "head_poruka": "docs(owner): what only the owner can do or decide - ten unblocking answers with proposed defaults, accounts/keys/devices, the future exact PRIMENI words and the working queue (reading list, not a tracker); LIVE plan cursor points to it",
+  "head": "68560081",
+  "head_poruka": "docs(owner): all 75 questions the owner must answer, a proposal and a source for each (OWNER_QUESTIONS_AND_PROPOSALS_20261002.md) + the private answering page; LIVE plan cursor points to both",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -91,6 +91,7 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "owner_decision_20261002_all75": "2.10. 11:02: VLASNIK JE PRIHVATIO SVIH 75 PREDLOGA (stranica za odgovaranje https://claude.ai/artifact/9JRQthzUMM6M3qw4ZxCK2a, zapis u njenoj bazi: 75 dokumenata, svi „predlog“, bez napomena; pročitano 2.10.). Zapis odluka i posledica: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md. Isto veče: „Primeni, a SAD radi na android emulatoru“: „Primeni“ bez imena paketa shvaćeno kao pokretanje primene prihvaćenih odluka u RADU (nije reč iz AGENTS 3.1.2 za DEV/PROD; nijedan serverski paket nije spreman, svaki traži svoje „PRIMENI <ime>“ posle approval bloka); QA je od sada na Android emulatoru USKOCI_V5_TEST (AGENTS 3.2.1 dopunjen), HONOR samo na njegovo „sad“. Izmenjen AGENTS.md: 3.1.5 (expo-audio odobren, expo-location uslovno), 3.1.7 (povučena rečenica o zero-device backlog retirement), 3.2.1 (emulator), 3.5.5 (obim V1). Dodatak 3.6.9 (UI odluke) NIJE upisan (sistem ga je blokirao): UI odluke stoje u zapisu odluka i u UI planu.",
   "updated_at": "2026-09-28",
   "source_head": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
   "order": [
@@ -6546,7 +6547,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "SF-02 delimično: potvrda posledica je implementirana, čuva identitet komande i poništava stare potvrde; native prihvatanje i pouzdano prikazano ime osobe još čekaju.",
@@ -6633,7 +6634,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -8562,6 +8563,14 @@
  },
  "ci": [
   {
+   "id": 36987905823,
+   "ime": "Build Android development APK",
+   "sha": "68560081",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T09:06:50Z"
+  },
+  {
    "id": 36966866978,
    "ime": "D12 written review comment proof",
    "sha": "a2c613aa",
@@ -8648,14 +8657,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-02T02:04:44Z"
-  },
-  {
-   "id": 36949883106,
-   "ime": "Control tracker refresh",
-   "sha": "a5973c3a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T01:13:20Z"
   }
  ]
 }
