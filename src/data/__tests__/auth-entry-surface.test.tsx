@@ -53,6 +53,7 @@ jest.mock('../authClientService', () => ({ authClientService: {
 } }));
 
 import AuthScreen from '../../app/auth';
+import { SIGN_IN_FAILURE_COPY, SignInFailureError, type SignInFailureClass } from '../authFailureClasses';
 
 const emailOnly = { emailPassword: true, emailSignup: true, phoneOtp: false,
   emailConfirmationRequired: true, passwordRecovery: false };
@@ -134,6 +135,23 @@ it('keeps an empty password submission local and immediately editable', async ()
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
   expect(text()).toContain('Unesi email i lozinku.');
   expect(input('ime@primer.rs').props.editable).toBe(true);
+});
+
+// EX-07 S02: the screen shows whatever message the Auth boundary chose, with no wiring of its own; the recovery that
+// the message names (retry, the existing "Zaboravljena lozinka?") is already on the form, the email is kept, and the
+// next attempt is allowed.
+it.each(Object.keys(SIGN_IN_FAILURE_COPY) as SignInFailureClass[])('a %s sign-in failure shows its own message and leaves the form retryable', async failureClass => {
+  await render(); await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'password');
+  mockAuth.signInWithPassword.mockRejectedValueOnce(new SignInFailureError(failureClass));
+  await press('Prijavi se');
+  const alert = () => host('Text').find(node => node.props.accessibilityRole === 'alert');
+  expect(textOf(alert()!)).toBe(SIGN_IN_FAILURE_COPY[failureClass]);
+  expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+  expect(host('TextInput').every(node => node.props.editable === true)).toBe(true);
+  expect(button('Zaboravljena lozinka?')).toBeDefined();
+  await press('Prijavi se');
+  expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(2);
+  expect(alert()).toBeUndefined();
 });
 
 it('hides a revealed password when switching form mode, preserving the entered value without submitting', async () => {

@@ -114,7 +114,9 @@ describe('central Auth client boundary', () => {
   });
 
   it.each([
-    ['signInWithPassword', 'Prijava nije uspela.'],
+    // EX-07 S02: a rejection the app does not recognise (code 'provider_internal') is an unexpected failure, no longer
+    // reported as wrong credentials; 'Prijava nije uspela.' is now only what invalid_credentials says (auth-failure-classes).
+    ['signInWithPassword', 'Prijava trenutno nije dostupna.'],
     ['signUp', 'Registracija trenutno nije uspela.'],
     ['signInWithOtp', 'Kod trenutno nije moguće poslati.'],
     ['verifyOtp', 'Kod nije potvrđen.'],

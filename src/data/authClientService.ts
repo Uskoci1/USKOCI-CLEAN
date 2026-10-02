@@ -8,6 +8,10 @@ import { revokePushBeforeLogout } from './pushDeviceClientService';
 import { forgetAgreementOutboxes } from './agreementOutbox';
 import { voiceMessagesBuilt } from './voiceMessagesGate';
 import { signupConfirmationRedirect } from './authSignupRedirect';
+import {
+  PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, SignInFailureError, authFailureSignals, classifySignInFailure,
+  isProviderUnavailable, isRateLimited,
+} from './authFailureClasses';
 
 function assertCurrentAccount(expected: AuthAccountScope) {
   const current = sesijaSada();
@@ -19,16 +23,12 @@ function assertCurrentAccount(expected: AuthAccountScope) {
 
 type UserAuthOperation = 'SIGN_IN' | 'SIGN_UP' | 'SIGNUP_RESEND' | 'PHONE_SEND' | 'PHONE_VERIFY';
 function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
-  const value = error && typeof error === 'object' ? error as { status?: unknown; code?: unknown } : {};
-  const status = typeof value.status === 'number' ? value.status : null;
-  const code = typeof value.code === 'string' ? value.code.toLowerCase() : '';
-  if (status === 429 || code.includes('rate') || code.includes('over_request')) {
-    return new Error('Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.');
-  }
-  if ((status !== null && status >= 500) || code.includes('unexpected_failure') || code.includes('service_unavailable')) {
-    return new Error('Prijava trenutno nije dostupna. Pokušaj ponovo.');
-  }
-  if (operation === 'SIGN_IN') return new Error('Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.');
+  // EX-07 S02: a failed sign-in is one of six classes (authFailureClasses), each with its own message and recovery.
+  if (operation === 'SIGN_IN') return new SignInFailureError(classifySignInFailure(error));
+  // Every other operation keeps its copy exactly: sign-up, resend and phone are outside that slice.
+  const signals = authFailureSignals(error);
+  if (isRateLimited(signals)) return new Error(RATE_LIMITED_COPY);
+  if (isProviderUnavailable(signals)) return new Error(PROVIDER_UNAVAILABLE_COPY);
   if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.');
   if (operation === 'SIGNUP_RESEND') return new Error('Novu potvrdu trenutno nije moguće zatražiti. Pokušaj ponovo.');
   if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.');
@@ -38,8 +38,12 @@ function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
 /** The existing Auth transport boundary; no provider, policy or session authority is added. */
 export const authClientService: AuthClientPort = {
   async signInWithPassword(input) {
-    const { error } = await supabaseKlijent().auth.signInWithPassword(input);
-    if (error) throw safeAuthFailure(error, 'SIGN_IN');
+    // A rejection (client setup, storage, a listener) is as much a failed sign-in as a returned error, and neither may
+    // reach the screen with its own text. The classified error is thrown outside the try so it is never classified again.
+    let failure: unknown = null;
+    try { ({ error: failure } = await supabaseKlijent().auth.signInWithPassword(input)); }
+    catch (thrown) { throw safeAuthFailure(thrown, 'SIGN_IN'); }
+    if (failure) throw safeAuthFailure(failure, 'SIGN_IN');
   },
 
   async signUp({ email, password, firstName, lastName, city }) {
