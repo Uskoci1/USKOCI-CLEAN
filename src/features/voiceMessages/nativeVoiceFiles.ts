@@ -19,6 +19,30 @@ function insideCache(uri: string): boolean {
 }
 const voiceDirectory = () => new Directory(Paths.cache, VOICE_CACHE_DIRECTORY);
 
+// Expo 57.0.5 writes recorder output here before finalization into uskoci-voice.
+// Native source: Android AudioRecorder.createRecordingFilePath; iOS AudioUtils.createRecordingUrl.
+const EXPO_RECORDING_DIRS = ['Audio', 'ExpoAudio'] as const;
+const EXPO_RECORDING_LEAF = /^recording-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.m4a$/i;
+const nativeCleanup = new Set<() => Promise<void>>();
+/** Registration is passive: importing file helpers does not import/initialize ExpoAudio. */
+export function registerVoiceNativeCleanup(cleanup: () => Promise<void>): () => void {
+  nativeCleanup.add(cleanup);
+  return () => { nativeCleanup.delete(cleanup); };
+}
+export function isExpoVoiceRecordingUri(uri: string): boolean {
+  if (!insideCache(uri)) return false;
+  return EXPO_RECORDING_DIRS.some(name => {
+    const directory = new Directory(Paths.cache, name);
+    const prefix = directory.uri.endsWith('/') ? directory.uri : `${directory.uri}/`;
+    return uri.startsWith(prefix) && EXPO_RECORDING_LEAF.test(uri.slice(prefix.length));
+  });
+}
+async function stopNativeAudioBeforePurge(): Promise<void> {
+  const results = await Promise.allSettled([...nativeCleanup].map(cleanup => cleanup()));
+  // No cache removal while native code might still be writing/playing one of its files.
+  if (results.some(result => result.status === 'rejected')) throw new Error('VOICE_NATIVE_RELEASE_FAILED');
+}
+
 export const nativeVoiceFiles: VoiceFilePort = {
   async read(uri) {
     if (!insideCache(uri)) throw new Error('VOICE_FILE_PATH');
@@ -46,8 +70,17 @@ export const nativeVoiceFiles: VoiceFilePort = {
     if (file.exists) file.delete();
   },
   async purgeAll() {
+    await stopNativeAudioBeforePurge();
     const directory = voiceDirectory();
     if (directory.exists) directory.delete();
+    // Only SDK-generated UUID M4A leaves. Never delete an Expo directory, another codec or a foreign filename.
+    for (const name of EXPO_RECORDING_DIRS) {
+      const recordingDirectory = new Directory(Paths.cache, name);
+      if (!recordingDirectory.exists) continue;
+      for (const entry of recordingDirectory.list()) {
+        if (entry instanceof File && isExpoVoiceRecordingUri(entry.uri)) entry.delete();
+      }
+    }
   },
 };
 

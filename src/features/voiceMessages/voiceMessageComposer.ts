@@ -2,7 +2,7 @@ import type { Ishod } from '../../data/ports';
 import type { AgreementUploadRef } from '../../data/agreementPhotoClientService';
 import type { AgreementVoiceUpload } from '../../data/agreementVoiceClientService';
 import type { ReceiptAccount } from '../../data/serverReceipt';
-import type { AudioArbiter, InterruptReason, RecordedFile, VoiceFilePort, VoicePlayerPort, VoiceRecorderPort } from './ports';
+import type { AudioArbiter, AudioLease, InterruptReason, RecordedFile, VoiceFilePort, VoicePlayerPort, VoiceRecorderPort } from './ports';
 import { VOICE_ERROR_COPY, type VoiceErrorCode } from './voiceCopy';
 
 /**
@@ -84,7 +84,9 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   // The recording being delivered: its client key, whether any upload was attempted, and the READY asset once there is one.
   let pending: { ref: AgreementUploadRef; attempted: boolean; assetId: string | null } | null = null;
   let ticker: unknown = null, unsubscribeRecorder: Array<() => void> = [], unsubscribePlayer: (() => void) | null = null;
-  let releaseRecordingClaim: (() => void) | null = null, releasePreviewClaim: (() => void) | null = null;
+  let releaseRecordingClaim: AudioLease | null = null, releasePreviewClaim: AudioLease | null = null;
+  let starting = false, finishing: Promise<void> | null = null, previewBusy = false, previewGeneration = 0;
+  let previewStopping: Promise<void> | null = null;
   let abort: AbortController | null = null, working = false;
   let snapshot!: VoiceComposerSnapshot;
 
@@ -93,10 +95,10 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   const outboxBusy = () => { try { return options.outbox.getSnapshot().capturing; } catch { return true; } };
   const build = (): VoiceComposerSnapshot => {
     const live = agreementNow();
-    const allowed = live.writable && live.version !== null && !outboxBusy();
+    const allowed = options.isCurrent() && live.writable && live.version !== null && !outboxBusy() && !finishing;
     return Object.freeze({ phase, elapsedMs, durationMs: recorded?.durationMs ?? null, preview, previewMs, level, error: failure,
-      canRecord: phase === 'idle' && allowed, canSend: (phase === 'review') && allowed && !working,
-      canDiscard: phase === 'recording' || phase === 'review' || phase === 'failed', canRetry: phase === 'failed' && allowed && !working, recovered });
+      canRecord: phase === 'idle' && allowed && !starting && !working && !releaseRecordingClaim, canSend: (phase === 'review') && allowed && !working,
+      canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working, recovered });
   };
   snapshot = build();
   const publish = () => { snapshot = build(); for (const listener of [...listeners]) { try { listener(); } catch { /* a screen's own failure never stops the model */ } } };
@@ -108,23 +110,41 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     const file = recorded; recorded = null;
     if (file) { try { await options.files.remove(file.uri); } catch { /* a leftover cache file is removed by the next purge */ } }
   }
-  async function stopPreview(keepLoaded = false) {
+  function stopPreview(): Promise<void> {
+    previewGeneration += 1;
+    if (previewStopping) return previewStopping;
     if (unsubscribePlayer) { unsubscribePlayer(); unsubscribePlayer = null; }
-    const was = previewLoaded; previewLoaded = keepLoaded && was;
+    const lease = releasePreviewClaim;
+    const was = previewLoaded || previewBusy || !!lease; previewLoaded = false;
     preview = 'idle'; previewMs = 0;
-    releasePreviewClaim?.(); releasePreviewClaim = null;
-    if (was) { try { await options.player.stop(); await options.player.release(); } catch { /* the native player is released by the next load */ } }
+    const task = (async () => {
+      if (was) { await options.player.stop(); await options.player.release(); }
+      lease?.(); if (releasePreviewClaim === lease) releasePreviewClaim = null;
+    })();
+    previewStopping = task;
+    void task.finally(() => { if (previewStopping === task) previewStopping = null; }).catch(() => undefined);
+    return task;
   }
 
-  async function finishRecording(g: number, reason: 'stopped' | 'interrupted' | 'maximum') {
+  function finishRecording(g: number, reason: 'stopped' | 'interrupted' | 'maximum'): Promise<void> {
+    if (finishing) return finishing;
+    const task = finishRecordingOnce(g, reason);
+    finishing = task;
+    void task.finally(() => { if (finishing === task) finishing = null; if (alive(g)) publish(); }).catch(() => undefined);
+    return task;
+  }
+  async function finishRecordingOnce(g: number, reason: 'stopped' | 'interrupted' | 'maximum') {
     stopTicker(); unsubscribeRecording();
+    const lease = releaseRecordingClaim;
     let file: RecordedFile;
     try { file = await options.recorder.stop(); } catch {
-      releaseRecordingClaim?.(); releaseRecordingClaim = null;
+      // A failed stop is not proof that the microphone is free. Cancellation must finish before another owner may enter.
+      await options.recorder.cancel();
+      lease?.(); if (releaseRecordingClaim === lease) releaseRecordingClaim = null;
       if (!alive(g)) return;
       phase = 'idle'; fail(error('RECORDING_FAILED')); publish(); return;
     }
-    releaseRecordingClaim?.(); releaseRecordingClaim = null;
+    lease?.(); if (releaseRecordingClaim === lease) releaseRecordingClaim = null;
     if (!alive(g)) { try { await options.files.remove(file.uri); } catch { /* purged later */ } return; }
     if (!Number.isFinite(file.durationMs) || file.durationMs < VOICE_MIN_DURATION_MS) {
       try { await options.files.remove(file.uri); } catch { /* purged later */ }
@@ -135,49 +155,77 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   }
   function recordingInterrupted(_reason: InterruptReason) {
     if (phase !== 'recording') return;
-    void finishRecording(generation, 'interrupted');
+    void finishRecording(generation, 'interrupted').catch(() => { fail(error('RECORDING_FAILED')); publish(); });
   }
 
   async function start() {
-    if (phase !== 'idle' || !build().canRecord || !options.isCurrent()) return;
+    if (phase !== 'idle' || !build().canRecord || !options.isCurrent() || starting) return;
+    starting = true;
     const g = generation;
     phase = 'requesting'; fail(null); publish();
+    try {
     let answer;
     try { answer = await options.recorder.requestPermission(); } catch { answer = 'unavailable' as const; }
     if (!alive(g) || phase !== 'requesting') return;
     if (answer !== 'granted') {
       phase = 'idle'; fail(error(answer === 'blocked' ? 'MIC_PERMISSION_BLOCKED' : answer === 'unavailable' ? 'MIC_UNAVAILABLE' : 'MIC_PERMISSION_DENIED')); publish(); return;
     }
-    const release = await options.arbiter.claim('recording', () => { if (phase === 'recording') return finishRecording(generation, 'interrupted'); });
-    if (!alive(g) || phase !== 'requesting') { release(); return; }
+    const release = await options.arbiter.claim('recording', async () => {
+      if (phase === 'recording') { await finishRecording(generation, 'interrupted'); return; }
+      if (phase === 'requesting') {
+        const lease = releaseRecordingClaim;
+        generation += 1; phase = 'idle'; fail(error('RECORDING_INTERRUPTED')); publish();
+        await options.recorder.cancel();
+        lease?.(); if (releaseRecordingClaim === lease) releaseRecordingClaim = null;
+      } else {
+        const lease = releaseRecordingClaim;
+        await options.recorder.cancel();
+        lease?.(); if (releaseRecordingClaim === lease) releaseRecordingClaim = null;
+      }
+    });
+    if (!alive(g) || phase !== 'requesting' || !release.isCurrent()) { release(); return; }
+    releaseRecordingClaim = release;
     try { await options.recorder.start(); } catch {
-      release(); if (!alive(g)) return;
+      if (!release.isCurrent()) return;
+      await options.recorder.cancel(); release(); if (releaseRecordingClaim === release) releaseRecordingClaim = null;
+      if (!alive(g)) return;
       phase = 'idle'; fail(error('RECORDING_FAILED')); publish(); return;
     }
-    if (!alive(g) || phase !== 'requesting') { try { await options.recorder.cancel(); } catch { /* idempotent */ } release(); return; }
-    releaseRecordingClaim = release; startedAt = now(); elapsedMs = 0; phase = 'recording';
+    if (!alive(g) || phase !== 'requesting' || !release.isCurrent()) {
+      if (release.isCurrent()) { await options.recorder.cancel(); release(); }
+      if (releaseRecordingClaim === release) releaseRecordingClaim = null; return;
+    }
+    startedAt = now(); elapsedMs = 0; phase = 'recording';
     unsubscribeRecorder = [options.recorder.onInterrupted(recordingInterrupted)];
     if (options.recorder.onLevel) unsubscribeRecorder.push(options.recorder.onLevel(value => { if (phase === 'recording') { level = Math.max(0, Math.min(1, value)); publish(); } }));
     ticker = timers.setInterval(() => {
       if (phase !== 'recording') return;
       elapsedMs = Math.max(0, now() - startedAt);
-      if (elapsedMs >= VOICE_MAX_DURATION_MS) { elapsedMs = VOICE_MAX_DURATION_MS; void finishRecording(generation, 'maximum'); return; }
+      if (elapsedMs >= VOICE_MAX_DURATION_MS) { elapsedMs = VOICE_MAX_DURATION_MS; void finishRecording(generation, 'maximum').catch(() => { fail(error('RECORDING_FAILED')); publish(); }); return; }
       publish();
     }, TICK_MS);
     publish();
+    } catch { if (alive(g)) { phase = 'idle'; fail(error('RECORDING_FAILED')); publish(); } }
+    finally { starting = false; if (options.isCurrent()) publish(); }
   }
   async function stop() { if (phase === 'recording') await finishRecording(generation, 'stopped'); }
 
   async function discard() {
+    if (!options.isCurrent() || working) return;
+    working = true; publish();
     const g = generation;
-    if (phase === 'recording') {
-      stopTicker(); unsubscribeRecording(); releaseRecordingClaim?.(); releaseRecordingClaim = null;
-      try { await options.recorder.cancel(); } catch { /* idempotent */ }
-      if (alive(g)) { phase = 'idle'; fail(null); publish(); }
+    try {
+    if (phase === 'recording' || phase === 'requesting') {
+      generation += 1; const retired = generation, lease = releaseRecordingClaim;
+      stopTicker(); unsubscribeRecording();
+      await options.recorder.cancel();
+      lease?.(); if (releaseRecordingClaim === lease) releaseRecordingClaim = null;
+      if (alive(retired)) { phase = 'idle'; fail(null); publish(); }
       return;
     }
     if (phase !== 'review' && phase !== 'failed') return;
     await stopPreview();
+    if (!alive(g)) return;
     const toCancel = pending;
     // A server recording is cancelled first. If that cannot be confirmed the recording stays where it is: the next start shows it as a recovered recording,
     // never a silent send, and deleting it is one explicit tap.
@@ -191,34 +239,43 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     } else if (toCancel) {
       try { await options.journal.clear(options.accountId, toCancel.ref, () => alive(g)); } catch { /* the next restore clears an unused identity */ }
     }
-    await dropFile(); pending = null; phase = 'idle'; fail(null); publish();
+    await dropFile(); if (!alive(g)) return;
+    pending = null; phase = 'idle'; fail(null); publish();
+    } catch { if (options.isCurrent()) { fail(error('OUTCOME_UNKNOWN')); publish(); } }
+    finally { working = false; if (options.isCurrent()) publish(); }
   }
 
   async function togglePreview() {
-    if ((phase !== 'review' && phase !== 'failed') || !recorded) return;
-    const g = generation, file = recorded;
-    if (preview === 'playing') { try { await options.player.pause(); } catch { /* status follows */ } return; }
+    if (!options.isCurrent() || working || previewBusy || previewStopping || (phase !== 'review' && phase !== 'failed') || !recorded) return;
+    const g = generation, p = previewGeneration, file = recorded;
+    const valid = () => alive(g) && previewGeneration === p && recorded === file;
+    previewBusy = true;
     try {
+      if (preview === 'playing') { await options.player.pause(); return; }
       if (!previewLoaded) {
         // Another audio owner taking the speaker ends the preview; the screen must hear about it, so the snapshot is republished.
-        releasePreviewClaim = await options.arbiter.claim('preview', async () => { await stopPreview(); publish(); });
-        if (!alive(g)) { await stopPreview(); return; }
+        const lease = await options.arbiter.claim('preview', async () => { await stopPreview(); publish(); });
+        if (!valid() || !lease.isCurrent()) { lease(); return; }
+        releasePreviewClaim = lease;
         await options.player.load(file.uri);
-        if (!alive(g)) { await stopPreview(); return; }
+        if (!valid() || !lease.isCurrent()) return;
         previewLoaded = true;
         unsubscribePlayer = options.player.onStatus(status => {
-          if (!previewLoaded) return;
+          if (!previewLoaded || !valid() || !lease.isCurrent()) return;
           if (status.ended) { preview = 'idle'; previewMs = 0; void options.player.stop().catch(() => undefined); }
           else { preview = status.playing ? 'playing' : 'paused'; previewMs = Math.max(0, Math.round(status.positionMs)); }
           publish();
         });
       }
+      if (!valid() || !releasePreviewClaim?.isCurrent()) return;
       await options.player.play();
-    } catch { await stopPreview(); if (alive(g)) { fail(error('PLAYBACK_FAILED')); publish(); } }
+    } catch { try { await stopPreview(); } catch { /* keep the lease until a successful cleanup */ } if (alive(g)) { fail(error('PLAYBACK_FAILED')); publish(); } }
+    finally { previewBusy = false; }
   }
 
   /** Delivery: make sure the server holds the recording READY, then hand exactly that asset to the durable voice outbox. */
   async function deliver(g: number): Promise<void> {
+    if (!alive(g)) return;
     const item = pending!, live = agreementNow();
     if (!live.writable) { phase = 'failed'; fail(error('NOT_AVAILABLE')); publish(); return; }
     if (item.assetId === null) {
@@ -256,6 +313,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
       }
     }
     const assetId = item.assetId!;
+    if (!alive(g) || !agreementNow().writable) return;
     await options.outbox.sendVoice({ agreementVersion: item.ref.agreementVersion, assetId });
     if (!alive(g)) return;
     let stored = false;
@@ -272,10 +330,14 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   async function send() {
     if (phase !== 'review' || working || !build().canSend || !recorded) return;
     const g = generation, live = agreementNow();
-    working = true; await stopPreview();
-    pending = pending ?? { ref: { agreementId: options.agreementId, agreementVersion: live.version!, clientRequestId: options.newRequestId() }, attempted: false, assetId: null };
-    phase = 'uploading'; fail(null); publish();
-    try { await deliver(g); }
+    working = true;
+    try {
+      await stopPreview();
+      if (!alive(g)) return;
+      pending = pending ?? { ref: { agreementId: options.agreementId, agreementVersion: live.version!, clientRequestId: options.newRequestId() }, attempted: false, assetId: null };
+      phase = 'uploading'; fail(null); publish();
+      await deliver(g);
+    }
     catch { if (alive(g)) { phase = 'failed'; fail(error('UPLOAD_UNCONFIRMED')); publish(); } }
     finally { working = false; if (alive(g)) publish(); }
   }
@@ -312,7 +374,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   }
   async function sendRecovered(ref: AgreementUploadRef) {
     const g = generation, item = recovered.find(entry => entry.ref.clientRequestId === ref.clientRequestId);
-    if (!item || working || !agreementNow().writable || outboxBusy()) return;
+    if (!item || !options.isCurrent() || working || !agreementNow().writable || outboxBusy()) return;
     working = true; publish();
     try {
       await options.outbox.sendVoice({ agreementVersion: item.ref.agreementVersion, assetId: item.assetId });
@@ -325,7 +387,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   }
   async function discardRecovered(ref: AgreementUploadRef) {
     const g = generation, item = recovered.find(entry => entry.ref.clientRequestId === ref.clientRequestId);
-    if (!item || working) return;
+    if (!item || !options.isCurrent() || working) return;
     working = true; publish();
     try {
       const result = await options.uploads.cancel(item.ref, scope);
@@ -341,7 +403,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   async function dispose() {
     generation += 1; const file = recorded;
     stopTicker(); unsubscribeRecording(); abort?.abort(); abort = null;
-    if (phase === 'recording' || phase === 'requesting') { try { await options.recorder.cancel(); } catch { /* idempotent */ } }
+    if (phase === 'recording' || phase === 'requesting' || releaseRecordingClaim) await options.recorder.cancel();
     releaseRecordingClaim?.(); releaseRecordingClaim = null;
     await stopPreview();
     recorded = null; pending = pending; phase = 'idle'; failure = null; working = false; listeners.clear();

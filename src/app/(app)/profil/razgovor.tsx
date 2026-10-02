@@ -212,18 +212,18 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // minimum height left those controls below a second scroll on smaller Android screens.
   if(panel==='availability')return <CalendarScreen title="Dostupnost za rad" back={back} scroll={false}
     footer={<>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
-      <V2Action label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></>}>
+      <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></>}>
     <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} refreshing={editor.loading} candidateMode
       onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value));}}/>
   </CalendarScreen>;
   if(panel==='manual')return <WorkerProfileFrame back={back}><WorkerAiManual key={data.revision} profile={data.candidate} disabled={!enabled}
     apply={value=>{void patch(value);}}/>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
-    <V2Action label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></WorkerProfileFrame>;
+    <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
-    return <WorkerProfileFrame back={back} footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:<>
-      <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
+    return <WorkerProfileFrame back={back} footer={data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:<>
+      <V2Action tone="neutral" label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
         disabled={!enabled||!writable||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
-      {(expired||editor.uncertain||editor.error)?<V2Action label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
+      {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen}/>
@@ -231,11 +231,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {/* The save button below is grey for one of these reasons; the details above name a missing field themselves. */}
       {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitaj novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}
       {data.profileStatus==='DRAFT'&&!data.saved?<WorkerAiActivation activate={frozen.activate} disabled={!enabled} change={value=>{void review(value);}}/>:null}
-      {expired&&!data.saved?<V2Action label="Učitaj novi pregled" disabled={!enabled} onPress={()=>{void review(frozen.activate);}}/>:null}
+      {expired&&!data.saved?<V2Action tone="neutral" label="Učitaj novi pregled" disabled={!enabled} onPress={()=>{void review(frozen.activate);}}/>:null}
       {editor.error?<T accessibilityRole="alert" tone="danger">{editor.error}</T>:null}
-      {!data.saved?<><V2Action label="Ručno uredi podatke" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('manual');}}/>
-        <V2Action label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('availability');}}/>
-        <V2Action label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={back}/></>:null}
+      {!data.saved?<><V2Action tone="neutral" label="Ručno uredi podatke" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('manual');}}/>
+        <V2Action tone="neutral" label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('availability');}}/>
+        <V2Action tone="neutral" label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={back}/></>:null}
     </WorkerProfileFrame>;
   }
   // Editing by hand and the week are "sometimes" actions: they live behind "···", not at the end of every conversation.
@@ -255,7 +255,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} reviewInFooter review={()=>{void review();}}/>:null}
-    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action label="Pregledaj profil" style={brandAction}
+    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action tone="neutral" label="Pregledaj profil" style={brandAction}
       disabled={!enabled} reason={!enabled?unavailableNow:undefined} onPress={()=>{void review();}}/>:undefined}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
@@ -277,15 +277,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     // through `onTranscript` above.
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
-      {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
+      {(pending.current||awaiting||editor.uncertain||editor.error||data.saved)?<V2Action tone="neutral" label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
       {pending.current&&recovery?.canCancel?<>
         <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, taj pokušaj se ipak računa.</T>
-        <V2Action label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
+        <V2Action tone="neutral" label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}
-      {pending.current?.text&&recovery?.retryAllowed?<V2Action label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
-      {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:null}
-      {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
+      {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
+      {data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:null}
+      {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action tone="neutral" label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
       {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,

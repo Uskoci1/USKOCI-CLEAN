@@ -6,7 +6,7 @@ import { Check, Info, Microphone, StopCircle, Waveform, X } from 'phosphor-react
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
-import { BrandMark } from '../entry/BrandAssets';
+import { FactArt } from '../system/FactArt';
 import { VOICE_ERROR_COPY, type HoldToTalkController, type VoicePhase, type VoiceSnapshot } from '../../features/voice/holdToTalk';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
@@ -64,8 +64,8 @@ function useScreenReader(): boolean {
 /** Whether the text of this capture goes to the field for review: from the running session, else from the screen reader. */
 const reviewing = (state: VoiceSnapshot, reader: boolean) => state.session ? state.session.mode === 'accessible' : reader;
 
-/** The microphone in the composer: a 48 px target with a 44 px circle, filled green only while it listens. */
-export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void }) {
+/** The microphone keeps its gesture; AI shells opt into the owner's centered 60 px target. */
+export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 60 }) {
   const reader = useScreenReader();
   const gesture = useRef<string | null>(null), startY = useRef(0);
   const explicit = reader;
@@ -74,6 +74,8 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void }) {
   const occupied = phase !== 'IDLE' && !active;
   const blocked = (p.disabled && !active) || occupied;
   const listening = phase === 'LISTENING';
+  const targetSize = p.size ?? 48;
+  const glyphSize = targetSize === 60 ? 28 : 22;
   const begin = () => {
     if (p.disabled || occupied || active) return;
     const id = noviUuidZahtevId(); gesture.current = id;
@@ -106,11 +108,11 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void }) {
     onPress={explicit ? () => active ? release() : begin() : undefined}
     onTouchMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) {
       gesture.current = null; p.controller.cancel('gesture'); } }}
-    style={s.target}>
-    <View style={[s.micCircle, listening && s.micListening, waiting && s.micWaiting]}>
-      {waiting ? <ActivityIndicator size="small" color={sys.color.green} />
-        : active && review ? <StopCircle size={22} weight="fill" color={listening ? sys.color.onGreen : sys.color.green} />
-          : <Microphone size={22} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
+    style={[s.target, { width: targetSize, height: targetSize }]}>
+    <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, listening && s.micListening, waiting && s.micWaiting]}>
+      {waiting ? <ActivityIndicator size="small" color={sys.color.artRole.ai.front} />
+        : active && review ? <StopCircle size={glyphSize} weight="fill" color={listening ? sys.color.onGreen : sys.color.ink} />
+          : <Microphone size={glyphSize} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
     </View>
   </Pressable>;
 }
@@ -140,7 +142,7 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
-        {active ? <V2Action kind="quiet" compact label="Otkaži govor" onPress={() => p.controller.cancel('gesture')} /> : null}
+        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži govor" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
     </View>;
   }
@@ -148,7 +150,7 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   const keep = state.fallbackText && state.phase === 'IDLE';
   if (state.error || keep) return <View testID="voice-notice" style={s.notice}>
     {state.error ? <T accessibilityLiveRegion="polite" variant="note" style={s.error}>{VOICE_ERROR_COPY[state.error]}</T> : null}
-    {keep ? <V2Action kind="quiet" compact label="Uredi sačuvani tekst" style={s.start}
+    {keep ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst" style={s.start}
       onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
   if (!p.hint) return null;
@@ -157,7 +159,7 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   // advice), has voice mode here even while the field has text and the waveform button is not shown.
   return <View style={s.hintRow}>
     <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hintText}>{p.hint}</T>
-    {p.hintAction ? <V2Action kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
+    {p.hintAction ? <V2Action tone="neutral" kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
   </View>;
 }
 
@@ -237,13 +239,13 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
         {heard ? <View accessibilityLabel={`Ti: ${heard}`} style={[s.said, live && s.saidLive]}>
           <T selectable style={s.saidText}>{heard}</T></View> : null}
         {live ? null : p.answer ? <View accessibilityLabel={`USKOČI: ${p.answer}`} style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><BrandMark size={24} /></View>
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
           <T selectable style={s.answer}>{p.answer}</T>
         </View> : p.thinking ? <View style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><BrandMark size={24} /></View>
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
           <T accessibilityLiveRegion="polite" variant="copy" tone="muted">Stiže odgovor…</T>
         </View> : !heard ? <View style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><BrandMark size={24} /></View>
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
           <T accessibilityRole="header" style={s.prompt}>{p.prompt}</T>
           <T variant="copy" tone="muted">Odgovor stiže ovde, kao tekst.</T>
         </View> : null}
@@ -252,7 +254,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
         {state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[state.error]} />
           : state.error ? <T accessibilityLiveRegion="polite" variant="note" style={[s.error, s.center]}>{VOICE_ERROR_COPY[state.error]}</T>
             : line ? <T testID="voice-mode-line" accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>{line}</T> : null}
-        {state.fallbackText && state.phase === 'IDLE' ? <V2Action kind="quiet" compact label="Uredi sačuvani tekst"
+        {state.fallbackText && state.phase === 'IDLE' ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst"
           onPress={() => { if (controller.useFallback(onKeepText)) p.onClose('review'); }} /> : null}
         <View style={s.row}>
           <Press testID="voice-mode-mic" accessibilityRole="button" accessibilityLabel={micLabel}
@@ -282,8 +284,8 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
 }
 
 /**
- * The glowing pill: a white capsule with the waveform, lying on a soft green glow. While the microphone listens the
- * capsule turns green and the glow follows the measured level; before that it breathes slowly. Under reduced motion it
+ * The glowing pill: a white capsule with the waveform, lying on a soft purple glow. While the microphone listens the
+ * capsule turns ink and the glow follows the measured level; before that it breathes slowly. Under reduced motion it
  * holds still. It says nothing a screen reader needs: the microphone button and the line above say the state.
  */
 function GlowPill({ listening, level, reduced }: { listening: boolean; level: number | null; reduced: boolean }) {
@@ -299,7 +301,7 @@ function GlowPill({ listening, level, reduced }: { listening: boolean; level: nu
   return <View testID="voice-glow" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.pillStage}>
     {reduced ? <View style={[s.glow, listening && s.glowOn]} /> : <Animated.View style={[s.glow, listening && s.glowOn, glow]} />}
     <View style={[s.pillCore, listening && s.pillCoreOn]}>
-      <Waveform size={28} weight="bold" color={listening ? sys.color.onGreen : sys.color.green} />
+      <Waveform size={28} weight="bold" color={listening ? sys.color.onGreen : sys.color.ink} />
     </View>
   </View>;
 }
@@ -310,26 +312,26 @@ const s = StyleSheet.create({
   // The composer's controls: a 48 px target, a 44 px circle inside it.
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   micCircle: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  micListening: { backgroundColor: sys.color.green },
-  micWaiting: { backgroundColor: sys.color.greenSoft },
+  micListening: { backgroundColor: sys.color.ink },
+  micWaiting: { backgroundColor: sys.color.wash },
   notice: { gap: 4, paddingHorizontal: 8 },
   noticeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   noticeText: { flex: 1, color: sys.color.muted },
-  noticeLive: { color: sys.color.green, fontWeight: '600' },
+  noticeLive: { color: sys.color.ink, fontWeight: '600' },
   heard: { ...sys.type.body, color: sys.color.ink },
   hintRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, paddingHorizontal: 8 },
   hintText: { flexShrink: 1 },
   error: { color: sys.color.danger },
   levels: { flexDirection: 'row', gap: 3, height: 24, alignItems: 'center' },
   level: { width: 3, borderRadius: sys.radius.pill, backgroundColor: sys.color.lineStrong },
-  levelOn: { backgroundColor: sys.color.green },
+  levelOn: { backgroundColor: sys.color.artRole.ai.front },
   // Voice mode: white, the exchange above, the controls at the thumb.
   screen: { flex: 1, backgroundColor: sys.color.surface },
   top: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm },
   quietCircle: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   exchange: { flexGrow: 1, justifyContent: 'flex-end', gap: 24, paddingHorizontal: 24, paddingVertical: 16 },
   said: { alignSelf: 'flex-end', maxWidth: '85%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: sys.radius.card,
-    backgroundColor: sys.color.greenSoft },
+    backgroundColor: sys.color.wash },
   saidLive: { opacity: 0.7 },
   saidText: { ...sys.type.body, color: sys.color.ink },
   answerBlock: { gap: 10 },
@@ -339,18 +341,18 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   big: { width: BIG, height: BIG, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
-  bigOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
+  bigOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
   pillStage: { flex: 1, height: 88, justifyContent: 'center' },
-  // The glow is the action green, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
-  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.green, opacity: 0.14 },
+  // The glow is the AI purple, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
+  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },
   pillCore: { height: BIG, marginHorizontal: 12, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
-  pillCoreOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
+  pillCoreOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', paddingHorizontal: 8 },
   box: { width: 22, height: 22, borderRadius: sys.radius.check, borderWidth: 1.5, borderColor: sys.color.lineStrong,
     alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
-  boxOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
+  boxOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   optionText: { color: sys.color.ink },
 });

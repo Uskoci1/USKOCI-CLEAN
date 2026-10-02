@@ -24,7 +24,7 @@ type Props = {
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
   onCorrectInConversation?: () => void;
-  /** Confirming the point is the green action where nothing else saves (the conversation's point sheet); in the long
+  /** Confirming the point is the primary action where nothing else saves (the conversation's point sheet); in the long
    *  form the footer's save is, so there the confirmation is white. */
   confirmAsPrimary?: boolean;
   onInvalidate: () => void; onConfirm: (point: ConfirmedLocationPoint) => void;
@@ -221,7 +221,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     return <View style={{ gap: sys.space.md }}>
       <View style={{ gap: sys.space.xs }}>
         <T variant="meta" tone="muted">{title}</T>
-        <T variant="bodyStrong" style={{ fontSize: 18, lineHeight: 24 }}>{label || 'Mesto još nije izabrano'}</T>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm }}>
+          <FactArt kind="pin" size={24} cut="art" role="location" />
+          <T variant="bodyStrong" style={{ flex: 1, minWidth: 0, fontSize: 18, lineHeight: 24, color: sys.color.ink }}>{label || 'Mesto još nije izabrano'}</T>
+        </View>
         <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
           ? confirmed ? 'Potvrđena tačka. Možeš da je izmeniš.'
             : alternatives.length > 1 ? 'Ima više predloga. Proveri pin pre potvrde.' : 'Proveri pin, pa potvrdi mesto.'
@@ -235,19 +238,19 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         disabled={disabled || !focused} height={220} /> : null}
       <T variant="meta" tone="muted">Svi vide približno područje. Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
       {position ? <>
-        <Button label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
+        <Button tone="neutral" label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
           style={confirmAsPrimary ? brandAction : undefined} disabled={disabled || !focused || loading} onPress={confirm} />
-        <Button label={correctionOpen ? 'Sakrij opcije izmene' : 'Ispravi mesto'} kind="quiet"
+        <Button tone="neutral" label={correctionOpen ? 'Sakrij opcije izmene' : 'Ispravi mesto'} kind="quiet"
           disabled={disabled || !focused} onPress={() => { if (owns()) setCorrectionOpen(value => !value); }} />
       </> : null}
       {correctionOpen ? <>
         <T variant="note" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi, pa potvrdi izmenu.</T>
-        {alternatives.length > 1 ? alternatives.map((candidate, index) => <Button
+        {alternatives.length > 1 ? alternatives.map((candidate, index) => <Button tone="neutral"
           key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={candidate.label}
           accessibilityLabel={`Izaberi predlog: ${candidate.label}`} kind="secondary"
           disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
       </> : null}
-      {(correctionOpen || !position) && onCorrectInConversation ? <Button label="Ispravi u razgovoru" kind="quiet"
+      {(correctionOpen || !position) && onCorrectInConversation ? <Button tone="neutral" label="Ispravi u razgovoru" kind="quiet"
         disabled={disabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
       {lookup.status === 'PROPOSALS' ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
         onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}

@@ -6,7 +6,7 @@ import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
 import { Press } from '../Press';
-import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { sys, card, inset, field } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { V2Action } from '../v2/V2Action';
@@ -19,6 +19,9 @@ import { osoba, plural } from '../system/plural';
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
 const list=(values:readonly string[])=>values.length?values.join(' · '):EMPTY;
+const artRole=(kind:FactArtKind):FactArtRole => kind==='pin'||kind==='map'||kind==='remote'?'location'
+  :kind==='clock'||kind==='calendar'?'time':kind==='tool'||kind==='vehicle'?'skills'
+    :kind==='person'||kind==='users'?'people':'ai';
 /** Live card of the worker profile proposal beside the conversation. */
 export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean}){
   const { expanded, toggle } = useAiDraftDisclosure();
@@ -39,7 +42,7 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         <T variant="label" tone="muted">Radni profil</T>
         <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
       </View>
-      <DisclosureCaret size={20} color={sys.color.green}/>
+      <DisclosureCaret size={20} color={sys.color.muted}/>
     </Press>
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
         <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
@@ -60,14 +63,14 @@ function ReviewCue({disabled}:{disabled:boolean}){
   </View>;
 }
 function PreviewFact({art,children}:{art:FactArtKind;children:string}){
-  return <View style={s.previewFact}><FactArt kind={art} size={24}/><T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
+  return <View style={s.previewFact}><FactArt kind={art} size={24} cut="art" role={artRole(art)}/><T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
 }
 function Row({label,value,quiet=false}:{label:string;value:string;quiet?:boolean}){
   return <View style={s.row}><T variant="meta" tone="muted">{label}</T><T selectable variant="body" style={quiet?s.muted:s.ink}>{value}</T></View>;
 }
 function ReviewSection({title,art,children}:{title:string;art:FactArtKind;children:ReactNode}){
   return <View style={s.reviewSection}>
-    <View style={s.sectionHead}><View style={s.sectionIcon}><FactArt kind={art} size={28}/></View>
+    <View style={s.sectionHead}><View style={s.sectionIcon}><FactArt kind={art} size={28} role={artRole(art)}/></View>
       <T accessibilityRole="header" variant="heading" style={[s.grow,s.skillHeading]}>{title}</T></View>
     <View style={s.reviewRows}>{children}</View>
   </View>;
@@ -78,11 +81,11 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
   const point=displayedPinPosition(p.location.approximatePosition,true);
   return <View style={s.review}>
     <View style={s.reviewIntro}>
-      <View style={s.sectionHead}><View style={s.introIcon}><FactArt kind="person" size={32}/></View>
+      <View style={s.sectionHead}><View style={s.introIcon}><FactArt kind="person" size={32} role="people"/></View>
         <T accessibilityRole="header" variant="title" style={[s.grow,s.skillHeading]}>{p.displayName||'Radni profil'}</T></View>
       <T variant="note" tone="muted">Proveri sve podatke. Završno dugme prihvata ovaj pregled i čuva profil.</T>
     </View>
-    {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24}/>
+    {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.join(', ')}.</T></View>:null}
     <ReviewSection title="Veštine i oprema" art="tool">
       <Row label="Veštine i usluge" value={list(p.skills)} /><Row label="Alat i oprema" value={list(p.tools)} />
@@ -148,12 +151,12 @@ export function WorkerAiManual({profile,disabled,apply}:{profile:WorkerAiProfile
     <View style={s.section}><T variant="heading" style={s.ink}>Područje rada</T>
       <Field disabled={disabled} label="Država rada (npr. RS)" value={country} change={setCountry}/>
       <Field disabled={disabled} label="Grad ili mesto rada" value={city} change={setCity}/><Field disabled={disabled} label="Radijus rada u km" value={radius} change={setRadius} numeric/></View>
-    {error?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View>:null}<V2Action label="Primeni na pregled profila" disabled={disabled} onPress={submit}/>
+    {error?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View>:null}<V2Action tone="neutral" label="Primeni na pregled profila" disabled={disabled} onPress={submit}/>
   </>;
 }
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
   return <View style={s.activation}><View style={{flex:1}}><T variant="bodyStrong" style={s.ink}>Aktiviraj profil posle čuvanja</T><T variant="meta" tone="muted">Isključeno: profil ostaje nacrt.</T></View>
-    <Switch accessibilityLabel="Aktiviraj profil posle čuvanja" value={activate} disabled={disabled} onValueChange={change} trackColor={{true:sys.color.green,false:sys.color.lineStrong}} thumbColor={sys.color.surface}/></View>;
+    <Switch accessibilityLabel="Aktiviraj profil posle čuvanja" value={activate} disabled={disabled} onValueChange={change} trackColor={{true:sys.color.ink,false:sys.color.lineStrong}} thumbColor={sys.color.surface}/></View>;
 }
 const s=StyleSheet.create({
   ink:{color:sys.color.ink},
@@ -164,12 +167,12 @@ const s=StyleSheet.create({
   cardCompact:{paddingVertical:6,borderRadius:sys.radius.cardCompact},
   previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
   previewSummary:{gap:sys.space.xs},
-  skillHeading:{color:sys.color.green},
+  skillHeading:{color:sys.color.ink},
   previewFacts:{gap:sys.space.sm},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
   reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:sys.space.sm},
-  reviewLabel:{color:sys.color.green,fontWeight:'700'},
-  reviewCue:{width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.green,alignItems:'center',justifyContent:'center'},
+  reviewLabel:{color:sys.color.ink,fontWeight:'700'},
+  reviewCue:{width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   review:{gap:sys.space.xl},
   reviewIntro:{gap:sys.space.md,padding:sys.space.base,borderRadius:sys.radius.card,

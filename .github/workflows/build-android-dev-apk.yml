@@ -51,6 +51,9 @@ env:
   EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
   EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
   EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
+  # Voice B1 is applied on canonical DEV. B2 Android recording/player UI is included for scoped native acceptance.
+  # Remove this flag and rebuild to return to V1 readers. AI PCM capture stays on its existing native adapter until parity is accepted.
+  EXPO_PUBLIC_VOICE_MESSAGES: '1'
   CI: '1'
   NODE_ENV: production
 

@@ -6,7 +6,6 @@ import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { Press } from '../Press';
-import { BrandMark } from '../entry/BrandAssets';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
@@ -59,7 +58,7 @@ export type AiConversationShellProps = {
  * title, "···"), a compact live draft above an independent thread, and one composer edge.
  *
  * - The assistant speaks on an open reading surface with a quiet group label; the person's own words are
- *   forest-green bubbles on the right. Nothing is typed out that has not arrived: streamed text is the
+ *   dark ink bubbles on the right. Nothing is typed out that has not arrived: streamed text is the
  *   server's own deltas, and while nothing has arrived three dots say that an answer is being written.
  * - The composer gives text its full width; attachments and speech sit in a separate toolbar, with send at the right.
  *   Empty input offers voice mode, which still returns text. A send that cannot go now is disabled and explains why.
@@ -217,7 +216,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
               accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
               onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }}>
               {p.openingArts?.[index] ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.openingArt}>
-                <FactArt kind={p.openingArts[index]} size={24} cut="art" /></View> : null}
+                <FactArt kind={p.openingArts[index]} size={24} cut="art"
+                  role={p.openingArts[index] === 'home' || p.openingArts[index] === 'pin' ? 'location'
+                    : p.openingArts[index] === 'users' || p.openingArts[index] === 'person' ? 'people' : 'skills'} /></View> : null}
               <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.muted} /></Press>)}
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
@@ -253,7 +254,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {readingEarlier && hasActivity ? <View testID="ai-latest-region" style={s.latestRegion}>
         <Press testID="ai-latest" accessibilityRole="button"
         accessibilityLabel="Najnovija poruka" onPress={() => latest(!reduced)} haptic="select" style={s.latest}>
-        <ArrowDown size={18} color={sys.color.green} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
+        <ArrowDown size={18} color={sys.color.ink} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
       </Press></View> : null}
       </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
@@ -283,8 +284,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
               hitSlop={0} onPress={p.attach.onPress} style={s.target}>
               <View style={s.toolCircle}><Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} /></View>
             </Press> : null}
-            {p.voice ? <VoiceComposer {...p.voice} onTooShort={() => setHoldHint(true)} /> : null}
           </View>
+          <View style={s.toolsCenter}>
+            {p.voice ? <VoiceComposer {...p.voice} size={60} onTooShort={() => setHoldHint(true)} /> : null}
+          </View>
+          <View style={s.toolsEnd}>
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
@@ -295,8 +299,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
             accessibilityState={{ disabled: p.voice.disabled || !voiceIdle }} disabled={p.voice.disabled || !voiceIdle}
             haptic="select" hitSlop={0} onPress={() => { Keyboard.dismiss(); setVoiceReview(false); setVoiceMode(true); }} style={s.target}>
             <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
-              <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.green} /></View>
+              <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.ink} /></View>
           </Press> : null}
+          </View>
           </View>
         </View>
       </SafeAreaView>
@@ -312,18 +317,18 @@ export function AiConversationShell(p: AiConversationShellProps) {
 /** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
 function Mark() {
   return <View testID="ai-assistant-mark" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
-    <BrandMark size={24} />
+    <FactArt kind="chat" size={24} cut="art" role="ai" />
   </View>;
 }
 
 /**
- * Brand identity belongs to the opening. An idle welcome is static: nothing is listening or processing yet.
+ * The AI illustration belongs to the opening. An idle welcome is static: nothing is listening or processing yet.
  * Only the real busy state below carries continuing motion.
  */
 function AssistantPresence() {
   return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
     <View style={s.presenceHalo} />
-    <View style={s.presenceDisc}><BrandMark size={40} /></View>
+    <View style={s.presenceDisc}><FactArt kind="chat" size={40} cut="art" role="ai" /></View>
     <View style={s.presenceAccent} />
   </View>;
 }
@@ -364,10 +369,10 @@ const s = StyleSheet.create({
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
   presence: { width: 76, height: 76, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
-  presenceHalo: { position: 'absolute', width: 76, height: 76, borderRadius: 38, backgroundColor: sys.conversation.iconWell },
+  presenceHalo: { position: 'absolute', width: 76, height: 76, borderRadius: 38, backgroundColor: sys.color.artRole.ai.soft },
   presenceDisc: { width: 62, height: 62, borderRadius: 22, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
   presenceAccent: { position: 'absolute', right: 4, top: 6, width: 16, height: 16, borderRadius: 8,
-    backgroundColor: sys.color.orange, borderWidth: 3, borderColor: sys.conversation.ground },
+    backgroundColor: sys.color.artRole.ai.front, borderWidth: 3, borderColor: sys.conversation.ground },
   welcomeTitle: { ...sys.type.title, color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   openings: { gap: sys.space.sm, marginTop: sys.space.sm },
@@ -383,16 +388,16 @@ const s = StyleSheet.create({
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
-  // Own words have a distinct alignment and high-contrast forest fill.
+  // Own words have a distinct alignment and high-contrast ink fill.
   person: { alignSelf: 'flex-end', maxWidth: '90%', marginLeft: 24, paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.conversation.user },
+    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.color.ink },
   personText: { ...sys.type.body, color: sys.conversation.onUser },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
   sending: { opacity: 0.85 },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
   typing: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap', minHeight: 28, paddingLeft: 2 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },
-  dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front },
   dotStill: { opacity: 0.55 },
   recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   actions: { gap: 10 },
@@ -400,24 +405,28 @@ const s = StyleSheet.create({
   latest: { alignSelf: 'center', maxWidth: '100%', minHeight: 48, flexDirection: 'row', gap: 8,
     alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface },
-  latestText: { flexShrink: 1, color: sys.color.green, fontWeight: '600' },
+  latestText: { flexShrink: 1, color: sys.color.ink, fontWeight: '600' },
   footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
   // The draft uses the full width; controls never squeeze the sentence between three competing circles.
-  pill: { paddingHorizontal: 8, paddingVertical: 6,
-    borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
-  pillFocused: { borderColor: sys.color.green },
-  composerTools: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  toolsStart: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
-  toolCircle: { width: 40, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash,
+  pill: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 8,
+    borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.conversation.surface,
+    ...sys.elevation.soft },
+  pillFocused: { borderColor: sys.color.ink },
+  composerTools: { flexDirection: 'row', alignItems: 'center' },
+  // Equal outer slots keep hold-to-talk physically centered, even when this role has no attachment action.
+  toolsStart: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', minHeight: 48 },
+  toolsCenter: { width: 60, alignItems: 'center', justifyContent: 'center' },
+  toolsEnd: { flex: 1, alignItems: 'flex-end', justifyContent: 'center', minHeight: 48 },
+  toolCircle: { width: 40, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   input: withInter({ ...sys.type.body, color: sys.color.ink, minWidth: 0, minHeight: 48, maxHeight: 132,
     paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, textAlignVertical: 'top' }),
   inputOff: { color: sys.color.muted },
   round: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  send: { backgroundColor: sys.color.green },
-  voiceRound: { backgroundColor: sys.color.greenSoft },
+  send: { backgroundColor: sys.color.ink },
+  voiceRound: { backgroundColor: sys.color.artRole.location.soft },
   // Disabled is a quiet wash with a muted glyph, never a faded ghost of the live control.
   roundOff: { backgroundColor: sys.color.wash },
 });

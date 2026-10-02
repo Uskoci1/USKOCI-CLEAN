@@ -47,15 +47,36 @@ export interface VoiceFilePort {
 }
 
 /** Exactly one of these owns the speaker or the microphone; claiming releases the previous owner first. */
-export type AudioOwner = 'recording' | 'preview' | 'playback';
+export type AudioOwner = 'recording' | 'preview' | 'playback' | 'speech';
+/** Release only after native teardown succeeds; use isCurrent after awaited setup. */
+export type AudioLease = (() => void) & { isCurrent(): boolean };
 export function createAudioArbiter() {
-  let owner: { kind: AudioOwner; release: () => void | Promise<void> } | null = null;
+  let owner: { kind: AudioOwner; release: () => void | Promise<void>; revoked: boolean } | null = null;
+  let queue: Promise<void> = Promise.resolve();
   return {
     /** Returns a release function for the claim. `release` is called when another owner claims, never when this owner releases itself. */
-    async claim(kind: AudioOwner, release: () => void | Promise<void>): Promise<() => void> {
-      const previous = owner; const mine = { kind, release }; owner = mine;
-      if (previous) { try { await previous.release(); } catch { /* the previous owner's own cleanup failing must not block the new one */ } }
-      return () => { if (owner === mine) owner = null; };
+    claim(kind: AudioOwner, release: () => void | Promise<void>): Promise<AudioLease> {
+      const claim = queue.then(async () => {
+        const previous = owner;
+        if (previous) {
+          previous.revoked = true;
+          try { await previous.release(); }
+          catch (error) {
+            // A caller may have cleared its lease before discovering native teardown
+            // failed. Retain the exclusion fence: no second microphone/player starts.
+            owner = previous;
+            throw error;
+          }
+        }
+        const mine = { kind, release, revoked: false }; owner = mine;
+        return Object.assign(() => { if (owner === mine) owner = null; }, {
+          isCurrent: () => owner === mine && !mine.revoked,
+        });
+      });
+      // All handoffs wait for teardown, including handoffs queued in the same tick.
+      // A failed request does not poison the queue; the retained owner is retried.
+      queue = claim.then(() => undefined, () => undefined);
+      return claim;
     },
     current: (): AudioOwner | null => owner?.kind ?? null,
   };

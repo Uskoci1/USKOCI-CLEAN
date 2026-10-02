@@ -53,9 +53,9 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
     <ScreenChrome variant="detail" tone="conversation" onBack={back} />
     <View style={s.unavailable}>
       {loading ? <View style={s.loading}>
-        <View style={s.unavailableMark}><FactArt kind="chat" size={36} /></View>
+        <View style={s.unavailableMark}><FactArt kind="chat" size={36} role="ai" /></View>
         <T accessibilityRole="header" variant="title" style={s.ink}>Otvaramo razgovor</T>
-        <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.green} />
+        <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.artRole.ai.front} />
       </View> : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary} />}
     </View>
   </SafeAreaView>;
@@ -112,9 +112,9 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       <DisclosureCaret size={20} color={sys.color.muted} />
     </Press>}
     {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
-      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" tone="quiet" />} text={summary.zone} lines={0} /> : null}
-      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={summary.schedule} lines={0} /> : null}
-      {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" tone="quiet" />} text={summary.people} lines={0} /> : null}
+      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" role="location" />} text={summary.zone} lines={0} /> : null}
+      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" role="time" />} text={summary.schedule} lines={0} /> : null}
+      {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" role="people" />} text={summary.people} lines={0} /> : null}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
@@ -225,7 +225,7 @@ export function IntakePresentation(props: Props) {
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
-    footerAction={readyForReview ? <V2Action label={props.reviewLabel} style={brandAction} onPress={outsidePlace(props.onReview)} /> : undefined}
+    footerAction={readyForReview ? <V2Action tone="neutral" label={props.reviewLabel} style={brandAction} onPress={outsidePlace(props.onReview)} /> : undefined}
     actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
@@ -251,16 +251,16 @@ export function IntakePresentation(props: Props) {
         </Suspense>
       </> : null}
       {showPlace && pointAskHidden
-        ? <V2Action label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
+        ? <V2Action tone="neutral" label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
         <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, taj pokušaj se ipak računa.</T>
-        <V2Action kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
+        <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
-      {props.showReadback ? <V2Action label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
+      {props.showReadback ? <V2Action tone="neutral" label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'options' ? <ActionSheet label="Opcije razgovora" actions={menu} reduced={reduced} onClose={() => setPanel(null)} /> : null}
   </AiConversationShell>;

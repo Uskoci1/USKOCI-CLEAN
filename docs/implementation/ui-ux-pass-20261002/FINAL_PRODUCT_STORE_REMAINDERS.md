@@ -63,3 +63,7 @@ Javno HTTPS čitanje `https://uskoci.rs/` vratilo je200 i postojeću USKOČI pre
 4. **Sajt i pravni podaci:** koristiti postojeće nacrte i uskoci.rs. Još nedostaju potvrđeno ime operatora za javne tekstove, kontakt podrške, odgovarajući sadržaj i pristup projektu sajta. Ne izmišljati kontakt kao `podrska@uskoci.rs` dok sanduče nije stvarno podešeno. Planirane putanje za privatnost/uslove/podršku/brisanje nisu već objavljeni URL-ovi.
 
 Lični Play nalog određuje Google nalog za objavu; sam po sebi nije pravna procena statusa pružaoca usluge. Nije popunjavan niti odobren pravni tekst sa pretpostavljenim ličnim podacima.
+
+## Noviji nastavak istog dana
+
+Vlasnik sada potvrđuje da je napravio Personal Google Play nalog i da je verifikacija u toku; raniji status da nalog ne postoji je prevaziđen. Završetak verifikacije nije potvrđen. B2 recorder/player i UI su sada povezani u Android izvoru, uz postojeći voice flag u DEV workflow-u; izvor nije dokaz rada na uređaju. Videti noviji nastavak u VISUAL_FINISHING_20261002.md.

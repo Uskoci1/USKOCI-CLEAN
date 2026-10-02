@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowClockwise, ArrowDown, ImageSquare, PaperPlaneTilt, X } from 'phosphor-react-native';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
-import { sameMessagePhotos, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
+import { sameMessagePhotos, sameMessageVoice, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
+import { voiceMessagesBuilt } from '../data/voiceMessagesGate';
+import { useAgreementVoice, type AgreementVoiceScope, type AgreementVoiceController } from '../hooks/useAgreementVoice';
+import { AgreementVoiceMessage, AgreementVoiceMic, AgreementVoicePanel, voiceTime } from './media/AgreementVoiceControls';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
@@ -36,6 +39,7 @@ type Props = {
   outbox: Outbox;
   state: ReturnType<Outbox['getSnapshot']>;
   photos?: AgreementPhotosController;
+  voiceScope?: AgreementVoiceScope;
   support?: { canAct: () => boolean; navigate: (action: () => void) => void };
   /** The surrounding frame moves identity/accepted terms into history when the keyboard or text needs the space. */
   context?: ReactNode;
@@ -86,11 +90,11 @@ export function messageMoment(text: string): { day: string | null; clock: string
  * carries), and when (the day the read named, then the clock). The bubble's press hides its children, so a photo the
  * label does not name is never heard (verify r4b rd item 2).
  */
-export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljalacIme' | 'telo' | 'fotografije'>,
+export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljalacIme' | 'telo' | 'fotografije' | 'glas'>,
   moment: { day: string | null; clock: string }): string {
   const who = message.moja ? 'Ti' : message.posiljalacIme;
   const photoCount = message.fotografije?.length ?? 0;
-  const what = [message.telo, photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : '']
+  const what = [message.telo, message.glas ? `glasovna poruka ${voiceTime(message.glas.trajanjeMs)}` : '', photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : '']
     .filter(Boolean).join(', ') || 'poruka bez teksta';
   return `${who}: ${what}, ${moment.day ? `${moment.day}, ` : ''}${moment.clock}`;
 }
@@ -142,10 +146,21 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
  * own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
-export function AgreementChat({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos,
+export function AgreementChat(props: Props) {
+  return voiceMessagesBuilt() && Platform.OS === 'android' && props.voiceScope
+    ? <VoiceEnabledAgreementChat {...props} voiceScope={props.voiceScope} /> : <AgreementChatContent {...props} />;
+}
+function VoiceEnabledAgreementChat(props: Props & { voiceScope: AgreementVoiceScope }) {
+  const voice = useAgreementVoice({ ...props.voiceScope, writable: props.writable && !props.terminal,
+    canRecord: props.state.phase === 'ready' && !props.state.capturing && !props.state.draft.trim()
+      && (!props.photos || props.photos.loaded && !props.photos.busy && !props.photos.hasSelection),
+    messages: props.messages, historyError: props.error, refresh: props.refresh });
+  return <AgreementChatContent {...props} voice={voice} />;
+}
+function AgreementChatContent({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos, voice,
   context, compact = false, refreshing = false, refreshError = false, readingPosition,
   hasOlder = false, hasNewer = false, loadingOlder = false, loadingNewer = false, historyError = false,
-  historyErrorDirection, onLoadOlder, onLoadNewer, onShowLatest, onDisplayedMessageIds }: Props) {
+  historyErrorDirection, onLoadOlder, onLoadNewer, onShowLatest, onDisplayedMessageIds }: Props & { voice?: AgreementVoiceController }) {
   const textScale = useTextScale();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -164,7 +179,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const scrollObserved = useRef(false);
   const pendingHistory = useRef<PorukaProjekcija[] | null>(null);
   const layoutIdentity = useMemo(() => JSON.stringify([textScale, chosen, messages.map(message =>
-    [message.id, message.telo, message.vremeTekst, message.moja, message.fotografije])]), [messages, textScale, chosen]);
+    [message.id, message.telo, message.vremeTekst, message.moja, message.fotografije, message.glas])]), [messages, textScale, chosen]);
   const previousLayout = useRef(layoutIdentity);
   // Insertion, eviction, a changed bubble/day/photo or font size retires old native
   // measurements. In particular an unchanged first ID does not prove the rest stayed put.
@@ -305,8 +320,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
   const supportCurrent = () => !!support && source.current.support === support && source.current.messages === messages
     && !source.current.loading && !source.current.error && support.canAct();
   const ready = state.phase === 'ready';
+  const entries = voice ? [...state.entries, ...voice.outboxState.entries] : state.entries;
+  const voiceBusy = !!voice && voice.recording.phase !== 'idle';
   const length = Array.from(state.draft.trim()).length;
-  const canSend = ready && writable && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
+  const canSend = ready && writable && !voiceBusy && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
   const settleSend = async (owner: Outbox, photoAgreementId?: string) => {
     if (!mounted.current || source.current.outbox !== owner) return;
@@ -317,6 +334,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     if (currentPhotos?.agreementId === photoAgreementId) await currentPhotos?.refresh();
   };
   const send = () => {
+    if (voiceBusy) return;
     if (!mounted.current || source.current.outbox !== outbox || source.current.terminal || !source.current.writable) return;
     const currentPhotos = source.current.photos;
     if (currentPhotos && !currentPhotos.canSubmit()) return;
@@ -335,6 +353,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       && message.clientMessageId === entry.command.clientMessageId
       && sameMessagePhotos(entry.command.photos, message.fotografije?.length
         ? { agreementVersion: message.dogovorVerzija!, assetIds: message.fotografije.map(photo => photo.assetId) } : undefined)
+      && sameMessageVoice(entry.command.voice, message.glas ? { agreementVersion: message.dogovorVerzija!, assetId: message.glas.assetId } : undefined)
       && (!entry.messageId || message.id === entry.messageId));
   const receiptKey = (entry: typeof state.entries[number]) => JSON.stringify(entry.command);
   const observedOutbox = useRef({ owner: outbox, hydrated: false, historical: new Set<string>(), canonical: new Set<string>() });
@@ -346,17 +365,23 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
     observed.hydrated = true;
     for (const entry of state.entries) if (entry.state === 'confirmed') observed.historical.add(receiptKey(entry));
   }
+  const observedVoice = useRef({ owner: voice?.outbox, hydrated: false });
+  if (observedVoice.current.owner !== voice?.outbox) observedVoice.current = { owner: voice?.outbox, hydrated: false };
+  if (voice?.outboxState.phase === 'ready' && !observedVoice.current.hydrated) {
+    observedVoice.current.hydrated = true;
+    for (const entry of voice.outboxState.entries) if (entry.state === 'confirmed') observed.historical.add(receiptKey(entry));
+  }
   // Confirmed receipts have no chronological timestamp. Hydrated receipts and already
   // observed canonical rows must never reappear at the end of an older server window.
   // Newly confirmed sends still show until their first exact canonical read, even if
   // React batches away the intermediate sending render. Keep bookkeeping outbox-bounded.
-  const currentKeys = new Set(state.entries.map(receiptKey));
+  const currentKeys = new Set(entries.map(receiptKey));
   for (const key of observed.historical) if (!currentKeys.has(key)) observed.historical.delete(key);
   for (const key of observed.canonical) if (!currentKeys.has(key)) observed.canonical.delete(key);
-  for (const entry of state.entries) if (matchesCanonical(entry)) observed.canonical.add(receiptKey(entry));
-  const local = state.entries.filter(entry => !matchesCanonical(entry)
+  for (const entry of entries) if (matchesCanonical(entry)) observed.canonical.add(receiptKey(entry));
+  const local = entries.filter(entry => !matchesCanonical(entry)
     && !(entry.state === 'confirmed' && (observed.historical.has(receiptKey(entry)) || observed.canonical.has(receiptKey(entry)))));
-  const denied = state.entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
+  const denied = entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
   // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists, and
   // then the "+" (drawn as the close X) cannot fold it away, so it says so instead of swapping its icon for nothing
   // (review r4 rd item 6).
@@ -489,7 +514,10 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
                 style={s.photo} />)}
               {body ? <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{clock}</View>
                 : <Press {...summary} style={s.photoSummary}>{clock}</Press>}
-            </View> : <Press {...summary} style={bubbleStyle}>{body}{clock}</Press>}
+            </View> : message.glas && voice ? <View style={bubbleStyle}>
+              <AgreementVoiceMessage voice={voice} message={message} />
+              <Press {...summary} style={s.photoSummary}>{clock}</Press>
+            </View> : <Press {...summary} style={bubbleStyle}>{body}{message.glas ? <T style={[s.body, message.moja && s.onMine]}>Glasovna poruka · {voiceTime(message.glas.trajanjeMs)}</T> : null}{clock}</Press>}
             </View>
             {/* This stood under every message, full width, doubling the height of the transcript. It belongs to the
                 message a person actually wants to report, which is the one they hold. It stands under that bubble, on
@@ -498,7 +526,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
             {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <View
               style={[s.supportEntry, message.moja ? s.supportMine : s.supportTheirs]}><SupportContextEntry
                 reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
-                label="Izaberi ovu poruku za podršku" previewText={[message.telo, message.fotografije?.length
+                label="Izaberi ovu poruku za podršku" previewText={[message.glas ? 'Glasovna poruka. Podrška ne može da presluša snimak.' : message.telo, message.fotografije?.length
                   ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
                 canAct={supportCurrent} navigate={support.navigate} /></View> : null}
           </View>;
@@ -513,6 +541,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {local.map((entry, index) => <View key={entry.command.clientMessageId}
           style={[s.bubble, s.mine, entry.state === 'failed' && s.failed, index || shown[shown.length - 1]?.moja ? s.run : s.turn]}>
           {entry.command.body ? <T selectable style={[s.body,entry.state!=='failed'&&s.onMine]}>{entry.command.body}</T> : null}
+          {entry.command.voice ? <T style={[s.body, entry.state !== 'failed' && s.onMine]}>Glasovna poruka</T> : null}
           {entry.command.photos?.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
             agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
             style={s.photo} />)}
@@ -522,8 +551,9 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           </T>
           {entry.state === 'failed' && entry.error ? <T variant="meta" tone="muted">{errors[entry.error]}</T> : null}
           {(entry.state === 'unknown' || entry.state === 'failed') &&
-            <ChatAction label={`Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone={entry.state==='failed'?'ink':'onMine'}
-              onPress={() => { void outbox.retry(entry.command.clientMessageId).then(() => settleSend(outbox, entry.command.agreementId)); }} />}
+            <ChatAction label={entry.command.voice ? 'Ponovi isto slanje glasovne poruke' : `Ponovi slanje poruke ${entry.command.body}`} text="Pokušaj ponovo" tone={entry.state==='failed'?'ink':'onMine'}
+              onPress={() => { const owner = entry.command.voice ? voice?.outbox : outbox;
+                if (owner) void owner.retry(entry.command.clientMessageId).then(() => settleSend(outbox, entry.command.agreementId)); }} />}
         </View>)}
       {/* Photo preparation and recovery can be taller than the remaining keyboard viewport. They belong to its
           scroll, directly above writing, so their complete explanation and every exact retry remain reachable. */}
@@ -539,6 +569,11 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
         {photos && terminal ? <TerminalPhotoRecovery photos={photos} capturing={state.capturing} /> : null}
       </View> : null}
+      {voice ? <View style={s.details}>
+        <AgreementVoicePanel voice={voice} writable={writable && !terminal} />
+        {voice.outboxState.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[voice.outboxState.error]}</T> : null}
+        {voice.outboxState.phase === 'error' ? <ChatAction label="Učitaj sačuvana slanja glasovnih poruka" text="Pokušaj ponovo" onPress={() => { void voice.outbox.start(); }} /> : null}
+      </View> : null}
       </ScrollView>
       {showLatest || hasNewer ? <View style={s.latestRow}>
         <Press accessibilityRole="button" accessibilityLabel="Najnovije poruke" onPress={chooseLatest}
@@ -549,7 +584,7 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
         <View style={[s.pill, textScale < 1.3 && s.pillInline, focused && s.pillFocused]}>
-          <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal}
+          <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
             accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
             // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
@@ -559,12 +594,13 @@ export function AgreementChat({ messages, loading, error, writable, terminal, re
           <View style={[s.toolbar, textScale < 1.3 && s.toolbarInline]}>
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}
-              accessibilityState={{ expanded: photoPanel, disabled: forced }} disabled={forced}
+              accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
               onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
               style={[s.tool, textScale < 1.3 && s.toolInline]}>
               {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <ImageSquare size={24} color={sys.color.green} />}
               {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
             </Press> : null}
+            {voice ? <AgreementVoiceMic voice={voice} /> : null}
             <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
               accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
               <View style={[s.send, canSend && s.sendReady]}>

@@ -439,6 +439,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           historyError: !!messages.historyErrorDirection, historyErrorDirection: messages.historyErrorDirection,
           onLoadOlder: loadOlderMessages, onLoadNewer: loadNewerMessages, onShowLatest: showLatestMessages, onDisplayedMessageIds,
           outbox, state: outboxState, photos,
+          voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
         {other ? <AgreementPersonBar person={other} back={backToAgreements} />
           : <ProductHeader back={backToAgreements} title="Dogovor" />}

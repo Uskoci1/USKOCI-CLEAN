@@ -46,6 +46,16 @@ module.exports = ({ config }) => {
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
     plugins.push(mapPlugin);
   }
+  // A02/A03 (owner, 2026-10-02): foreground-only voice. Both background services are explicitly disabled.
+  const audioPlugin = 'expo-audio';
+  if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === audioPlugin)) {
+    plugins.push([audioPlugin, {
+      microphonePermission: 'Mikrofon se koristi samo dok držiš dugme za snimanje glasovne poruke u razgovoru o Dogovoru.',
+      recordAudioAndroid: true,
+      enableBackgroundRecording: false,
+      enableBackgroundPlayback: false,
+    }]);
+  }
   if (pushProof && android.package !== 'rs.uskoci.preview') {
     throw new Error('USKOCI_PUSH_PROOF_BUILD_REQUIRES_PREVIEW_PACKAGE');
   }

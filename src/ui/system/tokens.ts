@@ -140,6 +140,16 @@ export const sys = {
       quiet: artTone(mix(MUTED, WHITE, 0.35), MUTED),
       danger: artTone(DANGER),
     },
+    /** Scoped AI palette proposal, 2026-10-02: opt-in artwork roles; existing defaults and Home stay unchanged. */
+    artRole: {
+      location: artTone('#3979C4'),
+      ai: artTone('#7551B8'),
+      skills: artTone('#168579'),
+      people: artTone('#D76B5C'),
+      time: artTone('#DBAC35', '#8D6B12'),
+      confirmed: artTone(GREEN),
+      waiting: artTone(ORANGE, mix(ORANGE, BLACK, 0.2)),
+    },
   },
   /** White conversations; speaker alignment, a quiet edge and the solid own-message fill establish hierarchy. */
   conversation: {

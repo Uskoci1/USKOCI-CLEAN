@@ -35,12 +35,14 @@ export const ACTION_MIN_HEIGHT = 48;
  * changes later is announced.
  * Every action is at least 48 px high; the primary 54, as `brandAction`.
  */
-export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', icon, style, compact = false,
+export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', tone = 'brand', icon, style, compact = false,
   loading = false, success = false, error, reason }: {
   label: string; onPress: () => void; disabled?: boolean;
   /** Row context for assistive technology without repeating the task title on the visible action. */
   accessibilityLabel?: string;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
+  /** Scoped neutral palette: preserve action behavior and geometry while using ink/white hierarchy. */
+  tone?: 'brand' | 'neutral';
   /** Smaller type for a secondary control that must not compete with the content. The
    *  touch target keeps its full minimum height, so it is no harder to hit. */
   compact?: boolean;
@@ -58,7 +60,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   const resting = disabled && !loading;
   const filled = onBrand || kind === 'primary' || kind === 'secondary';
   const color = resting ? sys.color.muted : onBrand ? sys.color.onGreen : kind === 'primary' ? sys.color.surface
-    : kind === 'destructive' ? sys.color.danger : sys.color.green;
+    : kind === 'destructive' ? sys.color.danger : tone === 'neutral' ? sys.color.ink : sys.color.green;
   // A disabled button draws its icon in the label's muted ink: the caller's icon was coloured for the live surface.
   const lead = loading ? <ActivityIndicator size="small" color={color} /> : confirmed ? <ConfirmedCheck color={color} />
     : resting && isValidElement<{ color?: string }>(icon) ? cloneElement(icon, { color }) : icon;
@@ -76,6 +78,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       backgroundColor: kind === 'primary' ? sys.color.ink : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong }, inner,
+      tone === 'neutral' && onBrand ? s.neutralBrand : null,
       resting && filled ? s.restingFilled : null, error ? s.errorEdge : null]}>
     {lead}<T variant={compact ? 'meta' : 'action'} style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
   </Press>;
@@ -143,6 +146,7 @@ function ConfirmedCheck({ color }: { color: string }) {
 }
 
 const s = StyleSheet.create({
+  neutralBrand: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   column: { gap: sys.space.xs },
   restingFilled: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   errorEdge: { borderWidth: 2, borderColor: sys.color.danger },

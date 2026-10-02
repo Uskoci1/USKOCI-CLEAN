@@ -2,11 +2,13 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import type { FinalTranscript, NativeSpeechAdapter, NativeSpeechCapture, VoiceSession } from './holdToTalk';
 import { decodeSpeechEvent, pcmBase64Bytes, SPEECH_LIMITS } from './speechProtocol';
+import { sharedAudioArbiter } from '../voiceMessages/audioArbiter';
+import type { AudioArbiter, AudioLease } from '../voiceMessages/ports';
 
 type Subscription = { remove(): void };
 export interface NativePcmModule {
-  start(sessionId: string, maxDurationMs: number): void;
-  stop(sessionId: string): void;
+  start(sessionId: string, maxDurationMs: number): void | Promise<void>;
+  stop(sessionId: string): void | Promise<void>;
   addListener(event: 'pcm', listener: (event: { sessionId: string; sequence: number; pcmBase64: string; rms: number }) => void): Subscription;
   addListener(event: 'interrupted', listener: (event: { sessionId: string; code: string }) => void): Subscription;
 }
@@ -14,14 +16,29 @@ type Connection = { url: string; accessToken: string; anonKey: string };
 export type SpeechAdapterOptions = {
   getConnection: (session: VoiceSession, signal: AbortSignal) => Promise<Connection | null>;
   newOperationId: () => string;
+  /** Tests may isolate ownership; production defaults to the process-wide arbiter. */
+  arbiter?: AudioArbiter;
 };
 
 export function createNativeSpeechAdapter(options: SpeechAdapterOptions): NativeSpeechAdapter {
   let native: NativePcmModule | null = null;
-  try { if (Platform.OS === 'android') native = requireOptionalNativeModule<NativePcmModule>('UskociVoice'); } catch { }
+  const useExpo = process.env.EXPO_PUBLIC_SPEECH_CAPTURE === 'expo';
+  let expoPermission: ((signal: AbortSignal) => Promise<'granted' | 'denied' | 'unavailable'>) | null = null;
+  try {
+    if (Platform.OS === 'android') {
+      if (useExpo) {
+        // The legacy build does not load expo-audio's native module. Selection is
+        // compile-time only; a failed Expo session never silently starts another mic.
+        const expo = require('./expoPcmCapture') as typeof import('./expoPcmCapture');
+        native = expo.createExpoPcmCapture(); expoPermission = expo.requestExpoSpeechPermission;
+      } else native = requireOptionalNativeModule<NativePcmModule>('UskociVoice');
+    }
+  } catch { }
+  const arbiter = options.arbiter ?? sharedAudioArbiter;
   return {
     async requestPermission(signal) {
       if (!native || Platform.OS !== 'android' || signal.aborted) return 'unavailable';
+      if (expoPermission) return expoPermission(signal);
       const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
       if (signal.aborted) return 'denied';
       if (granted) return 'granted';
@@ -34,6 +51,8 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       let socket: WebSocket | null = null, disposed = false, captureStopped = false, started = false, released = false;
       let expectedSequence = 0, expectedAudioSequence = 0, pcmBytes = 0;
       let subscriptions: Subscription[] = [];
+      let lease: AudioLease | null = null, stopError: unknown = null;
+      let stopped: Promise<void> = Promise.resolve();
       let readyResolve: () => void = () => {}, readyReject: (error: Error) => void = () => {};
       const ready = new Promise<void>((resolve, reject) => { readyResolve = resolve; readyReject = reject; });
       // A disposal can precede start() awaiting setup. Mark the rejection handled immediately.
@@ -44,8 +63,16 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       const stopCapture = () => {
         if (captureStopped) return;
         captureStopped = true;
-        try { module?.stop(operationId); } catch { }
         subscriptions.forEach(subscription => subscription.remove()); subscriptions = [];
+        // Native fallback stops synchronously; Expo also waits out a pending start.
+        // Keep ownership until that teardown finishes, including after navigation.
+        try {
+          const result = module?.stop(operationId);
+          if (result && typeof result.then === 'function') {
+            stopped = result.then(() => { lease?.(); lease = null; }, error => { stopError = error; throw error; });
+            void stopped.catch(() => undefined);
+          } else { lease?.(); lease = null; }
+        } catch (error) { stopError = error; stopped = Promise.reject(error); void stopped.catch(() => undefined); }
       };
       const dispose = () => {
         if (disposed) return;
@@ -72,6 +99,13 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       return {
         async start() {
           if (disposed || !module || !input.canCapture()) throw new Error('MIC_UNAVAILABLE');
+          const acquired = await arbiter.claim('speech', async () => {
+            fail('AUDIO_INTERRUPTED');
+            await stopped;
+            if (stopError) throw stopError;
+          });
+          if (disposed || !input.canCapture() || !acquired.isCurrent()) { acquired(); dispose(); return; }
+          lease = acquired;
           const connection = await options.getConnection(input.session, input.signal);
           if (disposed || !input.canCapture()) { dispose(); return; }
           if (!connection || !connection.accessToken || !connection.anonKey) throw new Error('MIC_UNAVAILABLE');
@@ -116,13 +150,16 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
           }));
           if (disposed || !input.canCapture()) { dispose(); return; }
           started = true;
-          module.start(operationId, SPEECH_LIMITS.captureMs);
-          if (!input.canCapture()) dispose();
+          await module.start(operationId, SPEECH_LIMITS.captureMs);
+          if (disposed || !input.canCapture() || !acquired.isCurrent()) dispose();
         },
         stopCapture,
-        finalize() {
-          if (disposed || !started || released || socket?.readyState !== 1) return Promise.resolve({ kind: 'incomplete' });
-          stopCapture(); released = true;
+        async finalize(): Promise<FinalTranscript> {
+          if (disposed || !started || released || socket?.readyState !== 1) return { kind: 'incomplete' };
+          stopCapture();
+          try { await stopped; } catch { fail(); return { kind: 'incomplete' }; }
+          if (disposed || released || socket?.readyState !== 1) return { kind: 'incomplete' };
+          released = true;
           socket.send(JSON.stringify({ kind: 'release' }));
           return final;
         },

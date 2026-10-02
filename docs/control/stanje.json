@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T15:34:05Z",
-  "grana": "HEAD",
-  "head": "6c38d343",
-  "head_poruka": "chore(release): record finishing APK and reconcile UI expectations",
+  "osvezeno": "2026-10-02T16:20:52Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "2adca787",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -1477,21 +1477,39 @@
      "nativeAcceptance": false,
      "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
     },
+    "voiceAndComposerContinuation": {
+     "level": "SOURCE_IMPLEMENTED_NOT_NATIVE_ACCEPTED",
+     "report": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md#continuation-voice-b2-and-owner-gemini-composer-reference",
+     "scope": "Agreement Android voice B2 and scoped AI palette/composer; no server deployment.",
+     "voiceMessages": "DEV workflow flag enabled against applied B1; native recorder/player and recovery connected.",
+     "speechCapture": "Existing native AI capture remains default; Expo PCM opt-in candidate awaits physical parity.",
+     "composerReference": "Owner Gemini screenshot followed by explicit larger centered hold-to-talk microphone correction.",
+     "review": "Bounded independent source reviews; TypeScript compilation, no new manual tests.",
+     "nativeAcceptance": false
+    },
     "ciReconciliation": {
      "failedRuns": [
       37023907809,
       37023907851
      ],
      "scope": "Ten existing copy/layout/menu test expectations reconciled and independently source-reviewed. No new tests or manual rerun. No green result claimed.",
-     "report": "docs/implementation/ui-ux-pass-20261002/CI_FAILURES_370239.md"
+     "report": "docs/implementation/ui-ux-pass-20261002/CI_FAILURES_370239.md",
+     "result": {
+      "source": "6c38d34370e4ebd0b38ae368d887d75c64016798",
+      "P5": 37027853251,
+      "PKG006": 37027853177,
+      "status": "SUCCESS",
+      "evidence": "Read completed automatic runs; no manual test rerun."
+     }
     },
     "ownerStoreResources": {
-     "playAccount": "NOT_CREATED",
+     "playAccount": "CREATED_OWNER_REPORTED_VERIFICATION_IN_PROGRESS",
      "playAccountType": "PERSONAL_OWNER_CONFIRMED",
      "separateProductionSupabase": "NOT_CREATED",
      "domain": "uskoci.rs",
      "domainObservation": "HTTPS200 existing public landing page. Legal/support/deletion links not found in homepage links; other paths not assessed.",
-     "publicationPrerequisite": "Personal account verification; closed test minimum12 opted-in testers for14 continuous days, then apply for production access. Actual operator/contact content and paid project approval remain."
+     "publicationPrerequisite": "Personal account verification; closed test minimum12 opted-in testers for14 continuous days, then apply for production access. Actual operator/contact content and paid project approval remain.",
+     "ownerUpdate": "2026-10-02: owner reports creating the Personal Google Play account and verifying it now; verification completion is not confirmed."
     }
    }
   },
@@ -8903,5 +8921,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37027853251,
+   "ime": "P5 ready task and matching contract",
+   "sha": "6c38d343",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T15:33:48Z"
+  },
+  {
+   "id": 37027853212,
+   "ime": "Control tracker refresh",
+   "sha": "6c38d343",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T15:33:48Z"
+  },
+  {
+   "id": 37027853177,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "6c38d343",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T15:33:48Z"
+  },
+  {
+   "id": 37024029100,
+   "ime": "Build Android development APK",
+   "sha": "b4f8a2e9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T15:01:38Z"
+  },
+  {
+   "id": 37023907851,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a49132a8",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T15:00:40Z"
+  },
+  {
+   "id": 37023907809,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "a49132a8",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T15:00:40Z"
+  },
+  {
+   "id": 37023907616,
+   "ime": "Control tracker refresh",
+   "sha": "a49132a8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T15:00:40Z"
+  },
+  {
+   "id": 37019813026,
+   "ime": "Control tracker refresh",
+   "sha": "705469d2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T14:25:53Z"
+  },
+  {
+   "id": 37017322413,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "df5e2d31",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T14:04:28Z"
+  },
+  {
+   "id": 37017322335,
+   "ime": "Control tracker refresh",
+   "sha": "df5e2d31",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T14:04:28Z"
+  },
+  {
+   "id": 37012789559,
+   "ime": "Build Android development APK",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T13:24:35Z"
+  },
+  {
+   "id": 37012789208,
+   "ime": "P5 ready task and matching contract",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T13:24:35Z"
+  }
+ ]
 }

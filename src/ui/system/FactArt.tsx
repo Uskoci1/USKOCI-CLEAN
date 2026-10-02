@@ -51,6 +51,8 @@ export type FactArtKind = (typeof FACT_KINDS)[number];
 
 /** `brand` is the one default; see the tone rule above. */
 export type FactTone = 'brand' | 'accent' | 'quiet' | 'danger';
+/** Opt-in semantic color for the scoped AI palette; existing art remains unchanged. */
+export type FactArtRole = keyof typeof sys.color.artRole;
 /** `auto` picks the cut from the size; `mark` or `art` forces one (the design board does, to show both side by side). */
 export type FactCut = 'auto' | 'mark' | 'art';
 export type FactDrawnCut = Exclude<FactCut, 'auto'>;
@@ -308,11 +310,12 @@ function art(kind: FactArtKind, c: Tone): ReactNode {
 
 /** The finished drawing for one kind, tone and cut. A drawing is a plain element tree, so one is built once and shared. */
 const drawings = new Map<string, ReactNode>();
-function drawingFor(kind: FactArtKind, tone: FactTone, cut: FactDrawnCut): ReactNode {
-  const key = `${kind}|${tone}|${cut}`;
+function drawingFor(kind: FactArtKind, tone: FactTone, cut: FactDrawnCut, role?: FactArtRole): ReactNode {
+  const key = `${kind}|${tone}|${cut}|${role ?? ''}`;
   let drawn = drawings.get(key);
   if (drawn === undefined) {
-    drawn = cut === 'mark' ? mark(kind, MARK_FACE[tone]) : art(kind, sys.color.art[tone]);
+    const colors = role ? sys.color.artRole[role] : sys.color.art[tone];
+    drawn = cut === 'mark' ? mark(kind, role ? colors.edge : MARK_FACE[tone]) : art(kind, colors);
     drawings.set(key, drawn);
   }
   return drawn;
@@ -324,16 +327,18 @@ type FactArtProps = {
   size?: number;
   /** `brand` by default; see the tone rule in the header. */
   tone?: FactTone;
+  /** Semantic art color; explicit state tone or muted state takes precedence. */
+  role?: FactArtRole;
   /** `auto` by default: the size decides. */
   cut?: FactCut;
   /** Deprecated alias of `tone="quiet"`, kept so the call sites that say "not active" keep working. */
   muted?: boolean;
 };
 
-function FactArtBase({ kind, size = 20, tone, cut = 'auto', muted = false }: FactArtProps) {
+function FactArtBase({ kind, size = 20, tone, role, cut = 'auto', muted = false }: FactArtProps) {
   const resolved: FactTone = muted ? 'quiet' : tone ?? DEFAULT_TONE[kind] ?? 'brand';
   return <View aria-hidden style={{ width: size, height: size }}>
-    <Svg width={size} height={size} viewBox="0 0 32 32">{drawingFor(kind, resolved, factCutFor(size, cut))}</Svg>
+    <Svg width={size} height={size} viewBox="0 0 32 32">{drawingFor(kind, resolved, factCutFor(size, cut), muted || tone ? undefined : role)}</Svg>
   </View>;
 }
 
