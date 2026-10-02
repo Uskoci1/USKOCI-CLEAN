@@ -1,5 +1,13 @@
 # Owner design direction — 2026-09-22 (current)
 
+## Superseding owner direction — 2026-10-02, visual finishing
+
+Latest explicit instruction: primary text and titles black, supporting text gray; white reading surfaces. Character comes from composed screens, selected premium 2.5D illustrations, icons and restrained accents. This supersedes the green-title preference and blanket small-flat-icon direction below. Green remains a brand/action color, not the default reading color. Use existing FactArt art selectively; navigation/close/filter glyphs stay clear. Distinct cards and open rows each need a purpose; remove redundant headings, helper copy, empty footers and competing emphasis without hiding actual facts or recovery.
+
+Continue the existing app plan by reviewing complete screens and connected flows from the person's perspective. Apple craft principles and the owner's Airbnb search/map/list/filter references guide quality, adapted to USKOČI. Earlier V28/V31 and V59/V60 references are useful evidence, not authority over this instruction. Prioritize visual/native review and coherent batches; targeted checks protect changed behavior, broad regression belongs at major integration/release gates. Do not spend each visual round on expanding test infrastructure. Existing entry/mascot, business, privacy, provider and deployment boundaries remain.
+
+Implementation/evidence for the first connected discovery/card batch: `ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md`. Existing W1–W12 and `docs/control/redovi.json` remain the plan and registry.
+
 Read this before working on each screen. This records the owner's latest clarification, which grants design autonomy and supersedes the stricter message immediately before it. Work on one screen at a time, with one implementation in app code.
 
 ## Product and preserved foundation

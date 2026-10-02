@@ -4,6 +4,8 @@ Validated 2026-09-11T05:21:46.256Z. This is a map of existing sources, not a new
 
 ## 1. Owner decisions: complete sources, then later overrides
 
+- **2026-10-02 visual finishing:** [latest direction](../implementation/OWNER_DESIGN_DIRECTION_20260922.md#superseding-owner-direction--2026-10-02-visual-finishing) supersedes green titles and blanket flat icons: black/gray reading text, white surfaces, curated 2.5D artwork, purposeful screen/card composition, focused checks and full-screen native critique. [First connected batch and recovered references](../implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md). Existing business/deployment/entry boundaries remain.
+
 - [Latest supplied product completion command](sources/owner/20260910_PRODUCT_COMPLETION_COMMAND.txt), verbatim, and [native/design command](sources/owner/20260910_NATIVE_DESIGN_MAX_COMMAND.txt).
 - [Current-session user messages](sources/owner/OWNER_SESSION_MESSAGES_20260910_11.json): exact available owner text, including LocationIQ/disposableAuth answers, turbo mode, Entry/Auth corrections and SAFE STOP. Quoted explanations are not independent proof. **SAFE STOP supersedes prior continuous development until resume.**
 - [Final owner review21/21](sources/owner-history/01_CURRENT_CANON/OWNER_REVIEW_21_FINAL_COMPLETE_SOURCE.md), [full locked decisions](sources/owner-history/01_OWNER_LOCKS/OWNER_LOCKED_DECISIONS.md), [later implementation closure03.09](sources/owner-history/01_CURRENT_CANON/OWNER_IMPLEMENTATION_CLOSURE_2026-09-03.md). Full source, not summaries. **The opening OPEN table/current cursor inside final21 is an earlier checkpoint within the original: later per-item locks and final COMPLETE declaration govern.** Original bytes remain untouched.

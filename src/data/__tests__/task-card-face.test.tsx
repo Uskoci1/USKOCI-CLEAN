@@ -44,7 +44,7 @@ jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual
   return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(mockWidth, mockScale) }; });
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', Lightning: 'Lightning' }));
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
-import { CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
+import { CardDecision, CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -93,7 +93,7 @@ describe('the requirement line', () => {
 
   // Review r3 item 5: a vehicle and a tool are FactArt kinds of their own, drawn at the card's 16 px; the picker's
   // Pictogram (a 32 px-and-up scene, two of whose fallbacks were orange) is no longer drawn on a card at all.
-  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing, at 16 px', async () => {
+  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing, at 24 px', async () => {
     await render(<TaskCard item={task({ detalji: detail({}, { vestine: ['Selidbe'], vozila: ['Kombi'], alati: ['Bušilica'] }) })} onOpen={jest.fn()} />);
     expect(texts()).toContain('Kombi'); expect(texts()).not.toContain('Bušilica'); expect(facts()).toContain('vehicle'); expect(facts()).not.toContain('tool');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { vozila: ['Automobil', 'Prikolica'] }) })} onOpen={jest.fn()} />));
@@ -104,7 +104,7 @@ describe('the requirement line', () => {
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { alati: ['Bušilica'] }) })} onOpen={jest.fn()} />));
     expect(texts()).toContain('Bušilica'); expect(facts()).toContain('tool'); expect(facts()).not.toContain('vehicle');
     const art = tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'tool');
-    expect(art.map(node => node.props.size)).toEqual([16]);
+    expect(art.map(node => node.props.size)).toEqual([24]);
     expect(tree.root.findAll(node => String(node.type) === 'Pictogram')).toHaveLength(0);
   });
 });
@@ -127,12 +127,11 @@ describe('the value slot', () => {
       } else {
         // Offers have a distinct verbal cue; absence remains quiet. Neither becomes an amount.
         expect(style(value)).toMatchObject(shown === 'Tražim ponude'
-          ? { fontSize: 16, lineHeight: 22, fontWeight: '600', color: sys.color.green }
+          ? { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted }
           : { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted });
       }
-      // Nothing but an amount ever wears the money colour on a card.
-      const money = tree.root.findAll(node => node.type === ('T' as React.ElementType) && style(node).color === sys.color.money);
-      expect(money.map(node => node.props.children)).toEqual(amountOf(item) ? [amountOf(item)] : []);
+      // Numeric amounts retain tabular figures; neutral titles may now share their ink color.
+      if (amountOf(item)) expect(style(value).fontVariant).toContain('tabular-nums');
       // "Tražim ponude" means offers even when an old amount is still stored beside it.
       if (shown === 'Tražim ponude') expect(texts()).not.toContain('9.000 RSD');
       await act(async () => tree.unmount());
@@ -152,7 +151,8 @@ describe('the value slot', () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     let title = textNode('Farbanje dnevne sobe');
     expect(title.props.numberOfLines).toBeUndefined();
-    expect(style(title)).toMatchObject({ flex: 1, minWidth: 0 });
+    expect(style(title)).toMatchObject({ color: sys.color.ink });
+    expect(style(title)).not.toHaveProperty('flex');
     expect(texts()).toContain('5.500 RSD');
     await act(async () => tree.unmount());
     mockScale = 1.3;
@@ -361,7 +361,7 @@ describe('review r3', () => {
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })} onOpen={jest.fn()} />);
     const amount = textNode('125.000 RSD');
     expect(amount.props.numberOfLines).toBeUndefined();
-    expect(style(amount.parent!)).toMatchObject({ flexShrink: 0 }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
+    expect(style(amount.parent!)).toMatchObject({ flexWrap: 'wrap' }); expect(style(amount.parent!)).not.toHaveProperty('maxWidth');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
     const word = textNode('Tražim ponude');
     expect(style(word.parent!)).not.toHaveProperty('maxWidth');
@@ -371,15 +371,14 @@ describe('review r3', () => {
   });
 
   // R19: the full fraction has a stable lower-right anchor, including a stacked narrow/large-text layout.
-  it.each([[411, 1], [320, 2]])('keeps the compact count bottom-right with or without a person at width %s, text scale %s', async (width, scale) => {
+  it.each([[411, 1], [320, 2]])('keeps the complete count with the value, separate from the person at width %s, text scale %s', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     for (const item of [task({ narucilacIme: 'Aleksandra Stojanović-Petrović' }), mine({ brojPrijavaZaIzbor: 0 })]) {
       await render(<TaskCard item={item} onOpen={jest.fn()} />);
       const count = textNode('0/2');
       expect(count.props.numberOfLines).toBeUndefined();
-      expect(style(count)).toMatchObject({ fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] });
-      const anchor = tree.root.find(node => node.type === ('View' as React.ElementType) && style(node).marginLeft === 'auto');
-      expect(style(anchor)).toMatchObject({ alignSelf: 'flex-end', flexShrink: 0 });
+      expect(style(count)).toMatchObject({ fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] });
+      const anchor = tree.root.findByType(CardDecision);
       expect(anchor.findAll(node => node === count)).toHaveLength(1);
       expect(anchor.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
       if ('stanje' in item) expect(texts()).toContain('Još nema prijava za izbor');
@@ -496,7 +495,7 @@ describe('the calendar mark follows the colour meaning', () => {
 
   it("is the same rule on the pin's card, so one task never has a green calendar on the map and a grey one in the list", () => {
     const peek = readFileSync(join(__dirname, '../../ui/v2/discovery/DiscoveryPeek.tsx'), 'utf8');
-    expect(peek).toMatch(/kind="calendar" size=\{20\} tone=\{scheduleConfirmed\(item\.schedule\) \? 'brand' : 'quiet'\}/);
+    expect(peek).toMatch(/kind="calendar" size=\{24\} cut="art" tone=\{scheduleConfirmed\(item\.schedule\) \? 'brand' : 'quiet'\}/);
   });
 
   it('says only the colour: the words beside it are the same, and the pure rule agrees', async () => {

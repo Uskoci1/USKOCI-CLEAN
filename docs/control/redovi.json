@@ -5643,6 +5643,13 @@
       "completed": true,
       "outcome": "P6 ZAVRŠEN SA GRANICAMA prijavljen 2026-09-30 (P6_CLOSURE_RECEIPT.md); vlasnik je potom naložio nastavak po planu: checkpoint → C0 → Discovery polish → ostali V1 tokovi; kandidat izmeren na telefonu u Round 74."
     },
+    "visual_finishing_20261002": {
+      "document": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+      "ownerDirection": "Latest owner: black primary/gray supporting text, white surfaces, curated2.5D icons, composition over blanket green. Whole screens/flows, focused checks rather than expanding test infrastructure.",
+      "scope": "Existing W5-W7 first connected visual slice: task cards, Discovery search/filter surface, map preview and shared task-detail headings; no server or business writes.",
+      "level": "SOURCE / 184 EXISTING TARGETED CHECKS PASS / TSC / NATIVE PENDING",
+      "remaining": "Independent source review and one exact-source emulator APK, then UX/VISUAL actual-screen critique. Whole app and physical/release remain open."
+    },
     "ui_w2_w8_codex_20261002": {
       "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
       "level": "SOURCE + 196 TESTS + TSC / APK BUILT / EMULATOR VERIFIED / UX AND VISUAL APPROVED WITH LIMITS",

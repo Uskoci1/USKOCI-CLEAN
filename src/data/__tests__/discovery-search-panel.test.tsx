@@ -92,7 +92,7 @@ test('P6 search count and locality suggestions come from server preview, never t
   await render();
   expect(show().props.label).toBe('Prikaži 37 zadataka');
   expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual([
-    'Svi zadaci, 80 zadataka', 'Oblast sa mape, 23 zadatka', 'Novi Sad, Liman, 21 zadatak', 'Beograd, Vračar, 9 zadataka',
+    'Svi zadaci, 80 zadataka', 'Ova oblast, 23 zadatka', 'Novi Sad, Liman, 21 zadatak', 'Beograd, Vračar, 9 zadataka',
   ]);
 });
 
@@ -147,7 +147,7 @@ test('search and filters open their own single accordion group, retaining the lo
   await tap('Koliko vas dolazi'); expect(byLabel('Povećaj broj osoba')).toHaveLength(1);
   // "Uslovi pretrage" opens the panel at its conditions.
   await act(async () => tree.unmount()); start = 'kada'; await render();
-  expect(texts()).toContain('Uslovi pretrage'); expect(openStep()).toEqual(['kada']);
+  expect(texts()).toContain('Filteri'); expect(openStep()).toEqual(['kada']);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' })).toHaveLength(0);
   await tap('Datumi'); expect(openStep()).toEqual(['kada']);
   await tap('Gde'); expect(openStep()).toEqual(['gde']);
@@ -183,7 +183,7 @@ test('"Gde" offers only the places the loaded tasks name, with their counts; typ
   const offered = offeredPlaces().map(node => node.props.accessibilityLabel);
   expect(offered).toEqual(['Svi zadaci, 5 zadataka', 'Liman, Novi Sad, 2 zadatka', 'Vračar, Beograd, 1 zadatak', 'Zemun, Beograd, 1 zadatak']);
   expect(offered.join(' ')).not.toMatch(/Na daljinu|U blizini|Moja lokacija/);
-  expect(texts()).toContain('Mesta iz dostupnih zadataka');
+  expect(texts()).not.toContain('Mesta iz dostupnih zadataka');
   // Typing narrows the places; the words themselves also search the tasks, so the count follows them.
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' }).props.onChangeText('vrač'));
   expect(offeredPlaces().map(node => node.props.accessibilityLabel)).toEqual(['Svi zadaci, 5 zadataka', 'Vračar, Beograd, 1 zadatak']);
@@ -196,7 +196,7 @@ test('"Gde" offers only the places the loaded tasks name, with their counts; typ
   // The map's current area is offered once the map has settled somewhere, with what the list would then hold: the two
   // public tasks (including mine) inside it and the online one, which no area leaves out.
   await act(async () => tree.unmount()); mapArea = [19.8, 45.2, 19.9, 45.3]; await render();
-  await choose('Oblast sa mape, 4 zadatka');
+  await choose('Ova oblast, 4 zadatka');
   await act(async () => show().props.onPress());
   expect(lastDraft()).toMatchObject({ place: null, area: [19.8, 45.2, 19.9, 45.3] });
 });
@@ -302,7 +302,7 @@ test.each([
   await render();
   expect(show().props).toMatchObject({ label, disabled });
   const offered = offeredPlaces().map(node => node.props.accessibilityLabel);
-  expect(offered[0]).toBe('Svi zadaci'); expect(offered).toContain('Oblast sa mape');
+  expect(offered[0]).toBe('Svi zadaci'); expect(offered).toContain('Ova oblast');
   expect(offered.join(' ')).not.toMatch(/zadat/);
   expect(texts()).not.toMatch(/\d+ zadat/);
   if (state === 'pending') {
@@ -349,14 +349,14 @@ test('what changes is heard: the action\'s count, the month and the prompt for t
 
 // Review of V47, item 10: one chosen-chip look over the map and in the panel, and never the primary action's green fill.
 // A chosen day's number is written in the system's words-on-dark-green colour, as the calendar's chosen day.
-test('a chosen chip is pale green with a 2 px green edge, green words and a tick; a chosen day is written in onDark', async () => {
+test('a chosen chip has a neutral well, ink edge and words, and a confirmation tick; a chosen day is written in onDark', async () => {
   start = 'kada'; await render();
   await choose('Sutra');
   const chip = radio('Sutra')[0], style = StyleSheet.flatten(chip.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green });
+  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.ink });
   expect(style.backgroundColor).not.toBe(sys.color.green);
   expect(chip.findByType('Check' as React.ElementType).props.color).toBe(sys.color.green);
-  expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.green);
+  expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
   const free = StyleSheet.flatten(radio('Danas')[0].props.style);
   // The free chip's 1 px edge plus its padding is the chosen chip's 2 px edge plus its padding: the words do not move.
   expect(Number(free.borderWidth) + Number(free.paddingHorizontal)).toBe(Number(style.borderWidth) + Number(style.paddingHorizontal));

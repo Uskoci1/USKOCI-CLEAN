@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T11:53:42Z",
-  "grana": "HEAD",
-  "head": "832f188e",
-  "head_poruka": "docs(ui): record verified W2 and own-task emulator pass",
+  "osvezeno": "2026-10-02T12:15:02Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "f857aa9b",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -1444,6 +1444,13 @@
    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md",
    "completed": true,
    "outcome": "P6 ZAVRŠEN SA GRANICAMA prijavljen 2026-09-30 (P6_CLOSURE_RECEIPT.md); vlasnik je potom naložio nastavak po planu: checkpoint → C0 → Discovery polish → ostali V1 tokovi; kandidat izmeren na telefonu u Round 74."
+  },
+  "visual_finishing_20261002": {
+   "document": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+   "ownerDirection": "Latest owner: black primary/gray supporting text, white surfaces, curated2.5D icons, composition over blanket green. Whole screens/flows, focused checks rather than expanding test infrastructure.",
+   "scope": "Existing W5-W7 first connected visual slice: task cards, Discovery search/filter surface, map preview and shared task-detail headings; no server or business writes.",
+   "level": "SOURCE / 184 EXISTING TARGETED CHECKS PASS / TSC / NATIVE PENDING",
+   "remaining": "Independent source review and one exact-source emulator APK, then UX/VISUAL actual-screen critique. Whole app and physical/release remain open."
   },
   "ui_w2_w8_codex_20261002": {
    "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
@@ -8845,5 +8852,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37003507530,
+   "ime": "Control tracker refresh",
+   "sha": "832f188e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:53:25Z"
+  },
+  {
+   "id": 37000515232,
+   "ime": "Build Android development APK",
+   "sha": "7c920070",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:21:00Z"
+  },
+  {
+   "id": 37000497104,
+   "ime": "Control tracker refresh",
+   "sha": "7c920070",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:20:49Z"
+  },
+  {
+   "id": 36999466792,
+   "ime": "Build Android development APK",
+   "sha": "0fed2a1b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:09:39Z"
+  },
+  {
+   "id": 36999185774,
+   "ime": "Control tracker refresh",
+   "sha": "0c77fdc4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:06:34Z"
+  },
+  {
+   "id": 36997943005,
+   "ime": "EX05-S01 chat server proofs re-proof",
+   "sha": "a96543c0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:53:08Z"
+  },
+  {
+   "id": 36997942991,
+   "ime": "Control tracker refresh",
+   "sha": "a96543c0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:53:08Z"
+  },
+  {
+   "id": 36994975017,
+   "ime": "EX-07 S03 auth callbacks proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974997,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974974,
+   "ime": "EX05-S01 chat server proofs re-proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974932,
+   "ime": "P7 signup confirmation recovery",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974917,
+   "ime": "Control tracker refresh",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  }
+ ]
 }

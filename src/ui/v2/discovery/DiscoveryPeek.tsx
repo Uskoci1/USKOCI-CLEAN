@@ -72,8 +72,8 @@ function PinTask({ item, relation, onOpen, onLayout }: {
       {head ? <View style={s.clearOfClose}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
       <View style={!head ? s.clearOfClose : undefined}><CardHead title={title} value={value} large /></View>
       <View style={s.facts}>
-        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
-        <CardFact art={<FactArt kind="calendar" size={20} tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={2} />
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={24} cut="art" />} text={place.text} lines={2} />
+        <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={2} />
       </View>
       <CardBriefFoot person={person} large={large} capacityAtEnd
         places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large /> : null} />

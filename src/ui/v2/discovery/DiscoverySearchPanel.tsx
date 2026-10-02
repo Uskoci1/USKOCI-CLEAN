@@ -14,7 +14,7 @@ import { TurningCaret } from '../../system/Disclosure';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { osoba, zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, floating, sys } from '../../system/tokens';
+import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, sys } from '../../system/tokens';
 import { V2Action } from '../V2Action';
 import { DateRangeGrid } from './DateRangeGrid';
 import { CLEAR_ALL, PRICE, WHEN, WHERE, said, undatedWords, whenWords, whereWords } from './discoveryWords';
@@ -60,7 +60,7 @@ function SearchGroup({ step, label, summary, art, open, large, onToggle, onPosit
     <Press testID={step === 'gde' ? 'search-place-toggle' : `search-${step}-toggle`} accessibilityRole="button"
       accessibilityLabel={label} accessibilityValue={{ text: summary }} accessibilityState={{ expanded: open }}
       onPress={() => onToggle(step)} haptic="select" hitSlop={0} scaleTo={0.99} style={s.groupHeader}>
-      <FactArt kind={art} size={open ? 32 : 28} />
+      <FactArt kind={art} size={32} cut="art" />
       <View style={s.groupCopy}>
         <T variant={open ? 'bodyStrong' : 'note'} tone={open ? 'ink' : 'muted'}>{label}</T>
         {!open ? <T variant="bodyStrong" numberOfLines={large ? 3 : 2}>{summary}</T> : null}
@@ -349,7 +349,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.frame}>
         <SafeAreaView edges={['top', 'bottom']} style={s.frame} accessibilityViewIsModal>
           <View style={s.top}>
-            <T variant="heading" accessibilityRole="header" style={s.grow}>{start === 'gde' ? 'Pretraga' : 'Uslovi pretrage'}</T>
+            <T variant="heading" accessibilityRole="header" style={s.grow}>{start === 'gde' ? 'Pretraga' : 'Filteri'}</T>
             <ChromeIconButton label="Zatvori pretragu" hint="Lista ostaje kakva je bila." icon={X} quiet onPress={close} />
           </View>
           <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" onScrollBeginDrag={retireReveal}
@@ -366,11 +366,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
                     onPress={() => edit({ query: '' })}><X size={18} weight="bold" color={sys.color.ink} /></Press> : null}
                 </View>
                 {draft.where === 'remote' ? <T variant="note" tone="muted">Zadaci na daljinu ne zavise od oblasti mape.</T> : <>
-                <T variant="note" tone="muted">Mesta iz dostupnih zadataka</T>
                 <View accessibilityRole="radiogroup" accessibilityLabel="Mesta" style={s.suggestions}>
                   <Suggestion art="tasks" text="Svi zadaci" count={known(everywhere)} checked={!draft.place && !draft.area && !draft.query.trim() && !draft.pinPlace}
                     onPress={() => edit(ANYWHERE)} />
-                  {mapArea ? <Suggestion art="map" text="Oblast sa mape" count={known(inMapArea)} checked={!draft.place && !!draft.area && !draft.pinPlace}
+                  {mapArea ? <Suggestion art="map" text="Ova oblast" count={known(inMapArea)} checked={!draft.place && !!draft.area && !draft.pinPlace}
                     onPress={() => edit({ ...ANYWHERE, area: mapArea })} /> : null}
                   {shownPlaces.map(place => <Suggestion key={placeKey(place.text)} art="pin" text={place.text} count={known(place.count)}
                     checked={!!draft.place && placeKey(draft.place) === placeKey(place.text)}
@@ -435,13 +434,13 @@ const s = StyleSheet.create({
   veil: { flex: 1 },
   veilBackdrop: { backgroundColor: sys.color.veil },
   opaqueBackdrop: { backgroundColor: sys.color.surface },
-  frame: { flex: 1 },
+  frame: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink },
   top: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm,
     paddingBottom: sys.space.md },
-  sections: { paddingHorizontal: sys.space.base, paddingTop: sys.space.xs, paddingBottom: sys.space.base, gap: sys.space.md },
-  group: { ...floating, backgroundColor: sys.color.surface, borderRadius: sys.radius.card },
+  sections: { paddingHorizontal: sys.space.base, paddingTop: sys.space.xs, paddingBottom: sys.space.base },
+  group: { backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.base },
   groupCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
@@ -468,16 +467,16 @@ const s = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: sys.touch.min, maxWidth: '100%', paddingHorizontal: sys.space.base,
     paddingVertical: sys.space.sm, borderRadius: sys.radius.control,
     borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
-  chipOn: { ...chipChosen, paddingHorizontal: sys.space.base - CHIP_CHOSEN_INSET },
+  chipOn: { ...chipChosen, borderColor: sys.color.ink, paddingHorizontal: sys.space.base - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink, flexShrink: 1 },
-  chipTextOn: { color: sys.color.green, fontWeight: '600' },
+  chipTextOn: { color: sys.color.ink, fontWeight: '600' },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm, width: sys.space.huge * 4 },
   stepperExpanded: { width: '100%' },
   step: { width: sys.touch.min, height: sys.touch.min, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
     alignItems: 'center', justifyContent: 'center' },
   stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0, textAlign: 'center' },
   footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.md,
-    paddingBottom: sys.space.md },
+    paddingBottom: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
   // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into
   // a column of letters. Each action gets the full width; no vertical flex growth may squeeze out the filter cards.
   footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },

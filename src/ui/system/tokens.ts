@@ -92,7 +92,8 @@ export const sys = {
     dangerSoft: '#FBECE9',
     warn: '#8A5100',
     warnSoft: '#FFF4DF',
-    money: '#087B57',
+    /** Owner 2026-10-02: prices are ink; color and depth belong to artwork and meaningful actions. */
+    money: '#202020',
     skeleton: '#EEEEEE',
     scrim: '#00000066',
     /**

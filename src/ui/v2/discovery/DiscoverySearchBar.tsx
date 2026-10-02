@@ -1,10 +1,9 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Check, Crosshair, DotsThree, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { plural } from '../../system/plural';
-import { useTextScale } from '../../system/textScale';
 import { CHIP_CHOSEN_INSET, chipChosen, sys } from '../../system/tokens';
 
 /** A quick chip over the map: one existing filter, toggled at once, without opening the search. */
@@ -57,8 +56,8 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   /** The room the row of chips takes, the gap above it included: exactly what the list gains when they fold away. */
   onChipsHeight?: (room: number) => void;
 }) {
-  const { width } = useWindowDimensions();
-  const separateTools = useTextScale() >= 1.3 || width < 360;
+  // The search keeps its full width at every size; conditions never compete with its words.
+  const separateTools = true;
   const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
   const measureChips = (event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -66,13 +65,14 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
     if (height > 0) onChipsHeight?.(separateTools ? Math.max(0, height - chrome.control) : height + sys.space.sm);
   };
   const tools = <>
-    <View style={s.tool}>
-      <ChromeIconButton label={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
-        icon={SlidersHorizontal} active={conditionCount > 0} quiet onPress={onConditions}>
+    <Press accessibilityRole="button" accessibilityLabel={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
+        accessibilityState={{ selected: conditionCount > 0 }} haptic="select" hitSlop={0} onPress={onConditions}
+        style={[s.filter, conditionCount > 0 && s.filterOn]}>
+        <SlidersHorizontal size={20} weight="bold" color={sys.color.ink} />
+        <T variant="note" style={s.filterText}>Filteri</T>
         {conditionCount ? <View testID="conditions-badge" style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
-      </ChromeIconButton>
-    </View>
+      </Press>
     {onMore ? <View style={s.tool}>
       <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." icon={DotsThree} quiet onPress={onMore} />
     </View> : onNew ? <View style={s.tool}>
@@ -102,7 +102,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
         <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
           accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={0.98} onPress={onSearch}
           style={[s.pill, separateTools && s.pillWide, onClearWhere && s.pillClearable]}>
-          <MagnifyingGlass size={20} color={sys.color.green} />
+          <MagnifyingGlass size={22} weight="bold" color={sys.color.ink} />
           <View style={s.lines}>
             {/* The full-width summary keeps two lines at every text size. Full values remain in its spoken value and search panel. */}
             <T variant="bodyStrong" style={s.where} numberOfLines={1}>{where}</T>
@@ -118,7 +118,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
       </View>
     </View>
     {separateTools ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
-      {quickFilters ?? <View style={s.rail} />}<View style={s.toolCluster}>{tools}</View>
+      <View style={s.toolCluster}>{tools}</View>{quickFilters ?? <View style={s.rail} />}
     </View> : quickFilters}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
@@ -150,11 +150,15 @@ const s = StyleSheet.create({
   clearCircle: { width: 28, height: 28, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   tool: { width: chrome.control, height: chrome.control },
   inlineTools: { flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: sys.color.line, paddingLeft: 2 },
-  toolCluster: { flexDirection: 'row', borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line },
+  toolCluster: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  filter: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48,
+    paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.lineStrong },
+  filterOn: { backgroundColor: sys.color.wash, borderColor: sys.color.ink },
+  filterText: { color: sys.color.ink, fontWeight: '600' },
   // It grows with the text size rather than cut its number.
-  badge: { position: 'absolute', top: 0, right: 0, minWidth: 20, minHeight: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.green, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+  badge: { minWidth: 20, minHeight: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
   chipsBesideTools: { paddingHorizontal: 0 },
@@ -162,9 +166,9 @@ const s = StyleSheet.create({
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  chipOn: { ...chipChosen, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
+  chipOn: { ...chipChosen, borderColor: sys.color.ink, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink },
-  chipTextOn: { color: sys.color.green, fontWeight: '700' },
+  chipTextOn: { color: sys.color.ink, fontWeight: '600' },
   nearby: { minHeight: 48 },
   notice: { marginHorizontal: sys.space.base, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
     borderRadius: sys.radius.control, backgroundColor: sys.color.surface, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },

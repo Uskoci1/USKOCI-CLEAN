@@ -8,11 +8,11 @@ import { needScheduleText, readableTitle } from '../../data/needDetailPresentati
 import { displaysUrgent } from '../../lib/needUrgency';
 import { FactArt } from '../system/FactArt';
 import { useReducedMotion } from '../system/motion';
-import { useLayoutClass, useWindowRoom } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { CardBriefFoot, CardHead, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
+import { CardBriefFoot, CardDecision, CardTitle, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
   faceStyles, ownerNext, personSpoken, placesText, scheduleConfirmed, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue, type TaskCardRelation } from './TaskFace';
 
 /** How far the whole card gives under the finger: a large surface gives less than a button (`sys.motion.pressScale`). */
@@ -26,8 +26,8 @@ const NOTHING_TO_CHOOSE = 'Još nema prijava za izbor';
  *
  * The body is ONE press that opens the task. On my own task the next step is its own press, a sibling of the body and
  * never inside it: when applications wait for my choice, the foot at the bottom of the card goes straight to them
- * (`onApplications`), a screen shorter than through the task. The work title and terms lead one compact brief,
- * followed by grouped logistics and a human/capacity row. Agreements remain accepted appointments.
+ * (`onApplications`), a screen shorter than through the task. Full-width work title, compact logistics and one
+ * value/capacity group form the brief. A footer appears only for a person or useful next step.
  *
  * The frame is what gives under the finger (card review r3 item 9): the border, the ground and everything on it scale
  * together, as one object, instead of the content shrinking inside a frame that stood still. Under reduced motion
@@ -55,8 +55,6 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   // The designed layout is the default: the head and the foot stack only when the room is short (a window under
   // 340 dp, or text scale 1.3 and up), never on an ordinary phone (the owner's is 361 dp at 1.15). One rule, `useLayoutClass`.
   const large = useLayoutClass().stacked;
-  // How much room the head has: below 380 dp the price stands beside the title only if the measured title fits what it leaves.
-  const room = useWindowRoom();
   const reduced = useReducedMotion();
   const own = isOwnedNeed(item);
   const title = readableTitle(item.naslov);
@@ -95,16 +93,17 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
-      <CardHead title={title} value={value} large={large || compact} room={room} />
+      <CardTitle title={title} lines={0} style={s.title} />
       <View style={s.facts}>
-        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={0} />
+        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={24} cut="art" />} text={place.text} lines={0} />
         {/* The complete range remains readable, including its end date on narrow or enlarged-text cards. */}
         {/* Green says a fact that IS confirmed: a flexible or absent term is drawn quiet, never in the green of a fixed one. */}
-        <CardFact art={<FactArt kind="calendar" size={20} tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={0} />
+        <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={0} />
         {requirement ? <CardRequirement requirement={requirement} /> : null}
       </View>
-      {briefLead || next?.kind !== 'draft' ? <CardBriefFoot person={briefLead} large={large} capacityAtEnd
-        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} display="fraction" large />} /> : null}
+      <CardDecision value={value} large={large}
+        places={next?.kind === 'draft' ? null : <CardPlaces places={item.pokrivenost} audience={audience} display="fraction" large />} />
+      {briefLead ? <CardBriefFoot person={briefLead} large={large} places={null} /> : null}
       {next?.kind === 'draft' ? <CardNext label={DRAFT_NEXT} /> : null}
     </Press>
     {/* No hit slop: the hairline is the border between the two targets, and a touch just above it opens the task. */}
@@ -122,9 +121,10 @@ const s = StyleSheet.create({
   // A list task is a distinct white card. A neutral edge separates it from the white sheet without a second shadow.
   card: { ...cardCompact, padding: 0 },
   disabled: { opacity: 0.55 },
-  body: { padding: sys.space.lg, gap: sys.space.base, borderRadius: sys.radius.cardCompact },
+  body: { padding: sys.space.base, gap: sys.space.md, borderRadius: sys.radius.cardCompact },
+  title: { fontSize: 18, lineHeight: 24, letterSpacing: -0.3, color: sys.color.ink },
   bodyCompact: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
-  facts: { gap: sys.space.sm },
+  facts: { gap: sys.space.xs },
   footCompact: { paddingHorizontal: 14 },
   // Bare: the card that holds the face draws the edge, the corner and the padding across; the face adds none of them.
   bare: { borderWidth: 0, borderRadius: 0, elevation: 0, shadowOpacity: 0 },

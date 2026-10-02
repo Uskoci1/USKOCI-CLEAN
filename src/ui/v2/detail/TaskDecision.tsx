@@ -94,7 +94,7 @@ export function TaskDecisionRequirements({ rows }: { rows: { label: string; valu
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  title: { ...sys.type.pageTitle, color: sys.color.green },
+  title: { ...sys.type.pageTitle, color: sys.color.ink },
   section: { gap: sys.space.md },
   price: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingTop: sys.space.base,
     borderTopWidth: 1, borderColor: sys.color.line },

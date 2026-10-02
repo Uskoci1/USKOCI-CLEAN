@@ -391,7 +391,6 @@ const WINDOW_WIDTH_READERS = new Set([
   'src/ui/v2/ApplicationComposerPresentation.tsx', // 390
   'src/ui/v2/ApplicationSelectionPresentation.tsx', // 360
   'src/ui/v2/DiscoveryPresentation.tsx',
-  'src/ui/v2/discovery/DiscoverySearchBar.tsx', // 360
   'src/ui/v2/discovery/DiscoverySearchPanel.tsx', // 360 and 380
 ]);
 const THE_LAYOUT_CLASS_HOOK = 'src/ui/system/textScale.ts';

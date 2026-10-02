@@ -41,7 +41,7 @@ test.each([{ width: 320, fontScale: 1 }, { width: 320, fontScale: 2 }, { width: 
     expect(summary.props.accessibilityValue.text).toBe(`${props().where}, ${props().conditions}`);
     expect(summary.findAllByType('T' as React.ElementType).map(text => text.props.numberOfLines)).toEqual([1, 1]);
     expect(summary.findAllByType('T' as React.ElementType).every(text => text.props.allowFontScaling !== false && !text.props.adjustsFontSizeToFit)).toBe(true);
-    for (const label of ['Dodaj zadatak', 'Uslovi pretrage, 3 aktivna']) {
+    for (const label of ['Dodaj zadatak']) {
       expect(StyleSheet.flatten(button(label).props.style)).toMatchObject({ width: 48, height: 48 });
     }
     await act(async () => tree.update(<DiscoverySearchBar {...props()} chipsShown={false} />));
@@ -49,10 +49,10 @@ test.each([{ width: 320, fontScale: 1 }, { width: 320, fontScale: 2 }, { width: 
     expect(button('Dodaj zadatak')).toBeTruthy(); expect(button('Uslovi pretrage, 3 aktivna')).toBeTruthy();
   });
 
-test('normal width retains the existing single row and changing geometry performs no action', async () => {
+test('normal width also gives search a full row and changing geometry performs no action', async () => {
   await render();
-  expect(tree.root.findAllByProps({ testID: 'discovery-search-tools' })).toHaveLength(0);
-  expect(tree.root.findByProps({ testID: 'discovery-search-row' }).findByProps({ accessibilityLabel: 'Dodaj zadatak' })).toBeTruthy();
+  expect(tree.root.findAllByProps({ testID: 'discovery-search-tools' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'discovery-search-tools' }).findByProps({ accessibilityLabel: 'Dodaj zadatak' })).toBeTruthy();
   mockWindow = { ...mockWindow, fontScale: 2 };
   await act(async () => tree.update(<DiscoverySearchBar {...props()} />));
   for (const callback of [search, conditions, add, clear, chip, nearby]) expect(callback).not.toHaveBeenCalled();
@@ -82,5 +82,5 @@ test('fold measurement reclaims only the rail height above the persistent tools 
   mockWindow = { ...mockWindow, width: 390, fontScale: 1 };
   await act(async () => tree.update(<DiscoverySearchBar {...props()} />));
   await act(async () => button('Brzi filteri').props.onLayout({ nativeEvent: { layout: { height: 64 } } }));
-  expect(chipsHeight).toHaveBeenLastCalledWith(64 + sys.space.sm);
+  expect(chipsHeight).toHaveBeenLastCalledWith(16);
 });

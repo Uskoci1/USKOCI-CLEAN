@@ -54,17 +54,17 @@ export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area
   const where = view.pinPlace ? PIN_PLACE : place;
   if (where) return query ? `${where} · ${quoted(query)}` : where;
   if (query) return quoted(query);
-  return view.area ? 'Oblast sa mape' : 'Svi zadaci';
+  return view.area ? 'Ova oblast' : 'Svi zadaci';
 }
 
 /**
- * Line 2 of the search pill: when, then the other conditions that are on ("Ovaj vikend · 2+ mesta"), or an invitation to
- * add some when none is ("Bilo kada · Dodaj uslove").
+ * Line 2 of the search pill: when, then the conditions that are on ("Ovaj vikend · 2+ mesta").
+ * The separate Filteri control already names the action, so this line only describes the current choice.
  */
 export function conditionsWords(view: MarketplaceView, now: Date = new Date()): string {
   const extras = [(view.where ?? 'any') !== 'any' ? said(WHERE, view.where) : '', atLeast(view.places) > 1 ? placesWords(view.places) : '',
     view.price !== 'all' ? said(PRICE, view.price) : ''].filter(Boolean);
-  return [whenWords(view, now), ...(extras.length ? extras : ['Dodaj uslove'])].join(' · ');
+  return [whenWords(view, now), ...extras].join(' · ');
 }
 
 /** Tasks a time choice leaves out because they name no day: said, never hidden silently. */
