@@ -37,8 +37,8 @@ import { nested, sys } from './tokens';
  * (361 dp, text 1.15; also 1.3): the checklist is `verifyOnPhone` of wave W2 in
  * `docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_20261002.json`, and the same bar can be tapped on `uskociapp://dizajn-tabla`
  * (internal build). Open on purpose: (1) the scene change between tabs is still the navigator's `animation: 'none'` (item 2.2); (2)
- * there is no pressed look before the finger lifts, the tick on touch-down is the only immediate cue (if the owner finds the bar
- * dead, make the capsule follow `selected || pressed` in a small `TabButton` component); (3) the icon is 30, off the 16/20/24/32
+ * there is no pressed look before the finger lifts; navigation is silent per owner U10 (any additional feedback must be visual,
+ * not a touch-down tick); (3) the icon is 30, off the 16/20/24/32
  * ladder, because `tabBarHeight` is exact for it (change the size and the formula together); (4) `(app)/_layout.tsx` still reads
  * the window width itself for `roomyLabels` (it equals `useLayoutClass().stacked`; its line in `one-token-source.test.ts` goes with it).
  */
@@ -174,7 +174,7 @@ export function TabBarPreview() {
   const labelHeight = sys.type.tab.lineHeight * useTextScale();
   return <View style={[tabBarSurface, s.preview, { height: tabBarHeight(labelHeight, TAB_BAR_PADDING) }]}>
     {PREVIEW.map((tab, index) => <Press key={tab.kind} accessibilityRole="tab" accessibilityLabel={tab.title}
-      accessibilityState={{ selected: chosen === index }} onPress={() => setChosen(index)} haptic="select" hapticOn="in" scaleTo={1}
+      accessibilityState={{ selected: chosen === index }} onPress={() => setChosen(index)} haptic="none" scaleTo={1}
       hitSlop={0} style={s.previewTab}>
       <TabCapsule selected={chosen === index} radius={TAB_CAPSULE} />
       <View style={s.previewIcon}><TabGlyph kind={tab.kind} selected={chosen === index} /></View>

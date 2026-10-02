@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T10:53:25Z",
-  "grana": "HEAD",
-  "head": "a96543c0",
-  "head_poruka": "fix(ci): separate EX05 fixture environment steps and reconcile handoff evidence",
+  "osvezeno": "2026-10-02T11:05:50Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "7d1ea251",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -196,14 +196,14 @@
     "id": "UI-WAVE-2",
     "commit": "c16f09c4",
     "level": "SOURCE + JEST (255 + 600), tsc clean",
-    "independent_review": "none",
-    "next": "DEV APK from this head, emulator check, then the HONOR on his word; verifyOnPhone of wave W2; item 2.2 deferred"
+    "independent_review": "Bounded review: U10 navigation haptic mismatch corrected; correction independently approved. 82/82 targeted tests and tsc clean. No new native acceptance.",
+    "next": "Build current source and inspect W2 on emulator; U16 capsule segments and item 2.2 remain open. HONOR only in owner window."
    },
    {
     "id": "MOJI-ZADACI-TABS",
     "commit": "9a1f37a3",
     "level": "SOURCE + JEST (414)",
-    "independent_review": "none",
+    "independent_review": "Bounded review: no major source regression; U16 capsule segments unfinished. Native fit still unproven.",
     "next": "emulator look at 360 dp x 1.15; plan item 8.1 second half open"
    },
    {
@@ -246,11 +246,11 @@
    {
     "id": "EX05-S01",
     "commit": "b0858f11",
-    "level": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING",
+    "level": "CI DISPOSABLE PASS / 14 PASS, 0 FAIL, 0 NOT_RUN / HARNESS FIX VERIFIED",
     "independent_review": "Harness failure and patch independently reviewed: OK; full package review remains open.",
-    "next": "Rerun the split baseline/fixture steps; require N07/N08/D03 reports and evidence verdict. No DEV/device acceptance.",
-    "ci_run": 36994974974,
-    "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+    "next": "Full package review and remaining product/device proof still open; original failure retained in continuation history.",
+    "ci_run": 36997943005,
+    "ci_source": "a96543c069c1c76ea132b19eecf081ab2bacb5f3",
     "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
    },
    {
@@ -569,7 +569,7 @@
     },
     "EX05-S01": {
      "title": "Disposable re-proof of the chat server legs on the post-B24 and Voice B1 chain",
-     "status": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING; run 36994974974 at 3ae018be. Rerun the split baseline/fixture steps; require N07/N08/D03 reports and evidence verdict. No DEV/device acceptance.",
+     "status": "CI DISPOSABLE PASS / 14 PASS, 0 FAIL, 0 NOT_RUN / HARNESS FIX VERIFIED; run 36997943005 at a96543c0. D03 11/11 and N08 12/12. No DEV/native acceptance.",
      "autonomous": true,
      "depends_on": "EX05-S00 (baseline) preferred, not required",
      "first_owner_boundary": "None for the proof. A confirmed contract defect (for example G22) becomes a server candidate that needs 'primeni' to apply",
@@ -1446,7 +1446,7 @@
    "document": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
    "baseline_head": "14d41f8043c04f7c975738c54efa660ebeb07f64",
    "ownership": "Owner explicitly transferred checkout to Codex; continue existing closure plan and UI/AI quality work.",
-   "level": "SOURCE + LOCAL 138/138 for EX05-S01 harness fix; original CI reports inspected; no new APK or device proof.",
+   "level": "EX05-S01 disposable CI 14 PASS/0 FAIL/0 NOT_RUN; U10 source correction independently approved, 82/82 tests and tsc clean; no new APK/device proof.",
    "dev": "Read-only 2026-10-02T10:35:43Z: ledger 221, certified/live 0579191d equal, retention ready, 0/2880 failed cron, 11 active Edge functions; no writes.",
    "ci": [
     {
@@ -1490,9 +1490,17 @@
      "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
      "conclusion": "failure",
      "scope": "CI HARNESS_BROKEN / HTTP NOT RUN / NATIVE INCONCLUSIVE"
+    },
+    {
+     "unit": "EX05-S01-RERUN",
+     "run": 36997943005,
+     "sha": "a96543c069c1c76ea132b19eecf081ab2bacb5f3",
+     "conclusion": "success",
+     "scope": "CI DISPOSABLE PASS / 14 PASS, 0 FAIL, 0 NOT_RUN / HARNESS FIX VERIFIED"
     }
    ],
-   "publication": "Local generated views only; hosted Claude artifact pending."
+   "publication": "Local generated views only; hosted Claude artifact pending.",
+   "ui_review": "W2/own-task bounded read-only review completed; U10 corrected and reviewed, U16 remains open, no native acceptance."
   }
  },
  "redovi": [
@@ -8826,5 +8834,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36997943005,
+   "ime": "EX05-S01 chat server proofs re-proof",
+   "sha": "a96543c0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:53:08Z"
+  },
+  {
+   "id": 36997942991,
+   "ime": "Control tracker refresh",
+   "sha": "a96543c0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:53:08Z"
+  },
+  {
+   "id": 36994975017,
+   "ime": "EX-07 S03 auth callbacks proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974997,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974974,
+   "ime": "EX05-S01 chat server proofs re-proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974932,
+   "ime": "P7 signup confirmation recovery",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974917,
+   "ime": "Control tracker refresh",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974890,
+   "ime": "P5 ready task and matching contract",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974880,
+   "ime": "EX-05 S02 RC-02 media cancel lock order proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974876,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974872,
+   "ime": "EX-06 ex06b alias registry proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  },
+  {
+   "id": 36994974869,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "3ae018be",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T10:20:59Z"
+  }
+ ]
 }

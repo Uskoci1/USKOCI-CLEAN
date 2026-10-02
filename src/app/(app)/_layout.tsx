@@ -183,12 +183,11 @@ export default function TabLayout() {
       // The navigator draws this icon twice, one over the other, and fades between the two by FOCUS; the chosen tab here is the
       // SECTION (a screen opened from Zadaci keeps Zadaci chosen), so both copies say the same and both keep their own animation state.
       tabBarIcon: () => isPrimary(route.name) ? <TabGlyph kind={PRIMARY[route.name]} selected={selected} /> : null,
-      // The capsule is the button's own, always-mounted child (it fades; a background colour could not). The tick is the change
-      // itself, so it fires when the finger lands (a tab bar is never scrolled), and the button does not scale: the capsule is the
-      // one motion, and a plain Pressable keeps one Reanimated view fewer per tab (B22).
+      // The capsule is the button's own, always-mounted child. Navigation stays silent (owner U10), including cancelled
+      // touches and taps on the current tab. The button does not scale: a plain Pressable saves one Reanimated view per tab (B22).
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
-          onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hapticOn="in" scaleTo={1} hitSlop={0}
+          onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="none" scaleTo={1} hitSlop={0}
           style={[style, { paddingHorizontal: roomyLabels ? 0 : TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM,
             borderRadius: TAB_CAPSULE }]}>
           <TabCapsule selected={selected} radius={TAB_CAPSULE} />

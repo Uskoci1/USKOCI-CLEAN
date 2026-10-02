@@ -119,15 +119,24 @@ describe('a change of tab', () => {
     expect(labels.map(label => tab(label)!.props.accessibilityState.selected)).toEqual([false, true, false]);
   });
 
-  it('ticks the instant the finger lands, once, and not again when it lifts', async () => {
+  it('keeps navigation silent on a cancelled touch, a completed tap and a tap on the selected tab (U10)', async () => {
     await opened('/');
-    // The Press renders a plain Pressable (it does not scale): the handlers the finger reaches are on the node under it.
-    const touch = tab('Dogovori')!.findAll(node => typeof node.props.onPressIn === 'function')[0];
-    expect(touch).toBeDefined();
-    await act(async () => { touch.props.onPressIn({ nativeEvent: {} }); });
-    expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
-    await act(async () => { touch.props.onPress?.({ nativeEvent: {} }); touch.props.onPressOut?.({ nativeEvent: {} }); });
+    // Read the handler after Press has processed haptics, below the wrappers that still carry scaleTo.
+    const touch = () => tab('Dogovori')!.findAll(node => typeof node.props.onPress === 'function'
+      && node.props.scaleTo === undefined).at(-1)!;
+    const event = { nativeEvent: {} };
+    // A cancelled gesture never commits navigation.
+    await act(async () => { touch().props.onPressIn?.(event); touch().props.onPressOut?.(event); });
+    expect(tab('Početna')!.props.accessibilityState.selected).toBe(true);
+    expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    await act(async () => { touch().props.onPressIn?.(event); touch().props.onPress(event); touch().props.onPressOut?.(event); });
     await settle();
-    expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+    expect(tab('Dogovori')!.props.accessibilityState.selected).toBe(true);
+    await act(async () => { touch().props.onPress(event); });
+    await settle();
+    expect(tab('Dogovori')!.props.accessibilityState.selected).toBe(true);
+    expect(Haptics.selectionAsync).not.toHaveBeenCalled();
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 });

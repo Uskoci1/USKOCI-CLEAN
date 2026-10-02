@@ -107,15 +107,16 @@ it('the new tab surface preserves navigator press/long-press handlers and expose
 // UI/UX pass, wave 2, item 2.1 (ON PURPOSE; audits HP-03, ICO-06, MO-M11): the selected tab was a background colour on the Press, which
 // swapped in one frame and scaled with the Press's own 0.97. Now the capsule is the button's own, always-mounted child (React Native
 // Animated, opacity only), the Press does not scale (no second motion on top of the capsule, and one Reanimated view fewer per tab,
-// B22), and the tick is the change itself, so it fires the instant the finger lands (`hapticOn="in"`; a tab bar is never scrolled).
-it('draws the chosen tab as an always-mounted capsule inside the button, ticks on touch-down and does not scale the tab', async () => {
+// B22). Navigation is silent per owner U10, including a cancelled touch and tapping the current tab.
+it('draws the chosen tab as an always-mounted capsule inside the button, without haptics or a second scale', async () => {
   await act(async () => { tree = create(<Tabs />); });
   const capsuleOf = (button: React.ReactElement<{ children: React.ReactNode }>) =>
     React.Children.toArray(button.props.children).find(child => React.isValidElement(child) && child.type === TabCapsule) as React.ReactElement<{ selected: boolean; radius: number }>;
   const { borderRadius: bar, padding } = optionsFor('zadaci', ['index', 'zadaci']).tabBarStyle;
   for (const [name, selected] of [['zadaci', true], ['index', false], ['dogovori', false]] as const) {
     const button = tabButton(name, ['index', 'zadaci']);
-    expect(button.props).toMatchObject({ haptic: 'select', hapticOn: 'in', scaleTo: 1, hitSlop: 0, accessibilityRole: 'tab' });
+    expect(button.props).toMatchObject({ haptic: 'none', scaleTo: 1, hitSlop: 0, accessibilityRole: 'tab' });
+    expect(button.props.hapticOn).toBeUndefined();
     // The capsule is there for EVERY tab, chosen or not (so it can fade), and says whether it is chosen.
     expect(capsuleOf(button)).toBeDefined();
     expect(capsuleOf(button).props).toMatchObject({ selected, radius: nested(bar, padding) });

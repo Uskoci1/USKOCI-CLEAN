@@ -20,7 +20,7 @@
   },
   "next": {
     "title": "Codex: pročitati CI nalaze i zatvoriti greške provera → nezavisna revizija → UI talasi i emulator → završna privatnost i priprema objave",
-    "note": "2.10. NASTAVAK CODEX-a po novom nalogu vlasnika. Isti checkout i grana, početni HEAD 14d41f80 = origin; DEV samo čitanje: ledger 221, sertifikat 0579191d jednak overenom. Presek: docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md. Svih 75 odluka je već prihvaćeno; dizajn i expo-audio se ne pitaju ponovo. UI W1 viđen ali nije konačno prihvaćen; W2 i Moji zadaci tabovi u kodu; W3-W12 i preostali W8 otvoreni. CI više nije „nikad pokrenut“: EX05-S01 pada zbog GITHUB_ENV između koraka (ispravka + 138 lokalnih testova, ponovni CI sledi); EX07-S03 pada u testnom okruženju i emulator vozaču. EX05-S02 uspešan dokaz REPRODUKUJE dva konflikta RC02-F1/F2; EX06-S04 uspešno izvršavanje nosi 8 nalaza, ne potvrdu ispravnosti proizvoda. ex06b i EX07-S06 workflow success, detalji i nezavisna revizija tek slede; ništa nije primenjeno. Sledi potvrda CI popravke, revizija jedinica, pa grupisane UI popravke prema kritici emulatora, prirodniji AI razgovor i dokaz na tačnom APK-u. Bezbedno čišćenje statusa sada i duplikata uz pogođene ekrane; veći C0 tek uz sačuvane dokaze i proverene reference, server zasebnim paketom. EX-08 privatnost posle UI, pre kandidata za izdanje. Svaka DEV/PROD primena ostaje zasebno PRIMENI <ime>; HONOR samo u odobrenom prozoru. Nema novog uređajskog dokaza ni objave Claude prikaza u ovoj grupi."
+    "note": "2.10. NASTAVAK CODEX-a po novom nalogu vlasnika. Isti checkout i grana, početni HEAD 14d41f80 = origin; DEV samo čitanje: ledger 221, sertifikat 0579191d jednak overenom. Presek: docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md. Svih 75 odluka je već prihvaćeno; dizajn i expo-audio se ne pitaju ponovo. UI W1 viđen ali nije konačno prihvaćen; W2 i Moji zadaci tabovi u kodu; W3-W12 i preostali W8 otvoreni. CI više nije „nikad pokrenut“: EX05-S01 ispravljen: CI 36997943005 na a96543c0 prolazi, 14 PASS/0 FAIL/0 NOT_RUN uz 138 lokalnih testova; EX07-S03 pada u testnom okruženju i emulator vozaču. EX05-S02 uspešan dokaz REPRODUKUJE dva konflikta RC02-F1/F2; EX06-S04 uspešno izvršavanje nosi 8 nalaza, ne potvrdu ispravnosti proizvoda. ex06b i EX07-S06 workflow success, detalji i nezavisna revizija tek slede; ništa nije primenjeno. Ograničena revizija W2 i Moji zadaci završena: U10 vibracija navigacije uklonjena i nezavisno pregledana, 82 testa prolaze, tsc čist; U16 kapsule ostaju otvorene. Slede preostale revizije i EX07-S03 popravka provere, APK/emulator W2, pa grupisane UI popravke prema kritici emulatora, prirodniji AI razgovor i dokaz na tačnom APK-u. Bezbedno čišćenje statusa sada i duplikata uz pogođene ekrane; veći C0 tek uz sačuvane dokaze i proverene reference, server zasebnim paketom. EX-08 privatnost posle UI, pre kandidata za izdanje. Svaka DEV/PROD primena ostaje zasebno PRIMENI <ime>; HONOR samo u odobrenom prozoru. Nema novog uređajskog dokaza ni objave Claude prikaza u ovoj grupi."
   },
   "evidence": [
     {
@@ -646,6 +646,12 @@
       "run": null,
       "sha": "14d41f8043c04f7c975738c54efa660ebeb07f64",
       "result": "Owner transferred checkout to Codex. Read-only DEV handoff baseline matched; original CI reports reviewed, EX05-S01 GITHUB_ENV harness correction passes 138 local tests with independent patch review. EX05-S02 reproduces RC02-F1/F2; EX06-S04 records 8 findings. No DEV mutation, new device acceptance or hosted publication. docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
+    },
+    {
+      "id": "CODEX-EX05-S01-RERUN-20261002",
+      "run": 36997943005,
+      "sha": "a96543c069c1c76ea132b19eecf081ab2bacb5f3",
+      "result": "CI DISPOSABLE PASS / 14 PASS, 0 FAIL, 0 NOT_RUN / HARNESS FIX VERIFIED. Independent U10 review and source correction: 82/82 tests, tsc clean. No new DEV/native acceptance. See CODEX_CONTINUATION_20261002.md."
     }
   ]
 }

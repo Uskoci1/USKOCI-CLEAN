@@ -28,7 +28,17 @@ Problem: the D03-position job invoked the live79 environment producer and accoun
 
 Change: split baseline reconstruction and fixture preparation into separate steps, matching the existing D03 workflow. Fixture, SQL, application source, secrets, candidate bytes and DEV remain unchanged. A workflow regression asserts baseline < fixture < N07 step indices and one invocation of each producer/consumer.
 
-Verification: regression first failed on the original workflow (7 pass / 1 expected failure); after the fix workflow + matrix suites passed 17/17; complete EX05-S01 tool suite passed 138/138. Independent reviewer on the parent's GPT-6 model approved the diff and independently repeated 17/17. Evidence job was independently checked: it correctly fails closed on missing reports while preserving their upload. Rerun result will be recorded here after push; local checks are not the missing CI proof.
+Verification: regression first failed on the original workflow (7 pass / 1 expected failure); after the fix workflow + matrix suites passed 17/17; complete EX05-S01 tool suite passed 138/138. Independent reviewer on the parent's GPT-6 model approved the diff and independently repeated 17/17. Evidence job was independently checked: it correctly fails closed on missing reports while preserving their upload.
+
+Rerun [36997943005](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/36997943005), exact source `a96543c069c1c76ea132b19eecf081ab2bacb5f3`, completed SUCCESS. Downloaded evidence summary: **14 PASS / 0 FAIL / 0 NOT_RUN**, no unreadable reports. D03 11/11 and N08 12/12 now ran and passed. All four jobs (offline, chain, d03-position, evidence) passed. This closes the fixture-environment harness defect; proof scope remains the documented disposable chain, not a new DEV or native acceptance. The original failed receipt above remains preserved.
+
+## Bounded UI review and U10 correction
+
+Independent read-only review of W2 (`c16f09c4`) and own-task tabs (`9a1f37a3`) found a concrete mismatch with accepted U10: real and preview bottom navigation explicitly vibrated on touch-down, including cancelled touches and a tap on the current tab. Both now use silent navigation; selection animation, callbacks and accessibility stay intact. Existing tests and stale comments were corrected, including the real Expo Router test covering cancelled, committed and already-selected taps. The first focused run exposed one more obsolete expectation of touch-down vibration; it was corrected rather than weakening the owner decision.
+
+Verification: four targeted Jest suites passed **82/82**, including the real Expo Router and existing Press reduced-motion/gesture coverage; TypeScript exited 0. The independent reviewer approved the five-file fix with no blocker and applied the React best-practices checklist. Relevant native guidance was read; no dependency or animation mechanism changed.
+
+No other major source defect was identified in this bounded review. Exact U18 permits the flat cut when unselected; the selected sticker is not a decision conflict. U16 capsule segments remain unfinished in Moji zadaci (the current component still uses underline tabs). W2/W8 are not accepted visually. Next checks: emulator 360 dp at text 1.0/1.15 and bounded 1.3, complete labels and counts, toolbar clearance, rapid switching/cancelled gestures, reduced motion and TalkBack, then search/filter open/apply/dismiss. No new APK was built or observed in this group.
 
 ## Existing documents located and used
 

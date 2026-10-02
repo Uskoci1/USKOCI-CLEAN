@@ -222,7 +222,8 @@ describe('the preview the design board draws', () => {
     expect(tabs().map(tab => tab.props.accessibilityLabel)).toEqual(['Početna', 'Zadaci', 'Dogovori']);
     expect(chosen()).toEqual(['Početna']);
     for (const tab of tabs()) {
-      expect(tab.props).toMatchObject({ accessibilityRole: 'tab', haptic: 'select', hapticOn: 'in', scaleTo: 1, hitSlop: 0 });
+      expect(tab.props).toMatchObject({ accessibilityRole: 'tab', haptic: 'none', scaleTo: 1, hitSlop: 0 });
+      expect(tab.props.hapticOn).toBeUndefined();
       // The same room round the picture and the word as the real button (`TAB_ITEM_*`), so the pill has the air it has there.
       expect(flat(tab)).toMatchObject({ paddingHorizontal: TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM, borderRadius: TAB_CAPSULE });
     }
