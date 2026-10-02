@@ -5713,7 +5713,7 @@
         },
         "voiceAndComposerContinuation": {
           "locationApkBuild": "SUCCESS build37045193094 exact source4046bae3e4a3516e2eb11c3363919fad54c11052. Downloaded APK SHA256302e9ad46be6718080408e8a651a8e83834815c303d11188d493cdbe7538fe8c and recovery/icon/Reanimated attestations match. Not installed; excludes later natural-location dialogue source.",
-          "locationConversation20261002": "SUPERSEDES fixed phrase bridge: natural typed/held-speech replies carry the active map question, proposal incarnation, slot and canonical revision to the existing AI engine. Same guarded point save; active route points accumulate until complete. Ambiguous results never auto-select first. Prepared source only, feature flag OFF; no server/provider/native execution.",
+          "locationConversation20261002": "Natural typed/held-speech contextual map replies now have matching applied DEV authority: SQL20261002185306 and Edge51 exact readback PASS; active-slot lease and same existing point save. Client flag enabled in DEV APK workflow; phone APK/native observation pending. Fixed phrase parser removed; ambiguous results never choose first.",
           "profileSupport20261002": "SOURCE: worker form uses neutral selected controls, shared responsive layout, 48dp term chips and open sections; support rows lead with topic and keep DECIDED neutral. D12 load-more privacy-null clears all earlier comments; flag remains OFF pending D12a contract.",
           "automaticCi7912806f": "R20 run37040460119 SUCCESS on7912806f:159 focused,422 suites/9225 checks/6 snapshots. Existing automatic result only; does not validate newer location/profile/support source. Jest delayed-exit warning remains unattributed.",
           "ownerVoiceControlClarification": "Hold microphone sends on release and gets a text reply. Far-right waveform must start genuine spoken AI conversation on one tap. Current waveform still uses transcription-only mode; true duplex audio remains unimplemented and is not substituted by TTS.",
@@ -5733,10 +5733,14 @@
           "nativeAcceptance": false,
           "naturalLocationDialogue": {
             "package": "supabase/candidates/ai-location-01-20261002/APPROVAL.md",
-            "status": "SOURCE_CONNECTED_REVIEWED_TSC_PASS_FLAG_OFF_SERVER_NOT_APPLIED",
+            "status": "DEV_APPLIED_SQL_EDGE_EXACT_READBACK_PASS_CLIENT_FLAG_ON_PHONE_APK_PENDING",
             "contract": "Existing AI interview plus locationReply mode; same budget/dispatch/idempotency/recovery. No coordinates from model, fixed phrase dictionary, extra provider or new raw-content table. Natural confirmation requires actual proposal, ALLOW and zero fact proposals.",
             "client": "Question/proposal/account/focus/revision lease; guarded same save awaits receipt; typed and held speech share existing journal. Lost/stale response never confirms a new pin. Contextual held speech retained after terminal failure/cancel. Saved summary remains editable.",
-            "limits": "No paid call, new tests, native acceptance or deployment. True live spoken AI remains separate unfinished work. Server and technical certificate application need exact owner approval under AGENTS.md3.1.2/4/8."
+            "limits": "No paid AI/geocoder calls, new tests or native acceptance. ARM64 DEV APK requested by owner; true live spoken AI remains separate unfinished work.",
+            "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
+            "migration": "20261002185306",
+            "edgeVersion": 51,
+            "certificate": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23"
           }
         },
         "ciReconciliation": {

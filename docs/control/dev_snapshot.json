@@ -1,10 +1,15 @@
 {
-  "rc02_refresh": {"scope": "2026-10-02T17:25:57Z RC02 postflight: ledger and7function pins/catalog/comments plus live/certified digest/readiness only. Other RPC/cron/Edge inventory retains prior observation timestamps in how. Current DEV workflow voice/pager flags corrected from source7912806f.", "receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json", "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order", "concurrencyAcceptance": false},
-  "generated_at": "2026-10-02T17:25:57Z",
-  "ledger_total": 222,
-  "ledger_dev_alpha": 74,
-  "ledger_last": "dev_alpha_ex05_rc02_media_cancel_lock_order",
-  "certificate_certified": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
+  "rc02_refresh": {
+    "scope": "2026-10-02T17:25:57Z RC02 postflight: ledger and7function pins/catalog/comments plus live/certified digest/readiness only. Other RPC/cron/Edge inventory retains prior observation timestamps in how. Current DEV workflow voice/pager flags corrected from source7912806f.",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json",
+    "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
+    "concurrencyAcceptance": false
+  },
+  "generated_at": "2026-10-02T18:58:41.775Z",
+  "ledger_total": 223,
+  "ledger_dev_alpha": 75,
+  "ledger_last": "dev_alpha_ai_location_01_contextual_map_dialogue",
+  "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -36,7 +41,9 @@
     "rpc_ai_apply_interview_turn_v2_service",
     "rpc_ai_apply_legacy_need_turn_service",
     "rpc_ai_cancel_need_turn_v2",
+    "rpc_ai_claim_need_location_turn_v1_service",
     "rpc_ai_claim_need_turn_v2_service",
+    "rpc_ai_complete_need_location_turn_v1_service",
     "rpc_ai_complete_need_turn_v2_service",
     "rpc_ai_confirm_fact",
     "rpc_ai_correct_fact",
@@ -50,6 +57,8 @@
     "rpc_ai_open_need_edit_conversation_v2",
     "rpc_ai_propose_fact",
     "rpc_ai_publish_need",
+    "rpc_ai_read_need_location_turn_v1",
+    "rpc_ai_read_need_location_turn_v1_service",
     "rpc_ai_read_need_turn_v2",
     "rpc_ai_recover_need_turn_v2",
     "rpc_ai_test_budget_report_service",
@@ -285,6 +294,7 @@
     "rpc_ai_open_need_conversation_v2",
     "rpc_ai_open_need_edit_conversation_v2",
     "rpc_ai_publish_need",
+    "rpc_ai_read_need_location_turn_v1",
     "rpc_ai_read_need_turn_v2",
     "rpc_ai_recover_need_turn_v2",
     "rpc_apply_profile_avatar",
@@ -443,16 +453,16 @@
     "rpc_write_agreement_current_location"
   ],
   "project": "leqcwgzvjsxugfgzdmth",
-  "certificate_live": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
+  "certificate_live": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "retention_ai_ready": true,
-  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function).",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function). | 2026-10-02T18:58:41.775Z: AI-LOCATION-01 SQL and Edge v51 applied after explicit owner approval. Exact17-function catalog readback includes13 candidate bodies,3 unchanged definitions and one readiness constant replacement; ledger223/75, new certificate3a785d42 and both bindings agree. Four new RPC names/ACLs observed and Edge five-file hashes match. Other inventory/cron retains its prior timestamps; no provider/native probe.",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
-      "version": 50,
+      "version": 51,
       "verify_jwt": true
     },
     {
@@ -592,5 +602,12 @@
     "verifiers": "79 of 79 checks PASS",
     "revert_applied": false,
     "client": "none"
+  },
+  "ai_location_01": {
+    "migration": "20261002185306",
+    "edgeVersion": 51,
+    "clientFlag": "EXPO_PUBLIC_AI_LOCATION_DIALOGUE=1",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
+    "nativeAcceptance": false
   }
 }

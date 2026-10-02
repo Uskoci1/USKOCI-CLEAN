@@ -54,6 +54,9 @@ env:
   # Voice B1 is applied on canonical DEV. B2 Android recording/player UI is included for scoped native acceptance.
   # Remove this flag and rebuild to return to V1 readers. AI PCM capture stays on its existing native adapter until parity is accepted.
   EXPO_PUBLIC_VOICE_MESSAGES: '1'
+  # AI-LOCATION-01: DEV SQL 20261002185306 and interview Edge v51 readback verified.
+  # Remove this compile-time flag and rebuild to disable contextual map replies.
+  EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
   CI: '1'
   NODE_ENV: production
 

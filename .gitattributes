@@ -88,3 +88,5 @@ supabase/candidates/ex05-rc02-20261002/** text eol=lf
 # AI-LOCATION-01 frozen bundle and rollback bytes, including original live readback.
 supabase/candidates/ai-location-01-20261002/** -text whitespace=cr-at-eol
 supabase/functions/_shared/locationReply.ts text eol=lf
+# Exact SQL text recorded by this DEV migration contains CRLF; preserve its ledger hash.
+supabase/operations/dev-alpha/ledger/20261002185306_dev_alpha_ai_location_01_contextual_map_dialogue.sql -text whitespace=cr-at-eol
