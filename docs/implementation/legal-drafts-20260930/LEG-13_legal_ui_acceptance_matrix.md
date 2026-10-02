@@ -8,6 +8,9 @@
 | Status | DRAFT-FROM-CODE (stanje danas); ciljna matrica je predlog i traži odluke vlasnika |
 | Izvor koda | `Uskoci1/USKOCI-CLEAN`, grana `work/uskoci-ui-unification-20260924`, commit `fc58f411598338c8589f5f177626a2790c92fb13`, pročitano 2026-09-30, samo za čitanje |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** stanje serverskog ugovora prihvatanja ponovo je čitano na razvojnoj bazi, a matrica je dopunjena novim površinama (komentar uz ocenu, glasovna poruka, podrška); vidi odeljak 6. Raniji tekst je zadržan.
+
+
 ## 1. Serverski ugovor prihvatanja (šta već postoji)
 
 | Stavka | Stanje | Izvor |
@@ -62,3 +65,42 @@ Poredak objave iz master plana: tehnička istina → pravni osnov → čuvanje i
 4. Izjava trgovac/ne-trgovac i objašnjenje rangiranja pre obavezivanja (RC2 P0; ne postoji u aplikaciji).
 5. Da li se javni prikaz dokumenata bez prijave (`PublicLegalModal`) uvodi na registraciju; potrebno je da dokumenti budu objavljeni.
 6. Pravni tekst se čuva kao javna HTTPS stranica sa verzijom i SHA-256; hash se računa nad tačnim bajtovima objavljene stranice `[[PROVERITI: postupak izračunavanja i objave; kako se rešava CRLF/LF razlika koju dokumenti već pominju]]`.
+
+## 6. Osvežavanje 2026-10-02 (EX-07, slice S04)
+
+> **Osvežen tehnički nacrt, nije pravni savet.** Ciljna matrica ostaje predlog; odluke su vlasnikove. Izvori: repozitorijum (HEAD `0b9cd8c9`) i **DEV-čitanje 2026-10-02** (samo čitanje razvojne baze `leqcwgzvjsxugfgzdmth`, definicije i brojevi, bez ličnih podataka; LEG-09 odeljak 7.1).
+
+### 6.1 Stanje serverskog ugovora prihvatanja
+
+| Stavka | Stanje 2026-10-02 | Izvor |
+|---|---|---|
+| Dokumenti u registru | 0 redova u `private.legal_document_versions`; 0 redova pristanaka u `public.account_legal_acceptance_events` | DEV-čitanje 2026-10-02 |
+| Vrste dokumenata | samo `TERMS` i `PRIVACY` (ograničenje `legal_document_kind_chk`) | DEV-čitanje 2026-10-02 |
+| Postupak registracije dokumenta | ne postoji: nijedna funkcija u `public` ni `private` ne piše u `private.legal_document_versions` (pretraga tela funkcija, 0 pogodaka) | DEV-čitanje 2026-10-02; `EX07_CANONICAL_SCOPE_20261001.md` (G07) |
+| Prihvatanje nije uslov ničega | tabelu pristanaka čitaju samo `rpc_accept_legal_bundle`, `rpc_get_legal_bundle`, `rpc_read_my_legal_acceptance` i snimak izvoza; nijedna politika, pogled ni okidač je ne pominje | DEV-čitanje 2026-10-02 |
+| Registracija | `src/app/auth.tsx:389` i dalje prikazuje „Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.” bez polja saglasnosti | pretraga izvora 2026-10-02 |
+| Javni prikaz dokumenata | `PublicLegalModal` (i alias `PublicLegalSheet`) nema pozivaoca van testova; pravi prikaz je `/profil/pravna` | pretraga izvora 2026-10-02 |
+
+### 6.2 Nove površine bez pravnog sadržaja u aplikaciji
+
+| Površina | Stanje | Šta nedostaje | Veza |
+|---|---|---|---|
+| Komentar uz ocenu | serverski deo primenjen na DEV 2026-10-02; klijent nije potvrđen kao isporučen | obaveštenje pre prvog komentara, pravila sadržaja za komentar, ishod prijave komentara | LEG-12 N-14; LEG-05 odeljak 11; LEG-14 odeljak 3.7 |
+| Glasovna poruka | serverski deo primenjen na DEV 2026-10-01; klijent nije potvrđen kao isporučen | obaveštenje pre prvog snimanja | LEG-12 N-13 |
+| Podrška | postoji (`/podrska`) | obaveštenje o vansudskom rešavanju potrošačkih sporova (u aplikaciji ga nema), kontakti operatera, rokovi | LEG-07 odeljak 6; LEG-14 |
+| Privatna prijava i blokiranje | postoje (`/bezbednost`) | obaveštenje o ishodu i vremenu obrade (ne postoji); operater nije imenovan | LEG-14 |
+
+### 6.3 Dopuna ciljne matrice (predlog za odluku)
+
+| Mesto | Dokument | Radnja | Šta se beleži | Preduslov |
+|---|---|---|---|---|
+| Prvi komentar uz ocenu | Pravila zajednice i bezbednosti (odeljak 11), obaveštenje N-14 | prikaz pre prvog komentara; po odluci i izričito prihvatanje | verzija i heš dokumenata, vreme, ako se uvede kapija | serverska kapija ne postoji |
+| Prva glasovna poruka | obaveštenje N-13 | prikaz pre prvog snimanja; po odluci i izričito prihvatanje | isto | isto |
+| Podrška | obaveštenje o vansudskom rešavanju (ako operater nastupa kao trgovac prema potrošaču), kanali operatera | prikaz na ekranu podrške | ništa | LEG-07 odeljak 6; LEG-01 OP-23 |
+
+### 6.4 Odluke (dopuna odeljka 5; brojevi nastavljaju)
+
+7. Da li je prihvatanje Uslova i Pravila zajednice preduslov za objavljivanje korisničkog sadržaja (komentar, glasovna poruka, prijava): `[[ODLUKA VLASNIKA]]`. Uslovi prodavnica za korisnički sadržaj navedeni su u `docs/implementation/release-prep-20260930/DATA_DECLARATIONS_DRAFT.md` (odeljak 7); primena `[[PROVERITI]]`.
+8. Kapija mora da bude serverska (komanda), ne samo klijentska (isti zaključak kao odeljak 4); za komentar i glasovnu poruku to je zaseban serverski paket sa vlasnikovom rečju „primeni”.
+
+   - **ODLUČENO 2026-10-02 (R11, R06; `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`), detalji i dalje `[[OPERATER]]` i `[[PROVERITI]]`:** pravni registar je aneks Uslova (ne nova vrsta dokumenta); saglasnost se traži pri prvom ulasku; bez saglasnosti nema pristupa; potvrda uzrasta 18+ dodaje se pri registraciji (R06: Srbija prvo, 18+). Time su u načelu odgovorene odluke 1, 2 i 3 iz odeljka 5 i odluka 7 iz ovog odeljka (bez saglasnosti nema pristupa aplikaciji). Odluka 8 ostaje: kapija mora da bude serverska komanda, što je zaseban serverski paket uz vlasnikovo „primeni”; R11 to ne primenjuje. Ostaje otvoreno: tačni ekrani i tekstovi, mehanizam potvrde uzrasta, spisak zabranjenih poslova (piše ga vlasnik) i način registracije aneksa (registar danas poznaje samo `TERMS` i `PRIVACY`, a nijedna funkcija ne piše dokument).

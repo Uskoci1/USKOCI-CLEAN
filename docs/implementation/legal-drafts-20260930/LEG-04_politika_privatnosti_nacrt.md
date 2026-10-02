@@ -10,6 +10,9 @@
 | Verzija / stupanje na snagu | `[[ODLUKA VLASNIKA: oznaka verzije i datum stupanja na snagu]]` (registar dokumenata čuva verziju, HTTPS adresu i SHA-256, vidi LEG-13) |
 | Uklanja se pre objave | ova tabela, sve oznake `[[...]]` (popunjene ili rešene) i „Prilog: sledljivost” na kraju |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** dodati su predlog pasusa za glasovne poruke (odeljak 8) i zamena za odeljak 11 (ocene) zbog primene paketa D12 na razvojnu bazu; napomena u odeljku 7 (AI kontekst) **zadržana je do završnog prolaza privatnosti**. Raniji tekst je zadržan; zamenjeni pasusi su označeni „SUPERSEDED 2026-10-02”. Nacrt nije objavljen.
+
+
 **Kako čitati oznake:** `[[OPERATER: ...]]` - podatak koji daje operater; `[[ODLUKA VLASNIKA: ...]]` - odluka; `[[PROVERITI: ...]]` - činjenica ili pravno pitanje koje treba potvrditi pre objave.
 
 ---
@@ -117,11 +120,19 @@ USKOČI koristi AI servis kompanije Google (Gemini) da vam pomogne da sastavite 
 
 **Ne unosite tuđe lične podatke** (imena, adrese, brojeve telefona trećih lica) osim ako je to zaista neophodno za zadatak.
 
+
+> **ZADRŽANO 2026-10-02 (do završnog prolaza privatnosti):** napomena u odeljku 7 („ažurirati ovaj opis posle završnog prolaza privatnosti (filter privatnih činjenica); ne objavljivati dok nije potvrđen”) ostaje na snazi: grana `d18e830a` (smanjenje AI konteksta) i grana `1ab01e78` (spisak obrađivača) nisu integrisane, a obe su odložene za završni prolaz privatnosti cele aplikacije pre javnog izdanja (AGENTS.md 4.5). Nijedan javni tekst ne sme da kaže da privatna adresa nikad ne stiže Google-u.
+
 ## 8. Govorni unos
 
 Na Android uređajima možete da držite dugme mikrofona i govorite umesto da kucate. Zvuk se prolazno šalje preko USKOČI servera Google-ovom servisu koji ga pretvara u tekst. USKOČI ne čuva audio snimke; tekst koji nastane ostaje u razgovoru kao i ostale poruke. Snimanje traje najviše 120 sekundi, samo dok je aplikacija otvorena i dok držite dugme. Mikrofon se koristi samo uz vašu dozvolu; ako je odbijete, nastavljate kucanjem.
 
 Glasovne poruke između korisnika u Dogovoru `[[ODLUKA VLASNIKA: uključiti ovaj pasus tek kada se funkcija isporuči; do tada ne postoji]]`.
+
+**OSVEŽENO 2026-10-02 (predlog pasusa, uključiti tek kada se funkcija isporuči):** Serverski deo glasovnih poruka je primenjen na razvojnu bazu 2026-10-01, a klijent nije potvrđen kao isporučen, pa se pasus i dalje ne uključuje. Predlog (nacrt): „Glasovne poruke u Dogovoru čuvaju se kao privatne datoteke u skladištu USKOČI-ja (Supabase) dok postoji nalog pošiljaoca i vide ih samo učesnici Dogovora. USKOČI ih ne prepisuje u tekst, ne šalje AI servisu, ne prosleđuje drugim primaocima i podrška ih ne sluša automatski. Posle zatvaranja naloga pošiljaoca datoteke se brišu, osim kada izdvojen dokaz zadržava zatvaranje.” `[[PROVERITI: pravni osnov i rok čuvanja]]` Izvor: LEG-09 red P-29, LEG-12 N-13.
+
+**ZAMENA 2026-10-02 (A04; predlog pasusa, uključiti tek kada se funkcija isporuči):** u predlogu iznad deo „i podrška ih ne sluša automatski” je SUPERSEDED odlukom vlasnika A04 (`docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`): u prvom izdanju podrška ne može da čuje prijavljenu glasovnu poruku i to se piše kao poznato ograničenje. Predlog (nacrt): „Glasovne poruke u Dogovoru čuvaju se kao privatne datoteke u skladištu USKOČI-ja (Supabase) dok postoji nalog pošiljaoca i vide ih samo učesnici Dogovora. USKOČI ih ne prepisuje u tekst, ne šalje AI servisu i ne prosleđuje drugim primaocima. U prvom izdanju podrška ne može da čuje prijavljenu glasovnu poruku. Posle zatvaranja naloga pošiljaoca datoteke se brišu, osim kada izdvojen dokaz zadržava zatvaranje.” `[[PROVERITI: pravni osnov i rok čuvanja]]`
+
 
 ## 9. Fotografije
 
@@ -135,7 +146,15 @@ Preporuka nije odluka: osoba koja objavljuje zadatak sama bira koga prihvata, a 
 
 ## 11. Ocene
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” ispod:** sledeći pasus ne pominje opcioni pisani komentar uz ocenu; paket D12 je primenjen na razvojnu bazu 2026-10-02.
+
 Ocena je vezana za stvarno završen Dogovor i može je dati samo učesnik tog Dogovora. Javno se prikazuje samo ono što je potrebno za poverenje i izbor (prosečna ocena i broj ocena), bez privatnih podataka.
+
+**ZAMENA 2026-10-02 (odeljak 11; javni tekst, nacrt):** Ocena (zvezdice i oznake) vezana je za stvarno završen Dogovor i može je dati samo učesnik tog Dogovora. Uz ocenu učesnik može da ostavi opcioni pisani komentar (najviše 500 znakova). Komentar vide prijavljeni korisnici, uz ime i fotografiju autora i njegovu ocenu; posle slanja ne može da se izmeni ni obriše, a briše se kada autor zatvori nalog. Javno se prikazuju prosečna ocena i broj ocena, a uz komentar i pojedinačna ocena te recenzije. Komentar koji je USKOČI sakrio i komentar o osobi koja je zatvorila nalog zadržavaju se skriveni od prikaza `[[ODLUKA VLASNIKA: rok čuvanja]]`. Obrada komentara nema AI ni plaćenu uslugu. `[[PROVERITI: pravni osnov, procena uticaja i da li se javni prikaz pojedinačnih ocena uz komentar saopštava u tekstu]]`
+
+> **INTERNO - NAPOMENA 2026-10-02 (odluke vlasnika A09, A10, A11, `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`; ukloniti pre objave):** (1) A10: vlasnik prihvata da se pojedinačna ocena vidi uz komentar; nijedan tekst ne sme da obeća anonimnost, a ova ZAMENA to ne čini; rečenica da ocene bez komentara ostaju samo u zbiru ostaje zabranjena. (2) Do primene nastavka D12a (NIJE primenjen; kandidat još ne postoji u radnom stablu 2026-10-02) važi opis iznad. A09 će promeniti tačku 16 (osoba koju je autor blokirao videće komentar o sebi, uz sakriveno lice autora, i moći će da ga prijavi), a A11 tačku 7 (lista komentara po ulozi); ovaj pasus se tada usklađuje. Pravni osnov, procena uticaja i rok čuvanja ostaju `[[PROVERITI]]` i `[[ODLUKA VLASNIKA]]` kao iznad.
+
 
 ## 12. Ko još prima podatke
 
@@ -233,6 +252,20 @@ Pitanja o privatnosti: `[[OPERATER: email ili obrazac]]`. Poštanska adresa: `[[
 | 19 | RC2 Privacy §21, Uslovi §4 |
 | 20 | RC2 Uslovi §3, §33 |
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” u odeljku 11:** sledeća napomena kaže da je paket D12 samo kandidat i da nije primenjen. Paket je primenjen na razvojnu bazu 2026-10-02 (migracija `20261002044950`, ledger 221); napomena ostaje kao istorija.
+
 ## D12 napomena (kandidat, NIJE primenjen)
 
 > Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: odeljak 11 (Ocene): javno se i dalje prikazuje prosek i broj ocena; komentar bi bio vidljiv prijavljenim korisnicima u čitaču komentara, uz ime i ocenu autora. Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.
+
+## INTERNO - dopune sledljivosti 2026-10-02 (ukloniti pre objave)
+
+| Odeljak | Izvor |
+|---|---|
+| 7 (zadržana napomena) | `AGENTS.md` odeljak 4.5; `docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md`; LEG-09 odeljak 7.2 (spisak obrađivača u bazi nepromenjen) |
+| 8 (predlog pasusa o glasovnim porukama) | `docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md`; `supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json`; LEG-09 P-29; LEG-12 N-13 |
+| 11 (ocene i komentar) | `supabase/proofs/d12/README_D12_CANDIDATE.md` (odeljci „Text rules”, „Reader semantics”, tačke 3 do 9, 16 i 17); `supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json`; LEG-09 odeljak 7.3.1; **tvrdnja da ocene bez komentara ostaju samo u zbiru ne sme da se koristi ni u ovom tekstu** (tačka 17). Senka komentara uz blokadu (tačka 16) i javni zbir uz pojedinačne ocene (tačka 17) su posledice koje je vlasnik prihvatio primenom D12; da li se saopštavaju korisnicima je `[[ODLUKA VLASNIKA]]` (LEG-09 odeljak 7.3.1, LEG-12 N-14). |
+| 15 i 16 (prava, zatvaranje, izvoz) | Pregled prava i mapa izvoza naspram zatvaranja: LEG-15. Tekst odeljka 16 o izdvojenim dokazima ostaje tačan; odluka da li se saopštava da izuzetak nastaje i kada je prijava podneta **protiv** korisnika je `[[ODLUKA VLASNIKA]]` (LEG-10 odeljak 7.5) |
+
+Nepromenjeno u ovom osvežavanju: odeljci 1 do 6, 9, 10, 12 do 14 i 17 do 21.

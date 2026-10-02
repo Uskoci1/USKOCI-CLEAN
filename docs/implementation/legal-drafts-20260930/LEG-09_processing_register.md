@@ -9,6 +9,9 @@
 | Izvor koda | `Uskoci1/USKOCI-CLEAN`, grana `work/uskoci-ui-unification-20260924`, commit `fc58f411598338c8589f5f177626a2790c92fb13`, pročitano 2026-09-30, samo za čitanje |
 | Vezani nacrti | LEG-10 (rokovi), LEG-11 (primaoci R-xx), LEG-12 (obaveštenja), LEG-04 (politika privatnosti) |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** nacrt je dopunjen stanjem razvojne baze od 2026-10-02 (odeljak 7: komentar uz ocenu D12, glasovne poruke, izvoz i zatvaranje, lični prikazi lista EX-04). Raniji tekst je zadržan; zamenjeni pasusi su označeni „SUPERSEDED 2026-10-02”. Ništa nije objavljeno ni povezano sa aplikacijom; pravni osnovi, rokovi i operater ostaju otvoreni.
+
+
 ## 0. Metod i ograničenja
 
 - Svaka stavka potiče iz koda (`src/`, `supabase/functions/`, `supabase/migrations/`, `app.config.js`) ili iz dokumenata repozitorijuma; putanje su u koloni „Izvor”.
@@ -36,6 +39,9 @@ Maloletnici: RC2 Uslovi §4 predviđaju samo 18+. U kodu **ne postoji** provera 
 
 - Klijent (aplikacija) koristi ulogu `authenticated` sa javnim (anon) ključem; privatne tabele (`private.*`) nemaju direktne dozvole klijentskim ulogama, a upisi idu kroz RPC funkcije koje proveravaju `auth.uid()`, vlasništvo i reviziju (npr. `docs/implementation/P1_LEGAL_CONSENT_20260908.md`: „RLS enabled and forced with all privileges revoked from client roles”).
 - Servisni ključ postoji samo u serverskom okruženju Edge funkcija; klijent ga nikad ne dobija (`supabase/functions/uskoci-ai-interview/index.ts:2-4`).
+
+> **SUPERSEDED 2026-10-02 by odeljak 7.4 (stavka „public.needs”):** sledeća stavka tvrdi da je `PKG045b` neprimenjen i da `authenticated` čita sve kolone tabele `public.needs`. DEV-čitanje 2026-10-02 pokazuje drugačije stanje.
+
 - Poznato odstupanje: tabela `public.needs` još daje ulozi `authenticated` SELECT na sve kolone (41 na dan merenja 2026-09-21), uključujući `requester_account_id` (nalaz 7.17); popravka `PKG045b` nije primenjena (uslovna, čeka kompatibilan klijent; stanje potvrđeno u master planu i AGENTS.md za 2026-09-29/30), `docs/implementation/v5-ai-first/PUBLIC_TASK_PRIVACY_INVESTIGATION_20260921.md`. Do primene ne tvrditi u javnom tekstu da se identifikator naloga naručioca ne može pročitati na nivou API-ja.
 - Ko od osoblja operatera ima pristup bazi, Supabase konzoli i dnevnicima: `[[OPERATER: imenovana lica, uloge, način odobravanja pristupa]]`. U privatnom testu jedini ovlašćeni operater za podršku je vlasnik projekta (`docs/implementation/v5-ai-first/SUPPORT_CASE_CONTRACT_PROPOSAL.md`, odluka AF-D18); to nije zamena za registrovanog operatera.
 
@@ -44,6 +50,9 @@ Maloletnici: RC2 Uslovi §4 predviđaju samo 18+. U kodu **ne postoji** provera 
 Skraćenice u koloni „Osnov (predlog RC2)”: **U** = izvršenje ugovora/predugovorne radnje (RC2 §4, „Kreiranje i rad naloga”); **P** = izvršenje platformske usluge („Objavljivanje Potrebe i odgovori”); **D** = izvršenje usluge i bezbednost („Dogovor, poruke i privatni pristup”); **S** = legitimni interes i/ili pravna obaveza („Safety/moderation/fraud”); **L** = „Precizna lokacija - samo nužna svrha i odgovarajući osnov; dozvola uređaja nije sama po sebi pravni osnov”; **Z** = pravna obaveza („Zakonsko čuvanje”); **O** = legitimni interes u ograničenom periodu („Odbrana zahteva”). Oznaka „-” znači da RC2 ne pokriva obradu: `[[PROVERITI: pravni osnov]]`.
 
 Kolona „LEG-10” upućuje na klasu podataka (1-15) iz LEG-10.
+
+
+> **OSVEŽENO 2026-10-02:** redovi P-17, P-19, P-24 i P-25 ispod su dopunjeni (odeljak 7.3), a dva reda su nova: **P-29** (glasovna poruka u Dogovoru) i **P-30** (pisani komentar uz ocenu); oznake „SUPERSEDED 2026-10-02” su u odeljku 7.4. Red P-07 (govorni unos u AI razgovor) ostaje kako je: to **nije** glasovna poruka.
 
 | ID | Obrada i svrha | Podaci (polja) | Osnov (predlog RC2) | Primaoci (LEG-11) | Ko vidi | LEG-10 | Izvor |
 |---|---|---|---|---|---|---|---|
@@ -92,6 +101,9 @@ Kolona „LEG-10” upućuje na klasu podataka (1-15) iz LEG-10.
 
 Ovo su razlike između koda i onoga što bi javni tekstovi ili RC2 obećavali. Nijedna nije menjana; vlasnik odlučuje redosled.
 
+
+> **OSVEŽENO 2026-10-02:** nalazi G-09 i G-10 su **SUPERSEDED** (odeljak 7.4); G-05 je ponovo čitan i nije se promenio, G-06 je ponovo proveren u izvoru (odeljak 7.2). Ostali nalazi nisu ponovo proveravani.
+
 | # | Nalaz | Uticaj na tekstove | Izvor |
 |---|---|---|---|
 | G-01 | U kontekst AI razgovora za zadatak ulaze sve sačuvane činjenice osim `need.resolved_location`. Privatne `need.exact_address` i `need.access_notes` **jesu među njima**: korak „Mesto zadatka” ih upisuje kao potvrđene činjenice razgovora, pa svaka sledeća AI poruka tog razgovora nosi tačnu adresu i napomene za pristup Google-u. Grana `d18e830a` nije integrisana (odloženo do završnog prolaza privatnosti). Ni ona ne filtrira tekst ukucan u trenutnoj poruci. | LEG-04, LEG-12: ne tvrditi da privatna adresa nikad ne stiže Google-u; ne savetovati „unesi adresu u koraku Mesto zadatka” kao zaštitu | `src/contracts/needFactsV2.ts:42-43`; `supabase/migrations/20260910121926_clean_w02_regional_country_authority.sql:192-209`; `src/app/(app)/pregled-zadatka.tsx:526`; `supabase/migrations/20260910172132_clean_w03_owned_ai_intake_authority.sql:66-99`; `BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md` |
@@ -117,6 +129,111 @@ Ovo su razlike između koda i onoga što bi javni tekstovi ili RC2 obećavali. N
 5. Uporediti sa `USKOCI_DATA_FLOW_TRUTH_2026-09-27.md` kada bude dostupan.
 6. Popis polja osvežiti iz stvarnog kataloga baze (izvorni popis je ordinal 144).
 
+
+> **SUPERSEDED 2026-10-02 by odeljak 7.3 (red P-30):** sledeća napomena kaže da je paket D12 samo kandidat i da nije primenjen. Paket je primenjen na razvojnu bazu 2026-10-02 (migracija `20261002044950`, ledger 221); napomena ostaje kao istorija.
+
 ## D12 napomena (kandidat, NIJE primenjen)
 
 > Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: red P-19 (Ocene) i praznina G-10; klasa `AGREEMENT_REVIEWS` ostaje ista (nova klasa se ne dodaje). Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.
+
+## 7. Osvežavanje 2026-10-02 (EX-07, slice S04)
+
+> **Osvežen tehnički nacrt, nije pravni savet.** Tekst iznad je zadržan. Pravni osnovi, rokovi, uloge i operater ostaju `[[PROVERITI: ...]]`, `[[ODLUKA VLASNIKA: ...]]` i `[[OPERATER: ...]]`. Nijedan pravni osnov ni rok nije dodat.
+
+### 7.1 Izvori i metod
+
+- Repozitorijum: grana `work/uskoci-ui-unification-20260924`, HEAD `0b9cd8c9`, radno stablo čitano 2026-10-02.
+- **DEV-čitanje 2026-10-02:** samo čitanje (SELECT preko konektora) razvojne baze `leqcwgzvjsxugfgzdmth`, 2026-10-02, 08:39 do 09:24 UTC (na kraju čitanja ledger je i dalje 221 i svi pinovi tela funkcija su nepromenjeni); samo brojevi, definicije ograničenja, spiskovi funkcija i tela funkcija; nikakvi lični podaci ni korisnički tekst.
+- Nije ponovo čitano: verzije i prekidači Edge funkcija (poslednji zapis u priznanicama od 2026-10-01), Auth konzola, hostovani GoTrue, stanje klijenta (zastavice i ekrani; to vodi `docs/control/redovi.json`).
+
+### 7.2 Stanje baze (DEV-čitanje 2026-10-02)
+
+| Činjenica | Vrednost | Izvor |
+|---|---|---|
+| Ledger migracija | 221; poslednja `20261002044950` (primena D12) | `supabase_migrations.schema_migrations`; `supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json` |
+| Sertifikat zatvaranja | `0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431` (pomeren primenom D12; ranije `58447d77...`): sertifikovan = živ = vezan, spreman; 0 zatvaranja u toku | DEV-čitanje (`private.closure_source_digest_v5()`, `private.closure_erasure_binding_v5()`) |
+| Adapter zatvaranja | `OWNER_AF_D22_EVENT_ERASURE_V1`, `legalPolicyAttested` = `false` | DEV-čitanje (`private.closure_erasure_binding_v5()`) |
+| Pravni dokumenti, raspored čuvanja, mapa obrade | 0, 0, 0 redova (`legal_document_versions`, `retention_policy_sets`, `processor_map_sets`): G-05 nepromenjen | DEV-čitanje |
+| Pristanci na pravne dokumente | 0 redova (`account_legal_acceptance_events`); tabelu čitaju samo pravne funkcije i snimak izvoza, nijedna politika, pogled ni okidač | DEV-čitanje (pretraga tela funkcija, politika, pogleda i okidača) |
+| Spisak obrađivača u bazi | nepromenjen: 4 reda (`SUPABASE_PLATFORM`, `OPENAI_AI`, `GOOGLE_GEMINI_AI` aktivni; `EXPO_PUSH` neaktivan), bez LocationIQ i OpenFreeMap; `updated_at` 2026-09-10 | DEV-čitanje (`private.processor_provider_inventory`) |
+| Klase čuvanja | 15, sve aktivne i obavezne | DEV-čitanje (`private.retention_data_classes`) |
+| Katalog zatvaranja | 107 relacija u katalogu klasa, 76 u programu zatvaranja, 31 van njega (106, 75 i 31 pre D12) | DEV-čitanje (`private.closure_dataset_catalog_v5`, `private.closure_redaction_relations_v5()`); `docs/implementation/product-v1-closure-20260926/finalization-20260927/EX07_CANONICAL_SCOPE_20261001.md` (stanje 2026-10-01) |
+| Izvoz | projekcija `OWN_ACCOUNT_V5_10`, 52 skupa; vezivanje isporuke prazno (`data_export_policy_binding()` je `null`); 0 fajlova izvoza | DEV-čitanje; LEG-15 odeljak 2 |
+| Komentari uz ocenu | tabela `private.agreement_review_comments_v1` postoji; 0 komentara; 7 ocena (zvezdice) | DEV-čitanje |
+| Glasovne poruke | tabela `private.agreement_voice_uploads_v1`, kofer `agreement-voice`; 0 otpremanja, 0 poruka sa glasom | DEV-čitanje; `supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json` |
+| Podrška i bezbednost | 0 predmeta, 0 događaja, 0 odluka, 0 žalbi, 0 operaterskih grantova, 0 bezbednosnih prijava, 0 blokada | DEV-čitanje |
+| Zatvaranje naloga | 0 izvršenja, 0 komandi pokretanja; 1 zahtev u stanju `BLOCKED` (datum 2026-09-23) | DEV-čitanje |
+| Prijava bez prihvatanja u izvoru | `src/app/auth.tsx:389` još prikazuje „Ovo je test verzija...” (G-06 nepromenjen); `PublicLegalModal` nema pozivaoca van testova | pretraga izvora 2026-10-02 |
+
+### 7.3 Novi i dopunjeni redovi registra
+
+Kolone kao u odeljku 3.
+
+| ID | Obrada i svrha | Podaci (polja) | Osnov (predlog RC2) | Primaoci (LEG-11) | Ko vidi | LEG-10 | Izvor |
+|---|---|---|---|---|---|---|---|
+| P-29 | **Glasovna poruka u Dogovoru** (snimanje u aplikaciji, slanje drugoj strani). Nije isto što i P-07 (govorni unos u AI razgovor): glasovna poruka se **čuva**, ne prepisuje se i ne ide Google-u | snimak u formatu MPEG-4 (`audio/mp4`), najviše 4194304 bajtova, trajanje od 300 do 300000 ms; SHA-256 snimka; putanja objekta u privatnom Storage-u (`agreement-voice`); stanje otpremanja (`PROCESSING`, `STAGED`, `READY`, `FAILED`, `CANCELLED`); veza sa porukom (`agreement_messages.voice_asset_id`); push nosi samo opšti tekst; server ne čuva prepis ni talasni oblik (nema takvih kolona) | D (predlog RC2 za poruke u Dogovoru; primena na glasovne poruke `[[PROVERITI]]`) | R-01 (Supabase: baza i privatni Storage); nijedan drugi primalac | učesnici Dogovora (reprodukcija traži novo ovlašćenje po reprodukciji); podrška ne sluša zvuk, prijava nosi samo fiksnu oznaku | 8, 13 | DEV-čitanje (CHECK ograničenja `private.agreement_voice_uploads_v1`; `storage.buckets`: `agreement-voice` privatan, ograničenje 4194304 bajtova, `audio/mp4`); `docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md`; `VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md` |
+| P-30 | **Pisani komentar uz ocenu** (opcion, posle stvarno završenog Dogovora; jedna ocena po strani) | tekst komentara (1 do 500 znakova, najviše 2000 bajtova, bez kontrolnih i nevidljivih znakova), SHA-256 teksta, autor, ocenjena osoba, vreme, vreme i šifra razloga skrivanja; filter kontakt podataka (e-pošta, veze, oznake sa @, brojevi telefona koji počinju sa 0, 00, + ili 381) je sito, ne zaštita privatnosti | `[[PROVERITI: pravni osnov]]` (registar je pisan pre komentara, pa osnov nije izveden iz RC2) | R-01; nijedan drugi primalac (nema AI ni plaćene usluge) | prijavljeni korisnici u čitaču komentara, uz ime i fotografiju autora i njegovu ocenu; ocenjena osoba, osim kada ju je autor blokirao (odeljak 7.3.1); identifikator Dogovora samo ocenjenoj osobi; moderator preko servisne uloge | 9 | `supabase/proofs/d12/README_D12_CANDIDATE.md`; DEV-čitanje (`private.agreement_review_comments_v1`: kolone i CHECK ograničenja; funkcije `rpc_submit_agreement_review_v2`, `rpc_get_my_agreement_review_v2`, `rpc_list_review_comments_v1`, `rpc_moderate_review_comment_service_v1`) |
+
+**Dopune postojećih redova (ne menjaju tekst reda iznad):**
+
+| Red | Dopuna 2026-10-02 | Izvor |
+|---|---|---|
+| P-17 Poruke i fotografije u Dogovoru | Poruka u Dogovoru može biti i glasovna (`voice_asset_id`); vidi P-29. Pri zatvaranju pošiljaoca telo poruke se zamenjuje fiksnim tekstom, a veza sa fotografijama i glasom se uklanja. | DEV-čitanje (`private.closure_redaction_patch_v5`, telo md5 `3891fe77d38af04e06cfe4c9e4abb96f`) |
+| P-19 Ocene | Ocena (zvezdice i oznake) i dalje nema slobodan tekst; opcioni komentar je poseban red P-30. Pokazatelj „ocena čeka” (`ratingDue`) računa se iz postojećih podataka (EX-04, odeljak 7.3.2). | `EX04_CLOSURE_RECEIPT_20261001.md` |
+| P-24 Izvoz podataka | Projekcija `OWN_ACCOUNT_V5_10`, 52 skupa u svih 15 klasa; glasovne poruke i fotografije samo kao metapodaci; sopstveni komentar autora je u izvozu, primljeni nisu. Mapa izvoza naspram zatvaranja: LEG-15 odeljak 3. | DEV-čitanje (`private.data_export_dataset_catalog()` telo md5 `b19598a0ad6547de9609da121f5d4a3e`) |
+| P-25 Zatvaranje naloga | Program obuhvata 76 relacija (poslednja je `private.agreement_review_comments_v1`); nalog sa predmetom podrške ili bezbednosnom prijavom (kao podnosilac ili kao ciljna osoba), zadržavanjem razgovora, zaštićenim Dogovorom ili medijem staje na `EXCEPTIONS_PENDING`: obični podaci se uklone, Auth identitet ostaje, poništavanja nema. Nikad izvršeno na DEV. | DEV-čitanje (`rpc_claim_account_closure_action_service`, telo md5 `eedef6f857cc753d8597dc6d2d263956`); LEG-15 odeljak 5 |
+| P-09 Pitanja i odgovori pre izbora | Dopuna 2026-10-02 (A10): odluka vlasnika A10 odnosi se na ocene i komentare uz ocenu (D12), ne na ovaj red; rečenica „pitanja su anonimna” u koloni „Podaci (polja)” reda P-09 (odeljak 3) ostaje kako je (postojeći odobreni tekst u aplikaciji, LEG-12 N-06). Da li ta rečenica sme da ostane u javnim tekstovima, imajući u vidu pravilo da se u tekstovima ne obećava anonimnost, je `[[PROVERITI]]`. | `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md` (A10: „Odluka 17: prosek i pojedinačne ocene uz komentar”); `src/ui/qa/TaskQaPresentation.tsx:77` |
+
+#### 7.3.1 Šta je vlasnik prihvatio primenom D12 (zadati podrazumevani izbori)
+
+Vlasnik je 2026-10-02 rekao „PRIMENI D12 PISANI KOMENTAR” posle bloka koji je navodio 18 podrazumevanih izbora; preporuka bloka bila je da se tačke 16, 17 i 7 odluče pre primene, a vlasnik je primenio sa zadatim izborima (priznanica, polje `authorization`). Izbori relevantni za ovaj registar (brojevi su iz `supabase/proofs/d12/README_D12_CANDIDATE.md`, odeljak „What the owner's PRIMENI must knowingly accept”):
+
+1. Tačka 2: opis klase `AGREEMENT_REVIEWS` u katalogu dopunjen je rečenicom o komentaru; **nijedan rok čuvanja nije postavljen**.
+2. Tačka 3: izvoz sadrži samo **sopstveni** komentar autora; ocenjena osoba ne može da dobije kopiju onoga što su drugi napisali o njoj.
+3. Tačka 4: zatvaranjem ocenjene osobe komentar o njoj se skriva pri čitanju i **zadržava bez datuma isteka dok njegov autor ne zatvori nalog**.
+4. Tačka 5: zatvaranje autora briše komentar čak i za zaštićen Dogovor (čitanje tela funkcija, nije izvršeno u probi).
+5. Tačka 6: komentar je pojedinačno pripisiv autoru (ocena, ime i fotografija autora, identifikator ocene); objavljuje se odmah, bez odloženog otkrivanja.
+6. Tačka 7: jedna lista na nivou naloga pod **oba** lica profila; posmatrač koji je video oba lica može da ih poveže (AGENTS.md 3.4.4: osoba ima dva lica).
+
+   - **ODLUČENO 2026-10-02 (A11, `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`):** vlasnik je izabrao listu po ulozi (komentar o radniku samo pod radnikom, o tražiocu samo pod tražiocem; funkcija bez pomeranja sertifikata). To menja ovu tačku tek kada se primeni nastavak D12a (NIJE primenjen; kandidat još ne postoji u radnom stablu 2026-10-02; traži zaseban dokaz na jednokratnom lancu i vlasnikovo „PRIMENI D12a”). Do tada se razvojna baza ponaša kako je opisano u ovoj tački.
+
+7. Tačka 8: moderacija samo servisnom ulogom, po oceni, samo tekst; bez obaveštenja autora, bez operatera u produkciji, bez roka odgovora, bez automatizma i AI.
+8. Tačka 9: filter kontakt podataka je sito; izmeren je 21 propust koji prolazi.
+
+   - **ISPRAVKA IZVORA 2026-10-02:** broj 21 ne potiče iz `README_D12_CANDIDATE.md` (tačka 9 tamo navodi koje vrste unosa još prolaze, bez broja); potiče iz izveštaja dokaza na jednokratnom lancu: `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md` (redovi 7 i 30: „21 residuals recorded” i „21 residuals measured”). Taj dokaz nije imao pristup razvojnoj bazi.
+
+9. Tačka 11: tekst komentara može da završi u serverskom dnevniku ako se beleže parametri upita; dnevnik nije pregledan.
+10. Tačka 12: u putanji fotografije (`avatarPath`) je identifikator naloga, kao što ga već vraća `rpc_get_public_profile`.
+11. Tačka 16, **senka komentara uz blokadu**: kada autor blokira ocenjenu osobu (ili ju je blokirao pre pisanja), ta osoba ne vidi komentar, ne saznaje njegov identifikator i ne može da ga prijavi iz komentara, dok ga svaki treći posmatrač vidi; jedini lek je skrivanje teksta servisnom ulogom.
+
+   - **ODLUČENO 2026-10-02 (A09, `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`):** vlasnik je izabrao da osoba koju je autor blokirao vidi komentar, uz sakriveno lice autora, i da može da ga prijavi (funkcija bez pomeranja sertifikata). To menja ovu tačku tek kada se primeni nastavak D12a (NIJE primenjen; zaseban dokaz i vlasnikovo „PRIMENI D12a”); do tada se razvojna baza ponaša kako je opisano u ovoj tački.
+
+12. Tačka 17, **javni zbir uz pojedinačne ocene**: `reviewCount` i prosek ostaju javni, a pojedinačna ocena svakog komentarisanog pregleda se objavljuje; za mali broj ocena (README: manje od oko 100) može se izračunom zaključiti ocena autora koji komentar nije napisao. Zato se tvrdnja da ocene bez komentara ostaju samo u zbiru **ne sme koristiti** ni u jednom tekstu (aplikacija, politika, prodavnice).
+
+   - **ODLUČENO 2026-10-02 (A10, `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`):** vlasnik prihvata da se pojedinačna ocena vidi uz komentar; ova tačka ostaje kako je. Nijedan tekst (aplikacija, politika, prodavnice) ne sme da obeća anonimnost, a tvrdnja da ocene bez komentara ostaju samo u zbiru ostaje zabranjena. A10 se odnosi na ocene i komentare, ne na rečenicu „pitanja su anonimna” kod javnih pitanja (red P-09).
+
+
+Nije dokazano: poziv ovih funkcija na DEV (0 komentara), HTTP/JWT poziv, zatvaranje naloga posle sertifikata (0 izvršenja), ponašanje na uređaju. Klijent u trenutku primene nije postojao (priznanica, polje `notProven`); stanje klijenta ovaj nacrt ne potvrđuje.
+
+#### 7.3.2 EX-04: lični prikazi lista
+
+`rpc_list_my_needs_page` (Moji zadaci), `rpc_list_my_applications_page` (Moje prijave) i `rpc_list_need_candidates_page` (Prijave na zadatak) su čitanja po stranicama, a stanje „ocena čeka” dodato je kao izračunat ključ u postojećim čitanjima. Migracije ne dodaju tabelu, kolonu, ograničenje, okidač, politiku ni privilegiju na postojećem objektu, pa nema novih podataka, svrha ni primalaca: redovi P-04, P-15, P-16 i P-19 ostaju kako su. Funkcije postoje na DEV (pozivaju ih samo prijavljeni korisnici). Zastavice klijenta su uključene samo u razvojnom APK-u. Izvor: `supabase/operations/dev-alpha/ledger/20261001_ex04_s1_s4_application.receipt.json` (polje `package`); `docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_CLOSURE_RECEIPT_20261001.md`; DEV-čitanje (spisak funkcija i ACL).
+
+### 7.4 Ispravke ranijih tvrdnji (SUPERSEDED 2026-10-02)
+
+| Raniji tekst | Zamena | Izvor |
+|---|---|---|
+| Odeljak 2, stavka „Poznato odstupanje”: `public.needs` daje ulozi `authenticated` SELECT na sve kolone (41), uključujući `requester_account_id`; `PKG045b` nije primenjen | `PKG045b` (P0 oblik) je primenjen 2026-09-30 (ledger 211). DEV-čitanje 2026-10-02: tabela `public.needs` ima 41 kolonu; `authenticated` ima SELECT na 38, **bez** `requester_account_id`, `remaining_search_closed_by_account_id` i `remaining_search_close_reason`; `anon` na nijednu | `supabase/operations/dev-alpha/ledger/20260930_pkg045b_p0_application.receipt.json`; DEV-čitanje (`information_schema.column_privileges`) |
+| Nalaz G-09 (isto) | isto kao red iznad | isto |
+| Nalaz G-10 i red P-19: komentar u slobodnom tekstu nije uveden | Komentar je uveden na DEV: red P-30, odeljak 7.3.1 | `supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json` |
+| Odeljak „Zadaci za zatvaranje”, stavka 6: popis polja osvežiti iz stvarnog kataloga baze | Imena relacija i radnje pri zatvaranju osvežena su iz živih funkcija (LEG-15 prilozi A i B); popis kolona po relaciji i dalje je izveden iz izvora (ordinal 144) i delimično iz živih definicija (LEG-15 odeljak 3.3) | DEV-čitanje |
+| Napomena „D12 napomena (kandidat, NIJE primenjen)” | Paket je primenjen 2026-10-02 | priznanica D12 |
+
+### 7.5 Zadaci za zatvaranje (dopuna)
+
+1. Pravni osnov, procena uticaja (DPIA), rok čuvanja i moderator za P-30; odluka da li se senka komentara uz blokadu i javni zbir uz pojedinačne ocene saopštavaju korisnicima (LEG-12 N-14).
+2. Pravni osnov, obaveštenje i rok čuvanja za P-29 (LEG-12 N-13); `[[ODLUKA VLASNIKA: da li se glasovna poruka može povući posle slanja]]` (ugovor to ne definiše).
+
+   - **ODLUČENO 2026-10-02 (A05, R10; `docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`):** povlačenje glasovne poruke posle slanja NIJE funkcija prvog izdanja („brisanje” je odbacivanje pre slanja i brisanje pri zatvaranju naloga, i to je dovoljno za V1), pa oznaka `[[ODLUKA VLASNIKA: da li se glasovna poruka može povući posle slanja]]` više ne čeka odluku. Otvoreno ostaje samo rok čuvanja glasovnih objekata, `[[ODLUKA VLASNIKA]]` uz pravnika, do tada mehanizam bez vrednosti (R10); pravni osnov i obaveštenje (LEG-12 N-13) ostaju `[[PROVERITI]]`.
+
+3. Ostaje na snazi zadatak 4 iz odeljka 6: posle integracije grana `d18e830a` i `1ab01e78` ponovo pročitati P-05, P-06, P-08 i G-01 (odloženo do završnog prolaza privatnosti, AGENTS.md 4.5).

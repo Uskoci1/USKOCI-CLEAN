@@ -8,6 +8,9 @@
 | Status | DATA-PENDING-OWNER: nijedan podatak operatera ne postoji u repozitorijumu |
 | Provera | U kodu i dokumentima nema naziva firme, PIB-a, matičnog broja, adrese, domena ni adrese e-pošte za privatnost, podršku ili reklamacije (pretraga `PIB`, `matični broj`, `d.o.o`, adresa e-pošte i domen u `src/`, `supabase/`, `docs/`, `app.config.js`; jedini nalaz su primeri `ime@primer.rs` u `src/app/auth.tsx:359,496`). Odluka vlasnika AF-D10: „operator još nije registrovan” (`docs/implementation/v5-ai-first/OPEN_INPUTS.md`). |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** dodata su polja OP-50 do OP-57 (odeljak 7) koja traže LEG-14 i LEG-15. Nijedno polje nije popunjeno i nijedan podatak operatera nije izmišljen; ranija provera iznad nije ponavljana.
+
+
 ## 0. Kako se koristi ovaj spisak
 
 - Vlasnik dostavlja podatke kroz bezbedan kanal koji izabere (master plan 21.1: „Vlasnik kroz odabranu bezbednu predaju”). U repozitorijum ne idu lične isprave, brojevi računa, lozinke ni pristupni podaci konzola.
@@ -84,3 +87,20 @@ Spisak je zatvoren kada:
 5. je pravni pregled potvrdio sadržaj (ovaj plan nije novi pravni pregled - master plan 16.1).
 
 Do tada se nijedan dokument iz ovog paketa ne objavljuje kao konačan, i ne unosi se izmišljen podatak (master plan 16.3, 16.4).
+
+## 7. Dopuna 2026-10-02 (EX-07, slice S04): polja koja traže LEG-14 i LEG-15
+
+Nova polja nastavljaju šifre OP-xx. Pravila odeljka 0 važe: podaci se dostavljaju bezbednim kanalom, ne ulaze u repozitorijum kao lični podaci, a svuda gde se koriste menjaju se odjednom.
+
+| ID | Šta se traži | Zašto (izvor) | Gde se koristi | Status |
+|---|---|---|---|---|
+| OP-50 | **Imenovani operater podrške i bezbednosti**: osoba ili uloga, nalog kome se dodeljuje pristup operatera, ko odobrava dodelu i opoziv | odluka AF-D18; `docs/implementation/v5-ai-first/SUPPORT_CASE_CONTRACT_PROPOSAL.md` odeljak 3; LEG-14 | LEG-14 odeljak 3.1; LEG-05 odeljak 9; LEG-07 odeljak 8 | `[[OPERATER]]` |
+| OP-51 | **Radno vreme i dostupnost podrške** (ili izjava da ih nema) i rokovi odgovora | LEG-07 odeljak 4; „No fake SLA” u `docs/implementation/v5-ai-first/SUPPORT_CASE_API_143.md` | LEG-07; LEG-14 odeljak 3.10 | `[[OPERATER]]` `[[PROVERITI]]` |
+| OP-52 | **Postupak za neposrednu opasnost** i kontakt prema nadležnim službama (ili izjava da ga nema) | LEG-05 odeljak 9; LEG-14 odeljak 3.8 | LEG-05; LEG-07 odeljak 10; LEG-14 | `[[OPERATER]]` |
+| OP-53 | **Provera identiteta** lica koje podnosi zahtev bez pristupa nalogu, bez prikupljanja novih podataka | LEG-08 odeljak 3; LEG-15 odeljak 4 | LEG-08; LEG-15 | `[[OPERATER]]` |
+| OP-54 | **Rok odgovora na zahteve lica** na koje se podaci odnose (interni i zakonski) | LEG-04 odeljak 15; LEG-15 odeljak 6 | LEG-04; LEG-08 odeljak 9; LEG-15 | `[[OPERATER]]` `[[PROVERITI]]` |
+| OP-55 | **Evidencija zahteva lica (DSR)**: gde se beleži i ko je vodi | LEG-08 odeljak 3; LEG-15 odeljak 4 (zasebna tabela je nova relacija i menja sertifikat zatvaranja) | LEG-15 | `[[OPERATER]]` `[[ODLUKA VLASNIKA]]` |
+| OP-56 | **Pravila za izuzetke zatvaranja**: ko odlučuje o oslobađanju predmeta, bezbednosne prijave ili dokaza, na kom osnovu i u kom roku | LEG-10 odluke 5 i 15; LEG-14 odeljak 4.2 | LEG-08 odeljak 6; LEG-10; LEG-15 odeljak 5 | `[[ODLUKA VLASNIKA]]` |
+| OP-57 | **Pravila moderacije komentara uz ocenu**: ko odlučuje o skrivanju i vraćanju, spisak šifara razloga, da li se autor obaveštava | `supabase/proofs/d12/README_D12_CANDIDATE.md`; LEG-14 odeljak 3.7 | LEG-14; LEG-05 odeljak 11 | `[[OPERATER]]` `[[ODLUKA VLASNIKA]]` |
+
+Spisak iz odeljka 6 sada obuhvata i OP-50 do OP-57 za objavu LEG-14 i LEG-15.

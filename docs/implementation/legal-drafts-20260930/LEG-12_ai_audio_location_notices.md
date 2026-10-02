@@ -9,6 +9,9 @@
 | Izvor koda | `Uskoci1/USKOCI-CLEAN`, grana `work/uskoci-ui-unification-20260924`, commit `fc58f411598338c8589f5f177626a2790c92fb13`, pročitano 2026-09-30, samo za čitanje |
 | Vezani nacrti | LEG-09 (obrada P-xx), LEG-11 (primaoci R-xx), LEG-04 §5-§9, LEG-13, LEG-18 |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** dodata su dva nova predloga obaveštenja, **N-13** (glasovna poruka u Dogovoru) i **N-14** (pisani komentar uz ocenu), jer su serverski paketi Voice B1 i D12 primenjeni na razvojnu bazu (odeljak 8). Raniji tekst je zadržan; zamenjeni delovi su označeni „SUPERSEDED 2026-10-02”.
+
+
 ## 0. Pravila ovog dokumenta
 
 1. Tekst u aplikaciji je u obliku „ti” (glas proizvoda, npr. „Drži mikrofon dok govoriš”), zato su predlozi niže napisani tako. Javni pravni tekstovi (LEG-02/04) koriste treće lice.
@@ -17,6 +20,9 @@
 4. Već odobreni tekstovi u aplikaciji se čuvaju doslovno; ovde se predlažu samo dopune tamo gde postoji praznina.
 5. Odbijanje dozvole ne sme da blokira osnovnu upotrebu: uvek postoji ručna alternativa (RC2 Privacy §5: „Ako korisnik odbije GPS, gde je moguće treba ponuditi ručni unos adrese/oblasti”).
 6. Razdvojene su tri stvari koje se lako mešaju (master plan 6, „Glas”): **govorni unos u AI razgovor** (postoji, Android, kontrolisani test), **glasovna poruka u Dogovoru** (nije isporučena, `docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md`) i **izgovoren AI odgovor** (ne postoji). Tekstovi niže pokrivaju samo prvu.
+
+> **SUPERSEDED 2026-10-02 by odeljak 8.1 (u delu o glasovnoj poruci u Dogovoru):** stavka 6 kaže da glasovna poruka u Dogovoru „nije isporučena” i upućuje na ugovor sa statusom „VOICE UNSHIPPED”. Serverski paket Voice B1 je primenjen na razvojnu bazu 2026-10-01 (ledger 215), a klijent nije potvrđen kao isporučen. Podela na tri stvari (govorni unos u AI razgovor, glasovna poruka u Dogovoru, izgovoren AI odgovor) ostaje tačna.
+
 
 ## 1. Pregled
 
@@ -68,6 +74,9 @@
 | Platforma | Samo Android (iOS modul ne postoji). Na iOS-u ne prikazivati obaveštenje niti mikrofon dok se funkcija ne isporuči. |
 | Glasovne poruke između korisnika | Ne postoje; kada se isporuče, potreban je zaseban tekst: poruka se čuva na serveru (privatni Storage), dostupna učesnicima, i **nije** deo ovog obaveštenja (`CHAT_VOICE_CONTRACT.md`). |
 
+
+> **SUPERSEDED 2026-10-02 by N-13 u odeljku 8.2:** red „Glasovne poruke između korisnika” u unosu N-03 kaže „Ne postoje; kada se isporuče, potreban je zaseban tekst”. Serverski deo postoji na razvojnoj bazi (Voice B1); zaseban tekst je predložen kao N-13.
+
 ### N-04 · Provera zadatka pre objave
 
 | Stavka | Sadržaj |
@@ -92,6 +101,7 @@
 |---|---|
 | Šta se stvarno šalje | Tekst pitanja (do 500) ili odgovora (do 1.000 znakova) i javna polja zadatka Google-ovom AI servisu na proveru, kada je uključen `USKOCI_QA_CLASSIFIER_ENABLED` (`uskoci-qa-classify/index.ts:118-131,191-192`). |
 | Postojeći tekst (odobren, čuva se) | „Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.” (`src/ui/qa/TaskQaPresentation.tsx:77`) |
+| Napomena 2026-10-02 (A10) | Odluka vlasnika A10 (`docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`: „Odluka 17: prosek i pojedinačne ocene uz komentar”) odnosi se na ocene i komentare uz ocenu, ne na ovaj odobreni tekst o javnim pitanjima: rečenica „Pitanja su anonimna.” ostaje kako je u aplikaciji. Da li ta rečenica sme da ostane u javnim tekstovima, imajući u vidu pravilo da se u tekstovima ne obećava anonimnost, je `[[PROVERITI]]`. |
 | Predložena dopuna | „Pre objave tekst se automatski proverava; u proveri učestvuje Google-ov AI servis.” |
 
 ### N-07 · Lokacija: „U blizini” (GPS)
@@ -150,3 +160,50 @@
 - Nema pojedinačne saglasnosti (checkbox) za bilo koje od ovih obaveštenja; odluka da li je za AI/govor potrebna izričita saglasnost je `[[ODLUKA VLASNIKA]]` posle pravnog pregleda.
 - Obaveštenja o tuđim podacima u slobodnom tekstu (N-01) treba proveriti u DPIA (LEG-09, odeljak 4).
 - Iste tekstove treba preslikati u odgovore za Apple App Privacy i Google Data Safety (LEG-16/17) i u Politiku privatnosti (LEG-04).
+
+## 8. Osvežavanje 2026-10-02 (EX-07, slice S04)
+
+> **Osvežen tehnički nacrt, nije pravni savet. Tekstovi su predlozi; ništa u aplikaciji nije menjano.** Tekstovi u aplikaciji su u obliku „ti” i bez gramatičkog roda. Pravni osnov i saglasnost ostaju `[[PROVERITI]]`. Izvori: repozitorijum (HEAD `0b9cd8c9`) i **DEV-čitanje 2026-10-02** (samo čitanje razvojne baze, definicije i brojevi, bez ličnih podataka; LEG-09 odeljak 7.1).
+
+### 8.1 Šta se promenilo
+
+| Tema | Stanje 2026-10-02 | Izvor |
+|---|---|---|
+| Glasovna poruka u Dogovoru | Serverski paket Voice B1 je primenjen na DEV 2026-10-01 (ledger 215): tabela `private.agreement_voice_uploads_v1`, privatni kofer `agreement-voice`, funkcije za slanje i čitanje. Klijent (snimanje, reprodukcija) nije potvrđen kao isporučen; zastavica klijenta `EXPO_PUBLIC_VOICE_MESSAGES` je u priznanici isključena. Zato je potreban zaseban tekst pre prvog snimanja (N-13). 0 otpremanja i 0 poruka sa glasom na DEV. | `supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json`; DEV-čitanje 2026-10-02 |
+| Pisani komentar uz ocenu | Serverski paket D12 je primenjen na DEV 2026-10-02 (ledger 221); 0 komentara; klijent u trenutku primene nije postojao. Zato je potreban zaseban tekst (N-14). | `supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json` |
+| Govorni unos u AI razgovor (N-03) | Nepromenjen: zvuk se ne čuva; to **nije** glasovna poruka. | odeljak 2, N-03 |
+| Sistemski tekst dozvole mikrofona | Nije menjan. Za glasovne poruke potreban je zaseban tekst: odluke o iOS tekstu mikrofona i o `expo-audio` (uslovno odobren) čekaju. | `VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md` (odeljak 6, tačka 4) |
+
+### 8.2 Predlozi obaveštenja
+
+#### N-13 · Glasovna poruka u Dogovoru
+
+| Stavka | Sadržaj |
+|---|---|
+| Šta se stvarno dešava | 1. Snimanje je samo u prednjem planu, a mikrofon se traži tek kada izričito započneš snimanje (ugovor; klijent nije potvrđen). 2. Snimak (MPEG-4, `audio/mp4`, do 300000 ms i 4194304 bajtova) šalje se USKOČI serveru i čuva kao privatna datoteka u kofu `agreement-voice`; proverava se samo struktura datoteke; snimak se ne prepisuje u tekst i ne šalje se nijednom davaocu osim Supabase-u, na kome je aplikacija (LEG-11 R-01). 3. Slušaju je samo učesnici Dogovora; reprodukcija traži novo ovlašćenje. 4. Push obaveštenje nosi samo opšti tekst. 5. Podrška ne sluša zvuk; prijava nosi samo fiksnu oznaku. 6. Pri zatvaranju naloga pošiljaoca zvuk se briše (dokazano na jednokratnom lancu, ne na razvojnoj bazi); izuzeci zatvaranja važe (LEG-10 odeljak 7.5). |
+| Izvor | `docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md` (odeljci „Product behavior”, „Storage”, „Durable upload”, „Read / playback”, „Notifications”); DEV-čitanje 2026-10-02 (`storage.buckets`, CHECK ograničenja `private.agreement_voice_uploads_v1`); `VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md` (odeljci 2 i 4) |
+| Predlog teksta (verzija A) | „Glasovna poruka se šalje USKOČI serveru i čuva kao privatna datoteka dok postoji tvoj nalog. Slušaju je samo učesnici ovog Dogovora. USKOČI je ne prepisuje u tekst i ne šalje je AI servisu. Podrška je ne sluša automatski. Kada zatvoriš nalog, tvoje glasovne poruke se brišu, osim ako postoji izdvojen predmet koji zadržava zatvaranje.” `[[PROVERITI]]` |
+| Predlog teksta (verzija A), ZAMENA 2026-10-02 (A04) | „Glasovna poruka se šalje USKOČI serveru i čuva kao privatna datoteka dok postoji tvoj nalog. Slušaju je samo učesnici ovog Dogovora. USKOČI je ne prepisuje u tekst i ne šalje je AI servisu. U prvom izdanju podrška ne može da čuje prijavljenu glasovnu poruku. Kada zatvoriš nalog, tvoje glasovne poruke se brišu, osim ako postoji izdvojen predmet koji zadržava zatvaranje.” Rečenica „Podrška je ne sluša automatski.” iz reda iznad je SUPERSEDED odlukom vlasnika A04 (`docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md`): podrška ne može da čuje prijavljenu glasovnu poruku u V1 i to se piše kao poznato ograničenje; nijedan tekst ne sme da sugeriše da podrška sluša, ni ručno. `[[PROVERITI]]` ostaje samo za pravni osnov. |
+| Ako odbiješ dozvolu mikrofona | Poruke ostaju tekst i fotografije. |
+| Gde | Pre prvog snimanja; oblik i trenutak `[[ODLUKA VLASNIKA]]`. |
+| Sistemski tekst dozvole | Postojeći tekst je napisan za govorni unos u AI razgovor (N-03); za glasovne poruke potreban je zaseban tekst `[[ODLUKA VLASNIKA]]`. |
+| Pravni osnov | `[[PROVERITI]]` (LEG-09 P-29) |
+
+#### N-14 · Pisani komentar uz ocenu
+
+| Stavka | Sadržaj |
+|---|---|
+| Šta se stvarno dešava | 1. Komentar je opcion, najviše 500 znakova, moguć tek posle stvarno završenog Dogovora; po jedna ocena sa svake strane. 2. Objavljuje se odmah; vide ga prijavljeni korisnici na profilu ocenjene osobe, uz tvoje ime, fotografiju i ocenu. 3. Posle slanja ne može da se izmeni ni obriše; briše se kada zatvoriš nalog. 4. USKOČI može da sakrije tekst komentara (ne i ocenu); autor se o tome ne obaveštava. 5. Filter odbija e-poštu, veze, oznake sa @ i brojeve telefona koji počinju sa 0, 00, + ili 381; ne garantuje da u tekstu nema ličnih podataka. 6. Prosečna ocena i broj ocena su javni; pojedinačna ocena se vidi uz komentar. |
+| Izvor | `supabase/proofs/d12/README_D12_CANDIDATE.md` (odeljci „Text rules”, „Reader semantics”, „What the owner's PRIMENI must knowingly accept”, tačke 3 do 9, 16 i 17); DEV-čitanje 2026-10-02 (CHECK ograničenja `private.agreement_review_comments_v1`) |
+| Predlog teksta | „Komentar je opcion. Vide ga prijavljeni korisnici, uz tvoje ime, fotografiju i ocenu. Posle slanja ne možeš da ga izmeniš ni obrišeš; briše se kada zatvoriš nalog. Ne upisuj telefon, email ni tuđe lične podatke. USKOČI može da sakrije tekst koji krši pravila.” `[[PROVERITI]]` |
+| Šta tekst ne sme da kaže | Da ocene bez komentara ostaju samo u zbiru (nije tačno, D12 tačka 17); da se komentar može izmeniti ili povući; da se autor obaveštava o skrivanju. |
+| Šta je vlasnik prihvatio, a predlog to ne pominje (da li se saopštava: `[[ODLUKA VLASNIKA]]`) | Senka komentara uz blokadu (D12 tačka 16); jedna lista pod oba lica profila (tačka 7). |
+| ODLUČENO 2026-10-02 (A09, A10, A11) | Do primene nastavka D12a (NIJE primenjen; kandidat još ne postoji u radnom stablu 2026-10-02) razvojna baza se ponaša kako opisuju prethodna dva reda. A09 će promeniti tačku 16 (osoba koju je autor blokirao videće komentar o sebi, uz sakriveno lice autora, i moći će da ga prijavi), a A11 tačku 7 (lista po ulozi: komentar o radniku samo pod radnikom, o tražiocu samo pod tražiocem); oba uz zaseban dokaz i vlasnikovo „PRIMENI D12a”, a predlog teksta N-14 se tada usklađuje. A10 je prihvaćen: pojedinačna ocena ostaje uz komentar i NIJEDAN tekst ne sme da obeća anonimnost (predlog iznad to ne čini). |
+| Ako odbiješ | Ostaje samo ocena zvezdicama; komentar je opcion. |
+| Pravni osnov | `[[PROVERITI]]` (LEG-09 P-30) |
+
+### 8.3 Šta ovim tekstovima nije rešeno
+
+- Pravni osnov, saglasnost i procena uticaja (komentar i glasovna poruka mogu da sadrže podatke trećih lica); nema pojedinačne saglasnosti (checkbox).
+- Da li N-13 i N-14 traže izričit korak prihvatanja (uslovi prodavnica za sadržaj koji korisnici objavljuju: `docs/implementation/release-prep-20260930/DATA_DECLARATIONS_DRAFT.md` odeljak 7): LEG-13 odeljak 6.
+- Pregled N-14 od pravnika zbog javnog prikaza pojedinačnih ocena uz komentar.

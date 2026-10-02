@@ -10,6 +10,9 @@
 | Verzija / stupanje na snagu | `[[ODLUKA VLASNIKA: oznaka verzije i datum]]` |
 | Uklanja se pre objave | ova tabela, oznake `[[...]]` i „Prilog: sledljivost” |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** obećanja koja nadilaze implementirano ponašanje (prioritet bezbednosnih prijava, hitna zaštita, mere nad nalogom, obaveštenje o ishodu) skraćena su na ono što aplikacija i server stvarno rade. Raniji pasusi su zadržani i označeni „SUPERSEDED 2026-10-02”, zamene su označene „ZAMENA 2026-10-02”. Nacrt nije objavljen.
+
+
 **Oznake:** `[[OPERATER: ...]]`, `[[ODLUKA VLASNIKA: ...]]`, `[[PROVERITI: ...]]` kao u LEG-02.
 
 Ova pravila su prateći dokument Uslova korišćenja (LEG-02, odeljci 8, 18, 25, 26). Registar pravnih dokumenata u aplikaciji trenutno poznaje samo Uslove i Politiku privatnosti (`private.legal_document_versions`: `TERMS`, `PRIVACY`); zato se ova pravila ili ugrađuju u Uslove, ili objavljuju kao poseban javni dokument na koji Uslovi upućuju `[[ODLUKA VLASNIKA: kako se objavljuju i prihvataju, LEG-13]]`.
@@ -18,7 +21,11 @@ Ova pravila su prateći dokument Uslova korišćenja (LEG-02, odeljci 8, 18, 25,
 
 ## 1. Osnovno pravilo
 
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” ispod (samo treća rečenica pasusa, deo „... a tamo gde je potrebno i čovek”):** rečenica obećava da u slučajevima gde je potrebno odlučuje i čovek; nijedan postupak u kome čovek menja ishod provere objave nije potvrđen (LEG-14 odeljci 0 i 2: odluka podrške ima dejstvo `NONE` i ne menja objavu). Ostale rečenice pasusa ostaju.
+
 USKOČI nije oglasna tabla na kojoj je dozvoljeno sve što korisnik može da napiše. Provera pravila pri objavi je stvarna funkcija aplikacije. AI može da označi rizik, ali konačnu odluku o zabrani ili ručnom pregledu donose utvrđena pravila sa razlozima, a tamo gde je potrebno i čovek. AI oznaka nije automatska konačna sankcija.
+
+**ZAMENA 2026-10-02 (odeljak 1, treća rečenica; javni tekst, nacrt):** AI može da označi rizik, ali ishod provere pri objavi određuju utvrđena pravila sa razlozima. Ishod „potreban pregled” samo zadržava objavu dok ne postoji pregledano pravilo; odluka podrške (tema „Pregled odluke o objavi”) je odgovor na zahtev i ne menja objavu. `[[PROVERITI: da li pravila zadržavaju ručni pregled pojedinačne objave; do potvrde se ne obećava da odluku donosi čovek]]`
 
 ## 2. Šta zaista objavljujemo: samo zadatke koje neko želi da uradi neko drugi
 
@@ -96,15 +103,33 @@ Svaki korisnik može:
 - **blokirati** drugog korisnika; blokada može prekinuti običan kontakt tokom aktivnog Dogovora, uz očuvane bezbedne izlaze: prijava i podrška ostaju dostupne i kada običan razgovor više nije dozvoljen;
 - **prijaviti sadržaj ili recenziju** kroz podršku (tema „Prijava sadržaja ili recenzije”) i zatražiti pregled odluke.
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” ispod:** pasus obećava „prioritet” za prijavu neposredne opasnosti; server nema polje prioriteta ni garantovan rok, postoji samo zasebna lista bezbednosnih prijava za operatera.
+
 Prijava koja opisuje neposrednu opasnost dobija prioritet. Platforma nije služba hitne pomoći: u opasnosti pozovite nadležnu službu. `[[OPERATER: broj hitnih službi u državi izdanja; ko prima i obrađuje bezbednosne prijave i u kom roku; LEG-14]]`
+
+**ZAMENA 2026-10-02 (odeljak 9, poslednji pasus; javni tekst, nacrt):** Platforma nije služba hitne pomoći: u neposrednoj opasnosti pozovite nadležnu službu u svojoj državi `[[OPERATER: izjava o hitnim službama u državi izdanja, LEG-01 OP-52]]`. Bezbednosne prijave se vode u zasebnoj listi koju ručno obrađuje lice koje USKOČI odredi `[[OPERATER: ko, LEG-01 OP-50]]`; aplikacija ne daje prioritet, rok reakcije ni hitnu meru, a status „primljeno” znači samo da je prijava primljena.
+
 
 ## 10. Kako sprovodimo pravila
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” ispod:** pasus obećava trenutnu hitnu zaštitu, upozorenje, ograničenje funkcije, suspenziju i deaktivaciju, kao i obaveštenje o razlogu i žalbi; takvi postupci i funkcije ne postoje, a odluka podrške ima dejstvo `NONE`.
+
 Hitna zaštita može biti trenutna kada postoji ozbiljan bezbednosni signal. Ostale mere su proporcionalne, imaju razlog i evidentiraju se. Mere mogu biti upozorenje, ograničenje funkcije, suspenzija ili deaktivacija (Uslovi, odeljak 26). Prijava sama po sebi nije dokaz krivice. Kada je mera značajna, korisnik dobija obaveštenje o razlogu, dejstvu i načinu pregleda ili žalbe (Reklamacije, podrška, žalbe). `[[PROVERITI: ozbiljne sankcije se ne uvode bez stvarnog drugog pregleda ili drugog kanala (RC2 Otkazivanje §12); proveriti stanje procesa]]`
+
+**ZAMENA 2026-10-02 (odeljak 10; javni tekst, nacrt):** Pravila se danas sprovode na tri načina: proverom zadatka pre objave (odeljak 3), blokiranjem koje korisnik sam postavlja (odeljak 9) i skrivanjem teksta komentara uz ocenu koji krši pravila. Odluka podrške je odgovor na zahtev i sama po sebi nema dejstvo na nalog, Dogovor, objavu ni ocenu. USKOČI nema postupak upozorenja, ograničenja funkcija, suspenzije ni deaktivacije naloga, niti trenutne zaštite pre izjašnjenja. Prijava sama po sebi nije dokaz krivice. `[[ODLUKA VLASNIKA: da li se mere nad nalogom uvode i kojim postupkom]]`
+
 
 ## 11. Ocene
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” ispod:** pasus govori samo o oceni bez teksta; paket D12 (opcioni pisani komentar) je primenjen na razvojnu bazu 2026-10-02, pa pravila sadržaja važe i za tekst komentara.
+
 Ocena se daje samo za stvarno završen Dogovor. Plaćene, lažne, naručene ocene i osvetnički sadržaj nisu dozvoljeni; ocena ne sme sadržati pretnje, privatne podatke, govor mržnje ni neosnovanu optužbu za krivično delo. Platforma ne uklanja legitimnu negativnu ocenu samo zato što je negativna (Uslovi, odeljak 23).
+
+**ZAMENA 2026-10-02 (odeljak 11; javni tekst, nacrt):** Ocena (zvezdice i oznake) daje se samo za stvarno završen Dogovor. Uz ocenu može da stoji opcioni pisani komentar. Plaćene, lažne, naručene ocene i osvetnički sadržaj nisu dozvoljeni; komentar ne sme sadržati pretnje, privatne podatke, govor mržnje ni neosnovanu optužbu za krivično delo. USKOČI ne uklanja ocenu zato što je negativna; tekst komentara koji krši pravila može da se sakrije, a ocena i prosek ostaju. Komentar ne može da se izmeni ni obriše posle slanja. Prijava komentara ide kroz podršku (tema „Prijava sadržaja ili recenzije”); aplikacija ne obećava rok ni obaveštenje o odluci. Vidi i Uslove, odeljak 23.
+
 
 ## 12. Šta pravila ne obećavaju
 
@@ -134,6 +159,21 @@ Bezbednosne prijave: u aplikaciji i `[[OPERATER: email za bezbednost]]`. Prijava
 | 12 | RC2 Uslovi §5; Safety §1 |
 | 13 | RC2 Uslovi §1; Reklamacije §14; LEG-01 OP-13, OP-14 |
 
+
+> **SUPERSEDED 2026-10-02 by „ZAMENA 2026-10-02” u odeljku 11:** sledeća napomena kaže da je paket D12 samo kandidat i da nije primenjen. Paket je primenjen na razvojnu bazu 2026-10-02 (migracija `20261002044950`, ledger 221); napomena ostaje kao istorija.
+
 ## D12 napomena (kandidat, NIJE primenjen)
 
 > Dodato 2026-10-01. Paket „D12 pisani komentar uz ocenu“ je samo kandidat u repozitorijumu (`supabase/candidates/d12_review_comment.sql`); nije primenjen na DEV i zahteva izričitu odluku vlasnika. Do tada tvrdnje iznad o oceni bez slobodnog teksta ostaju tačne i ovaj dokument se ne menja. Ako se paket primeni, uticaj na ovaj dokument je ograničen na: odeljak 11 (Ocene): pravila sadržaja bi važila i za tekst komentara. Opcioni pisani komentar postoji dok postoji nalog autora; briše se pri zatvaranju naloga autora; komentar koji je moderacijom skriven i komentar o osobi koja je zatvorila nalog se zadržavaju (skriveni od prikaza); rok čuvanja je unos vlasnika/pravnika i nijedan broj nije izmišljen. Pravni osnov, DPIA, moderator i rok odgovora ostaju `[[PROVERITI]]`. Izvor: `supabase/proofs/d12/README_D12_CANDIDATE.md`, `docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json`.
+
+## INTERNO - dopune sledljivosti 2026-10-02 (ukloniti pre objave)
+
+| Zamena | Izvor |
+|---|---|
+| Odeljak 9 (prioritet, hitne službe) | DEV-čitanje 2026-10-02: tabela `private.support_cases_v5` nema kolonu `priority`; operaterska lista režima `SAFETY` je razdvajanje liste (`docs/implementation/v5-ai-first/SUPPORT_CASE_API_143.md`: „No fake SLA”); `docs/implementation/legal-drafts-20260930/LEG-14_moderacija_i_podrska_operativni_postupci.md` odeljak 2; `src/ui/safety/SafetyScreen.tsx` ne sadrži izraz o hitnim službama (pretraga 2026-10-02) |
+| Odeljak 10 (mere) | DEV-čitanje 2026-10-02: `support_decisions_v5_effect_check` (`effect` = `NONE`); nijedna funkcija ne postavlja `SUSPENDED`; `rpc_moderate_review_comment_service_v1` skriva samo tekst komentara; AF-D18 „no new sanctions” |
+| Odeljak 11 (ocene i komentar) | `supabase/proofs/d12/README_D12_CANDIDATE.md` (odeljak „Text rules” i tačke 8, 16, 17); LEG-02 odeljak 23; **tvrdnja da ocene bez komentara ostaju samo u zbiru ne sme da se koristi**. Senka komentara uz blokadu (tačka 16) i javni zbir uz pojedinačne ocene (tačka 17) su posledice koje je vlasnik prihvatio primenom D12; da li se saopštavaju korisnicima je `[[ODLUKA VLASNIKA]]` (LEG-09 odeljak 7.3.1, LEG-12 N-14). |
+
+Nepromenjeno u ovom osvežavanju: odeljci 1 do 8, 12 i 13.
+
+**Ispravka 2026-10-02 (pregled ispravki):** odeljak 1 (treća rečenica) više nije nepromenjen: označen je (SUPERSEDED i ZAMENA). Nepromenjeni su odeljci 2 do 8, 12 i 13.

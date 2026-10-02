@@ -9,6 +9,9 @@
 | Izvor koda | repozitorijum `Uskoci1/USKOCI-CLEAN`, grana `work/uskoci-ui-unification-20260924`, commit `fc58f411598338c8589f5f177626a2790c92fb13`, pročitano 2026-09-30 samo za čitanje |
 | Vezani nacrti | LEG-09 (registar obrade), LEG-10 (čuvanje i brisanje), LEG-12 (obaveštenja), LEG-04 (politika privatnosti) |
 
+**OSVEŽENO 2026-10-02 (EX-07, slice S04):** registar je dopunjen stanjem razvojne baze od 2026-10-02 (odeljak 7: glasovne poruke Voice B1, komentar uz ocenu D12 i lični prikazi lista EX-04 ne uvode novog obrađivača; tri privatna kofera). **Upozorenja ovog registra (odstupanje u R-02 i neusklađenosti iz odeljka 4) ZADRŽANA su do završnog prolaza privatnosti** (AGENTS.md 4.5). Raniji tekst je zadržan; zamenjeni delovi su označeni „SUPERSEDED 2026-10-02”.
+
+
 ## 0. Kako se čita ovaj registar
 
 Sve navedeno u koloni „Šta kod stvarno radi” potiče iz koda ili dokumenata repozitorijuma, sa putanjom i (gde je proverena) linijom. Ništa nije preuzeto „po sećanju”. Gde repozitorijum ne fiksira činjenicu (pravno lice davaoca, ugovor o obradi, region, rok čuvanja kod davaoca, pravni mehanizam prenosa), stoji jedna od tri oznake:
@@ -52,6 +55,9 @@ Nisu obrađivači podataka korisnika (vidi odeljak 3): EAS Build, GitHub/GitHub 
 | Kontrole u kodu | Edge funkcije ne upisuju sadržaj adresa, tokena ni odgovora davaoca u dnevnike (komentari u `uskoci-location-search/index.ts:235-237`, `uskoci-push-transport/index.ts:4-5`); ovo nije dokaz o dnevnicima na nivou platforme. |
 | Otvoreno | Na razvojnom okruženju spisak obrađivača u bazi (`private.processor_provider_inventory`) je zastareo, vidi odeljak 4. |
 
+
+> **OSVEŽENO 2026-10-02:** red „Funkcija” unosa R-01 navodi dva privatna kofera (`profile-media`, `data-export-artifacts`); živo stanje ima **tri** (`agreement-voice` je dodat primenom Voice B1). Vidi odeljak 7.1. Ostalo u R-01 nije menjano.
+
 ### R-02 · Google Gemini API - tekstualni AI (četiri Edge funkcije)
 
 Model koji kod prihvata je samo `gemini-3.8-flash`; funkcije odbijaju rad bez tačno tog modela, `AI_PROVIDER=gemini` i `USKOCI_GEMINI_PAID_TEST_ENABLED=true` (`uskoci-ai-interview/index.ts:757-769`, `uskoci-worker-interview/index.ts:143`, `uskoci-qa-classify/index.ts:191-192`). Ključ davaoca je samo u serverskom okruženju (`uskoci-ai-interview/index.ts:2-4`).
@@ -83,6 +89,9 @@ Odstupanje koje treba uneti u javne tekstove (vidi LEG-12, LEG-04): u kontekst r
 | Platforma | Samo Android (`requireOptionalNativeModule('UskociVoice')`, `src/features/voice/nativeSpeechAdapter.ts:21`); iOS modul ne postoji (`modules/uskoci-voice/expo-module.config.json`). |
 | Region, ugovor, čuvanje kod Google-a | isto kao R-02; dodatno `[[PROVERITI: da li zvuk kod davaoca ostaje u bezbednosnim zapisima i koliko dugo]]`. |
 | Otvoreno | Govorne poruke između korisnika u Dogovoru **nisu isporučene** (`docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md`, status „VOICE UNSHIPPED”); ovaj unos ih ne pokriva. |
+
+
+> **SUPERSEDED 2026-10-02 by odeljak 7.1 (red „Glasovne poruke”):** red „Otvoreno” unosa R-03 tvrdi da govorne poruke između korisnika u Dogovoru nisu isporučene (status „VOICE UNSHIPPED”). Serverski paket Voice B1 je primenjen na razvojnu bazu 2026-10-01 (ledger 215); klijent nije potvrđen kao isporučen (zastavica isključena u priznanici). Glasovne poruke **nisu** deo R-03: ne idu Google-u nego se čuvaju samo u R-01.
 
 ### R-04 / R-05 · Expo Push Service, FCM, APNs
 
@@ -144,6 +153,9 @@ Stanje čitano 2026-09-28 (`BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md`) i 2026-09
 
 Popravka spiska ( grana `work/legal-privacy-processor-inventory-truth-20260927`, `1ab01e78`) **nije integrisana**; vlasnik ju je odložio za završni prolaz privatnosti (2026-09-28). Tabela iznad je zato izvor za tu popravku.
 
+
+> **ZADRŽANO 2026-10-02 (do završnog prolaza privatnosti):** tabela iznad i odstupanje u R-02 ostaju kakvi jesu; grane `d18e830a` i `1ab01e78` nisu integrisane. Stanje spiska obrađivača u bazi ponovo je čitano 2026-10-02 i nije se promenilo (odeljak 7.1).
+
 ## 5. Matrica prenosa van Srbije (radna)
 
 Uslov za popunjavanje: prvo se određuje operater i država njegovog poslovanja (`LEG-01`), pa tek onda pravni mehanizam prenosa za svaki red. Ništa dole nije pravni zaključak.
@@ -166,3 +178,33 @@ Master plan (15.2) izričito upozorava: „EU region baze nije dokaz da svi spol
 3. Odlučiti produkcioni region i pošiljaoca email poruka `[[ODLUKA VLASNIKA]]`.
 4. Posle integracije grana `d18e830a` i `1ab01e78` ponovo pročitati R-02 i odeljak 4 iz stvarnog koda i stanja baze.
 5. Objaviti mapu obrade u serverski registar tek kada su svi redovi potvrđeni; tek tada aplikacija prikazuje „Obrađivači podataka” (`src/ui/legal/LegalDocuments.tsx`). Mapa obrade **nije** preduslov za izvoz podataka (preduslov su aktivna Politika privatnosti i raspored čuvanja, vidi LEG-10 i LEG-15); P4 ne uvodi ni blokadu poziva davalaca (`runtimeProviderGateAdmitted` je uvek `false`, `docs/implementation/P4_PROCESSOR_MAP_20260908.md`).
+
+## 7. Osvežavanje 2026-10-02 (EX-07, slice S04)
+
+> **Osvežen tehnički nacrt, nije pravni savet.** Ugovori, regioni i mehanizmi prenosa ostaju `[[PROVERITI: ...]]` i `[[ODLUKA VLASNIKA: ...]]`.
+
+### 7.1 Šta se promenilo za primaoce i obrađivače (stanje DEV 2026-10-02)
+
+| Tema | Stanje | Izvor |
+|---|---|---|
+| Novi obrađivač | **Nijedan.** Paket D12 (komentar uz ocenu) i EX-04 (lični prikazi lista) ne pozivaju nijednog davaoca: njihove funkcije su SQL funkcije u bazi (R-01). Odluka vlasnika za D12: bez automatske AI moderacije i bez plaćene usluge. | `supabase/proofs/d12/README_D12_CANDIDATE.md` (odeljak „Owner decisions that bind this candidate”); `supabase/operations/dev-alpha/ledger/20261001_ex04_s1_s4_application.receipt.json` |
+| Glasovne poruke (Voice B1) | Čuvaju se samo u bazi i u privatnom Storage-u Supabase-a (kofer `agreement-voice`), dakle kod R-01. Ne šalju se Google-u (R-02, R-03), LocationIQ-u (R-06) ni drugom primaocu, osim opšteg teksta push obaveštenja (R-04, R-05). R-03 (Google Gemini Live) ostaje isključivo za govorni unos u AI razgovor, koji se ne čuva. Podrška ne dobija zvuk. | `docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md`; `docs/implementation/product-v1-closure-20260926/CHAT_VOICE_CONTRACT.md` |
+| R-01, privatni Storage | Tri privatna kofera: `profile-media` (ograničenje 5242880 bajtova; `image/jpeg`, `image/png`, `image/webp`), `data-export-artifacts` (8388608; `application/json`) i `agreement-voice` (4194304; `audio/mp4`). Nijedan nije javan. | DEV-čitanje 2026-10-02 (`storage.buckets`) |
+| R-01, Edge funkcije | Poslednje zapisano stanje (`list_edge_functions` 2026-10-01 07:00 UTC, priznanica Voice B1): 11 aktivnih funkcija; `uskoci-media` v14 nosi i operacije za glas; `uskoci-account-closure-worker` v4. **Nije ponovo čitano 2026-10-02.** | `supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json` (polje `edge`) |
+| Spisak obrađivača u bazi | Nepromenjen: 4 reda; `SUPABASE_PLATFORM`, `OPENAI_AI` (zastareo, aktivan i obavezan) i `GOOGLE_GEMINI_AI` aktivni, `EXPO_PUSH` neaktivan; nema LocationIQ ni OpenFreeMap; `updated_at` 2026-09-10; objavljena mapa obrade 0 redova | DEV-čitanje 2026-10-02 (`private.processor_provider_inventory`, `private.processor_map_sets`) |
+| Push, prekidači, FCM | Nisu čitani 2026-10-02. | - |
+
+### 7.2 Upozorenja koja se ZADRŽAVAJU do završnog prolaza privatnosti
+
+Do završnog prolaza privatnosti cele aplikacije pre javnog izdanja (AGENTS.md 4.5) ostaje nepromenjeno:
+
+1. odstupanje u R-02: privatna adresa i napomene za pristup mogu biti u kontekstu AI razgovora; grana `d18e830a` nije integrisana;
+2. neusklađenost spiska obrađivača u bazi iz odeljka 4; grana `1ab01e78` nije integrisana;
+3. nijedan javni tekst ne sme da kaže da privatna adresa nikad ne stiže Google-u.
+
+Ovaj registar se ne objavljuje i ne povezuje sa aplikacijom pre toga. Izvor: `AGENTS.md` odeljak 4.5; `docs/implementation/product-v1-closure-20260926/finalization-20260927/EX07_CANONICAL_SCOPE_20261001.md` (odeljak 11, rizik „Legal drafts can be mistaken for approved content”).
+
+### 7.3 Dopune zadataka za zatvaranje (odeljak 6)
+
+1. Ugovor o obradi sa Supabase treba da obuhvati i glasovne datoteke (`agreement-voice`) i komentare uz ocene (u bazi).
+2. Region i čuvanje rezervnih kopija važe i za glasovne datoteke: `[[PROVERITI: plan i retencija kopija, LEG-10 odeljak 5]]`.
