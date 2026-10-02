@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T10:51:02Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "14d41f80",
-  "head_poruka": "docs(handoff): record the whole-project regression gate (tsc exit 0, jest 422/422 suites, 9,236 tests) in the handoff and the state summary",
+  "osvezeno": "2026-10-02T10:53:25Z",
+  "grana": "HEAD",
+  "head": "a96543c0",
+  "head_poruka": "fix(ci): separate EX05 fixture environment steps and reconcile handoff evidence",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -8826,102 +8826,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36994975017,
-   "ime": "EX-07 S03 auth callbacks proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974997,
-   "ime": "EX-06 S04 dispatch lifecycle proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974974,
-   "ime": "EX05-S01 chat server proofs re-proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974932,
-   "ime": "P7 signup confirmation recovery",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974917,
-   "ime": "Control tracker refresh",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974890,
-   "ime": "P5 ready task and matching contract",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974880,
-   "ime": "EX-05 S02 RC-02 media cancel lock order proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974876,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974872,
-   "ime": "EX-06 ex06b alias registry proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974869,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974825,
-   "ime": "D12 written review comment proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  },
-  {
-   "id": 36994974813,
-   "ime": "EX-06 S03 matching contract proof",
-   "sha": "3ae018be",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T10:20:59Z"
-  }
- ]
+ "ci": null
 }
