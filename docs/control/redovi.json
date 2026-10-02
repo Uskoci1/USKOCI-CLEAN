@@ -2799,8 +2799,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Ocena 5/5 sačuvana na telefonu i zasebno emulatoru. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: "
       },
-      "problem": "Zvezdasta ocena je implementirana i dokazano testirana; prethodni crveni opis je zastareo. Pisani komentar ostaje poseban, neprimenjen server/schema/privacy/moderation paket.",
-      "sledece": "Na disposable completed Agreement-u proveriti current APK rating jednom po nalogu. Za pisani komentar traži se zasebno odobrenje server paketa pre bilo kakve DEV izmene.",
+      "problem": "Zvezdasta ocena je implementirana i dokazano testirana. Pisani komentar: SERVER PRIMENJEN na canonical DEV 2.10.2026 (vlasnikova reč „PRIMENI D12 PISANI KOMENTAR“; ledger 221, sertifikat 58447d77 → 0579191d, 0 komentara, revert postoji i NIJE primenjen). KLIJENT je u kodu iza isključene zastavice EXPO_PUBLIC_D12_REVIEW_COMMENT (commit 72564945; jest 561, snimak ekrana sa isključenom zastavicom snimljen PRE izmene); BEZ CI, BEZ DEV poziva, BEZ uređaja, bez nezavisne revizije.",
+      "sledece": "Nezavisna revizija klijenta; povezati PublicProfileSheet (obaveštenje obećava vidljivost koju UI još ne daje); zastavicu u DEV APK workflow tek posle revizije; nativni dokaz sa dva naloga na stvarno završenom Dogovoru (vlasnikov prozor, nepovratan upis). Dalje D12a (otkrivanje komentara ocenjenom uz maskirano lice autora + lista po ulozi; odluke A09/A11), pa „PRIMENI“ tek posle approval bloka. Ocena zvezdicama: proveriti current APK jednom po nalogu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3314,7 +3314,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Dokumenti nisu objavljeni: čekaju podatke operatera i pravnika.",
-      "sledece": "Tvoj deo: podaci operatera i odgovori pravnika.",
+      "sledece": "Tvoj deo: podaci operatera i odgovori pravnika. | 2.10.: pravni nacrti (LEG-02/04/05/07/08 u docs/implementation/legal-drafts-20260930/) svedeni na implementirano ponašanje; status ostaje „čeka podatke operatera i pravnika“; prihvatanje nije uslov nijedne komande; 0 dokumenata i 0 prihvatanja na DEV; nijedna funkcija ne upisuje registar dokumenata (nedostaje procedura objave).",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3482,7 +3482,7 @@
         "dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran."
       },
       "problem": "",
-      "sledece": "PKG-047a i bezbedan cilj već postoje. R19 odbacuje zakašnjeli ulaz sa napuštenog profila/prikaza. Potvrditi stvaran prijavi/blokiraj tok i obradu podrške u odobrenom scenariju; ne prijavljivati prave osobe kao test. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md",
+      "sledece": "PKG-047a i bezbedan cilj već postoje. R19 odbacuje zakašnjeli ulaz sa napuštenog profila/prikaza. Potvrditi stvaran prijavi/blokiraj tok i obradu podrške u odobrenom scenariju; ne prijavljivati prave osobe kao test. docs/implementation/design-system/r19-task-agreement-20260925/FLOWS_AUDIT.md | 2.10.: LEG-05/LEG-07 svedeni na implementirano (bez prioriteta, suspenzije i ADR teksta u aplikaciji; odluke imaju dejstvo NONE), LEG-14 napisan; nedostaje imenovani operater, kanali, radno vreme i izjava za hitne slučajeve (0 operatorskih dozvola, 0 predmeta, 0 prijava na DEV). Ime cilja prijave: EX-07 S06 (kod napisan, serverski paket NIJE primenjen).",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3544,7 +3544,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Audit 24.09: RC-05/06: potvrda odbacivanja može ostati bez dejstva kada se čitanje u međuvremenu završi; neuspeh oznake pročitanog izgleda kao čekanje ako postoji nepotvrđen odgovor. Ponovljeno izolovanim izvršavanjem bez pravog naloga. → Ispravljeno u kodu (round 5c): RC-05, RC-06. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
-      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti podršku (odbacivanje, oznaka pročitanog, zaustavljanje slanja) na emulatoru. Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: novi zahtev troši prvi prikaz na sedam tema i objašnjenja, a polja za pisanje su niže. Sažeti izbor teme i dovesti poruku ranije. Posebno proveriti tastaturu prepiske podrške. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Završni krug04: uklonjeni nepotrebni zahtevi za ocene u ovom prikazu.",
+      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti podršku (odbacivanje, oznaka pročitanog, zaustavljanje slanja) na emulatoru. Dopuna 24.09: završiti nalaze RC-05, RC-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: novi zahtev troši prvi prikaz na sedam tema i objašnjenja, a polja za pisanje su niže. Sažeti izbor teme i dovesti poruku ranije. Posebno proveriti tastaturu prepiske podrške. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Završni krug04: uklonjeni nepotrebni zahtevi za ocene u ovom prikazu. | 2.10.: LEG-05/LEG-07 svedeni na implementirano, LEG-14 napisan (opseg kvote se razlikuje od prihvaćenog ugovora, LEG-14 odeljak 4.1); nedostaje imenovani operater, kanali i radno vreme.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3610,7 +3610,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-      "sledece": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: sačuvano postojeće upozorenje o neuspelom lokalnom čišćenju pri isteku.",
+      "sledece": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: sačuvano postojeće upozorenje o neuspelom lokalnom čišćenju pri isteku. | 2.10.: generisanje traži aktivnu politiku privatnosti i raspored čuvanja SA izvoznim vezivanjem za svih 15 klasa (projekcija OWN_ACCOUNT_V5_10, 52 skupa); mapa obrađivača nije preduslov; nijedna funkcija ne objavljuje vezivanje. Mapa izvoz–zatvaranje: legal-drafts LEG-15 odeljak 3.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3666,7 +3666,7 @@
       ],
       "telefon": null,
       "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-      "sledece": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: ispravljeno zadržavanje starog pregleda pri neuspelom osvežavanju; nijedno brisanje nije pokrenuto. Round20: zatvaranje dijaloga i dupli izlazi ispravljeni; novi APK/emulator još nisu prihvaćeni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md",
+      "sledece": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: ispravljeno zadržavanje starog pregleda pri neuspelom osvežavanju; nijedno brisanje nije pokrenuto. Round20: zatvaranje dijaloga i dupli izlazi ispravljeni; novi APK/emulator još nisu prihvaćeni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md | 2.10.: zatvaranje ne zavisi od rasporeda čuvanja (adapter vezan za događaj, legalPolicyAttested false), ali nedostaje putanja van aplikacije (LEG-08 odeljak 3), a nalog sa predmetom podrške ili prijavom bezbednosti (podnosilac ili meta) staje na EXCEPTIONS_PENDING bez izlaza (LEG-10 7.5, LEG-14 4.2); vlasnik je 2.10. PRIHVATIO to ograničenje (A30) i objaviće ga u javnom tekstu. Nikad pokrenuto na DEV (0 izvršenja).",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3720,7 +3720,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
-      "sledece": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Odluka vlasnika 28.09: ove dve grane ostaviti za završni pregled privatnosti cele aplikacije pre javnog izdanja; sada nisu prioritet za primenu.",
+      "sledece": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Odluka vlasnika 28.09: ove dve grane ostaviti za završni pregled privatnosti cele aplikacije pre javnog izdanja; sada nisu prioritet za primenu. | 2.10.: nalazi G-01, G-02, G-05 i odluke o čuvanju (legal-drafts LEG-10 odeljak 6 i 7.4); dve grane privatnosti ostaju odložene (AGENTS 4.5).",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -4436,6 +4436,185 @@
     }
   },
   "finalization": {
+    "handoff_codex_20261002": {
+      "ordered_by_owner": "2026-10-02 ~12:00: „Ajde polako završavaj ono što radiš, zapamti sve, evidentiraj, daj živi presek stanja i daj komandu i pripremu da Codex nastavi dalji rad od tačke gde si stao.“",
+      "document": "docs/implementation/handoff-codex-20261002/CODEX_HANDOFF_20261002.md",
+      "start_prompt": "docs/implementation/handoff-codex-20261002/START_PROMPT_CODEX.md",
+      "state": "Claude Code stopped; every helper agent was wound down (all Sonnet 5.5, Fable 5.1 not used). Nothing applied to DEV or PROD today beyond the two owner-worded packages (D12, ex06a). DEV at the handoff: ledger 221, certificate 0579191d (live = certified), D12 table 0 rows (revert window open).",
+      "units": [
+        {
+          "id": "EX07-S02",
+          "commit": "2f21c211",
+          "level": "SOURCE + JEST",
+          "independent_review": "OK",
+          "next": "owner decision F4; S10 on a disposable account against the real DEV provider"
+        },
+        {
+          "id": "UI-WAVE-2",
+          "commit": "c16f09c4",
+          "level": "SOURCE + JEST (255 + 600), tsc clean",
+          "independent_review": "none",
+          "next": "DEV APK from this head, emulator check, then the HONOR on his word; verifyOnPhone of wave W2; item 2.2 deferred"
+        },
+        {
+          "id": "MOJI-ZADACI-TABS",
+          "commit": "9a1f37a3",
+          "level": "SOURCE + JEST (414)",
+          "independent_review": "none",
+          "next": "emulator look at 360 dp x 1.15; plan item 8.1 second half open"
+        },
+        {
+          "id": "EX07-S06",
+          "commit": "fa45c62d",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "none",
+          "next": "CI run of ex07-s06-proof.yml; review; approval block only after green"
+        },
+        {
+          "id": "EX07-S03",
+          "commit": "85339a90",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "none",
+          "next": "CI run of ex07-s03-auth-callbacks-proof.yml (disposable emulator evidence only)"
+        },
+        {
+          "id": "EX06-S06-EX06B",
+          "commit": "6c979c12",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "none",
+          "next": "CI run of ex06b-alias-proof.yml; owner questions A15 etc.; approval block only after green"
+        },
+        {
+          "id": "D12-CLIENT",
+          "commit": "72564945",
+          "level": "SOURCE + JEST (561)",
+          "independent_review": "none",
+          "next": "review; PublicProfileSheet; flag in the DEV APK workflow only after review; native two-account proof"
+        },
+        {
+          "id": "EX05-S01",
+          "commit": "b0858f11",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "none",
+          "next": "first CI cycle with pin_gate_mode=report"
+        },
+        {
+          "id": "EX06-S04",
+          "commit": "2c21e61b",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "none",
+          "next": "first CI run with pins=report; F5-F12 are hypotheses"
+        },
+        {
+          "id": "EX05-S02",
+          "commit": "b2fa3f60",
+          "level": "SOURCE + OFFLINE",
+          "independent_review": "folded in during the round",
+          "next": "first CI run with pin_gate_only=true, then a full run"
+        },
+        {
+          "id": "UI-CRITIQUE-W1",
+          "commit": "e9aada75",
+          "level": "EMULATOR still images (critique, no code)",
+          "independent_review": "two critics",
+          "next": "turn the two top-ten lists into the next UI wave"
+        },
+        {
+          "id": "EMU-DRIVERS",
+          "commit": "3a73bfe6",
+          "level": "tooling",
+          "independent_review": "none",
+          "next": "B22 probes P1/P2/P4 on the emulator when the machine is quiet"
+        }
+      ],
+      "first_action_for_the_successor": "push the branch, read the CI proofs it starts (CODEX_HANDOFF section 6.A), then the independent review of the unreviewed units (6.B)"
+    },
+    "work_20261002_units": [
+      {
+        "id": "EX07-S02",
+        "commit": "2f21c211",
+        "level": "SOURCE + JEST",
+        "independent_review": "OK",
+        "next": "owner decision F4; S10 on a disposable account against the real DEV provider"
+      },
+      {
+        "id": "UI-WAVE-2",
+        "commit": "c16f09c4",
+        "level": "SOURCE + JEST (255 + 600), tsc clean",
+        "independent_review": "none",
+        "next": "DEV APK from this head, emulator check, then the HONOR on his word; verifyOnPhone of wave W2; item 2.2 deferred"
+      },
+      {
+        "id": "MOJI-ZADACI-TABS",
+        "commit": "9a1f37a3",
+        "level": "SOURCE + JEST (414)",
+        "independent_review": "none",
+        "next": "emulator look at 360 dp x 1.15; plan item 8.1 second half open"
+      },
+      {
+        "id": "EX07-S06",
+        "commit": "fa45c62d",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "none",
+        "next": "CI run of ex07-s06-proof.yml; review; approval block only after green"
+      },
+      {
+        "id": "EX07-S03",
+        "commit": "85339a90",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "none",
+        "next": "CI run of ex07-s03-auth-callbacks-proof.yml (disposable emulator evidence only)"
+      },
+      {
+        "id": "EX06-S06-EX06B",
+        "commit": "6c979c12",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "none",
+        "next": "CI run of ex06b-alias-proof.yml; owner questions A15 etc.; approval block only after green"
+      },
+      {
+        "id": "D12-CLIENT",
+        "commit": "72564945",
+        "level": "SOURCE + JEST (561)",
+        "independent_review": "none",
+        "next": "review; PublicProfileSheet; flag in the DEV APK workflow only after review; native two-account proof"
+      },
+      {
+        "id": "EX05-S01",
+        "commit": "b0858f11",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "none",
+        "next": "first CI cycle with pin_gate_mode=report"
+      },
+      {
+        "id": "EX06-S04",
+        "commit": "2c21e61b",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "none",
+        "next": "first CI run with pins=report; F5-F12 are hypotheses"
+      },
+      {
+        "id": "EX05-S02",
+        "commit": "b2fa3f60",
+        "level": "SOURCE + OFFLINE",
+        "independent_review": "folded in during the round",
+        "next": "first CI run with pin_gate_only=true, then a full run"
+      },
+      {
+        "id": "UI-CRITIQUE-W1",
+        "commit": "e9aada75",
+        "level": "EMULATOR still images (critique, no code)",
+        "independent_review": "two critics",
+        "next": "turn the two top-ten lists into the next UI wave"
+      },
+      {
+        "id": "EMU-DRIVERS",
+        "commit": "3a73bfe6",
+        "level": "tooling",
+        "independent_review": "none",
+        "next": "B22 probes P1/P2/P4 on the emulator when the machine is quiet"
+      }
+    ],
     "owner_decision_20261002_all75": "2.10. 11:02: VLASNIK JE PRIHVATIO SVIH 75 PREDLOGA (stranica za odgovaranje https://claude.ai/artifact/9JRQthzUMM6M3qw4ZxCK2a, zapis u njenoj bazi: 75 dokumenata, svi „predlog“, bez napomena; pročitano 2.10.). Zapis odluka i posledica: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md. Isto veče: „Primeni, a SAD radi na android emulatoru“: „Primeni“ bez imena paketa shvaćeno kao pokretanje primene prihvaćenih odluka u RADU (nije reč iz AGENTS 3.1.2 za DEV/PROD; nijedan serverski paket nije spreman, svaki traži svoje „PRIMENI <ime>“ posle approval bloka); QA je od sada na Android emulatoru USKOCI_V5_TEST (AGENTS 3.2.1 dopunjen), HONOR samo na njegovo „sad“. Izmenjen AGENTS.md: 3.1.5 (expo-audio odobren, expo-location uslovno), 3.1.7 (povučena rečenica o zero-device backlog retirement), 3.2.1 (emulator), 3.5.5 (obim V1). Dodatak 3.6.9 (UI odluke) NIJE upisan (sistem ga je blokirao): UI odluke stoje u zapisu odluka i u UI planu.",
     "updated_at": "2026-09-28",
     "source_head": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
@@ -4570,14 +4749,14 @@
         },
         "EX05-S01": {
           "title": "Disposable re-proof of the chat server legs on the post-B24 and Voice B1 chain",
-          "status": "NOT STARTED",
+          "status": "SOURCE + OFFLINE 2026-10-02 (commit b0858f11): six updated chat proof copies (text, readers, photo, group, voice, push), pin gate over 60 DEV functions, B24 Part 1 chain variant, evidence matrix of 16 rows all NOT RUN, workflow ex05-s01-chat-reproof.yml NOT RUN (chain job 1-2 hours; first cycle pin_gate_mode=report); finding: the PKG-010 chain driver does not plan on the head, so the photo and group rows read NOT RE-RUN; G22 (push ON, in-app OFF) and G16 (group send emits nothing) are RECORDED by the proofs, not asserted; unreviewed; docs: ex05/EX05_S01_ROUND_NOTE_20261002.md, EX05_S01_EVIDENCE_TABLE_20261002.md",
           "autonomous": true,
           "depends_on": "EX05-S00 (baseline) preferred, not required",
           "first_owner_boundary": "None for the proof. A confirmed contract defect (for example G22) becomes a server candidate that needs 'primeni' to apply"
         },
         "EX05-S02": {
           "title": "RC-02 targeted concurrent proof for media cancellation",
-          "status": "NOT STARTED",
+          "status": "SOURCE + OFFLINE 2026-10-02 (commit b2fa3f60): targeted concurrent proof of the RC-02 media-cancel lock order (35 pre-registered interleavings, positive and negative controls, chain-fidelity gate over 42 function pins and 11 trigger pins); static finding RC02-F1/F2 (a cancel of a READY task photo deadlocks with a removal or a completion retry) is expected to REPRODUCE in a green run; workflow ex05-s02-rc02-proof.yml NOT RUN (first run pin_gate_only=true); an independent reviewer's findings were folded in; no fix written (a fix is a separate gated slice needing the owner's exact 'primeni'); docs: ex05/EX05_S02_RC02_ROUND_NOTE_20261002.md, supabase/proofs/ex05/README_EX05_S02.md",
           "autonomous": true,
           "depends_on": "none",
           "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest"
@@ -4784,7 +4963,7 @@
                 },
                 "S04": {
                       "title": "Dispatch lifecycle negative-case proof and probe of the untested inferences",
-                      "status": "NOT STARTED",
+                      "status": "SOURCE + OFFLINE 2026-10-02 (commit 2c21e61b): dispatch lifecycle negative-case proof (50 labelled scenarios with positive controls, 9 probes) and eight PREDICTED findings F5-F12 (hypotheses read from pinned DEV bodies and reproduced only by a simulated world: F5 an applied worker is still sent the opportunity and F10 a closed-search task fails every tick are the two major ones); workflow ex06-s04-proof.yml NOT RUN (first run: input pins=report); unreviewed; docs: ex06/EX06_S04_DESIGN_AND_PREDICTED_FINDINGS_20261002.md, supabase/proofs/ex06/README_S04.md",
                       "autonomous": true,
                       "depends_on": "S01, S03 (shared fixtures)",
                       "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval."
@@ -4798,7 +4977,7 @@
                 },
                 "S06": {
                       "title": "Canonical groups step 1: certificate-neutral alias registry and classification version",
-                      "status": "NOT STARTED",
+                      "status": "SOURCE + OFFLINE 2026-10-02 (commit 6c979c12): ex06b alias registry candidate (NOT APPLIED; private.work_kinds_v5 becomes plpgsql STABLE and reads 12 configuration rows; Cyrillic fold, IKEA declensions, the F2 'sklapanje' fix with an accepted recall loss), exact revert, read-only pre/postflight, four guarded transport texts, corpus v1.1, CI proof workflow ex06b-alias-proof.yml NEVER RUN; certificate-neutral by catalog read; DRAFT approval block ex06/EX06B_APPROVAL_BLOCK_DRAFT.md (owner words 'PRIMENI EX-06 ex06b' only after a green CI proof); unreviewed",
                       "autonomous": true,
                       "depends_on": "S01, S02, S03",
                       "first_owner_boundary": "Owner's exact 'primeni' before any DEV application."
@@ -4925,21 +5104,21 @@
         },
         "EX07-S02": {
           "title": "Sign-in failure classes (client)",
-          "status": "NOT STARTED",
+          "status": "DONE AT SOURCE LEVEL 2026-10-02 (commit 2f21c211): six sign-in failure classes with plain Serbian copy (src/data/authFailureClasses.ts); a rejection nobody recognises now reads 'Prijava trenutno nije dostupna' instead of 'check email and password'; independent read-only review OK (17 of 20 mutants caught, two rows added), 165 tests. NOT proven: the hosted DEV provider's answers (wrong password = invalid_credentials, banned-before-password order, email_not_confirmed only after the password), any device. OWNER DECISION OPEN: keep the user_banned message distinct (privacy, default keep)",
           "autonomous": true,
           "depends_on": "none",
           "first_owner_boundary": "None for source; the real provider behaviour check needs the owner's disposable account (S10)."
         },
         "EX07-S03": {
           "title": "Disposable-chain proof for signup confirmation and recovery callbacks",
-          "status": "NOT STARTED",
+          "status": "SOURCE + OFFLINE 2026-10-02 (commit 85339a90): disposable-stack provider proof P01-P15, emulator driver E01-E16, 158 python + 22 jest tests; workflow ex07-s03-auth-callbacks-proof.yml NOT RUN (60-90 minutes; first run will probably need emulator iteration); results will be DISPOSABLE EMULATOR evidence only; unreviewed; docs: ex07/EX07_S03_AUTH_CALLBACKS_PROOF_20261002.md, supabase/proofs/ex07/s03/README.md",
           "autonomous": true,
           "depends_on": "none",
           "first_owner_boundary": "Real provider evidence (dashboard allowlist, sender, disposable mailbox) is the owner's (gap G06)."
         },
         "EX07-S04": {
           "title": "Legal matrices in parallel (technical drafts only)",
-          "status": "NOT STARTED",
+          "status": "DRAFTS UPDATED 2026-10-02 (docs/implementation/legal-drafts-20260930/, committed with the handoff; technical drafts only, no legal advice, no placeholder filled): LEG-14 and LEG-15 written, the other drafts cut to implemented behaviour; independent review FIX REQUIRED (the drafts predate owner decisions A30, A04, A05, A09-A11, R06, R11, R12); the fix pass was STOPPED mid-way, so its 13 fixes are UNVERIFIED: docs/implementation/handoff-codex-20261002/S04_LEGAL_DRAFTS_REVIEW_FINDINGS_20261002.md",
           "autonomous": true,
           "depends_on": "EX07-S00",
           "first_owner_boundary": "Any value for [[OPERATER]] fields, retention periods, legal bases or counsel review."
@@ -4953,7 +5132,7 @@
         },
         "EX07-S06": {
           "title": "N06/N07 target identity (function-only server candidate + client behind a flag)",
-          "status": "NOT STARTED",
+          "status": "SOURCE + OFFLINE 2026-10-02 (commit fa45c62d): function-only candidate ex07_safety_target_name.sql (NOT APPLIED; adds displayName to rpc_read_safety_target; digest-neutral by catalog) + exact revert + read-only pre/postflight + CI proof workflow ex07-s06-proof.yml (NEVER RUN) + client behind the OFF flag EXPO_PUBLIC_EX07_SAFETY_TARGET_NAME (flag-off proved by a snapshot recorded before the change); jest 188, PGlite 89/89; unreviewed; DRAFT approval block ex07/EX07_S06_TARGET_NAME_APPROVAL_BLOCK_DRAFT_20261002.md (owner words 'PRIMENI EX-07 S06' only after a green CI proof); the Dogovor entry in src/app/dogovor/[id].tsx is not wired yet",
           "autonomous": true,
           "depends_on": "EX07-S00",
           "first_owner_boundary": "The owner's exact 'primeni' for the server function (AGENTS 3.1.2); native N06/N07 acceptance waits for S10."

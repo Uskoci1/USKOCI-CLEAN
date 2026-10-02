@@ -24,7 +24,7 @@ A person should be able to answer "what is this picture for?" from its register 
 | Register | Answers | Drawn by | Rule |
 |---|---|---|---|
 | FactArt | what a thing IS: a place, a date, a price, a person, a destination | `FactArt` (this file's subject) | the ONE fact-icon API (AGENTS 3.6.4). Facts, destinations, row subjects, empty and success art. |
-| Glyph | what you DO: back, close, caret, plus, send, search, filters, more | Phosphor line icons, behind a closed registry (planned `Glyph.tsx`; today the screens import Phosphor directly) | controls only; a primary control carries a word beside it. |
+| Glyph | what you DO: back, close, caret, plus, send, search, filters, more | Phosphor line icons, behind a closed registry (`src/ui/system/Glyph.tsx` exists since 2026-10-02, commit c16f09c4: closed registry of 30 names; the chrome uses it, 63 files still import Phosphor directly and are listed in `glyph-import-guard.test.ts`, which fails for any new importer) | controls only; a primary control carries a word beside it. |
 | StatusMark | where a thing STANDS: open, done, waiting, closed, alert | planned `StatusMark.tsx` | shape plus tone, never colour alone. |
 
 `Pictogram` (46 picker scenes, 32 px and up) is not part of the three: it draws a choice in a picker and keeps its own
