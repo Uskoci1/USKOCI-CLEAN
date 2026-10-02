@@ -412,6 +412,82 @@ describe('the price stands beside the title only where the title fits the column
     }
   });
 
+  /**
+   * First look of the wave-1 build on the HONOR (2026-10-02, window 7): Moji zadaci and Zadaci both showed the price "2.000 RSD"
+   * on its own line UNDER a two-line green title, and the question was whether the head gate should have put it beside. The
+   * answer is in numbers, from the same Inter widths and the independent wrap above:
+   *   - "Dostava punjača do Petrovaradina" (32 characters): in the column the price leaves it on a 361 dp phone the title takes
+   *     THREE lines at text scale 1 (161 dp) and 1.15 (145 dp), and at 1.15 "Petrovaradina" (159 dp) is wider than the column and
+   *     would break mid-word. The stacked head is two lines and the price under it. So stacking is the right answer there, not a
+   *     defect. Where there is room (411 dp at scale 1 and 1.15) the same card does put the price beside it.
+   *   - the 62-character title takes five to six lines beside a price at 361 dp and four to five at 411: always stacked.
+   */
+  describe('the two real cards of the first look', () => {
+    const FIRST = ['Dostava punjača do Petrovaradina', '2.000 RSD', 'ukupno'] as const;
+    const SECOND = ['Prevoz i prenos 4 torbe sa Petrovaradina do centra Novog Sada', '2.000 RSD', 'ukupno'] as const;
+    const grid = (): [width: number, scale: number][] => [320, 361.14, 411].flatMap(width => [1, 1.15, 1.3].map(scale => [width, scale] as [number, number]));
+    /** What the card must draw, cell by cell: stacked by class under 340 dp and from 1.3 up, measured from 340 to 379 dp, the old gate from 380. */
+    const BESIDE_FIRST = new Set(['411/1', '411/1.15']);
+    const column = (amount: string, basis: string, width: number, scale: number) =>
+      width - 2 * CARD_SIDE - HEAD_GAP - Math.max(widthDp(BOLD, amount, AMOUNT_SIZE, scale), widthDp(MEDIUM, basis, 12, scale));
+    const lines = (title: string, width: number, scale: number, available: number) => {
+      let used = 0, count = 1, widest = 0;
+      const space = titleWidth(' ', 20, scale);
+      for (const word of title.split(' ')) {
+        const length = titleWidth(word, 20, scale); widest = Math.max(widest, length);
+        if (used === 0) used = length; else if (used + space + length <= available) used += space + length; else { count++; used = length; }
+      }
+      return { count, widest };
+    };
+
+    it.each(grid())('at %s dp, text scale %s: the first title is beside its price only in the cells that have the room, the second never', (width, scale) => {
+      const key = `${Math.round(width)}/${scale}`;
+      expect([key, headBeside(FIRST[0], FIRST[1], FIRST[2], { width, scale })]).toEqual([key, BESIDE_FIRST.has(key)]);
+      expect([key, headBeside(SECOND[0], SECOND[1], SECOND[2], { width, scale })]).toEqual([key, false]);
+    });
+
+    it('on the owner\'s phone (361 dp, 1.15) the title would break a word or take three lines beside the price, so the stacked head is right', () => {
+      const phone = { width: 361.14, scale: 1.15 };
+      const available = column(FIRST[1], FIRST[2], phone.width, phone.scale);
+      expect(titleColumn(phone, FIRST[1], FIRST[2])).toBeCloseTo(available, 0);
+      expect(available).toBeCloseTo(145, 0);
+      const beside = lines(FIRST[0], phone.width, phone.scale, available), stacked = lines(FIRST[0], phone.width, phone.scale, phone.width - 2 * CARD_SIDE);
+      // "Petrovaradina" alone is wider than the column; beside the price it breaks, and the title takes three lines (two at most are allowed).
+      expect(beside.widest).toBeGreaterThan(available); expect(beside.widest).toBeCloseTo(158.8, 0);
+      expect(beside.count).toBe(3); expect(beside.count).toBeGreaterThan(BESIDE_MAX_LINES);
+      // Stacked it is the two lines the owner saw, with the price on its own line under them.
+      expect(stacked.count).toBe(2);
+      expect(headBeside(FIRST[0], FIRST[1], FIRST[2], phone)).toBe(false);
+    });
+
+    it('at ordinary text (361 dp, 1.0) the column is 161 dp and the title still takes three lines beside the price: stacked as well', () => {
+      const phone = { width: 361.14, scale: 1 };
+      const available = column(FIRST[1], FIRST[2], phone.width, phone.scale);
+      expect(available).toBeCloseTo(161, 0);
+      expect(lines(FIRST[0], phone.width, phone.scale, available)).toMatchObject({ count: 3 });
+      expect(headBeside(FIRST[0], FIRST[1], FIRST[2], phone)).toBe(false);
+    });
+
+    it('where there is room (411 dp, 1.15) the same card draws the price beside its title, in two lines', async () => {
+      const phone = { width: 411, scale: 1.15 };
+      expect(lines(FIRST[0], phone.width, phone.scale, column(FIRST[1], FIRST[2], phone.width, phone.scale)).count).toBe(2);
+      mockWidth = phone.width; mockScale = phone.scale;
+      await render(<TaskCard item={task({ naslov: FIRST[0], rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 2000, valuta: 'RSD', prikaz: FIRST[1] } })} onOpen={jest.fn()} />);
+      expect(style(textNode(FIRST[0]))).toMatchObject({ flex: 1, minWidth: 0 });
+    });
+
+    it('the Zadaci list\'s compact card never asks the gate (R21, 2026-09-27, "Full-width compact title and value"): its head stacks whatever the room, a short title included', async () => {
+      // This is a design decision of the Zadaci list, not the retuned gate: the wave-1 review recorded it ("Zadaci is not affected"). If
+      // the owner wants the price beside a short title there too, this is the line to change (`large || compact` in TaskCard) and the
+      // gate must then be given the compact card's own side padding (14 dp, not 20): its row is 12 dp wider than Moji zadaci's.
+      mockWidth = 411; mockScale = 1;
+      await render(<TaskCard item={task({ naslov: 'Montaža police' })} compact onOpen={jest.fn()} />);
+      expect(style(textNode('Montaža police')).flex).toBeUndefined();
+      await act(async () => tree.update(<TaskCard item={task({ naslov: 'Montaža police' })} onOpen={jest.fn()} />));
+      expect(style(textNode('Montaža police')).flex).toBe(1);
+    });
+  });
+
   it('draws it on the card: the owner\'s phone keeps a short title beside the price and stacks the long and the tall ones', async () => {
     mockWidth = 361.14; mockScale = 1.15;
     await render(<TaskCard item={task({ naslov: 'Farbanje dnevne sobe' })} onOpen={jest.fn()} />);

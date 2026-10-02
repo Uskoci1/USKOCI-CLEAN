@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Keyboard, Platform, ScrollView, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, SlidersHorizontal, X } from 'phosphor-react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
@@ -14,9 +14,11 @@ import { zadataka } from '../system/plural';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
+import { useWindowRoom } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
+import { SCREEN_SIDE, TAB_GAP, ownTaskTabs } from './ownTaskTabs';
 import { TaskCard } from './TaskCard';
 import { V2Action } from './V2Action';
 
@@ -36,8 +38,6 @@ export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; 
   /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
   onBack?: () => void };
 
-const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'drafts', label: 'Nacrti' }, { key: 'history', label: 'Istorija' }] as const;
-const SECTION_TITLES: Record<MarketplaceView['section'], string> = { active: 'Aktivni zadaci', drafts: 'Nacrti', history: 'Istorija', all: 'Svi zadaci' };
 /** The state a section is named for: every card under Nacrti is a draft and every card under Istorija is closed. */
 const SECTION_SAYS: Partial<Record<MarketplaceView['section'], StanjePotrebe>> = { drafts: 'NACRT', history: 'ZATVORENA' };
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
@@ -66,11 +66,16 @@ const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, sect
 });
 
 /**
- * Moji zadaci: the requester's own Tasks in three sets (Aktivni · Nacrti · Istorija), one underlined segmented control,
- * search and filters beside it, then the cards. Other people's tasks are the Zadaci tab (`DiscoveryPresentation`, the map
- * under a list sheet, owner step 4, 2026-09-24); the discovery list and map that used to share this file are gone with
- * it. My own tasks carry no creation action over their cards (Početna has "Objavi zadatak"); an empty list still offers
- * it inline. Presentation only: every callback is the route's existing command.
+ * Moji zadaci: the requester's own Tasks in three sets (Aktivni · Nacrti · Istorija), one underlined segmented control that
+ * has its whole row, a toolbar under it (how many tasks the set shows, search, filters), then the cards. Other people's tasks
+ * are the Zadaci tab (`DiscoveryPresentation`, the map under a list sheet, owner step 4, 2026-09-24); the discovery list and
+ * map that used to share this file are gone with it. My own tasks carry no creation action over their cards (Početna has
+ * "Objavi zadatak"); an empty list still offers it inline. Presentation only: every callback is the route's existing command.
+ *
+ * The tabs do not share their row (UI/UX pass, plan item 8.1, 2026-10-02). On the owner's 361 dp phone the two round buttons
+ * beside them left the tabs 209 dp of 321, the row scrolled and the third tab read "Istorij". The row is now the tabs' alone,
+ * spread over the width; what stands on them, and whether it fits, is `ownTaskTabs`. A text size beyond what fits scrolls the
+ * row (the scroller stretches to the width, so it scrolls only when it has to) instead of cutting a label.
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
@@ -99,20 +104,26 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const draftCount = useMemo(() => loading || error ? null
     : marketplaceItems(items, { ...view, price: priceDraft, attention: attentionDraft }, true).length,
   [items, view, priceDraft, attentionDraft, loading, error]);
-  // How many active tasks wait for my choice, the badge on "Aktivni". Početna does not repeat it: there what waits is
-  // said once, under "Čeka te", from the server's own attention list.
-  // Paged: the server's own count, never the number that happens to be loaded.
-  const attentionCount = useMemo(() => props.paging ? props.paging.counts?.waiting ?? 0 : ownedTaskCounts(items).waiting, [items, props.paging?.counts]);
-  const sections = useMemo(() => SECTIONS.map(option => option.key === 'active' && attentionCount
-    ? { ...option, badge: attentionCount, badgeLabel: `Za tvoj izbor: ${zadataka(attentionCount)}` } : option), [attentionCount]);
+  // The numbers on the tabs: how many active tasks wait for my choice (the badge on "Aktivni"; Početna does not repeat it, there
+  // what waits is said once, under "Čeka te", from the server's own attention list) and how many tasks the other two sets hold.
+  // Paged: the server's own counts, never the number that happens to be loaded (unknown until it answered); otherwise the counts
+  // of the whole list this build holds, and none while that is read or failed to read, so no stale number stands over an error.
+  const paged = !!props.paging, pagedCounts = props.paging?.counts ?? null;
+  const counts = useMemo<OwnedTaskCounts | null>(() => paged ? pagedCounts : loading || error ? null : ownedTaskCounts(items),
+    [items, paged, pagedCounts, loading, error]);
+  // Whether the counts fit beside the labels is decided from the room the row has (`ownTaskTabs`); a label is never cut for one.
+  const room = useWindowRoom();
+  const sections = useMemo(() => ownTaskTabs(counts, room), [counts, room]);
   const hasFilter = !!view.query || view.price !== 'all' || view.attention || view.section !== 'active';
   const filterActive = view.price !== 'all' || view.attention;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
   const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
   const openFilters = () => { Keyboard.dismiss(); setPriceDraft(view.price); setAttentionDraft(view.attention); setFilterOpen(true); };
   // No eyebrow above the title (owner, 2026-09-23): "Moje aktivnosti" over "Moji zadaci" only said where you are, and that
-  // destination is retired.
-  const sectionTitle = SECTION_TITLES[view.section];
+  // destination is retired. For the same reason the count line does not name the set a tab already names ("2 zadatka · nacrti"
+  // under the tab "Nacrti" said it twice, and wrapped in the toolbar's narrower room); only the view that has no tab, all of
+  // my tasks (reached from an empty state), says which set it is.
+  const countNote = view.section === 'all' ? ' · svi zadaci' : '';
   const sectionSays = SECTION_SAYS[view.section];
   // Paged: an exact number only when it is the server's count of an unrefined set, or the refined set was read to its end; otherwise none (never a partial number).
   const refined = !!view.query.trim() || view.price !== 'all', paging = props.paging;
@@ -150,11 +161,22 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     <View aria-hidden={filterOpen} accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {props.onBack ? <ProductHeader title="Moji zadaci" back={props.onBack} />
         : <ScreenHeader title="Moji zadaci" onProfile={props.onProfile} />}
-      {/* Underlined views scroll at large text sizes; search and filters keep full touch targets. */}
-      <View style={s.controls}>
-        <View style={s.grow}><Segmented scroll appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} /></View>
+      {/* The tabs have the whole row to themselves, spread over it (plan item 8.1: beside two 48 dp buttons they had 209 dp of 321
+          and the third read "Istorij"). The scroller is the resilience fallback for a text size beyond what fits: it stretches to
+          the row, so it scrolls only when it has to, and a label is never cut. */}
+      <View testID="own-tasks-tabs" style={s.tabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.tabsContent}>
+          <Segmented appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} style={s.tabTrack} />
+        </ScrollView>
+      </View>
+      {/* Under them: how many tasks the set shows, which used to scroll away as the list's header, and the two controls. Filters
+          say their word (a bare sliders icon says nothing); search keeps the magnifier everyone knows. */}
+      <View testID="own-tasks-toolbar" style={s.toolbar}>
+        <View style={s.toolbarCount}>
+          {count ? <T testID="own-tasks-count" variant="note" tone="muted">{zadataka(count)}{countNote}</T> : null}
+        </View>
         <HeaderIconButton label="Pretraga" hint="Otvara polje za pretragu zadataka." icon={MagnifyingGlass} active={searchOpen} onPress={toggleSearch} />
-        <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} onPress={openFilters} />
+        <HeaderIconButton label={filterLabel} icon={SlidersHorizontal} active={filterActive} caption="Filteri" onPress={openFilters} />
       </View>
       {searchOpen ? <View style={s.search}>
         <MagnifyingGlass size={21} color={sys.color.green} />
@@ -177,9 +199,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
           </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još zadataka…</T>
             : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
-        </View> : null}
-        ListHeaderComponent={count ? <View style={s.countRow}>
-          <T variant="note" tone="muted" numberOfLines={1}>{zadataka(count)}{view.section !== 'active' ? ` · ${sectionTitle.toLocaleLowerCase('sr-Latn-RS')}` : ''}</T>
         </View> : null} />
       {/* No floating "+" over my own tasks (owner's information architecture, 2026-09-23): it sat on the cards and
           covered a price, and creating a task lives on Početna's "Objavi zadatak". An empty list still offers it inline. */}
@@ -210,8 +229,17 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
-  countRow: { paddingBottom: 8 },
+  // The tab row: the screen's 20 dp each side, and nothing but the tabs in it. The scroller stretches to the row (`flexGrow`) and
+  // the track spreads the three tabs over it (`space-between`, never closer than `TAB_GAP`), so nothing scrolls until a text size
+  // leaves no room; `ownTaskTabs` measures what fits, from these same numbers.
+  tabs: { paddingHorizontal: SCREEN_SIDE, paddingTop: 6 },
+  tabsContent: { flexGrow: 1 },
+  tabTrack: { flexGrow: 1, justifyContent: 'space-between', gap: TAB_GAP },
+  // The toolbar: the count says how many tasks the set shows (it may take a second line at a large text size, never an ellipsis);
+  // the two controls keep their 48 dp touch area and end the row. 4 dp above them and the list's own 4 below, each beside the 2 dp
+  // the 44 dp circle leaves inside its 48 dp area, so the row costs 52 dp and carries the count line that used to cost the list a row of its own.
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: SCREEN_SIDE, paddingTop: 4 },
+  toolbarCount: { flex: 1, minWidth: 0 },
   foot: { paddingTop: 16, alignItems: 'center', gap: 8 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 20, marginBottom: 8, paddingLeft: 14, paddingRight: 6, backgroundColor: sys.color.wash,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line },
