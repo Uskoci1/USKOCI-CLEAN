@@ -21,25 +21,22 @@ import { CardFact, CardTitle, CardValue, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
-import type { PointReplyActions } from '../location/LocationPointEditor';
+import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { publicSummary, type Summary } from './draftSummary';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
-
-// Only an entire explicit reply belongs to the visible point. Longer sentences remain ordinary conversation text.
-const pointReply = (text: string): keyof PointReplyActions | null => {
-  const value = text.trim().toLocaleLowerCase().replace(/[.!?]+$/, '').trim();
-  return value === 'to je to' || value === 'то је то' ? 'confirm'
-    : value === 'nije tu' || value === 'није ту' ? 'correct' : null;
-};
-
 
 type Props = {
   /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
   conversationKey?: string;
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
+  /** Separate route authority from the temporary speech/semantic interaction lock. */
+  locationDisabled?: boolean;
+  locationDialogueEnabled?: boolean;
+  retainedLocationSpeech?: { text: string; canRestore: boolean; onRestore: () => void };
+  onLocationPromptReady?: (prompt: LocationReplyPrompt | null) => void;
   pending: boolean; statusCopy: string | null; showReadback: boolean; readbackDisabled: boolean;
   /** The sentence that was sent and is waiting for its answer. */
   sentMessage?: string | null;
@@ -160,14 +157,12 @@ export function IntakePresentation(props: Props) {
   const editingPlaceNow = useRef(false);
   const closePlace = useRef<(() => void) | null>(null);
   const registerPlaceClose = useCallback((close: (() => void) | null) => { closePlace.current = close; }, []);
-  const placeReplies = useRef<PointReplyActions | null>(null);
-  const [replyCapabilities, setReplyCapabilities] = useState({ confirm: false, correct: false });
-  const registerPlaceReplies = useCallback((actions: PointReplyActions | null) => {
-    placeReplies.current = actions;
-    const confirm = !!actions?.confirm, correct = !!actions?.correct;
-    setReplyCapabilities(previous => previous.confirm === confirm && previous.correct === correct ? previous : { confirm, correct });
+  const promptChanged = useRef(props.onLocationPromptReady); promptChanged.current = props.onLocationPromptReady;
+  const [promptToken, setPromptToken] = useState<string | null>(null);
+  const registerPlacePrompt = useCallback((prompt: LocationReplyPrompt | null) => {
+    promptChanged.current?.(prompt);
+    setPromptToken(previous => previous === (prompt?.context.promptToken ?? null) ? previous : prompt?.context.promptToken ?? null);
   }, []);
-
   const reportEditingPlace = useCallback((editing: boolean) => {
     editingPlaceNow.current = editing; setEditingPlace(editing);
   }, []);
@@ -195,24 +190,9 @@ export function IntakePresentation(props: Props) {
   const gap = pointsMissing(placeFacts.geography, place?.resolvedLocation);
   const needsPoint = open && gap.total > 0 && gap.done < gap.total;
   const showPlace = open && hasConversation && conversation.safety !== 'BLOCK' && gap.total > 0;
-  const placeDisabled = busy || pending || !props.canEdit || !!props.error;
-  const reply = pointReply(value);
-  const replyVisible = showPlace && !pointAskHidden && !placeDisabled && gap.total === 1;
-  const localReply = !!reply && replyVisible && replyCapabilities[reply];
-  const replyView = { value, placeKey, localReply };
-  const currentReplyView = useRef(replyView); currentReplyView.current = replyView;
-  const send = () => {
-    if (currentReplyView.current !== replyView || !props.canSubmit) return;
-    if (localReply && reply) {
-      const action = placeReplies.current?.[reply];
-      if (!action || !action()) return;
-      // A consumed activation cannot run twice before the next render. Failed/stale actions keep the draft untouched.
-      placeReplies.current = null; registerPlaceReplies(null);
-      props.onChange(''); return;
-    }
-    if (!editingPlaceNow.current) props.onSend();
-  };
-
+  const placeDisabled = props.locationDisabled ?? (busy || pending || !props.canEdit || !!props.error);
+  const contextualReply = !!props.locationDialogueEnabled && showPlace && !pointAskHidden && !!promptToken && !placeDisabled;
+  const send = () => { if (!editingPlaceNow.current || contextualReply) props.onSend(); };
   const reviewAllowed = props.canReview && !editingPlace;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
   // contain it, because the AI is not allowed to propose it). A required fact the AI has already proposed is not listed:
@@ -247,7 +227,7 @@ export function IntakePresentation(props: Props) {
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement={readyForReview ? 'end' : 'top'}
-    value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || localReply)}
+    value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
@@ -256,7 +236,7 @@ export function IntakePresentation(props: Props) {
     openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
-    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace ? undefined : props.voice}
+    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace && !contextualReply ? undefined : props.voice}
     attach={props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
       onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
     // Nothing is pinned until the conversation has said or taken something: an empty card at the
@@ -285,21 +265,24 @@ export function IntakePresentation(props: Props) {
         <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
           <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
             onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}
-            onReplyActionsReady={registerPlaceReplies}
+            onPromptReady={props.locationDialogueEnabled ? registerPlacePrompt : undefined}
             onSaved={props.onRefresh} onClose={() => { reportEditingPlace(false); setHiddenPlace(placeKey); }} />
         </Suspense>
       </> : null}
-      {replyVisible && (replyCapabilities.confirm || replyCapabilities.correct) ? <T variant="note" tone="muted">
-        {replyCapabilities.confirm ? 'Za ovaj pin napiši „to je to“ za potvrdu' : 'Za ovo mesto'}
-        {replyCapabilities.correct ? replyCapabilities.confirm ? ' ili „nije tu“ za izmenu.' : ' napiši „nije tu“ za izmenu.' : '.'}
-      </T> : null}
       {showPlace && pointAskHidden
         ? <V2Action tone="neutral" label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : null}
     </> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
-    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback ? undefined : <>
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
+      {props.retainedLocationSpeech ? <View style={{ gap: sys.space.sm }}>
+        <T variant="note" tone="muted">Govorna poruka je sačuvana za ponovni unos.</T>
+        <T variant="note" selectable>{props.retainedLocationSpeech.text}</T>
+        <V2Action tone="neutral" kind="secondary" label="Vrati tekst u polje" disabled={!props.retainedLocationSpeech.canRestore}
+          reason={!props.retainedLocationSpeech.canRestore ? 'Završi proveru prethodne poruke i oslobodi mesto u polju za tekst.' : null}
+          onPress={props.retainedLocationSpeech.onRestore} />
+      </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>

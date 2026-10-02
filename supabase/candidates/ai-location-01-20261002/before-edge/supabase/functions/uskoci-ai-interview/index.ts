@@ -12,8 +12,6 @@ import {
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
 
-import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
-
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 
@@ -50,7 +48,6 @@ type ParsedTurn = {
   safety: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
   assistantMessage: string;
   proposals: Array<Record<string, unknown>>;
-  locationAction?: LocationAction;
   dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
 };
 
@@ -518,20 +515,17 @@ async function callGemini(
   signal?: AbortSignal,
   onText?: (delta: string) => void,
   onUsage?: (usage: GeminiUsage) => void,
-  locationContext?: LocationContext,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
   contents.push({ role: 'user', parts: [{ text }] });
-  const parseOutput = (value: any) => locationContext ? parseLocationOutput(value, locationContext, parseV2Output) : parseV2Output(value);
-  const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext);
   const payloadBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : [])] },
+    systemInstruction: { parts: [{ text: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext) : legacyInstruction(activeFacts, timeContext) }] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? v2ProviderSchema() : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
@@ -539,7 +533,7 @@ async function callGemini(
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
     });
-    return parseOutput(JSON.parse(raw));
+    return parseV2Output(JSON.parse(raw));
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -561,18 +555,12 @@ async function callGemini(
     throw new Error('PROVIDER_OUTPUT_MISSING');
   }
   const parsed = JSON.parse(raw);
-  return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseOutput(parsed) : parseLegacyOutput(parsed);
+  return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseV2Output(parsed) : parseLegacyOutput(parsed);
 }
 
 function taskFinishOnly(input: string): boolean {
   const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
   return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(normalized);
-}
-
-// Explicit task publication stays outside map confirmation. This is a publication
-// guard, not a vocabulary for recognizing natural affirmative replies.
-function explicitPublicationOnly(input: string): boolean {
-  return /^(?:objavi(?: zadatak)?|објави(?: задатак)?|sačuvaj zadatak|sacuvaj zadatak|сачувај задатак)[.!?,…\s]*$/i.test(input.trim());
 }
 
 function sameFactValue(left: unknown, right: unknown): boolean {
@@ -582,10 +570,9 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
-function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation = false): ParsedTurn {
+function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext): ParsedTurn {
   if (turn.safety === 'BLOCK' || turn.safety === 'REVIEW') return turn;
-  if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
-    || contextualLocation && explicitPublicationOnly(input)) return { ...turn, proposals: [],
+  if (taskFinishOnly(input)) return { ...turn, proposals: [],
     assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
   const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
   const dialogue = turn.dialogue;
@@ -633,9 +620,6 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   }
   const proposals = turn.proposals.filter(proposal => !activeFacts.some(fact =>
     fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
-  // Contextual map questions remain about the visible place. All safety, task,
-  // time, price and typed-fact guards above still run; generic ACK/review prose does not replace them.
-  if (contextualLocation) return { ...turn, proposals };
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   const missing = ['need.description', 'need.people_needed', 'need.price_mode',
@@ -671,15 +655,8 @@ Deno.serve(async (req: Request) => {
   let body: any;
   try { body = (await boundedJson(req, {}, 18000, 3000, req.signal)).data; }
   catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
-  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext'].includes(key)))
+  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId'].includes(key)))
     return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
-  const locationMode = body.mode === 'locationReply';
-  const locationContext: LocationContext | undefined = locationMode && validLocationContext(body.locationContext) ? body.locationContext : undefined;
-  if (locationMode && (!locationContext || !exact(body, ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']))
-    || !locationMode && (Object.hasOwn(body, 'mode') || Object.hasOwn(body, 'locationContext')))
-    return response(400, { code: 'LOCATION_CONTEXT_INVALID', message: 'Ponovo otvori prikaz mesta.' });
-  if (locationMode && req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream'))
-    return response(406, { code: 'LOCATION_STREAM_UNSUPPORTED', message: 'Odgovor o mestu koristi potvrđen pojedinačni odgovor.' });
   const conversationId = typeof body.conversationId === 'string' ? body.conversationId.trim().toLowerCase() : '';
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
@@ -729,7 +706,7 @@ Deno.serve(async (req: Request) => {
       return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
     const schemaVersion: FactSchemaVersion = rows[0].fact_schema_version === NEED_FACT_SCHEMA_V2 ? NEED_FACT_SCHEMA_V2 : LEGACY_FACT_SCHEMA_V1;
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      if (!(locationMode ? exact(body, ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']) : exact(body, ['conversationId', 'text', 'clientRequestId'])) || !isUuid(body.clientRequestId))
+      if (!exact(body, ['conversationId', 'text', 'clientRequestId']) || !isUuid(body.clientRequestId))
         return response(400, { code: 'CLIENT_REQUEST_ID_INVALID', message: 'Ponovo otvorite unos pre slanja.' });
       requestId = body.clientRequestId.toLowerCase();
     } else if (!exact(body, ['conversationId', 'text']) || rows[0].status !== 'OPEN') {
@@ -739,24 +716,16 @@ Deno.serve(async (req: Request) => {
     if (!serviceRoleKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
     let history: any[], activeFacts: any[];
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      const result = await rpc(locationMode ? 'rpc_ai_claim_need_location_turn_v1_service' : 'rpc_ai_claim_need_turn_v2_service',
-        { ...identityArgs(), p_user_message: text, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
+      const result = await rpc('rpc_ai_claim_need_turn_v2_service', { ...identityArgs(), p_user_message: text }, req.signal);
       if (!result.ok) {
         const name = result.data?.message;
-        if (name === 'LOCATION_VERSION_CONFLICT' || name === 'LOCATION_CONTEXT_INVALID')
-          return response(409, { code: name, message: 'Mesto je promenjeno. Pogledaj trenutni predlog pre odgovora.' });
         if (name === 'AI_RATE_LIMITED') return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
         if (name === 'AI_REQUEST_ID_REUSED') return response(409, { code: 'AI_REQUEST_ID_REUSED', message: 'Ovaj pokušaj pripada drugoj poruci. Proverite razgovor.' });
         return response(502, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
       }
       const value = result.data;
       if (!exact(value, ['turn', 'claim']) || !validTurn(value.turn, conversationId, requestId)) throw new Error('AI_CLAIM_INVALID');
-      if (value.claim === null) {
-        if (!locationContext) return turnResponse(value.turn);
-        const read = await rpc('rpc_ai_read_need_location_turn_v1_service', identityArgs(), req.signal);
-        if (!read.ok || !validLocationEnvelope(read.data, locationContext, turn => validTurn(turn, conversationId, requestId))) throw new Error('AI_TURN_RECEIPT_INVALID');
-        return response(read.data.turn.state === 'SUCCEEDED' ? 200 : read.data.turn.state === 'PROCESSING' ? 202 : 409, read.data);
-      }
+      if (value.claim === null) return turnResponse(value.turn);
       const claim = value.claim;
       if (value.turn.state !== 'PROCESSING' || !exact(claim, ['attemptId', 'leaseExpiresAt', 'context']) || !isUuid(claim.attemptId) ||
         typeof claim.leaseExpiresAt !== 'string' || !Number.isFinite(Date.parse(claim.leaseExpiresAt)) || Date.parse(claim.leaseExpiresAt) <= Date.now())
@@ -813,14 +782,8 @@ Deno.serve(async (req: Request) => {
         }
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
-        (usage) => { reportedUsage = usage; }, locationContext);
-      aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext, !!locationContext);
-      if (locationContext) {
-        // A validated answer to the shown question (e.g. 'to je to') stays a map
-        // confirmation. Explicit task publication can never take that route.
-        if (explicitPublicationOnly(text) || taskFinishOnly(text) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
-        else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
-      }
+        (usage) => { reportedUsage = usage; });
+      aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext);
     } catch (providerError) {
       // On 2026-09-18 this line was the only trace of two failures that left the person staring at
       // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. It
@@ -831,19 +794,15 @@ Deno.serve(async (req: Request) => {
     }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      const result = await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
-        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
-        ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal);
-      const completed = locationContext ? result.data?.turn : result.data;
-      if (!result.ok || !validTurn(completed, conversationId, requestId) || completed.turnId !== claimedTurnId
-        || locationContext && !validLocationEnvelope(result.data, locationContext, turn => validTurn(turn, conversationId, requestId)))
+      const result = await rpc('rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
+        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals }, signal);
+      if (!result.ok || !validTurn(result.data, conversationId, requestId) || result.data.turnId !== claimedTurnId)
         throw new Error('AI_TURN_RECEIPT_INVALID');
-      if (completed.state === 'SUCCEEDED' && (completed.receipt.proposedCount !== aiTurn.proposals.length || completed.receipt.safety !== aiTurn.safety))
+      if (result.data.state === 'SUCCEEDED' && (result.data.receipt.proposedCount !== aiTurn.proposals.length || result.data.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
-      if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
       // No raw provider prose escapes before the semantic check and the exact
       // owned completion receipt. The existing stream still reports acceptance.
-      if (completed.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);
+      if (result.data.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);
       if (reportedUsage) {
         try {
           await rpc('rpc_ai_test_record_usage_service', { p_operation_id: requestId, p_model: geminiModel,
@@ -851,7 +810,7 @@ Deno.serve(async (req: Request) => {
             p_total_tokens: reportedUsage.totalTokens }, signal);
         } catch { /* accounting never breaks delivery */ }
       }
-      return locationContext ? response(completed.state === 'SUCCEEDED' ? 200 : completed.state === 'PROCESSING' ? 202 : 409, result.data) : turnResponse(completed);
+      return turnResponse(result.data);
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
     const result = await rpc('rpc_ai_apply_legacy_need_turn_service', { p_account_id: accountId, p_conversation_id: conversationId,

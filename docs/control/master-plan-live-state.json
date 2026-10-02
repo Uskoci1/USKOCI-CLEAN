@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Završna kompozicija: od zadatka i prijave do izbora i Dogovora",
-    "note": "Celina proizvoda i stvarni ulazi/izlazi obe uloge sažeti su u postojećem UIUX_PLAN_AND_STATUS_20261002.md. Prvi povezani paket: javni detalj → prijava/pregled → moja prijava, naspram moj zadatak → pristigle prijave/poređenje → potvrda izbora → Dogovor. Zatim AI nacrt/radni profil, razgovor/završetak i zajednički ekrani. Isti W1–W12 i 62 reda; bez novog mastera i bez širenja testne infrastrukture za stil. EX04 paged liste već su uključene u DEV APK, P6/EX03 zatvoreni sa granicama. Stvarno otvoreno: RC02 slike, EX06 matching/dispatch, Android glasovne poruke, D12/safety povezivanja, aktuelni celi tokovi i završna privatnost/izdanje. Push/HITNO/podsetnik/plaćanja/iOS su prihvaćena odlaganja. Crn/siv tekst, bele površine, odabrana 2.5D umetnost; odluka i smislen red informacija vode kompoziciju. Poslednji native dokaz ostaje 8d22ce0e. Ovaj presek ne menja server, flagove ni status prihvatanja."
+    "title": "Prirodan AI odgovor na mapu: kod povezan, pripremljena DEV primena → odgovarajući APK",
+    "note": "Po nalogu „povezuj“: uklonjene fiksne fraze za mapu; kucanje i držanje mikrofona vezuju odgovor za trenutno pitanje, pin i aktivnu tačku rute. Nejasna lokacija traži dopunu bez biranja prvog rezultata. Kod i nezavisni pregled završeni, TypeScript prolazi; AI-LOCATION-01 ostaje OFF/NOT APPLIED do zasebne odobrene DEV i tehničke sertifikatske primene. Nema novih testova, plaćenih poziva ni native dokaza. APK37045193094 za prethodni4046bae3 uspešan, checksum i tri attestacije potvrđeni, nije instaliran i ne sadrži ove nove veze. RC02 je već primenjen na DEV po izričitom odobrenju; ne voditi ga ponovo kao neprimenjen. Pravi AI razgovor glasom, ostali otvoreni EX06/D12/support/privacy/store delovi ostaju kako su zabeleženi u jedinom registru. Isti W1–W12 i 62 reda; detalji u VISUAL_FINISHING_20261002.md."
   },
   "evidence": [
     {

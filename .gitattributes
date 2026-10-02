@@ -84,3 +84,7 @@ supabase/candidates/ex07_*.sql text eol=lf
 
 # RC02 exact candidate/revert and pinned function-body bytes.
 supabase/candidates/ex05-rc02-20261002/** text eol=lf
+
+# AI-LOCATION-01 frozen bundle and rollback bytes, including original live readback.
+supabase/candidates/ai-location-01-20261002/** -text whitespace=cr-at-eol
+supabase/functions/_shared/locationReply.ts text eol=lf

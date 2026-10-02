@@ -5712,12 +5712,12 @@
           "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
         },
         "voiceAndComposerContinuation": {
-          "locationApkBuild": "IN_PROGRESS at2026-10-02T18:07Z: build37045193094 exact source4046bae3e4a3516e2eb11c3363919fad54c11052, emulator x86_64, Reanimated patch apply. Source pushed; TypeScript passed. No new APK/native acceptance yet.",
-          "locationConversation20261002": "SOURCE REVIEWED: one proposed pin, address lookup after committed move, canonical confirmation, compact green-check saved item, three alternatives/page and one ready task card at thread end. Typed whole replies to je to/nije tu use existing guarded single-point actions; direct spoken confirmation remains open. Changed stationary point synchronizes private exactAddress/binding. No new provider/native execution; public coarse/private exact separation retained.",
+          "locationApkBuild": "SUCCESS build37045193094 exact source4046bae3e4a3516e2eb11c3363919fad54c11052. Downloaded APK SHA256302e9ad46be6718080408e8a651a8e83834815c303d11188d493cdbe7538fe8c and recovery/icon/Reanimated attestations match. Not installed; excludes later natural-location dialogue source.",
+          "locationConversation20261002": "SUPERSEDES fixed phrase bridge: natural typed/held-speech replies carry the active map question, proposal incarnation, slot and canonical revision to the existing AI engine. Same guarded point save; active route points accumulate until complete. Ambiguous results never auto-select first. Prepared source only, feature flag OFF; no server/provider/native execution.",
           "profileSupport20261002": "SOURCE: worker form uses neutral selected controls, shared responsive layout, 48dp term chips and open sections; support rows lead with topic and keep DECIDED neutral. D12 load-more privacy-null clears all earlier comments; flag remains OFF pending D12a contract.",
           "automaticCi7912806f": "R20 run37040460119 SUCCESS on7912806f:159 focused,422 suites/9225 checks/6 snapshots. Existing automatic result only; does not validate newer location/profile/support source. Jest delayed-exit warning remains unattributed.",
           "ownerVoiceControlClarification": "Hold microphone sends on release and gets a text reply. Far-right waveform must start genuine spoken AI conversation on one tap. Current waveform still uses transcription-only mode; true duplex audio remains unimplemented and is not substituted by TTS.",
-          "latestArtifactReceipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37037950035.json — source5110ed03 build/checksums/attestations PASS, not installed; excludes newer7912806f source.",
+          "latestArtifactReceipt": "docs/implementation/ui-ux-pass-20261002/LOCATION_APK_37045193094.json",
           "connectedFinishing": "SOURCE: next-decision-first Agreement changes, neutral actions and readable facts; shared profile layout; unreachable Discovery branches removed. TypeScript passed; no new tests/native acceptance.",
           "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPLICATION.md — DEV APPLIED on owner PRIMENI RC02 DEV, migration20261002172532. Exact payload/body/catalog/certificate readback PASS; new concurrency/native acceptance not performed.",
           "emulatorLayoutReceipt": "docs/implementation/ui-ux-pass-20261002/VOICE_COMPOSER_APK_37034535430.json",
@@ -5730,7 +5730,14 @@
           "speechCapture": "Existing native AI capture remains default; Expo PCM opt-in candidate awaits physical parity.",
           "composerReference": "SUPERSEDED: owner rejected second-row centered mic. Latest Gemini reference asks compact horizontal pill, practical hold mic, paper-plane send and open voice-mode layout. Spoken AI reply is requested but not implemented.",
           "review": "Bounded independent source reviews; TypeScript compilation, no new manual tests.",
-          "nativeAcceptance": false
+          "nativeAcceptance": false,
+          "naturalLocationDialogue": {
+            "package": "supabase/candidates/ai-location-01-20261002/APPROVAL.md",
+            "status": "SOURCE_CONNECTED_REVIEWED_TSC_PASS_FLAG_OFF_SERVER_NOT_APPLIED",
+            "contract": "Existing AI interview plus locationReply mode; same budget/dispatch/idempotency/recovery. No coordinates from model, fixed phrase dictionary, extra provider or new raw-content table. Natural confirmation requires actual proposal, ALLOW and zero fact proposals.",
+            "client": "Question/proposal/account/focus/revision lease; guarded same save awaits receipt; typed and held speech share existing journal. Lost/stale response never confirms a new pin. Contextual held speech retained after terminal failure/cancel. Saved summary remains editable.",
+            "limits": "No paid call, new tests, native acceptance or deployment. True live spoken AI remains separate unfinished work. Server and technical certificate application need exact owner approval under AGENTS.md3.1.2/4/8."
+          }
         },
         "ciReconciliation": {
           "failedRuns": [

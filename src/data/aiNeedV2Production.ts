@@ -154,6 +154,9 @@ function turnStatus(raw: unknown, conversationId: string, clientRequestId: strin
     ? { ...ids, state: r.state, turnId: r.turnId, retryAllowed: false, receipt } : null;
 }
 
+/** Contextual location replies use the same owned turn receipt, never a looser decoder. */
+export { turnStatus as decodeAiNeedTurnStatus };
+
 function turnRecovery(raw: unknown, accountId: string, conversationId: string, clientRequestId: string): AiNeedTurnRecovery | null {
   const r = exact(raw, ['accountId', 'conversationId', 'clientRequestId', 'conversationStatus', 'turn',
     'providerDispatched', 'cancelled', 'canCancel', 'authoritative']);

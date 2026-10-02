@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { AppState } from 'react-native';
 
 import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from '../../contracts/aiNeedV2';
 import { aiNeedV2Izvor } from '../../data';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
+import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
+import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
+import type { LocationReplyLease, LocationReplyPrompt } from '../../ui/location/ConversationPointAsk';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn, type IntakeReviewReturn } from '../../data/intakeReviewReturn';
 import type { Ishod } from '../../data/ports';
 import { uuid } from '../../data/serverReceipt';
@@ -18,7 +22,7 @@ import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
 type SubmittedDraft = { value: string; revision: number };
-type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null };
+type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext'] };
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
@@ -41,13 +45,34 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
+  const dialogueEnabled = locationDialogueEnabled();
+  const locationPrompt = useRef<LocationReplyPrompt | null>(null);
+  const locationFlight = useRef<LocationReplyLease | null>(null);
+  const speechPrompt = useRef<{ generation: number; lease: LocationReplyLease | null; blocked: boolean } | null>(null);
+  const registerLocationPrompt = useCallback((prompt: LocationReplyPrompt | null) => { locationPrompt.current = prompt; }, []);
+  const retireLocation = useCallback(() => {
+    speechPrompt.current?.lease?.cancel(); speechPrompt.current = null;
+    locationFlight.current?.cancel(); locationFlight.current = null;
+  }, []);
+
   const [unos, setUnos] = useState('');
+  const [retainedLocationSpeech, setRetainedLocationSpeech] = useState<string | null>(null);
   const draftText = useRef(unos); draftText.current = unos;
   const draftRevision = useRef(0);
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
   const focus = useRef<object | null>(null), navigating = useRef(false);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') return;
+      const hadContext = !!locationFlight.current;
+      retireLocation();
+      if (hadContext) streamAbort.current?.abort();
+    });
+    return () => subscription.remove();
+  }, [retireLocation]);
+
   const reviewReturn = useRef<IntakeReviewReturn | null>(null);
   useEffect(() => () => retireIntakeReviewReturn(reviewReturn.current), []);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
@@ -56,7 +81,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     // A completed return (including Android Back) cannot be reused by an older review route.
     retireIntakeReviewReturn(reviewReturn.current); reviewReturn.current = null;
     // Leaving retires an open question: its answer checks this focus and would do nothing any more.
-    return () => { if (focus.current === scope) focus.current = null; retireConfirmation();
+    return () => { if (focus.current === scope) focus.current = null; retireLocation(); retireConfirmation();
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); };
   }, [accountId, accountRevision, retireConfirmation]));
   const read = useCallback(async (): Promise<Ishod<IntakeSnapshot>> => {
@@ -106,6 +131,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
           // Only a typed Send owns this exact draft revision. Speech and restored IDs own none;
           // retries keep the original ownership, and later edits survive successful readback.
           const submittedDraft = pending.submittedDraft;
+          // Contextual held speech has no typed-draft owner. Retain its words on a terminal failure/cancel instead of
+          // losing them when the receipt retires the journal. It is restored only by an explicit user action.
+          if (pending.locationContext && !submittedDraft && pending.body && (terminalFailure || recovery.cancelled))
+            setRetainedLocationSpeech(pending.body);
           if (turn?.state === 'SUCCEEDED' && submittedDraft) setUnos(value =>
             draftRevision.current === submittedDraft.revision && value === submittedDraft.value ? '' : value);
           setStreamingText('');
@@ -135,13 +164,16 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     navigating.current = true; voice.controller.cancel('navigation'); action(); };
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));
   const pending = request.current;
-  const knownRetry = !!pending?.body && turn?.clientRequestId === pending.id && turn.retryAllowed;
+  const knownRetry = !!pending?.body && (!pending.locationContext || dialogueEnabled) && turn?.clientRequestId === pending.id && turn.retryAllowed;
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
-  const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null) => {
-    if (!canAct() || !canSubmit || !body) return;
-    await editor.save(async () => {
+  const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null) => {
+    if (!canAct() || !canSubmit || !body || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
+    // Context remains attached to the original request key, including in-memory safe retries. A restored journal id
+    // has no context/lease and can only recover its receipt; it cannot replay a confirmation against a new map.
+    locationFlight.current = pointLease;
+    try { await editor.save(async () => {
       // The first word is what makes the conversation exist. `openRequestId` is fixed for this
       // screen, so a second tap or a retry asks for the same conversation rather than another one.
       let id = conversation.current;
@@ -151,7 +183,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         if (!opened.ok) return opened;
         conversation.current = id = opened.podatak.conversationId;
       }
-      const command = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft };
+      const command: PendingTurn = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft,
+        ...(pointLease ? { locationContext: pointLease.context } : {}) };
       request.current = command;
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: id, clientRequestId: command.id });
@@ -165,7 +198,21 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       setStreamingText('');
       let result: Ishod<AiNeedTurnStatus>;
       try {
-        result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal,
+        if (command.locationContext) {
+          const resolved = await resolveLocationDialogue({ mode: 'locationReply', conversationId: id,
+            text: command.body, clientRequestId: command.id, locationContext: command.locationContext }, {
+            signal: abort.signal, isCurrent: () => isCurrent() && request.current === command && !abort.signal.aborted,
+          });
+          if (!resolved.ok) result = resolved;
+          else {
+            result = { ok: true, podatak: resolved.podatak.turn };
+            // A recovered/retried receipt without this live lease updates the conversation but never presses a map button.
+            if (resolved.podatak.turn.state === 'SUCCEEDED' && resolved.podatak.location && pointLease
+              && isCurrent() && request.current === command && !abort.signal.aborted && pointLease.isCurrent()) {
+              await pointLease.apply(resolved.podatak.location);
+            }
+          }
+        } else result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal,
           onText: delta => { if (isCurrent() && !abort.signal.aborted && request.current === command) setStreamingText(previous => previous + delta); } });
       } finally {
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
@@ -173,7 +220,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       if (!result.ok) return result;
       return read();
-    });
+    }); } finally {
+      pointLease?.cancel();
+      if (locationFlight.current === pointLease) locationFlight.current = null;
+    }
   };
   const cancelPendingTurn = () => {
     const command = request.current;
@@ -216,15 +266,39 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       if (input.session?.mode !== 'accessible') {
         const spoken = input.text.trim();
         if (!spoken || spoken.length > 4000 || !canAct() || !canSubmit || request.current) return false;
-        void submitTurn(spoken);
+        const bound = speechPrompt.current;
+        if (bound && bound.generation === input.session.generation && (bound.blocked || (bound.lease && !bound.lease.isCurrent()))) return false;
+        const lease = bound?.generation === input.session.generation ? bound.lease : null;
+        speechPrompt.current = null; // Ownership transfers to the journalled normal-turn path before speech becomes IDLE.
+        void submitTurn(spoken, null, lease);
         return true;
       }
       return keepTranscript(input.text);
     } });
+
+  const speechScope = useRef({ dialogueEnabled, canStart: () => canAct() && !!canSubmit && !request.current });
+  speechScope.current = { dialogueEnabled, canStart: () => canAct() && !!canSubmit && !request.current };
+  useEffect(() => {
+    const changed = () => {
+      const snapshot = voice.controller.getSnapshot();
+      if (snapshot.phase === 'PERMISSION_PENDING' && snapshot.session && !speechPrompt.current) {
+        const prompt = speechScope.current.dialogueEnabled ? locationPrompt.current : null;
+        const lease = prompt && speechScope.current.canStart() ? prompt.acquire() : null;
+        speechPrompt.current = { generation: snapshot.session.generation, lease, blocked: !!prompt && !lease };
+      } else if (snapshot.phase === 'IDLE') {
+        speechPrompt.current?.lease?.cancel(); speechPrompt.current = null;
+      }
+    };
+    const unsubscribe = voice.controller.subscribe(changed);
+    return () => { unsubscribe(); speechPrompt.current?.lease?.cancel(); speechPrompt.current = null; };
+  }, [voice.controller]);
   const voiceBusy = voice.state.phase !== 'IDLE';
   const posalji = async () => {
     if (voice.controller.getSnapshot().phase !== 'IDLE') return;
-    await submitTurn(request.current?.body ?? unos.trim(), { value: unos, revision: draftRevision.current });
+    const prompt = dialogueEnabled && !request.current ? locationPrompt.current : null;
+    const lease = prompt?.acquire() ?? null;
+    if (prompt && !lease) return;
+    await submitTurn(request.current?.body ?? unos.trim(), { value: unos, revision: draftRevision.current }, lease);
   };
   const noviZadatak = () => {
     if (!canAct() || request.current || (stanje?.status !== 'COMPLETED' && stanje?.status !== 'ABANDONED')) return;
@@ -285,6 +359,14 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     conversation={stanje} value={unos} busy={radi} error={greska}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
+    locationDialogueEnabled={dialogueEnabled} onLocationPromptReady={registerLocationPrompt}
+    retainedLocationSpeech={retainedLocationSpeech ? { text: retainedLocationSpeech,
+      canRestore: !!canSubmit && !voiceBusy && !request.current
+        && [unos.trimEnd(), retainedLocationSpeech.trim()].filter(Boolean).join('\n').length <= 4000,
+      onRestore: () => { if (voice.controller.getSnapshot().phase === 'IDLE' && keepTranscript(retainedLocationSpeech)) setRetainedLocationSpeech(null); },
+    } : undefined}
+    locationDisabled={dialogueEnabled ? !writable || editor.loading || editor.uncertain
+      || (!!request.current && !locationFlight.current) || (radi && !locationFlight.current) || !!greska : undefined}
     sentMessage={request.current?.body ?? null}
     streamingText={streamingText}
     photosDisabled={!canAct() || !writable || !!request.current || voiceBusy}

@@ -10,7 +10,8 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action as Button } from '../v2/V2Action';
-import { LocationPointEditor, type PointReplyActions } from './LocationPointEditor';
+import { LocationPointEditor, type PointPrompt } from './LocationPointEditor';
+import type { LocationDialogueRequest, LocationDialogueResult } from '../../contracts/locationDialogue';
 import { LocationMapPreview } from './LocationMapPreview';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { FactArt } from '../system/FactArt';
@@ -62,9 +63,17 @@ type State =
   | { kind: 'SAVING'; review: NeedLocationReview }
   | { kind: 'SAVED'; review: NeedLocationReview };
 
+export type LocationReplyLease = {
+  context: LocationDialogueRequest['locationContext'];
+  isCurrent: () => boolean;
+  apply: (decision: NonNullable<LocationDialogueResult['location']>) => Promise<boolean>;
+  cancel: () => void;
+};
+export type LocationReplyPrompt = { context: LocationDialogueRequest['locationContext']; acquire: () => LocationReplyLease | null };
+
 type Props = { conversationId: string; onSaved: () => void; onClose: () => void;
   disabled?: boolean; onEditingChange?: (editing: boolean) => void;
-  onReplyActionsReady?: (actions: PointReplyActions | null) => void;
+  onPromptReady?: (prompt: LocationReplyPrompt | null) => void;
   onCloseRequestReady?: (handler: (() => void) | null) => void };
 
 const savedPoints = (value: NeedLocationReview['value']) => normalizeNeedLocation(value)?.resolvedLocation?.points ?? [];
@@ -105,15 +114,15 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     reportedEditing.current = value; editingChanged.current?.(value);
   }, []);
   const closeRequestChanged = useRef(props.onCloseRequestReady); closeRequestChanged.current = props.onCloseRequestReady;
-  const editorReplies = useRef<PointReplyActions | null>(null);
-  const [replyCapabilities, setReplyCapabilities] = useState({ confirm: false, correct: false });
-  const registerEditorReplies = useCallback((actions: PointReplyActions | null) => {
-    editorReplies.current = actions;
-    const confirm = !!actions?.confirm, correct = !!actions?.correct;
-    setReplyCapabilities(previous => previous.confirm === confirm && previous.correct === correct ? previous : { confirm, correct });
+  const editorPrompt = useRef<PointPrompt | null>(null);
+  const [promptToken, setPromptToken] = useState<string | null>(null);
+  const registerEditorPrompt = useCallback((prompt: PointPrompt | null) => {
+    editorPrompt.current = prompt;
+    setPromptToken(previous => previous === (prompt?.context.promptToken ?? null) ? previous : prompt?.context.promptToken ?? null);
   }, []);
-  const replyChanged = useRef(props.onReplyActionsReady); replyChanged.current = props.onReplyActionsReady;
-
+  const promptChanged = useRef(props.onPromptReady); promptChanged.current = props.onPromptReady;
+  const activeReply = useRef<LocationReplyLease | null>(null);
+  const committedPoint = useRef<Promise<boolean> | null>(null);
   const view = useRef<object | null>(null);
   const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit, editing, summaryMapOpen, props.disabled]); view.current = renderedView;
   const renderedFocus = focusEpoch.current;
@@ -125,7 +134,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   [props.accountId, props.accountRevision]);
   useFocusEffect(useCallback(() => {
     focus.current = true; focusEpoch.current++; setFocusVisit({});
-    return () => { focus.current = false; focusEpoch.current++; view.current = null; setFocusVisit(null); resolver.cancel(); closeConfirmation(); };
+    return () => { focus.current = false; activeReply.current?.cancel(); activeReply.current = null; focusEpoch.current++; view.current = null; setFocusVisit(null); resolver.cancel(); closeConfirmation(); };
   }, [resolver, closeConfirmation]));
   const canAct = () => ownsAccount() && focus.current && renderedFocus === focusEpoch.current
     && view.current === renderedView && !saving.current && !disabled.current && !props.disabled;
@@ -150,7 +159,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     setState({ kind: 'READY', review: result.podatak });
   }, [props.conversationId, ownsAccount, reportEditing]);
   useEffect(() => {
-    if (props.disabled) { loadEpoch.current++; resolver.cancel(); closeConfirmation(); }
+    if (props.disabled) { activeReply.current?.cancel(); activeReply.current = null; loadEpoch.current++; resolver.cancel(); closeConfirmation(); }
     else if (latestState.current.kind === 'LOADING') void load();
   }, [load, props.disabled, resolver, closeConfirmation]);
 
@@ -173,10 +182,10 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
 
   const commit = useCallback(async (all: readonly ConfirmedLocationPoint[], current: NeedLocationReview) => {
     if (!ownsAccount() || !focus.current || saving.current || disabled.current || !current.editable
-      || current.accountId !== props.accountId || current.conversationId !== props.conversationId) return;
+      || current.accountId !== props.accountId || current.conversationId !== props.conversationId) return false;
     if (!current.value.taskCountryCode || !current.value.geography) {
       setState({ kind: 'FAILED', message: 'Zadatku još fali država ili mesto. Dopuni ih u razgovoru pa se vrati.' });
-      return;
+      return false;
     }
     saving.current = true;
     const visit = focusEpoch.current;
@@ -203,12 +212,13 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     }).catch(() => ({ ok: false as const, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED',
       poruka: 'Čuvanje mesta nije potvrđeno. Potvrđene tačke su ostale za ponovni pokušaj.' }));
     saving.current = false;
-    if (!ownsAccount()) return;
-    if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return; }
+    if (!ownsAccount()) return false;
+    if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return false; }
     const saved = result.podatak.review, confirmed = savedPoints(saved.value);
     baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setEditing(false); setSummaryMapOpen(false);
     setState({ kind: 'SAVED', review: saved });
     if (focus.current && focusEpoch.current === visit) props.onSaved();
+    return true;
   }, [props, ownsAccount]);
 
   // Each point is confirmed by hand. The last one commits, because a confirmation the person
@@ -219,7 +229,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     const all = [...points.filter(existing => existing.slot !== point.slot), point];
     const complete = slots.every(slot => all.some(existing => existing.slot === slot));
     setPoints(all); setPendingSlot(null); setSelected(complete ? point.slot : null);
-    if (complete) void commit(all, review);
+    if (complete) committedPoint.current = commit(all, review);
   };
 
   const select = (slot: LocationSlot) => {
@@ -239,6 +249,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   // including a draft that the point editor has not handed back as a confirmation yet.
   const leave = () => {
     if (!canAct()) return;
+    activeReply.current?.cancel(); activeReply.current = null;
     const close = () => { if (canAct()) { view.current = null; reportEditing(false); props.onClose(); } };
     if ((!dirtyPoints.length && !pendingSlot) || state.kind === 'SAVED') { close(); return; }
     if (pendingSlot || baseline.current.length) {
@@ -278,22 +289,43 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     view.current = null; setSummaryMapOpen(false); reportEditing(true); setEditing(true); setState({ kind: 'READY', review });
     return true;
   };
-  const replyScope = slots.length === 1 && !!country && !!review?.editable && !inactive
-    && (state.kind === 'READY' || state.kind === 'SAVED');
-  const runEditorReply = (kind: keyof PointReplyActions) => {
-    if (!replyScope || !canAct() || !editing || state.kind !== 'READY') return false;
-    const action = editorReplies.current?.[kind];
-    if (!action || !action()) return false;
-    editorReplies.current = null; replyChanged.current?.(null);
-    return true;
+  const replyScope = slots.length > 0 && !!country && !!review?.editable && !inactive && editing && state.kind === 'READY';
+  const acquireReply = (): LocationReplyLease | null => {
+    const prompt = editorPrompt.current;
+    if (!replyScope || !canAct() || !review || !activeSlot || !prompt || prompt.context.promptToken !== promptToken || activeReply.current) return null;
+    const pointLease = prompt.acquire();
+    if (!pointLease) return null;
+    const context = { ...prompt.context, reviewRevision: review.revision, slot: activeSlot };
+    const cancel = () => { pointLease.cancel(); if (activeReply.current === lease) activeReply.current = null; };
+    const lease: LocationReplyLease = {
+      context,
+      isCurrent: () => activeReply.current === lease && canAct() && pointLease.isCurrent(),
+      cancel,
+      apply: async decision => {
+        if (!lease.isCurrent() || decision.promptToken !== context.promptToken || decision.reviewRevision !== context.reviewRevision
+          || decision.slot !== context.slot) return false;
+        if (decision.action === 'CONFIRM_DISPLAYED') {
+          if (context.phase !== 'PROPOSAL' || !context.proposal || decision.proposalId !== context.proposal.id) return false;
+          committedPoint.current = null;
+          const accepted = pointLease.confirm();
+          if (activeReply.current === lease) activeReply.current = null;
+          const completion = committedPoint.current as Promise<boolean> | null;
+          return !accepted ? false : completion !== null ? await completion : true;
+        }
+        if (decision.action === 'CORRECT') {
+          return pointLease.correct();
+        }
+        return true; // Keep the proposal locked until the route finishes canonical readback.
+      },
+    };
+    activeReply.current = lease; return lease;
   };
   useEffect(() => {
-    replyChanged.current?.(!replyScope ? null : editing && state.kind === 'READY'
-      ? { ...(replyCapabilities.confirm ? { confirm: () => runEditorReply('confirm') } : {}),
-          ...(replyCapabilities.correct ? { correct: () => runEditorReply('correct') } : {}) }
-      : completeSummary ? { correct: editSaved } : null);
+    const prompt = editorPrompt.current;
+    promptChanged.current?.(replyScope && prompt && review && activeSlot && prompt.context.promptToken === promptToken
+      ? { context: { ...prompt.context, reviewRevision: review.revision, slot: activeSlot }, acquire: acquireReply } : null);
   });
-  useEffect(() => () => replyChanged.current?.(null), []);
+  useEffect(() => () => { activeReply.current?.cancel(); activeReply.current = null; promptChanged.current?.(null); }, []);
 
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
   // A failed save used to offer a reload, which re-read the server over the pins the person had
@@ -389,7 +421,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}
       presentation="conversation" onCorrectInConversation={leave}
-      onReplyActionsReady={slots.length === 1 ? registerEditorReplies : undefined}
+      onPromptReady={registerEditorPrompt}
       disabled={state.kind === 'SAVING' || inactive} onInvalidate={() => {
         if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);
       }} onConfirm={confirm} /> : null}
