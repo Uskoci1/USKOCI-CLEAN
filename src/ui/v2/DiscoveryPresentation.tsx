@@ -1084,7 +1084,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const spoken = collectionWords ?? `${line.words}${line.extra}`;
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
-  const count = <T variant="bodyStrong" numberOfLines={1} style={s.count}>
+  const count = <T variant="bodyStrong" style={s.count}>
     {collectionWords ?? (loading || error ? line.words : exactListed ? zadataka(exactListed) : 'Nema zadataka')}
   </T>;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
@@ -1251,9 +1251,9 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
-  grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: sys.space.xs, backgroundColor: sys.color.lineStrong },
+  grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: sys.space.sm, backgroundColor: sys.color.lineStrong },
   // The honest count, centred on the sheet's top line: a button while the list can still go higher.
-  countRow: { minHeight: 48, justifyContent: 'center', borderRadius: sys.radius.control },
+  countRow: { minHeight: 48, paddingVertical: sys.space.sm, justifyContent: 'center', borderRadius: sys.radius.control },
   count: { color: sys.color.ink, textAlign: 'center' },
   applied: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: sys.space.sm, paddingBottom: sys.space.xs },
   // 40 high and 4 more above and under it: 48 to a finger, and two rows of chips 8 apart never share a touch.

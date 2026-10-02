@@ -36,8 +36,8 @@ export type ProfileHubIdentity =
  * text and long names stack the identity without truncating it. Logout is quiet; there is no primary action here.
  * Presentation only: the route owns the reads, the single-flight guard and logout.
  */
-export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, onBack, onLogout, logoutError, stacked: forced }: {
-  identity: ProfileHubIdentity; capabilityDetail?: string; workArea?: string; busy: boolean;
+export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, busy, open, onBack, onLogout, logoutError, stacked: forced }: {
+  identity: ProfileHubIdentity; capabilityDetail?: string; workArea?: string; workSummary?: ReactNode; busy: boolean;
   open: (path: ProfileHubPath) => void; onBack: () => void; onLogout: () => void; logoutError: boolean;
   /** A fixed layout for the design gallery; otherwise it follows the width and the rounded text scale. */ stacked?: boolean;
 }) {
@@ -87,6 +87,8 @@ export function ProfileHub({ identity, capabilityDetail, workArea, busy, open, o
       <SettingsRow label="Ime na profilu" icon={<FactArt kind="person" size={26} />} disabled={busy} last
         onPress={() => open('/profil/podaci')} />
     </View>
+
+    {workSummary}
 
     <SettingsGroup title="Kako mogu da uskočim">
       {/* The one fact that decides whether a task is ever offered to you is whether this part is set up and active. */}

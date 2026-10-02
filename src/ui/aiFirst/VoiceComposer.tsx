@@ -280,7 +280,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
 }
 
 /**
- * The glowing pill: a white capsule with the waveform, lying on a soft purple glow. While the microphone listens the
+ * The glowing pill: a white capsule with the waveform, lying on a soft blue glow. While the microphone listens the
  * capsule turns ink and the glow follows the measured level; before that it breathes slowly. Under reduced motion it
  * holds still. It says nothing a screen reader needs: the microphone button and the line above say the state.
  */
@@ -340,8 +340,8 @@ const s = StyleSheet.create({
   bigOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
   pillStage: { flex: 1, minWidth: 0, height: 56, justifyContent: 'center' },
-  // The glow is the AI purple, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
-  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front, opacity: 0.14 },
+  // The glow is the voice blue, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
+  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.location.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },
   pillCore: { height: BIG, marginHorizontal: 4, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },

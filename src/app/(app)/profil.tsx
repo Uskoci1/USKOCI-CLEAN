@@ -7,6 +7,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import type { ReviewCommentPhoto } from '../../ui/reviews/ReviewCommentsSection';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
+import { ProfileWorkSummary } from '../../ui/profile/ProfileWorkSummary';
 import { Avatar } from '../../ui/system/Avatar';
 import { inicijali } from '../../lib/inicijali';
 import { PROFILE_AVATAR, ProfileHub, type ProfileHubIdentity, type ProfileHubPath } from '../../ui/profile/ProfileHubPresentation';
@@ -106,6 +107,9 @@ export default function Profil() {
   // A work profile without an area says so, as the worker screen does; without a work profile the row has nothing to say.
   const workArea = capability?.grad?.trim() || (capability ? 'Nije podešeno' : undefined);
   return <ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} workArea={workArea} busy={busy}
+    workSummary={hubIdentity.state === 'ready' ? <ProfileWorkSummary
+      requesterProfileId={identity?.kind === 'REQUESTER' ? identity.profileId : null}
+      workerProfileId={capability?.profileId ?? null} /> : undefined}
     open={(path: ProfileHubPath) => navigate(() => router.navigate(path))}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))}
     onLogout={() => { void logout(); }} logoutError={logoutError} />;
