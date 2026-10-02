@@ -72,15 +72,15 @@ test('every search, filter, clear and Nearby action retains its own callback and
   expect(tree.root.findByProps({ testID: 'conditions-badge' }).findByType('T' as React.ElementType).props.children).toBe(3);
 });
 
-test('fold measurement reclaims only the rail height above the persistent tools at large text', async () => {
+test('fold measurement reclaims the separate rail and its gap while tools persist at every text size', async () => {
   mockWindow = { ...mockWindow, width: 320, fontScale: 2 }; await render();
   await act(async () => button('Brzi filteri').props.onLayout({ nativeEvent: { layout: { height: 64 } } }));
-  expect(chipsHeight).toHaveBeenLastCalledWith(16);
+  expect(chipsHeight).toHaveBeenLastCalledWith(64 + sys.space.sm);
   const bar = tree.root.findByProps({ testID: 'discovery-search-row' }).parent!;
   await act(async () => bar.props.onLayout({ nativeEvent: { layout: { y: 12, height: 150 } } }));
   expect(layout).toHaveBeenLastCalledWith(162);
   mockWindow = { ...mockWindow, width: 390, fontScale: 1 };
   await act(async () => tree.update(<DiscoverySearchBar {...props()} />));
   await act(async () => button('Brzi filteri').props.onLayout({ nativeEvent: { layout: { height: 64 } } }));
-  expect(chipsHeight).toHaveBeenLastCalledWith(16);
+  expect(chipsHeight).toHaveBeenLastCalledWith(64 + sys.space.sm);
 });

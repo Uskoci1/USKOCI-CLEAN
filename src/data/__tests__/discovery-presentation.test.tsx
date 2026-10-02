@@ -2019,8 +2019,8 @@ test('at the full height the quick chips fold only for a list longer than its wi
     // Back up a little: still folded. At the very top: back.
     await scroll(4); expect(chips()).toHaveLength(0);
     await scroll(0); expect(chips()).toHaveLength(1);
-    // The Filteri toolbar stays mounted: a116dp rail reclaims only68dp above its48dp floor. The8dp hysteresis remains.
-    await act(async () => chips()[0].props.onLayout({ nativeEvent: { layout: { height: 116 } } }));
+    // The Filteri toolbar stays mounted: a separate 60dp rail plus its 8dp gap reclaims 68dp. The 8dp hysteresis remains.
+    await act(async () => chips()[0].props.onLayout({ nativeEvent: { layout: { height: 60 } } }));
     await act(async () => list().props.onContentSizeChange(400, window + 70)); await scroll(30);
     expect(chips()).toHaveLength(1);
     await scroll(0); await act(async () => list().props.onContentSizeChange(400, window + 76)); await scroll(30);

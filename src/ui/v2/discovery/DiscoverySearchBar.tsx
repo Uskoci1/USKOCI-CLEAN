@@ -27,9 +27,8 @@ const CHIP_SIDE = sys.space.md;
  * search in two lines — where, then when and the other conditions — and opens the search panel. Beside it "Uslovi
  * pretrage" opens the same panel at its conditions and counts how many are on. The adjacent menu preserves secondary
  * destinations without another header (a standalone caller may instead offer its publication shortcut).
- * Under them one row of quick chips toggles real filters at once; a chosen chip is the one chosen-chip look of the
- * system (neutral well, green edge, green words and a tick). The chips fold away when the caller says so (the list at its
- * full height and scrolled); the pill stays.
+ * Quick chips toggle real filters at once; a chosen chip has a neutral well, ink edge and tick. The rail gets its own full width, rather than competing with Filteri and the menu. The chips
+ * fold away when the caller says so (the list at its full height and scrolled); search and the 48 dp toolbar stay.
  *
  * While the list is narrowed to the map's area or to one point, the pill carries its own "×" at its right end, "Prikaži
  * sve zadatke": the way back to every task is where the narrowing is said, not a chip that would appear under the
@@ -58,11 +57,14 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
 }) {
   // The search keeps its full width at every size; conditions never compete with its words.
   const separateTools = true;
+  // One full-width rail avoids squeezing chips beside the persistent toolbar.
+  const railBelow = true;
   const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
   const measureChips = (event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
-    // The separate tool row remains when chips fold. Only the rail's extra height is reclaimed by the list.
-    if (height > 0) onChipsHeight?.(separateTools ? Math.max(0, height - chrome.control) : height + sys.space.sm);
+    // The toolbar remains when chips fold. A separate rail returns its entire measured height and the bar's gap;
+    // an inline rail returns only the height above the existing 48 dp toolbar. Never feed a folded zero back.
+    if (height > 0) onChipsHeight?.(railBelow ? height + sys.space.sm : Math.max(0, height - chrome.control));
   };
   const tools = <>
     <Press accessibilityRole="button" accessibilityLabel={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
@@ -80,18 +82,18 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
     </View> : null}
   </>;
   const quickFilters = chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-    accessibilityLabel="Brzi filteri" style={separateTools ? s.rail : undefined}
-    contentContainerStyle={[s.chips, separateTools && s.chipsBesideTools]} onLayout={measureChips}>
+    accessibilityLabel="Brzi filteri" style={railBelow ? s.fullRail : s.rail}
+    contentContainerStyle={[s.chips, railBelow ? s.chipsFullWidth : s.chipsBesideTools]} onLayout={measureChips}>
     {nearby ? <Press accessibilityRole="button" accessibilityLabel="U blizini"
       accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
       accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
       haptic="select" scaleTo={0.97} hitSlop={0} onPress={nearby.onPress} style={[s.chip, s.nearby]}>
-      {nearby.busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <Crosshair size={18} color={sys.color.green} />}
+      {nearby.busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <Crosshair size={18} color={sys.color.ink} />}
       <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
     </Press> : null}
     {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
       haptic="select" scaleTo={0.97} hitSlop={0} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
-      {chip.selected ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
+      {chip.selected ? <Check size={16} weight="bold" color={sys.color.ink} /> : null}
       <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
     </Press>)}
   </ScrollView> : null;
@@ -118,8 +120,10 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
       </View>
     </View>
     {separateTools ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
-      <View style={s.toolCluster}>{tools}</View>{quickFilters ?? <View style={s.rail} />}
+      <View style={[s.toolCluster, railBelow && s.toolClusterWide]}>{tools}</View>
+      {railBelow ? null : quickFilters ?? <View style={s.rail} />}
     </View> : quickFilters}
+    {railBelow ? quickFilters : null}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
       {nearby.onSettings ? <Press accessibilityRole="button" accessibilityLabel="Podešavanja lokacije" hitSlop={0}
@@ -143,6 +147,7 @@ const s = StyleSheet.create({
   pillClearable: { paddingRight: CLEAR_WIDTH },
   pillWide: { borderRadius: sys.radius.card },
   rail: { flex: 1, minWidth: 0 },
+  fullRail: { flexGrow: 0, alignSelf: 'stretch' },
   lines: { flex: 1, minWidth: 0 },
   where: { lineHeight: 20, color: sys.color.ink },
   // Over the pill's right end, from its top edge to its bottom edge: never taller than the pill, never under 48 wide.
@@ -151,6 +156,7 @@ const s = StyleSheet.create({
   tool: { width: chrome.control, height: chrome.control },
   inlineTools: { flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: sys.color.line, paddingLeft: 2 },
   toolCluster: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  toolClusterWide: { flex: 1, justifyContent: 'space-between' },
   filter: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48,
     paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     borderWidth: 1, borderColor: sys.color.lineStrong },
@@ -162,6 +168,7 @@ const s = StyleSheet.create({
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
   chipsBesideTools: { paddingHorizontal: 0 },
+  chipsFullWidth: { paddingVertical: 0 },
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
@@ -174,5 +181,5 @@ const s = StyleSheet.create({
     borderRadius: sys.radius.control, backgroundColor: sys.color.surface, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
   noticeText: { color: sys.color.ink, flexGrow: 1, flexBasis: 180 },
   settings: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
-  settingsText: { color: sys.color.green, fontWeight: '600' },
+  settingsText: { color: sys.color.ink, fontWeight: '600' },
 });

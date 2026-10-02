@@ -68,6 +68,7 @@ describe('actual native PCM / first-party speech adapter with synthetic I/O', ()
     expect(h.events.at(-1)).toEqual({ kind: 'segment', index: 0, final: false, text: 'Dve' });
     h.release(); h.capture.stopCapture(); const final = h.capture.finalize();
     expect(mockNative.stop).toHaveBeenCalledTimes(1); expect(mockListeners.size).toBe(0);
+    await flush(); // finalize waits for microphone teardown before sending the release frame.
     expect(ws.messages.at(-1)).toEqual({ kind: 'release' });
     ws.emit(event(2, { kind: 'final', text: 'Dve osobe' }));
     expect(await final).toEqual({ kind: 'final', text: 'Dve osobe' });

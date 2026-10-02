@@ -256,9 +256,9 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
           <GlowPill listening={listening} level={state.audioLevel} reduced={reduced} />
           <Press testID="voice-mode-mic" accessibilityRole="button" accessibilityLabel={micLabel}
             accessibilityState={{ disabled: blocked, busy: finishing }} disabled={blocked} haptic={blocked ? 'none' : 'light'} hitSlop={0}
-            onPress={toggle} style={[s.big, listening && s.bigOn, blocked && s.bigOff]}>
+            onPress={toggle} style={[s.big, s.micReady, listening && s.bigOn, blocked && s.bigOff]}>
             {listening && review ? <StopCircle size={28} weight="fill" color={sys.color.onGreen} />
-              : <Microphone size={28} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
+              : <Microphone size={28} weight={listening ? 'fill' : 'regular'} color={blocked ? sys.color.muted : sys.color.surface} />}
           </Press>
           <Press testID="voice-mode-close" accessibilityRole="button" accessibilityLabel="Zatvori govorni razgovor"
             accessibilityHint={active ? 'Ono što je izgovoreno, a nije poslato, se odbacuje.' : undefined}
@@ -337,9 +337,10 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   big: { width: BIG, height: BIG, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
+  micReady: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
-  pillStage: { flex: 1, minWidth: 0, height: 56, justifyContent: 'center' },
+  pillStage: { flex: 1, minWidth: 0, maxWidth: 120, marginRight: 'auto', height: 56, justifyContent: 'center' },
   // The glow is the voice blue, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
   glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.location.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },

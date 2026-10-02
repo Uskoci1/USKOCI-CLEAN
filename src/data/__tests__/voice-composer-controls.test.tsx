@@ -138,13 +138,13 @@ describe('voice mode', () => {
     await act(async () => tree.unmount());
     expect(c.cancel).not.toHaveBeenCalled(); expect(c.release).toHaveBeenCalledTimes(1);
   });
-  it('new words stand alone while they arrive; the last exchange returns when the microphone rests', async () => {
+  it('the answer stays visible beside new words; the previous transcript returns when the microphone rests', async () => {
     const c = controller(), hold = { ...session, mode: 'hold' as const };
     const exchange = { said: 'Treba mi prevoz.', answer: 'Odakle i dokle?' };
     await act(async () => { tree = create(mode(c, idle, exchange)); });
     expect(text()).toContain('Odakle i dokle?');
     await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: hold, finalText: 'Iz Novog Sada' }, exchange)));
-    expect(text()).toContain('Iz Novog Sada'); expect(text()).not.toContain('Odakle i dokle?'); expect(text()).not.toContain('Treba mi prevoz.');
+    expect(text()).toContain('Iz Novog Sada'); expect(text()).toContain('Odakle i dokle?'); expect(text()).not.toContain('Treba mi prevoz.');
     await act(async () => tree.update(mode(c, idle, exchange)));
     expect(text()).toContain('Odakle i dokle?');
   });

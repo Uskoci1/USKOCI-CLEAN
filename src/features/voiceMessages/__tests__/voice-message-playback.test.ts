@@ -21,7 +21,7 @@ it('fetches the authorized bytes once, plays them from one temporary file and fo
   const s = setup(); const seen: string[] = []; s.playback.subscribe(() => seen.push(s.playback.getSnapshot().status));
   await s.playback.toggle(target);
   expect(s.service.playback).toHaveBeenCalledWith({ agreementId, assetId, messageId }, { accountId, accountRevision: 4 }, expect.any(AbortSignal));
-  expect(s.files.log.written).toHaveLength(1); expect(s.files.log.written[0]).toContain(`voice-${assetId}.m4a`);
+  expect(s.files.log.written).toHaveLength(1); expect(s.files.log.written[0]).toMatch(new RegExp(`voice-${assetId}-\\d+-\\d+\\.m4a#\\d+$`));
   expect(s.player.state.calls).toEqual(['stop', 'release', expect.stringContaining('load:file:///tmp/voice-' + assetId), 'play']);
   expect(s.playback.getSnapshot()).toMatchObject({ assetId, status: 'playing', durationMs: 4200, error: null }); expect(s.arbiter.current()).toBe('playback'); expect(seen).toContain('loading');
   s.player.progress(1800); expect(s.playback.getSnapshot()).toMatchObject({ status: 'playing', positionMs: 1800 });
