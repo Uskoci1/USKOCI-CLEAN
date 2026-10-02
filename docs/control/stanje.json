@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T16:29:47Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "9e7fe9b4",
-  "head_poruka": "feat(chat): connect Android voice messages and refine AI composer",
+  "osvezeno": "2026-10-02T16:31:39Z",
+  "grana": "HEAD",
+  "head": "c64dc8bd",
+  "head_poruka": "fix(ui): follow compact Gemini composer reference",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -8921,102 +8921,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37027853251,
-   "ime": "P5 ready task and matching contract",
-   "sha": "6c38d343",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T15:33:48Z"
-  },
-  {
-   "id": 37027853212,
-   "ime": "Control tracker refresh",
-   "sha": "6c38d343",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T15:33:48Z"
-  },
-  {
-   "id": 37027853177,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "6c38d343",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T15:33:48Z"
-  },
-  {
-   "id": 37024029100,
-   "ime": "Build Android development APK",
-   "sha": "b4f8a2e9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T15:01:38Z"
-  },
-  {
-   "id": 37023907851,
-   "ime": "P5 ready task and matching contract",
-   "sha": "a49132a8",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T15:00:40Z"
-  },
-  {
-   "id": 37023907809,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "a49132a8",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T15:00:40Z"
-  },
-  {
-   "id": 37023907616,
-   "ime": "Control tracker refresh",
-   "sha": "a49132a8",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T15:00:40Z"
-  },
-  {
-   "id": 37019813026,
-   "ime": "Control tracker refresh",
-   "sha": "705469d2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T14:25:53Z"
-  },
-  {
-   "id": 37017322413,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "df5e2d31",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T14:04:28Z"
-  },
-  {
-   "id": 37017322335,
-   "ime": "Control tracker refresh",
-   "sha": "df5e2d31",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T14:04:28Z"
-  },
-  {
-   "id": 37012789559,
-   "ime": "Build Android development APK",
-   "sha": "8d22ce0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T13:24:35Z"
-  },
-  {
-   "id": 37012789208,
-   "ime": "P5 ready task and matching contract",
-   "sha": "8d22ce0e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T13:24:35Z"
-  }
- ]
+ "ci": null
 }
