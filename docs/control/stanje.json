@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T04:15:08Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "72d64fc4",
-  "head_poruka": "feat(ui): UI/UX pass wave 1 - systemic foundations (tokens and layout class, size-aware icon cut, press feel, card layout on the owner's 361 dp phone)",
+  "osvezeno": "2026-10-02T04:17:11Z",
+  "grana": "HEAD",
+  "head": "76816db9",
+  "head_poruka": "docs(d12): CI proof passed (run 36957213904, 46 checks, 47/47 pins) + fresh read-only DEV preflight problems [] + approval block for \"PRIMENI D12 PISANI KOMENTAR\" - NOT applied",
   "server": {
    "snimljeno": "2026-10-02T02:28:00Z",
    "migracije": 220,
@@ -8559,102 +8559,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 36963044604,
-   "ime": "Build Android development APK",
-   "sha": "72d64fc4",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-10-02T04:05:53Z"
-  },
-  {
-   "id": 36957213904,
-   "ime": "D12 written review comment proof",
-   "sha": "f36879ae",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T02:46:59Z"
-  },
-  {
-   "id": 36956153579,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "e9f2ad10",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T02:33:08Z"
-  },
-  {
-   "id": 36956153576,
-   "ime": "D12 written review comment proof",
-   "sha": "e9f2ad10",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T02:33:08Z"
-  },
-  {
-   "id": 36956153556,
-   "ime": "Control tracker refresh",
-   "sha": "e9f2ad10",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T02:33:08Z"
-  },
-  {
-   "id": 36953943157,
-   "ime": "Build Android development APK",
-   "sha": "221e882e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T02:04:44Z"
-  },
-  {
-   "id": 36949883106,
-   "ime": "Control tracker refresh",
-   "sha": "a5973c3a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T01:13:20Z"
-  },
-  {
-   "id": 36949455489,
-   "ime": "D12 written review comment proof",
-   "sha": "f8e36e52",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T01:08:01Z"
-  },
-  {
-   "id": 36949455413,
-   "ime": "P5 ready task and matching contract",
-   "sha": "f8e36e52",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T01:08:00Z"
-  },
-  {
-   "id": 36949455369,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "f8e36e52",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T01:08:00Z"
-  },
-  {
-   "id": 36939555251,
-   "ime": "P5 ready task and matching contract",
-   "sha": "c6c4d9ca",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-01T23:12:45Z"
-  },
-  {
-   "id": 36939555154,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "c6c4d9ca",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T23:12:45Z"
-  }
- ]
+ "ci": null
 }
