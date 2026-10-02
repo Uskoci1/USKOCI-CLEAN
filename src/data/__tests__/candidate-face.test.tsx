@@ -73,7 +73,8 @@ describe('the candidate row', () => {
     expect(order).toEqual(['avatar:MP', 'Milan Petrović', '4,8 · 11 recenzija', '4.500 RSD', 'ukupno · 2 osobe', 'Dolazimo sa trakama i kombijem.']);
     const amount = row.findAll(node => node.props.children === '4.500 RSD')[0];
     expect(flat(amount.props.style).color).toBe(sys.color.money);
-    expect(row.findAll(node => node.props.children === 'Dolazimo sa trakama i kombijem.')[0].props.numberOfLines).toBe(2);
+    // The full message is visible on the recomposed row, without a two-line clamp.
+    expect(row.findAll(node => node.props.children === 'Dolazimo sa trakama i kombijem.')[0].props.numberOfLines).toBeUndefined();
     // No proposed interval: no time line (the task's own time would repeat on every card).
     expect(row.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'calendar')).toHaveLength(0);
     // Essential offer facts remain available when the person has disabled screen-reader hints.

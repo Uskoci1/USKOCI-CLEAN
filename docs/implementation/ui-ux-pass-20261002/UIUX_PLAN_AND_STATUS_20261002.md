@@ -12,6 +12,34 @@ The wave table below preserves its original checkpoint. Current status is solely
 
 Screen reviews must consider the whole purpose and journey: information order, primary action, density, black/gray reading hierarchy, intentional card versus open section, illustration scale, selected/empty/loading/error state, Back/keyboard/scroll and reduced motion. Home, task detail/applications, Agreement/chat/AI and account/notifications each need their own populated-screen critique as the same plan continues. Profile/notification critique findings remain attached to their existing control rows; they are not omitted merely because the original wave table names them incompletely.
 
+
+## Završni presek tri agenta — kod, server i prodavnica
+
+Tražen je detaljan pregled preostalih stvari, uz brzo doterivanje postojećeg proizvoda i bez novih testnih krugova. Izmene su poslate kao `a49132a8`; build37024029100 sastavlja isti aplikacioni izvor sa dokumentacionim dopunama `b4f8a2e9`. To je novi razvojni APK, ne store izdanje niti novo prihvatanje svih tokova.
+
+**APK je uspešno sastavljen:** [run37024029100](https://github.com/Uskoci1/USKOCI-CLEAN/actions/runs/37024029100), isti sourceb4f8a2e9. Preuzet je i vezan za SHA-256 `60b2223d87764a1c6543e5ccd8d41694c8bf650c9d0b91c4e2a6097e7cb21b79`; recovery/icon/Reanimated attestation su PASS. Nije instaliran niti korišćen za novu native proveru. [Tačan receipt](FINISHING_APK_37024029100.json).
+
+**Automatski CI:** starija dva automatska rada za a49132a8 pala su na promenjenoj kompoziciji/tekstovima. Deset postojećih test datoteka usklađeno je sa izvorom, uz nezavisan pregled sačuvanih poslovnih zaštita. Nema novih testova, ručnog ponavljanja ni tvrdnje o zelenom rezultatu. [Klasifikacija i ispravke](CI_FAILURES_370239.md).
+
+**Objava — odgovor vlasnika:** nema Play naloga i odvojenog PROD projekta; uskoci.rs je njegov i već radi. Objavljuje kao fizičko lice: Personal nalog,25USD jednokratno, Google-ov zatvoreni test12 testera/14 neprekidnih dana pre zahteva za javnu objavu. Podaci operatora/podrške i konkretno otvaranje PROD-a još nisu završeni. [Tačni koraci i zvanični izvori](FINAL_PRODUCT_STORE_REMAINDERS.md#podaci-vlasnika-za-objavu--dopuna-2102026).
+
+**Veliki deo proizvoda već postoji i ostaje završen u svom zabeleženom obimu:** AI za zadatak/radni profil, mapa i pretraga, objava/prijava/izbor, Dogovor, tekstualni razgovor i zvezdice; raniji stvarni Android push koji je vlasnik koristio. Ne vraćamo te celine na početak. Današnje izmene doteruju odluku/prijave/kandidate, nacrt AI četa, potvrdu lokacije i obaveštenja; povezan je i HITNO klijent.
+
+| Šta stvarno ostaje | Najmanji završetak |
+| --- | --- |
+| Poznati foto/matching defekti | Ciljani RC02 redosled zaključavanja i konkretni EX06 vremenski/podobnost/dispatch nalazi; koristiti već prikupljene dokaze, bez novog opšteg audita |
+| Glasovne poruke | Povezati postojeći Android recorder/player i modele u Dogovor; B1 server je već primenjen |
+| HITNO | Klijent je povezan; politika je sada potvrđeno OFF. Stvarni uslovi i trajan oporavak zahteva prethode imenovanoj aktivaciji |
+| Pisani komentar i prava naloga | Dovršiti postojeći D12 javni prikaz/role/block pravila, N10 oporavak i vezu izvoza sa stvarnim pravnim pravilima; ne ponavljati već primenjene server pakete |
+| Privatnost i javni podaci | Završni EX08, operator/kontakt/domen, objavljeni pravni tekstovi i prvi ulaz18+, javni put zahteva za brisanje |
+| Produkcioni paket | Novi odvojeni PROD, Auth/mail/mape, postojeći push vezan za `rs.uskoci`, tačni build flagovi, potpisani AAB i konkretna Play predaja |
+
+Sveže čitanje2.10. u14:58–14:59UTC: kanonski DEV je ACTIVE_HEALTHY,221 migracija,11 aktivnih Edge funkcija,2880 cron pokretanja/0 neuspešnih u24h, bez započetih zatvaranja naloga. Sačuvani sertifikati se podudaraju; živi digest nije ponovo računat. To ne zatvara navedene funkcionalne i objavne stavke.
+
+**Čišćenje:** uklonjena je zastarela npm reset komanda i zamenjen Expo početni README stvarnim ulazima. Nema dokaza da je potrebno masovno prepisivanje ili brisanje.18 template slika i razvojne galerije su konkretni kandidati za dalje čišćenje; dokazi, entry HTML/build resursi, oporavak naloga i serverski rollback ostaju. Brisanje Supabase funkcija/tabela nije vizuelno doterivanje.
+
+Detaljan pregled sa tačnim izvorima: [proizvod i store](FINAL_PRODUCT_STORE_REMAINDERS.md), [server i primenjeni paketi](FINAL_SERVER_REMAINDERS.md), [kod i bezbedno čišćenje](FINAL_CODE_CLEANUP.md). Ovo su nalazi uz postojeći registar, ne novi master plan. iOS, plaćanja i P05 ostaju van prvog Android izdanja; push i HITNO su vraćeni najnovijom odlukom.
+
 ## Gde smo i šta završavamo — presek proizvoda 2.10.2026.
 
 Ovo je čitljiv presek postojećeg plana, prema kodu `df5e2d31`, primenama zabeleženim u postojećim receipt-ima i poslednjem vizuelnom APK-u `8d22ce0e`. Nije novi master ni novo čitanje živog servera. Registar ostaje `docs/control/redovi.json`.

@@ -63,7 +63,6 @@
     "eas-build-pre-install": "node ./scripts/check-eas-preview.cjs",
     "postinstall": "patch-package --error-on-fail --error-on-warn && node ./scripts/verify-native-patches.cjs && node ./scripts/sync-entry-reference-assets.cjs",
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

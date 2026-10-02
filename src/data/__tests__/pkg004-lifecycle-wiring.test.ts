@@ -8,7 +8,8 @@ describe('PKG-004 owner lifecycle wiring invariants', () => {
   it('mounts lifecycle recovery from route identity instead of requiring a successful Need row', () => {
     expect(route).toContain('need={potreba} needId={id}');
     // Mounted from the route identity alone: the owner-only read and the server settle ownership, no app mode does.
-    expect(route).toContain('lifecycleActions={uuid(id) ? <NeedLifecycleActions');
+    // HITNO feedback shares the fragment; lifecycle recovery is still gated only by route identity.
+    expect(route).toMatch(/lifecycleActions=\{uuid\(id\) \? <>\s*<UrgentActivationActions control=\{urgent\} \/>\s*<NeedLifecycleActions need=\{potreba\} needId=\{id\}[\s\S]*?<\/\> : undefined\}/);
     expect(route).not.toContain("intent === 'narucilac'");
     expect(route).not.toContain('lifecycleActions={potreba && intent');
   });

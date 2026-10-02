@@ -112,16 +112,16 @@ it('role switch makes retained old action inert', async () => {
 });
 it('disable uses displayed revision and preserves all other settings', async () => {
  mockRead.mockResolvedValue({ ...preferences, settings: { ...preferences.settings, push_enabled: true } }); await mount();
- await act(async () => { button('Isključi obaveštenja na telefonu').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
+ await act(async () => { button('Isključi za moje zadatke').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
 });
 const screenText = () => tree.root.findAllByType('Text' as never).map(x => x.props.children).flat().join(' ');
 it('reads actual transport evidence independently and never turns a healthy tick into device delivery', async () => {
  mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
- await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Pri poslednjoj proveri slanje obaveštenja je radilo');
- expect(screenText()).toContain('a ne potvrda da je obaveštenje stiglo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ expect(screenText()).toContain('Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 it('transport failure preserves available device controls with honest missing evidence', async () => {
- mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Još ne možemo da potvrdimo da slanje obaveštenja radi');
+ mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Rad sistema za slanje još nije potvrđen.');
  expect(button('Uključi obaveštenja na telefonu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
 });
 it('late transport result cannot replace a new account snapshot', async () => {
@@ -129,7 +129,7 @@ it('late transport result cannot replace a new account snapshot', async () => {
  await mount(); mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
  await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
  await act(async () => { done({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } }); await flush(); });
- expect(screenText()).not.toContain('Pri poslednjoj proveri slanje obaveštenja je radilo'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 
 it('exposes category controls and saves an explicit opt-out without silently enabling push', async () => {
@@ -209,7 +209,7 @@ it('the one green action is Save, in the footer, grey with its reason until some
  const save = button('Sačuvaj podešavanja');
  expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe('#076E4E');
  expect(save.props.disabled).toBe(true);
- expect(save.props.reason).toBe('Dugme se uključuje kad promeniš neko podešavanje.');
+ expect(save.props.reason).toBe('Nema nesačuvanih izmena.');
  expect(tree.root.findByProps({ testID: 'settings-primary-footer' }).findAllByType('Button' as never).map(x => x.props.label)).toEqual(['Sačuvaj podešavanja']);
  const greens = tree.root.findAllByType('Button' as never).filter(x => StyleSheet.flatten(x.props.style)?.backgroundColor === '#076E4E');
  expect(greens).toHaveLength(1);
@@ -242,7 +242,7 @@ it('reports unsaved changes to the route, and shows the check only once the save
 it('an emulator is told honestly that it cannot receive notifications, with nothing to press', async () => {
  mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
- for (const label of ['Uključi obaveštenja na telefonu', 'Isključi obaveštenja na telefonu', 'Podešavanja telefona', 'Osveži stanje']) expect(button(label)).toBeUndefined();
+ for (const label of ['Uključi obaveštenja na telefonu', 'Isključi za moje zadatke', 'Podešavanja telefona', 'Osveži stanje']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications says so first and reads again when the person comes back from its settings', async () => {
  const listeners: ((state: string) => void)[] = [];
@@ -308,21 +308,21 @@ it('a connected phone names the set its choice belongs to', async () => {
  await mount('WORKER');
  // A short headline without a period, like the others; the set is in the sentence under it.
  const titles = tree.root.findAllByType('Text' as never).map(node => node.props.children);
- expect(titles).toContain('Obaveštenja na telefon su uključena');
+ expect(titles).toContain('Obaveštenja su uključena');
  expect(screenText()).toContain('Važi za Moje prijave. Ovaj telefon je povezan sa tvojim nalogom.');
- expect(button('Isključi obaveštenja na telefonu')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
+ expect(button('Isključi za moje prijave')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
 });
 it('on a device without notifications there is still nothing to press, and a set that sends elsewhere says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
- for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi obaveštenja na telefonu', 'Osveži stanje']) expect(button(label)).toBeUndefined();
+ for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi za moje zadatke', 'Osveži stanje']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications keeps the switch-off for a set that is on, under a headline that says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
  expect(screenText()).toContain('Telefon ne dozvoljava obaveštenja');
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
- expect(button('Isključi obaveštenja na telefonu')).toBeDefined();
+ expect(button('Isključi za moje zadatke')).toBeDefined();
 });
 it('an unconfirmed state offers one re-read, and says "Prvo proveri stanje." once, on Save', async () => {
  await mount(); act(() => control('Dogovor i poruke').props.onPress());
@@ -349,7 +349,7 @@ it('after an unconfirmed save the route is not told the changes are unsaved, so 
 // Round 5c (2026-09-24): a reason that disappears while a command runs comes back afterwards and is spoken again.
 it('Save keeps the same reason through a phone command, so nothing is spoken again after it', async () => {
  await mount();
- const reason = 'Dugme se uključuje kad promeniš neko podešavanje.';
+ const reason = 'Nema nesačuvanih izmena.';
  expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
  let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Osveži stanje').props.onPress(); await flush(); });

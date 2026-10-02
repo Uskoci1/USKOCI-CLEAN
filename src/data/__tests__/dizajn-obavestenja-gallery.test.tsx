@@ -49,7 +49,7 @@ it('draws a device without notifications whose set is on while sending is not ye
   await act(async () => press('Podešavanja · uključeno, slanje još nije uključeno')!.props.onPress());
   expect(text()).toContain('Nije dostupno na ovom uređaju');
   expect(text()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
-  expect(text()).toContain('Slanje obaveštenja na telefon još nije uključeno.');
+  expect(text()).toContain('Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.');
   expect(text()).not.toContain('Slanje na telefon je uključeno');
   expect(mockData).not.toHaveBeenCalled();
 });

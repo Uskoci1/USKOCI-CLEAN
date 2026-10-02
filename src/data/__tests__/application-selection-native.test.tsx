@@ -269,7 +269,7 @@ it.each(['blur', 'account'])('a confirmed application link cannot navigate after
   await act(async () => open()); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
-  await offer(); expect(text()).toContain('ne cena po osobi'); expect(text()).toMatch(/ukupno\s+·/);
+  await offer(); expect(text()).toContain('Ukupan iznos za sve ljude koje dovodiš, ne po osobi.'); expect(text()).toMatch(/ukupno\s+·/);
   const review = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
   // The route's own guard stays authoritative: it is called directly with each bad draft, past the grey button.
   const routeSubmit = async () => { await act(async () => {

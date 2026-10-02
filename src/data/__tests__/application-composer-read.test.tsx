@@ -221,7 +221,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
     // r6: the saved offer stands under its own heading, in plain words (it said "Sačuvana je ista ponuda za proveru
     // ishoda. Ponavljanje koristi…"); the notice says what a repeat does without claiming the send arrived or not.
-    expect(text()).toContain('Tvoja ponuda'); expect(text()).toContain('Termin, cena i broj ljudi ostaju isti.');
+    expect(text()).toContain('Tvoja prijava'); expect(text()).toContain('Termin, cena i broj ljudi ostaju isti.');
     expect(text()).toContain('Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.');
     expect(text()).not.toContain('sačuvani zahtev');
     // The saved command is shown as facts, never as greyed fields that look editable.

@@ -82,7 +82,7 @@ it('a published task: the edit reaches "Izmena Zadatka", the cancel its own revi
   await render();
   expect(texts()).not.toContain('Upravljanje zadatkom');
   await openMenu();
-  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni Zadatak', 'Otkaži zadatak']);
+  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni Zadatak', 'HITNO', 'Otkaži zadatak']);
   await act(async () => { rows()[0].props.onPress(); });
   expect(sheets()[0].props).toMatchObject({ title: 'Izmena Zadatka', tone: 'default' });
   await inSheet('confirm-sheet-cancel'); expect(mockEdit).not.toHaveBeenCalled();
@@ -125,12 +125,13 @@ it('a partly agreed task: closing the search reaches its question, and the Dogov
   mockNeed.mockResolvedValue(need('DELIMICNO_POPUNJENA', { pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } }));
   await render();
   await openMenu();
-  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Otvori moje Dogovore', 'Ne traži više nikoga']);
+  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['HITNO', 'Otvori moje Dogovore', 'Ne traži više nikoga']);
   // Why there is no "Otkaži zadatak" is said where it is seen, under the Dogovori row (review of step 5b), not only heard.
-  expect(rows()[0].findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children))
+  const agreementsRow = rows().find(row => row.props.accessibilityLabel === 'Otvori moje Dogovore')!;
+  expect(agreementsRow.findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children))
     .toEqual(['Otvori moje Dogovore', 'Postojeći Dogovori se otkazuju zasebno.']);
-  expect(rows()[0].props.accessibilityHint).toBe('Postojeći Dogovori se otkazuju zasebno.');
-  await act(async () => { rows()[1].props.onPress(); });
+  expect(agreementsRow.props.accessibilityHint).toBe('Postojeći Dogovori se otkazuju zasebno.');
+  await act(async () => { rows().find(row => row.props.accessibilityLabel === 'Ne traži više nikoga')!.props.onPress(); });
   expect(sheets()[0].props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', tone: 'danger' });
   await inSheet('confirm-sheet-cancel'); expect(mockClose).not.toHaveBeenCalled();
   await choose('Otvori moje Dogovore');

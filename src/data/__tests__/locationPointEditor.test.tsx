@@ -266,7 +266,7 @@ describe('compact conversation proposal', () => {
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(map().props).toMatchObject({ position: candidate.position, height: 220 });
-    expect(text()).toContain('Je l’ ovde?'); expect(text()).toContain(candidate.label);
+    expect(text()).toContain('Proveri pin, pa potvrdi mesto.'); expect(text()).toContain(candidate.label);
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
@@ -282,10 +282,10 @@ describe('compact conversation proposal', () => {
     const correct = jest.fn();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
     expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
-    await press('Nije ovde'); await press('Izaberi predlog: ' + other.label);
+    await press('Ispravi mesto'); await press('Izaberi predlog: ' + other.label);
     expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
     expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
-    await press('Nije ovde'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
+    await press('Ispravi mesto'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
     await press('Ispravi u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled(); expect(resolver.search).toHaveBeenCalledTimes(1);
   });
@@ -389,7 +389,7 @@ describe('inert compact location gallery', () => {
     } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });
     if (scene === 'ambiguous') {
       expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
-      await press('Nije ovde');
+      await press('Ispravi mesto');
       expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(2);
     }
     await press('Potvrdi tačku: Mesto rada');
@@ -399,7 +399,7 @@ describe('inert compact location gallery', () => {
     expect(mockGalleryRouter.replace).not.toHaveBeenCalled();
   });
   it('offers local composer correction/reset and a safe exit, with no command or production resolver dependency', async () => {
-    await mount(); await press('Nije ovde'); await press('Ispravi u razgovoru');
+    await mount(); await press('Ispravi mesto'); await press('Ispravi u razgovoru');
     const shell = tree.root.findByType('AiShell' as React.ElementType);
     await act(async () => { shell.props.onChange('Probna ispravka'); shell.props.onSend(); });
     expect(tree.root.findByType('AiShell' as React.ElementType).props).toMatchObject({ value: 'Probna ispravka', canSend: false });

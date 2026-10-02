@@ -755,7 +755,7 @@ it('keeps the complete safety note visible on the collapsed card during a pendin
   expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
   // A sent message makes the card compact (the shell's rule while a turn is pending).
   await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());
-  expect(card().props.style).toEqual(expect.arrayContaining([expect.objectContaining({ gap: 4 })]));
+  expect(card().props.style).toEqual(expect.arrayContaining([expect.objectContaining({ paddingVertical: 8 })]));
   expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
   const disclosure = tree.root.findByProps({ testID: 'intake-draft-disclosure' });
   await act(async () => disclosure.props.onPress());

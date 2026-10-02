@@ -41,7 +41,7 @@ test('PKG-035: task detail retains history without promising an unavailable sele
   expect(texts()).toContain('Trenutno nema prijava za izbor.');
   expect(texts()).toContain('Ukupno 7 prijava');
   expect(texts()).not.toContain('Sledeće: izbor.');
-  expect(labels()).toContain('Otvori prijave, ukupno 7');
+  expect(labels()).toContain('Otvori prijave. Trenutno nema prijava za izbor. Ukupno 7 prijava');
   // The footer counts what the screen counts: a known zero is not drawn as "· 0", and the total is said, not shown as choosable.
   expect(texts()).not.toContain('Pregledaj prijave · ');
   expect(brand()).toEqual(['Pregledaj prijave, trenutno nema prijava za izbor, ukupno 7 prijava']);
@@ -66,13 +66,13 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
   expect(texts()).not.toMatch(/Ovo radiš kao|JA MOGU|MENI TREBA|iz Profila/);
   expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(await menuLabels()).toContain('Izmeni nacrt');
 });
-test('a published Task leads with its title and facts, keeps applications below the work, and has one brand action', async () => {
+test('a published Task leads with its title and actionable applications, retains work facts, and has one brand action', async () => {
   await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
   expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).not.toContain('2 osobe');
   expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
-  expect(labels()).toContain('Otvori prijave, ukupno 3');
-  // V41 (2026-09-23): the one orange action carries the count of the applications that can be chosen.
+  expect(labels()).toContain('Otvori prijave. 3 prijave za izbor');
+  // The single primary action carries the count of applications that can be chosen.
   expect(copy).toContain('Pregledaj prijave · 3');
   expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
   // The edit is behind "···" now, and opening the menu adds no second brand action.
@@ -85,7 +85,8 @@ test('a published Task leads with its title and facts, keeps applications below 
   // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
   expect(copy).toContain('0/2');
   expect(copy.indexOf('Prenos ormara')).toBeLessThan(copy.indexOf('Objavljen'));
-  expect(copy.indexOf('4.000 RSD')).toBeLessThan(copy.indexOf('3 prijave za izbor'));
+  // Applications are the owner's next decision; the retained work facts follow.
+  expect(copy.indexOf('3 prijave za izbor')).toBeLessThan(copy.indexOf('4.000 RSD'));
   expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
 });
 test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {

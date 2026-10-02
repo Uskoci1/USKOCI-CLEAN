@@ -5688,7 +5688,46 @@
       "receipt": "docs/implementation/ui-ux-pass-20261002/VISUAL_NATIVE_20261002.json",
       "productOverview": "docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md#gde-smo-i-šta-završavamo--presek-proizvoda-2102026",
       "nextConnectedBatch": "SOURCE IMPLEMENTED: own task/applications/comparison/selection, AI draft/location and notification settings; HITNO client wired with policy/receipt limits. No new native acceptance.",
-      "sourceBatch": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md#connected-finishing-batch--owner-directed-source-polish"
+      "sourceBatch": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md#connected-finishing-batch--owner-directed-source-polish",
+      "sourceCommit": "a49132a892eea33abe467b3f8efcf89a60e9d978",
+      "finalReview": {
+        "scope": "Three bounded reviews requested by owner: product/store, current server/candidate state and code cleanup. Existing AI/push proofs retained; no new tests/live writes.",
+        "product": "docs/implementation/ui-ux-pass-20261002/FINAL_PRODUCT_STORE_REMAINDERS.md",
+        "server": "docs/implementation/ui-ux-pass-20261002/FINAL_SERVER_REMAINDERS.md",
+        "cleanup": "docs/implementation/ui-ux-pass-20261002/FINAL_CODE_CLEANUP.md",
+        "cleanupApplied": "Removed unused template reset npm entry; replaced generic README. No bulk files/assets/server deletion.",
+        "devMetadata": "2026-10-02T14:58:32Z–14:59:56Z: canonical ACTIVE_HEALTHY, ledger221,11 ACTIVE Edge, cron2880/0failed24h, closure executions0, urgency disabled; saved certs0579191d match. Live digest not recomputed.",
+        "artifact": {
+          "run": 37024029100,
+          "status": "SUCCESS",
+          "source": "b4f8a2e9393e4138da6b3a8d2be188ce3f15e0f2",
+          "sha256": "60b2223d87764a1c6543e5ccd8d41694c8bf650c9d0b91c4e2a6097e7cb21b79",
+          "attestations": [
+            "recovery PASS",
+            "icon PASS",
+            "reanimated-patch PASS"
+          ],
+          "installed": false,
+          "nativeAcceptance": false,
+          "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
+        },
+        "ciReconciliation": {
+          "failedRuns": [
+            37023907809,
+            37023907851
+          ],
+          "scope": "Ten existing copy/layout/menu test expectations reconciled and independently source-reviewed. No new tests or manual rerun. No green result claimed.",
+          "report": "docs/implementation/ui-ux-pass-20261002/CI_FAILURES_370239.md"
+        },
+        "ownerStoreResources": {
+          "playAccount": "NOT_CREATED",
+          "playAccountType": "PERSONAL_OWNER_CONFIRMED",
+          "separateProductionSupabase": "NOT_CREATED",
+          "domain": "uskoci.rs",
+          "domainObservation": "HTTPS200 existing public landing page. Legal/support/deletion links not found in homepage links; other paths not assessed.",
+          "publicationPrerequisite": "Personal account verification; closed test minimum12 opted-in testers for14 continuous days, then apply for production access. Actual operator/contact content and paid project approval remain."
+        }
+      }
     },
     "ui_w2_w8_codex_20261002": {
       "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
