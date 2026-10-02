@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T14:22:31Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "181d460d",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "osvezeno": "2026-10-02T14:26:16Z",
+  "grana": "HEAD",
+  "head": "705469d2",
+  "head_poruka": "docs(product): clarify both journeys and correct stale completion gaps",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -8859,102 +8859,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37017322413,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "df5e2d31",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T14:04:28Z"
-  },
-  {
-   "id": 37017322335,
-   "ime": "Control tracker refresh",
-   "sha": "df5e2d31",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T14:04:28Z"
-  },
-  {
-   "id": 37012789559,
-   "ime": "Build Android development APK",
-   "sha": "8d22ce0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T13:24:35Z"
-  },
-  {
-   "id": 37012789208,
-   "ime": "P5 ready task and matching contract",
-   "sha": "8d22ce0e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T13:24:35Z"
-  },
-  {
-   "id": 37012041861,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "0889c819",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T13:17:46Z"
-  },
-  {
-   "id": 37012040450,
-   "ime": "Build Android development APK",
-   "sha": "0889c819",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-02T13:17:45Z"
-  },
-  {
-   "id": 37009600771,
-   "ime": "Build Android development APK",
-   "sha": "c81722a2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T12:55:01Z"
-  },
-  {
-   "id": 37009528079,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "b19af3f3",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T12:54:18Z"
-  },
-  {
-   "id": 37009527309,
-   "ime": "Build Android development APK",
-   "sha": "b19af3f3",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-02T12:54:17Z"
-  },
-  {
-   "id": 37009526031,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "b19af3f3",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-02T12:54:17Z"
-  },
-  {
-   "id": 37008069654,
-   "ime": "Build Android development APK",
-   "sha": "5bdeef52",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T12:40:10Z"
-  },
-  {
-   "id": 37005585355,
-   "ime": "Build Android development APK",
-   "sha": "b574e118",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T12:15:12Z"
-  }
- ]
+ "ci": null
 }
