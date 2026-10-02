@@ -222,7 +222,7 @@ const s = StyleSheet.create({
   offer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.md, marginVertical: sys.space.xs },
   offerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
   offerValue: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  offerValueStacked: { flex: 0, width: '100%' },
+  offerValueStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   offerCopy: { flex: 1, minWidth: 0, gap: 2 },
   offerAmount: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: sys.space.xs },
   amountWrap: { flexShrink: 1, maxWidth: '100%' },
