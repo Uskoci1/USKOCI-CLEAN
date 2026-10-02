@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-01T11:42:55Z",
-  "ledger_total": 219,
-  "ledger_dev_alpha": 71,
-  "ledger_last": "dev_alpha_ex04c_rating_state_application",
+  "generated_at": "2026-10-02T02:28:00Z",
+  "ledger_total": 220,
+  "ledger_dev_alpha": 72,
+  "ledger_last": "dev_alpha_ex06a_flexible_window_application",
   "certificate_certified": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "cron": [
     {
@@ -437,10 +437,10 @@
   "project": "leqcwgzvjsxugfgzdmth",
   "certificate_live": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
   "retention_ai_ready": true,
-  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC.",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change).",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20261001_ex04_s1_s4_application.receipt.json",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ex06a_flexible_window_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -548,5 +548,19 @@
       "private.need_candidate_states_v5(uuid,uuid[])"
     ],
     "client_flags": "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED, EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED and EXPO_PUBLIC_EX04_CANDIDATES_PAGED are OFF in every build profile"
+  },
+  "ex06a": {
+    "migration": {
+      "name": "dev_alpha_ex06a_flexible_window_application",
+      "version": "20261002022631",
+      "ledger_after": 220
+    },
+    "bodies": {
+      "private.worker_dispatch_time_admitted": "4f0beb65922d2b3d947d69e68a56a956",
+      "private.match_detail_without_calendar": "c8aaf3da761242397243fc56262d1aeb"
+    },
+    "postflight_problems": [],
+    "certificate_unchanged": true,
+    "revert_applied": false
   }
 }

@@ -1,6 +1,6 @@
 # EX-06 ex06a (finding F1) - first CI proof PASSED, and the approval block for the owner (2026-10-02)
 
-**Status: SOURCE + CI-PROVEN on a disposable DEV-equivalent chain. NOT applied to DEV. Nothing is applied without the owner's exact word "PRIMENI EX-06 ex06a".**
+**Status: APPLIED TO DEV 2026-10-02 02:26 UTC on the owner's exact word "PRIMENI EX-06 ex06a" (migration 20261002022631, ledger 220, postflight `problems: []`, certificate unchanged). Receipt: `supabase/operations/dev-alpha/ledger/20261002_ex06a_flexible_window_application.receipt.json`. Before that it was SOURCE + CI-PROVEN on a disposable DEV-equivalent chain.**
 Levels (LIVE plan 4.2): SOURCE yes | CI-PROVEN yes (disposable chain, real Auth and PostgREST) | DEV-APPLIED no | DEVICE no | RELEASE no.
 
 ## The proof (run `36939555154`, source `c6c4d9caba538bd2573e90b66b34bf4089eab3d7`, workflow `ex06a-flexible-window-proof.yml`)
