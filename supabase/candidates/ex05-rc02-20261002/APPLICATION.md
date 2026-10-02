@@ -9,4 +9,3 @@ Exact committed candidate text without final LF was sent as one apply_migration 
 This establishes application and metadata readback, not runtime concurrency or native acceptance. Earlier EX05-S02 run reproduced the bug, not this candidate's correction. Non-READY/tombstone cancellations now also wait on conversation. In-flight callers may retain the old body. Exact guarded revert restores the known inversion and was not applied. No business RPC, provider, Edge, production, data deletion or certificate rebind was performed.
 
 APPROVAL.md, SOURCE_REVIEW.md and manifest.json describe the frozen preparation state; this application record supersedes their NOT APPLIED status without rewriting the approved executable artifacts.
-

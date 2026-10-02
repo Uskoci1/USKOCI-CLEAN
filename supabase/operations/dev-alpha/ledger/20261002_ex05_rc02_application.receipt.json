@@ -280,4 +280,3 @@
   ],
   "revert": "supabase/candidates/ex05-rc02-20261002/rc02_revert.sql; restores known old lock inversion; not applied"
 }
-
