@@ -79,8 +79,8 @@ export function TaskDecisionSummary({ need, price }: {
         style={[s.capacityTerm, stackTerms && s.termStacked]}>
         <FactArt kind="users" size={24} cut="art" role="people" />
         <View style={s.copy}>
-          <T style={s.capacityCount}>{capacity.text}</T>
-          <T variant="meta" tone="muted">mesta</T>
+          <T style={s.capacityCount}>{people}</T>
+          <T variant="meta" tone="muted">{capacity.text} popunjeno</T>
         </View>
       </View>
     </View>

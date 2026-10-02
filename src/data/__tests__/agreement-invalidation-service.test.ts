@@ -21,6 +21,7 @@ jest.mock('react-native', () => {
 });
 
 import { createAgreementInvalidationService, isAgreementInvalidation, subscribeAgreementInvalidations,
+  createInboxAgreementInvalidationService, isInboxAgreementInvalidation, subscribeInboxAgreementInvalidations,
   type AgreementInvalidationScope, type AgreementInvalidationTransport } from '../agreementInvalidationService';
 
 const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
@@ -32,18 +33,18 @@ function deferred() {
 const event = (revision = 1, eventType = 'INSERT') => ({ schema: 'public', table: 'agreement_invalidations_v1',
   eventType, commit_timestamp: '2026-09-27T20:00:00.123456+00:00', errors: [],
   new: { agreement_id: agreementId, revision }, old: {} as Record<string, unknown> });
-function fixture() {
+function fixture(inbox = false) {
   let owned = true, activity = 'active';
   let owner = { accountId: accountId as string | null, accountRevision: 1, sessionEpoch: 1 };
   const changes = new Map<string, (value: unknown) => void>();
   let system: (value: unknown) => void = () => {}, status: (value: string) => void = () => {};
   const listeners = new Set<(state: string) => void>();
   const remove = jest.fn<unknown, []>().mockImplementation(() => Promise.resolve());
-  const change = jest.fn((type: 'INSERT' | 'UPDATE', _id: string, callback: (value: unknown) => void) => { changes.set(type, callback); });
+  const change = jest.fn((type: 'INSERT' | 'UPDATE', _id: string | null, callback: (value: unknown) => void) => { changes.set(type, callback); });
   const subscribe = jest.fn((callback: (value: string) => void) => { status = callback; });
   const channel: AgreementInvalidationTransport = { change, subscribe, remove, system: callback => { system = callback; } };
   const open = jest.fn(() => channel), refresh = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
-  const listen = createAgreementInvalidationService({ open, owner: () => owner, activity: () => activity,
+  const listen = (inbox ? createInboxAgreementInvalidationService : createAgreementInvalidationService)({ open, owner: () => owner, activity: () => activity,
     onActivity: callback => { listeners.add(callback); return { remove: () => { listeners.delete(callback); } }; } });
   const scope: AgreementInvalidationScope = { accountId, accountRevision: 1, sessionEpoch: 1, agreementId,
     refresh, isCurrent: () => owned };
@@ -75,6 +76,47 @@ it.each([
   expect(isAgreementInvalidation(value, agreementId)).toBe(false);
   const f = fixture(); stops.push(f.start()); f.emit(value); await flush();
   expect(f.refresh).not.toHaveBeenCalled();
+});
+
+it('inbox catches a new private conversation outside loaded rows and coalesces arrivals from both sources', async () => {
+  const f = fixture(true), first = deferred(); f.refresh.mockReturnValueOnce(first.promise); stops.push(f.start());
+  expect(f.change.mock.calls.map(call => call.slice(0, 2))).toEqual([['INSERT', null], ['UPDATE', null]]);
+  const arrival = { ...event(), new: { agreement_id: otherId, revision: 1 } };
+  expect(isInboxAgreementInvalidation(arrival)).toBe(true);
+  f.emit(arrival); f.status('SUBSCRIBED'); await flush();
+  expect(f.refresh).toHaveBeenCalledTimes(1);
+  f.emit(event(2, 'UPDATE'), 'UPDATE'); await jest.advanceTimersByTimeAsync(2_000);
+  first.resolve(); await flush(); expect(f.refresh).toHaveBeenCalledTimes(2);
+  f.changeOwner({ sessionEpoch: 2 }); f.emit(arrival); await jest.advanceTimersByTimeAsync(2_000);
+  expect(f.refresh).toHaveBeenCalledTimes(2); expect(f.remove).toHaveBeenCalledTimes(1);
+  expect(f.open).toHaveBeenCalledTimes(1);
+});
+
+it('inbox rejects malformed/private payloads and group or lifecycle events', async () => {
+  const f = fixture(true); stops.push(f.start());
+  for (const value of [null, { ...event(), table: 'group_messages_v5' }, { ...event(), eventType: 'DELETE' },
+    { ...event(), new: { agreement_id: 'bad', revision: 1 } },
+    { ...event(), new: { agreement_id: otherId, revision: 1, body: 'private' } },
+    { ...event(), old: { agreement_id: otherId } }, { ...event(), new: { agreement_id: otherId, revision: 0 } }]) {
+    expect(isInboxAgreementInvalidation(value)).toBe(false); f.emit(value);
+  }
+  await flush(); expect(f.refresh).not.toHaveBeenCalled();
+});
+
+it('native inbox opens one authenticated table subscription without a row filter or wire-row merge', async () => {
+  const on = jest.fn(), subscribe = jest.fn(), removeChannel = jest.fn().mockResolvedValue(undefined);
+  const channel = { on, subscribe }, client = { channel: jest.fn(() => channel), removeChannel, rpc: jest.fn() };
+  mockClient.mockReturnValue(client); const refresh = jest.fn().mockResolvedValue(undefined);
+  const stop = subscribeInboxAgreementInvalidations({ accountId, accountRevision: 1, sessionEpoch: 1,
+    refresh, isCurrent: () => true }); stops.push(stop);
+  expect(on.mock.calls.map(call => call.slice(0, 2))).toEqual([
+    ['postgres_changes', { event: 'INSERT', schema: 'public', table: 'agreement_invalidations_v1' }],
+    ['postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agreement_invalidations_v1' }], ['system', {}],
+  ]);
+  on.mock.calls[0][2]({ ...event(), new: { agreement_id: otherId, revision: 1 } }); await flush();
+  expect(refresh.mock.calls).toEqual([[]]); expect(client.rpc).not.toHaveBeenCalled();
+  stop(); on.mock.calls[0][2](event()); await jest.advanceTimersByTimeAsync(60_000);
+  expect(refresh).toHaveBeenCalledTimes(1); expect(removeChannel).toHaveBeenCalledTimes(1);
 });
 
 it('admits only a validated body-free hint and accepts a later cache revision reset', async () => {

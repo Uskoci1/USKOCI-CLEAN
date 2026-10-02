@@ -13,9 +13,10 @@ export type AgreementInvalidationScope = {
   /** A native owner may share one coalescer with its push fallback. */
   onHint?: () => void;
 };
+export type InboxAgreementInvalidationScope = Omit<AgreementInvalidationScope, 'agreementId'>;
 type Owner = { accountId: string | null; accountRevision: number; sessionEpoch: number };
 export type AgreementInvalidationTransport = {
-  change: (event: 'INSERT' | 'UPDATE', agreementId: string, callback: (value: unknown) => void) => void;
+  change: (event: 'INSERT' | 'UPDATE', agreementId: string | null, callback: (value: unknown) => void) => void;
   system: (callback: (value: unknown) => void) => void;
   subscribe: (callback: (status: string) => void) => void;
   remove: () => unknown;
@@ -46,11 +47,30 @@ export function isAgreementInvalidation(value: unknown, agreementId: string): bo
   return true;
 }
 
+/** RLS chooses the authorized private conversations, including those not loaded
+ * in the inbox yet. The wire still carries no message, sender or unread count. */
+export function isInboxAgreementInvalidation(value: unknown): boolean {
+  const id = record(record(value)?.new)?.agreement_id;
+  return typeof id === 'string' && isAgreementInvalidation(value, id);
+}
+
 /** One foreground owner creates one SDK channel. SDK reconnects that
  * channel; this service never starts another channel, polls, or resumes itself.
  */
 export function createAgreementInvalidationService(dependencies: Dependencies) {
-  return (input: AgreementInvalidationScope): (() => void) => {
+  const subscribe = createInvalidationService(dependencies, false);
+  return (input: AgreementInvalidationScope) => subscribe(input);
+}
+
+/** One RLS-filtered channel for private inbox arrivals, never one channel per row.
+ * Group arrivals and lifecycle changes are not covered by this server projection. */
+export function createInboxAgreementInvalidationService(dependencies: Dependencies) {
+  const subscribe = createInvalidationService(dependencies, true);
+  return (input: InboxAgreementInvalidationScope) => subscribe(input);
+}
+
+function createInvalidationService(dependencies: Dependencies, inbox: boolean) {
+  return (input: InboxAgreementInvalidationScope & { agreementId?: string }): (() => void) => {
     const scope = { ...input };
     let alive = true, queued = false;
     let channel: AgreementInvalidationTransport | undefined;
@@ -84,18 +104,21 @@ export function createAgreementInvalidationService(dependencies: Dependencies) {
         if (current()) coordinator?.hint();
       });
     };
-    if (!uuid(scope.accountId) || !uuid(scope.agreementId) || !revision(scope.accountRevision)
+    if (!uuid(scope.accountId) || (!inbox && !uuid(scope.agreementId)) || !revision(scope.accountRevision)
       || !revision(scope.sessionEpoch) || !current()) { stop(); return stop; }
     if (!scope.onHint) coordinator = createAgreementIncomingRefresh({ refresh: scope.refresh, isCurrent: current });
     try {
       activity = dependencies.onActivity(state => { if (state !== 'active') stop(); });
       if (!current()) { stop(); return stop; }
-      channel = dependencies.open('agreement-invalidation-' + ++nextSubscription);
+      channel = dependencies.open((inbox ? 'inbox-agreement-invalidation-' : 'agreement-invalidation-') + ++nextSubscription);
       if (!current()) { stop(); return stop; }
-      const change = (value: unknown) => { if (current() && isAgreementInvalidation(value, scope.agreementId)) hint(); };
-      channel.change('INSERT', scope.agreementId, change);
+      const agreementId = inbox ? null : scope.agreementId!;
+      const change = (value: unknown) => {
+        if (current() && (inbox ? isInboxAgreementInvalidation(value) : isAgreementInvalidation(value, agreementId!))) hint();
+      };
+      channel.change('INSERT', agreementId, change);
       if (!current()) { stop(); return stop; }
-      channel.change('UPDATE', scope.agreementId, change);
+      channel.change('UPDATE', agreementId, change);
       if (!current()) { stop(); return stop; }
       channel.system(value => {
         if (!current()) return;
@@ -114,7 +137,7 @@ export function createAgreementInvalidationService(dependencies: Dependencies) {
  * Realtime. Do not freeze a JWT or change its shared auth/accessToken settings.
  * Native owner calls stop on blur/source/session/terminal changes.
  */
-export const subscribeAgreementInvalidations = createAgreementInvalidationService({
+const nativeDependencies: Dependencies = {
   owner: () => {
     const session = sesijaSada();
     return { accountId: session.session?.user.id ?? null,
@@ -126,12 +149,16 @@ export const subscribeAgreementInvalidations = createAgreementInvalidationServic
     const client = supabaseKlijent(), channel = client.channel(topic);
     return {
       change: (event, agreementId, callback) => {
-        if (event === 'INSERT') channel.on('postgres_changes', { event, schema: 'public', table: 'agreement_invalidations_v1', filter: 'agreement_id=eq.' + agreementId }, callback);
-        else channel.on('postgres_changes', { event, schema: 'public', table: 'agreement_invalidations_v1', filter: 'agreement_id=eq.' + agreementId }, callback);
+        const selection = { schema: 'public', table: 'agreement_invalidations_v1',
+          ...(agreementId === null ? {} : { filter: 'agreement_id=eq.' + agreementId }) };
+        if (event === 'INSERT') channel.on('postgres_changes', { event, ...selection }, callback);
+        else channel.on('postgres_changes', { event, ...selection }, callback);
       },
       system: callback => { channel.on('system', {}, callback); },
       subscribe: callback => { channel.subscribe(callback, 15_000); },
       remove: () => client.removeChannel(channel),
     };
   },
-});
+};
+export const subscribeAgreementInvalidations = createAgreementInvalidationService(nativeDependencies);
+export const subscribeInboxAgreementInvalidations = createInboxAgreementInvalidationService(nativeDependencies);

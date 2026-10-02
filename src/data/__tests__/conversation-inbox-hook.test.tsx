@@ -10,10 +10,15 @@ const mockAppListeners = new Set<(state: string) => void>();
 const mockList = jest.fn<ReturnType<ConversationInboxPort['list']>, Parameters<ConversationInboxPort['list']>>();
 const mockStopIncoming = jest.fn(), mockStopCoordinator = jest.fn();
 const mockSubscribeIncoming = jest.fn((..._args: unknown[]) => mockStopIncoming);
+const mockStopRealtime = jest.fn();
+const mockSubscribeRealtime = jest.fn((..._args: unknown[]) => mockStopRealtime);
 
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../conversationInboxClientService', () => ({
   createConversationInboxClientService: () => ({ list: mockList }),
+}));
+jest.mock('../agreementInvalidationService', () => ({
+  subscribeInboxAgreementInvalidations: (...args: unknown[]) => mockSubscribeRealtime(...args),
 }));
 // Notification transport is not under test. Keep the real hook and inbox model;
 // this boundary never executes the hook's lazy native notification import.
@@ -75,6 +80,9 @@ test('background clears a blurred mounted inbox without restarting reads until f
   expect(inbox.state.page?.items).toEqual([item]);
   expect(inbox.model.canOpen(item)).toBe(true);
   expect(mockList).toHaveBeenCalledTimes(1);
+  expect(mockSubscribeRealtime).toHaveBeenCalledTimes(1);
+  expect((mockSubscribeRealtime.mock.calls[0][0] as { onHint: unknown }).onHint)
+    .toBe((mockSubscribeIncoming.mock.calls[0][0] as { onHint: unknown }).onHint);
 
   // Ordinary in-app navigation retains rows for Back, but cannot open stale rows.
   await act(async () => { mockFocused = false; tree!.update(<Probe />); await flush(); });
@@ -82,6 +90,7 @@ test('background clears a blurred mounted inbox without restarting reads until f
   expect(inbox.state.loadedPages).toBe(1);
   expect(inbox.model.canOpen(item)).toBe(false);
   expect(mockStopIncoming).toHaveBeenCalledTimes(1);
+  expect(mockStopRealtime).toHaveBeenCalledTimes(1);
   expect(mockStopCoordinator).toHaveBeenCalledTimes(1);
 
   // The focus listener has retired: only the mount-lifetime observer can clear
@@ -94,6 +103,7 @@ test('background clears a blurred mounted inbox without restarting reads until f
   expect(inbox.state.page).toBeNull();
   expect(mockList).toHaveBeenCalledTimes(1);
   expect(mockSubscribeIncoming).toHaveBeenCalledTimes(1);
+  expect(mockSubscribeRealtime).toHaveBeenCalledTimes(1);
 
   await act(async () => { mockFocused = true; tree!.update(<Probe />); await flush(); });
   expect(mockList).toHaveBeenCalledTimes(2);
@@ -101,6 +111,7 @@ test('background clears a blurred mounted inbox without restarting reads until f
   expect(inbox.state.page?.items).toEqual([item]);
   expect(inbox.model.canOpen(item)).toBe(true);
   expect(mockSubscribeIncoming).toHaveBeenCalledTimes(2);
+  expect(mockSubscribeRealtime).toHaveBeenCalledTimes(2);
   await act(async () => { tree!.unmount(); tree = undefined; await flush(); });
   expect(mockAppListeners.size).toBe(0);
 });

@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { createConversationInboxModel } from '../data/conversationInboxModel';
 import { createConversationInboxClientService } from '../data/conversationInboxClientService';
 import { createAgreementIncomingRefresh, subscribeAgreementIncomingRefresh } from '../data/agreementIncomingRefresh';
+import { subscribeInboxAgreementInvalidations } from '../data/agreementInvalidationService';
 import { publicInboxNotificationId } from '../ui/notifications/publicInboxCopy';
 import { sesijaSada, useSesija } from '../store/sesija';
 
@@ -27,6 +28,7 @@ export function useConversationInbox() {
   useFocusEffect(useCallback(() => {
     let alive = true, foreground = !AppState.currentState || AppState.currentState === 'active';
     let stopIncoming: (() => void) | undefined;
+    let stopRealtime: (() => void) | undefined;
     let coordinator: ReturnType<typeof createAgreementIncomingRefresh> | undefined;
     const current = () => {
       const session = sesijaSada();
@@ -37,11 +39,16 @@ export function useConversationInbox() {
     const stopHints = () => {
       coordinator?.stop(); coordinator = undefined;
       stopIncoming?.(); stopIncoming = undefined;
+      stopRealtime?.(); stopRealtime = undefined;
     };
     const listen = () => {
       stopHints();
       if (!current() || (Platform.OS !== 'ios' && Platform.OS !== 'android')) return;
       coordinator = createAgreementIncomingRefresh({ refresh: model.revalidate, isCurrent: current });
+      stopRealtime = subscribeInboxAgreementInvalidations({
+        accountId, accountRevision, sessionEpoch, isCurrent: current,
+        refresh: model.revalidate, onHint: coordinator.hint,
+      });
       stopIncoming = subscribeAgreementIncomingRefresh({
         load: () => import('expo-notifications'), identifier: publicInboxNotificationId,
         refresh: model.revalidate, isCurrent: current, onHint: coordinator.hint,
