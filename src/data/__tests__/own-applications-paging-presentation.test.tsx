@@ -82,8 +82,17 @@ test('with no application at all there are no tabs, only the first-run state; wi
   rows = [row('one')]; paging = makePaging({ counts: null, hasMore: false }); await rerender(); expect(tabs()).toHaveLength(4);
 });
 
-test('while the first page is read there are no tabs, only the loading state; a failed read says so and offers the retry', async () => {
-  loading = true; await render(); expect(tabs()).toEqual([]); expect(texts()).toContain('Učitavamo tvoje prijave…');
+test('the tab rail stays mounted through a page read, preserving its native scroll position; a failed read offers retry', async () => {
+  await render();
+  const rail = tree.root.findByProps({ accessibilityRole: 'tablist' });
+  tab = 'finished'; loading = true; rows = []; await rerender();
+  expect(tree.root.findByProps({ accessibilityRole: 'tablist' })).toBe(rail);
+  expect(press('Završene').props.accessibilityState).toEqual({ selected: true });
+  expect(texts()).toContain('Učitavamo tvoje prijave…');
+  expect(texts()).not.toContain('Unos one');
+  loading = false; rows = [row('closed', { stanje: 'WITHDRAWN', mozePovuci: false })]; await rerender();
+  expect(tree.root.findByProps({ accessibilityRole: 'tablist' })).toBe(rail);
+  expect(texts()).toContain('Unos closed');
   loading = false; unavailable = true; rows = []; await rerender(); expect(texts()).toContain('Prijave trenutno nisu dostupne'); expect(actions()).toContain('Pokušaj ponovo');
 });
 

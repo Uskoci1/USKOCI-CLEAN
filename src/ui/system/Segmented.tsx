@@ -81,7 +81,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
   // Putting it on the scrolling content made the band end wherever the last visible segment did,
   // mid-word, so a control that scrolls looked like a control that was cut off.
   if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist"
-    style={[s.track, contentPill && s.capsule, underline && s.underlineTrack, style]} contentContainerStyle={s.scrollRow}>
+    style={[s.track, contentPill && s.capsule, underline && s.underlineTrack, style]} contentContainerStyle={[s.scrollRow, contentPill && s.contentScrollRow]}>
     {underline ? <View style={s.underlineScrollRow}>{indicator}{items}</View> : items}
   </ScrollView>;
   return <View accessibilityRole="tablist" style={[s.track, contentPill && s.capsule, underline && s.underlineTrack, style]}>
@@ -93,6 +93,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
 const s = StyleSheet.create({
   track: { flexDirection: 'row', gap: 3, padding: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.control },
   scrollRow: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  contentScrollRow: { flexGrow: 1 },
   segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   capsule: { borderRadius: sys.radius.pill },

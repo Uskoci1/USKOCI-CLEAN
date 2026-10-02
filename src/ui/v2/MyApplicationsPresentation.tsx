@@ -135,7 +135,7 @@ export function MyApplicationsPresentation(props: Props) {
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
     {/* Four complete labels/counts stay in one scrollable capsule rail, without fading text at its edge. With no
         application there is nothing to switch, so the first-run state stands alone under the bar. */}
-    {!props.unavailable && !props.loading && hasAny ? <View style={s.controls}>
+    {!props.unavailable && (hasAny || props.loading) ? <View style={s.controls}>
       <Segmented contentSized scroll value={props.tab} onChange={props.onTab} options={tabs} />
     </View> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
