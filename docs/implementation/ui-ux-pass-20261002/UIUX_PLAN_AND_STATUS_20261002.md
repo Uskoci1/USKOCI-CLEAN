@@ -12,6 +12,72 @@ The wave table below preserves its original checkpoint. Current status is solely
 
 Screen reviews must consider the whole purpose and journey: information order, primary action, density, black/gray reading hierarchy, intentional card versus open section, illustration scale, selected/empty/loading/error state, Back/keyboard/scroll and reduced motion. Home, task detail/applications, Agreement/chat/AI and account/notifications each need their own populated-screen critique as the same plan continues. Profile/notification critique findings remain attached to their existing control rows; they are not omitted merely because the original wave table names them incompletely.
 
+## Gde smo i šta završavamo — presek proizvoda 2.10.2026.
+
+Ovo je čitljiv presek postojećeg plana, prema kodu `df5e2d31`, primenama zabeleženim u postojećim receipt-ima i poslednjem vizuelnom APK-u `8d22ce0e`. Nije novi master ni novo čitanje živog servera. Registar ostaje `docs/control/redovi.json`.
+
+**Jezgro proizvoda je povezano za obe strane. Cela aplikacija još nije završena za javno izdanje.** Istorijski R18 tok je stvarno prošao od objave zadatka na daljinu do obe sačuvane ocene. Sadašnji APK ima ograničen pregled mapa/listi/detalja, prijava, Dogovora i početka AI unosa; nema novo prihvatanje celog poslovnog toka. Broj „41 problem / 21 nije provereno / 0 gotovo“ nije procenat dovršenosti niti dokaz da 41 funkcija ne radi: meša otvoren rad, stare nalaze i stroge zahteve za dokaz tačne verzije.
+
+### Gde šta pripada
+
+Jedan nalog, dve namere; nema globalnog prebacivanja uloge. Donja navigacija je **Početna · Zadaci · Dogovori**. Profil i zvonce su zajednički ulazi; u Zadatcima kroz „Još mogućnosti“.
+
+| Celina | Svrha i ulaz | Izlaz / sledeća odluka |
+| --- | --- | --- |
+| Početna | Dve namere, šta čeka baš mene, naredni Dogovor; ulazi u Moje zadatke i Moje prijave | Nastavi posao koji traži reakciju ili pokreni novi |
+| Novi zadatak | Objavi zadatak → AI razgovor; mesto i fotografije pripadaju tom nacrtu | Pregledaj stvarne činjenice, ispravi, sačuvaj nacrt ili objavi |
+| Potvrđena objava | Trenutni kod vodi u Zadaci sa tačnim ID-jem zadatka | Izabrani zadatak na mapi/listi; ne vraćati završen razgovor pritiskom Nazad |
+| Moji zadaci → moj zadatak | Moje objave, nacrti i istorija; stanje i prijave na konkretnu objavu | Pristigle prijave, dopuna nacrta ili dozvoljeno upravljanje zadatkom |
+| Prijave → poređenje / jedna prijava | Ko nudi da uradi posao, po kojim uslovima i sa koliko ljudi | Potvrdi tačne prihvaćene uslove → Dogovor |
+| Radni profil | Profil → Veštine, alat i tim; AI i ručno uređivanje istog profila | Područje rada, dostupnost i aktiviranje; kalendar je pregled prihvaćenih obaveza |
+| Zadaci → javni detalj | Mapa i lista istih poslova; pretraga i filteri; da li mi ovaj posao odgovara | Pitanje, javni profil ili sastavljanje prijave |
+| Sastavi prijavu → pregled | Moj iznos i osnova, ljudi, termin i poruka | Potvrđeno slanje → konkretna prijava u Mojim prijavama; poseban oporavak neizvesnog ishoda |
+| Moje prijave | Moje poslate prijave, njihovo stanje i dozvoljena naredna radnja | Izmena/povlačenje ili Otvori Dogovor |
+| Dogovor → Pregled / Poruke | Zajednički posao: trenutni korak, prihvaćeni uslovi, osoba i razgovor | Izmene, kontakt/adresa po dozvoli, završetak i ocena |
+| Obaveštenja | Šta se desilo i na šta treba reagovati | Otvaranje odgovarajućeg zadatka/prijave/Dogovora; nisu drugi spisak razgovora |
+| Profil, podrška i privatnost | Trajna podešavanja, identitet, bezbednost i prava nad podacima | Povratak na posao; status zahteva i jasan oporavak |
+
+**Četiri slična naziva imaju četiri različita posla:** Zadaci = tržište; Moji zadaci = moje objave; Prijave = ponude drugih na jedan moj zadatak; Moje prijave = ono što sam ja poslao. U završnom UX-u nazivi i povratci moraju očuvati tu razliku. `/mapa`, `/prilike` i `/moje-aktivnosti` su kompatibilna preusmerenja, ne nove glavne destinacije. Ponuda osobe u toku izbora sada je panel. Pregled/Poruke su vidljivi na pregledu Dogovora; poruke imaju svoj povratak, nije ista stalna traka na oba prikaza.
+
+### Funkcionalno stanje koje određuje dizajn
+
+| Oblast | Šta postoji | Šta stvarno ostaje |
+| --- | --- | --- |
+| Nalog i sesija | Prijava, registracija, oporavak, email callback i vraćanje sesije | Stvaran email → povratak u trenutni APK; neuspeh EX07-S03 provere nije dokaz kvara registracije |
+| Objavljivanje | AI → ispravka → pregled → evaluacija/objava; mesto i slike | Kvalitet novog AI razgovora i aktuelni ceo tok; RC02 konkurentne operacije nad slikom imaju reprodukovan defekt |
+| Lične liste i ocene za reakciju | EX04 je primenjen; sve tri paged zastavice uključene u DEV APK-u, zbirne ocene povezane | Veći skupovi, druga strana i svi pozitivni slučajevi čekanja ocene; ne praviti ponovo straničenje |
+| Mapa/pretraga/filteri | P6 čitač uključen; EX03 zatvoren sa dokumentovanim granicama; aktuelna kompozicija viđena | Završni raspored kontrola, širi uslovi i fluidnost; ne predstavljati serversku pretragu kao nepostojeću |
+| Radni profil i pronalaženje odgovarajućih ljudi | AI/ručno uređivanje, veštine, alat, tim, područje, dostupnost, matcher i trajni Inbox događaji | EX06 nije zatvoren: alias kandidat, jedan vremenski kraj, računanje relativnog dana i reprodukovani F5–F12 nalazi; lepši AI ekran to ne rešava |
+| Prijava, izbor i Dogovor | Slanje/povlačenje, pitanja, poređenje, izbor, prihvaćeni uslovi, izmene, otkazivanje, završetak i zvezdice | Završna kompozicija odluke; aktuelni višekorisnički, konkurentni i oporavak-tokovi |
+| Tekst, fotografije i grupa | B3 istorija/ACK, tekst/foto put i tekstualna grupa povezani | Stvaran sadašnji prijem, prekid/povratak veze, slike i više članova; grupa V1 ostaje tekstualna sa ručnim osvežavanjem |
+| Glasovna poruka u Dogovoru | Server B1 i delovi logike klijenta postoje | Recorder/player još nisu u korisničkom razgovoru, flag je OFF; Android glas je obavezan V1. To nije isto što i AI govorni unos |
+| Pisani komentari uz ocene | Server i deo klijenta postoje; stari „NO CLIENT“ opis nije tačan | Nezavisan pregled, javni profil, izmene za ulogu/blokiranje, DEV uključivanje i dokaz; javna aktivacija čeka pravne uslove |
+| Bezbednost/podrška/privatnost | Ekrani i ugovori za prijavu/blokiranje, podršku, izvoz i zatvaranje naloga | Safety-name kandidat nije primenjen; završni EX08 prolaz, pravni/operativni uslovi i dokazi oporavka |
+
+Snimak kataloga i pregled dostupnih poziva trenutno ne prijavljuju klijentski poziv bez serverskog ugovora. Pregledani dostupni pozivi imaju odgovarajuće ugovore u snimku; to ne dokazuje njihovo uspešno izvršenje ili poslovnu ispravnost svih kombinacija. Poslednje posebno DEV čitanje u ovom nastavku ostaje ono iz `CODEX_CONTINUATION_20261002.md`, 2.10. u 10:35:43 UTC; ovaj presek ne tvrdi novo živo čitanje.
+
+**Već prihvaćene granice prvog izdanja:** Android prvi, besplatan početak; push, HITNO, podsetnik pred termin, plaćanja i iOS su odloženi prema 75 prihvaćenih odluka. Ne prikazivati ih ponovo kao neodgovorena pitanja ili obavezan rad pre prvog Android izdanja. Glasovne poruke nisu odložene. Javno izdanje još traži završnu privatnost, pravne/operativne podatke, novi produkcioni projekat i potpisani paket.
+
+### Završna kompozicija: odluka prvo, sadržaj zatim
+
+Sledeći povezani zahvat unutar postojećih W5/W8/W9/W10 završava **odluku koja stvara Dogovor**. Prvi paket obuhvata javni detalj → prijavu/pregled → moju prijavu, i moj zadatak → pristigle prijave/poređenje → potvrdu izbora → Dogovor. Posle toga isti postupak za AI nacrt/radni profil, svakodnevni razgovor i završetak, zatim profil/obaveštenja/pomoć.
+
+| Ekran | Šta mora da bude jasno na prvom pogledu | Raspored pri završnoj obradi |
+| --- | --- | --- |
+| Javni detalj | Šta radim, gde/kada, za koliko i da li ispunjavam uslove | Sažetak posla i uslovi → objašnjenje/fotografije → osoba/pitanja; jedna jasna radnja za prijavu |
+| Prijava i pregled | Šta tačno nudim i šta ću poslati | Iznos/osnova + ljudi/termin → poruka → jedan pregled; bez dva konkurentna sažetka |
+| Moj zadatak | Da li treba da dopunim, izaberem nekoga ili nastavim ugovoreni posao | Stanje i sledeća radnja → prijave/kapacitet → detalji objave; retke radnje u meniju |
+| Pristigle prijave | Razlika između ljudi i njihovih ponuda | Osoba → ukupni uslovi → poruka → izbor; poređenje poravnava ista polja, ne ponavlja čitave kartice |
+| Potvrda izbora | Ko dolazi i koje uslove prihvatam | Jedan kompletan sažetak prihvaćenih uslova i potvrda; posle uspeha jasan Dogovor |
+| Dogovor | Šta sada čeka mene | Sledeći korak → prihvaćeni uslovi i osoba → poruke; izmene/otkazivanje ne konkurišu svakodnevnom radu |
+
+Konkretan otvoren UX spoj: `NeedPresentation` i dalje bira „Pregledaj prijave“ za objavljen zadatak sa prijavama, čak i kada nema novih za izbor; dodatni meni otvara opštu listu Dogovora. Završiti put prema stvarno povezanom Dogovoru/izboru više Dogovora iz postojećih ovlašćenih podataka; ne pretpostaviti prvi ID i ne izmišljati cenu ugovorenog rada iz cene objave. Ovo je definisan sledeći zahvat, nije tvrdnja da je već implementiran.
+
+Crn glavni tekst, siv prateći, bele površine; ilustracije i akcije nose boju. Kartica grupiše jednu odluku, otvoren red služi pregledu, panel kratkom izboru. Skinuti duplirane naslove i objašnjenja, sačuvati činjenice, razloge nedostupnosti i oporavak. Svaki ekran pregledati u kontekstu ulaza, narednog koraka, Nazad, tastature i učitavanja. Rad se prihvata na povezanom toku, uz ciljane postojeće provere; bez novih testnih projekata za kozmetiku.
+
+Izvori: `src/app/`, `src/ui/v2/NeedPresentation.tsx`, `src/ui/profile/ProfileHubPresentation.tsx`, `.github/workflows/build-android-dev-apk.yml`; `VISUAL_FINISHING_20261002.md` i `VISUAL_NATIVE_20261002.json`; `CODEX_CONTINUATION_20261002.md`; `OWNER_DECISIONS_20261002_ALL75.md`, `EX03_CLOSURE_RECEIPT_20261001.md`, `EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md`. Dve nezavisne read-only provere (GPT-6 kao roditelj) proverile su funkcionalne celine i stvarne korisničke putanje; nisu pokretale testove niti menjale DEV. Starije talasne tabele ispod ostaju označeni istorijski presek.
+
+
 ## Diagnosis (from the audits)
 
 1) The owner's phone (about 361 dp) falls on the "large text" side of ad-hoc breakpoints (TaskCard `width < 380`, search bar and panels `< 360`, while Home and the tab bar use `< 340`), so he permanently sees stacked, 290-330 dp cards (1.1 to 1.5 per screen) and a crammed search pill, never the compact layouts the design was made for, and that is what reads as poor overview and "big and repetitive". 2) There is no icon system: five drawing dialects share one screen (FactArt 2.5D stickers, flat HomeLaunchArt, gradient Pictogram, glossy Catalog27 PNGs, thin Phosphor lines), the sticker detail turns to mush at the 16-20 px it is actually used at, hue alternates orange/green per kind against the project's own one-accent rule, one bubble silhouette means three things, ticks sit on unconfirmed terms, and primary controls (filters, calendar) are icon-only. 3) Hierarchy is flat and colour is overloaded: titles, section headings and prices are all bold 20 px ink or green, status is the smallest element on every card, green means action, selection, money and an unconfirmed time at once, and the urgent "Čeka te" list is drawn quieter than the less urgent next Dogovor. 4) Motion exists only as press-scale and late-row fades while every state change is a cut: tab switch, push (fades in from white), Back (hard cut), the 1-2 s skeleton rebuild when returning to Zadaci, data arrival, photo pop-in, chip fold and sheet-end pops, plus a haptic and a shrink on touch-down that fire when a scroll merely starts; all fixes must obey the B22 Reanimated constraint (fewer long-lived views, RN Animated native driver for new motion, no layout or exiting animations). 5) Screens were guarded piece by piece but never composed as one product: the Home doors dropped the entry's photographic warmth and look like clip-art, the Zadaci map and list behave like two screens joined by a floating button, the cards are text-only twins, and the compare screen is a grid of pale panels rather than a comparison. 6) Several screens are unclear for plain reasons that are cheap to fix: wrong empty states (a filter reset on a section with no filter), contradicting counts, a ragged state line on the task detail, prijava/ponuda and five phrasings of "flexible", orphan dots and dates broken mid-date, and a conversation that has no visible name on the Dogovor screen.

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T14:04:43Z",
-  "grana": "HEAD",
-  "head": "df5e2d31",
-  "head_poruka": "test(ui): align visual contracts and record scoped native review",
+  "osvezeno": "2026-10-02T14:22:31Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "181d460d",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -1451,7 +1451,9 @@
    "scope": "Existing W5-W7 discovery/cards/pin/detail plus bounded W4/W8-W10 Home/applications/Agreements and AI opening. Final source8d22ce0e, APK37012789559.",
    "level": "SCOPED EMULATOR UX/VISUAL PASS WITH LIMITS: final8d22ce0e; actual loading-rail correction and AI entry verified. Not whole-app or phone acceptance.",
    "remaining": "Discovery quick-control rail/count spacing; worker AI summary and natural responses; chat refresh and pending-term hierarchy; other candidate/account/error flows; motion/TalkBack/physical/iOS/release.",
-   "receipt": "docs/implementation/ui-ux-pass-20261002/VISUAL_NATIVE_20261002.json"
+   "receipt": "docs/implementation/ui-ux-pass-20261002/VISUAL_NATIVE_20261002.json",
+   "productOverview": "docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md#gde-smo-i-šta-završavamo--presek-proizvoda-2102026",
+   "nextConnectedBatch": "Odluka koja stvara Dogovor: javni detalj/prijava/pregled i moj zadatak/prijave/poređenje/potvrda izbora; postojeći W5/W8/W9/W10. SOURCE AUDIT ONLY, bez novog runtime ili native dokaza."
   },
   "ui_w2_w8_codex_20261002": {
    "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
@@ -2894,7 +2896,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Preview i aktivacija HITNO postoje, ali trenutna politika na DEV-u je isključena i nema dozvoljenih kategorija. Nije dovoljno dodati dugme.",
-   "sledece": "Tvoja zasebna odluka o politici/kategorijama, zatim dokaz i ekran pregleda sa istekom i uslovima. Audit F09/D4. 24.09. (PKG-051a PRIMENJENO na DEV, ledger 202, uz tvoju reč „primeni pkg051a“): cenovnik na serveru sada ima URGENT_BOOST v1 = 0 RSD kao zapis; naplata je isključena (prekidač fail-closed), HITNO politika i chargesFee=false nepromenjeni, ništa u aplikaciji. Nova cena = nova verzija kroz private.platform_price_add_version (samo vlasnik baze, SQL editor), uputstvo u pkg051/PKG051_PLATFORM_PRICE_LIST.md.",
+   "sledece": "HITNO je izričito van V1 (A21, OWNER_DECISIONS_20261002_ALL75.md). Ne tražiti ponovo odluku niti graditi ekran u završnom V1 prolazu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2915,7 +2917,7 @@
     "performance": "Nije ponovo mereno",
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
-    "status": "ZAVRŠNI KRUG PREDSTOJI",
+    "status": "VAN V1 PO PRIHVAĆENOJ ODLUCI A21 / POLITIKA OSTAJE ISKLJUČENA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
    },
    "ukupno": "PROBLEM",
@@ -5848,7 +5850,7 @@
     "device_proof": "Istorijske dve stvarne 5/5 ocene ostaju dokaz starijih buildova. Current exact APK nije ocenjen u ovoj sesiji.",
     "d12_proof_20261002": "2.10.: D12 CI DOKAZ PROSAO (run 36957213904, izvor f36879ae, 46 provera, 0 pao, 47/47 pinova == DEV; prvi run 36949455489 je pao na 2 greske SAMOG DOKAZA, kandidat bajt-isti) + sveže read-only DEV pre-flight 04:12Z problems [] (ledger 220, sertifikat 58447d77 ready, 7 recenzija). NIJE primenjen. Approval block: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md. Traži izričito „PRIMENI D12 PISANI KOMENTAR“ koje IMENUJE re-bind sertifikata; primena ne daje ništa vidljivo (klijent ne postoji), prozor reverta se zatvara pri prvom komentaru; otvorene vlasnikove odluke unutar kandidata: 16 (senka-komentar uz blok), 17 (agregat uz pojedinačne ocene), 7 (jedna lista pod oba lica).",
     "d12_applied_20261002": "2.10. 04:49Z: D12 PRIMENJEN NA DEV po vlasnikovom „PRIMENI D12 PISANI KOMENTAR“ (migracija 20261002044950, ledger 221, postflight problems [], sertifikat zatvaranja RE-BIND 58447d77 → 0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431 u tri mesta; tri nezavisna read-only verifikatora 79 od 79). Nova privatna tabela private.agreement_review_comments_v1 (0 redova), 6 novih funkcija, 6 izmenjenih (3 sertifikovane zatvaranja, 3 export), stare zvezdice netaknute. Prvi pokušaj je odbio integrity guard (guard za običan transport; apply_migration umotava tekst i drži ga dvaput) — ništa primenjeno; drugi sa guardom po markeru je prošao, kandidat bajt-isti. KLIJENT NE POSTOJI: ništa nije vidljivo, nijedan APK ne poziva v2; prozor reverta se zatvara pri prvom komentaru ili prvom zatvaranju naloga; podrazumevane odluke 16 (komentar-senka uz blok), 17 (agregat uz pojedinačne ocene), 7 (jedna lista pod oba lica) ostaju primenjene. Receipt: supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json",
-    "status": "STAR RATING SOURCE/CI PASS / CURRENT NATIVE PENDING / WRITTEN COMMENT SERVER PACKAGE APPLIED TO DEV 2026-10-02 (NO CLIENT, NOT SEEN ON ANY DEVICE)",
+    "status": "ZVEZDICE POVEZANE / PISANI KOMENTAR: SERVER PRIMENJEN, DEO KLIJENTA POSTOJI, FLAG OFF / PREGLED I NATIVE ČEKAJU",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
    },
    "ukupno": "PROBLEM",
@@ -6336,7 +6338,7 @@
    },
    "telefon_dokaz": "",
    "problem": "Nema potvrđenog postojećeg scheduler→event→recipient→push puta za podsetnik pred prihvaćeni termin. Ovo je novi serverski paket, ne UI sitnica.",
-   "sledece": "Pripremiti zaseban server/event contract i dokaz bez primene; primena tek uz posebno odobrenje. Ne koristiti lokalni telefon timer kao lažnu zamenu za pouzdani server reminder.",
+   "sledece": "Podsetnik pred termin je izričito odložen posle V1 (A22, OWNER_DECISIONS_20261002_ALL75.md). Ne blokira prvo Android izdanje; ne zamenjivati server lokalnim timerom.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -6357,7 +6359,7 @@
     "performance": "Nije ponovo mereno",
     "test": "Nije implementirano; Round38 potvrđuje samo da nije bezbedno glumiti ga klijentskim timerom.",
     "device_proof": "Nema.",
-    "status": "SERVER/EVENT PACKAGE REQUIRED / NOT IMPLEMENTED",
+    "status": "ODLOŽENO POSLE V1 PO PRIHVAĆENOJ ODLUCI A22 / NIJE IMPLEMENTIRANO",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md"
    },
    "ukupno": "PROBLEM",
@@ -8050,23 +8052,25 @@
   {
    "id": "PG02",
    "oblast": "Pretraga i filteri na serveru",
-   "sada": "Server vraća po pravougaoniku na mapi i deo filtera; ostatak se filtrira u telefonu.",
-   "nedostaje": "Tekst, udaljenost, redosled, ukupan broj i preostala mesta, plus isti odgovor za fleksibilne termine i rad na daljinu.",
+   "sada": "P6 serverski čitač je primenjen i uključen u DEV APK; mapa/lista/pretraga/filteri su povezani. P6 i EX03 zatvoreni su sa svojim dokumentovanim granicama.",
+   "nedostaje": "Preostala kompozicija i dokumentovane granice native povratka/opterećenja. Ne pokretati ponovo završeni P6 niti stari spisak nedostajućih server filtera.",
    "redovi": [
     "B04",
     "B05"
    ],
-   "stanje": "OPEN"
+   "stanje": "POVEZANO / P6 I EX03 ZATVORENI SA GRANICAMA",
+   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX03_CLOSURE_RECEIPT_20261001.md; .github/workflows/build-android-dev-apk.yml"
   },
   {
    "id": "PG03",
    "oblast": "Moji zadaci, lista po stranama",
-   "sada": "Straničeno čitanje postoji, ali mu fale polja koja kartica prikazuje.",
-   "nedostaje": "Osnova cene i broj stvarno izabirljivih prijava, pre nego što se lista prebaci na njega.",
+   "sada": "EX04 S1 primenjen na DEV; dopunjena polja kartice i paged čitanje povezani; EXPO_PUBLIC_EX04_OWN_TASKS_PAGED=1 u DEV APK.",
+   "nedostaje": "Širi skupovi i aktuelno prihvatanje celog toka. Straničenje se ne gradi ponovo.",
    "redovi": [
     "A09"
    ],
-   "stanje": "OPEN"
+   "stanje": "DEV PRIMENJENO / KLIJENT UKLJUČEN / OGRANIČEN NATIVE DOKAZ",
+   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
   },
   {
    "id": "PG04",
@@ -8121,12 +8125,13 @@
   {
    "id": "PG09",
    "oblast": "HITNO",
-   "sada": "Serverske funkcije za pregled i uključivanje postoje, ali je politika isključena i nema dozvoljenih kategorija.",
-   "nedostaje": "Tvoja odluka o pravilima i kategorijama, pa tek onda ekran: pregled, istek i oporavak.",
+   "sada": "Vlasnik je 2.10. prihvatio A21: HITNO je van V1, politika ostaje isključena.",
+   "nedostaje": "Nema obaveznog V1 ekrana niti ponovnog pitanja o već odloženoj funkciji.",
    "redovi": [
     "A16"
    ],
-   "stanje": "OPEN"
+   "stanje": "ODLOŽENO POSLE V1 ODLUKOM VLASNIKA",
+   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md"
   },
   {
    "id": "PG10",
@@ -8143,12 +8148,13 @@
   {
    "id": "PG11",
    "oblast": "Moje prijave po stranama",
-   "sada": "Serverska funkcija za strane postoji; aplikacija i dalje čita ceo spisak.",
-   "nedostaje": "Vezivanje u aplikaciji koje čuva mesto u listi, stanje i oporavak.",
+   "sada": "EX04 S2 primenjen na DEV; paged čitanje povezano i EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED=1 u DEV APK. Paged kandidati takođe uključeni.",
+   "nedostaje": "Širi skupovi, druga strana i povezani oporavak na konačnom vizuelnom APK-u; ne tvrditi da aplikacija i dalje nužno čita ceo spisak.",
    "redovi": [
     "B10"
    ],
-   "stanje": "OPEN"
+   "stanje": "DEV PRIMENJENO / KLIJENT UKLJUČEN / OGRANIČEN NATIVE DOKAZ",
+   "izvor": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
   },
   {
    "id": "PG12",
@@ -8853,5 +8859,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37017322413,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "df5e2d31",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T14:04:28Z"
+  },
+  {
+   "id": 37017322335,
+   "ime": "Control tracker refresh",
+   "sha": "df5e2d31",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T14:04:28Z"
+  },
+  {
+   "id": 37012789559,
+   "ime": "Build Android development APK",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T13:24:35Z"
+  },
+  {
+   "id": 37012789208,
+   "ime": "P5 ready task and matching contract",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T13:24:35Z"
+  },
+  {
+   "id": 37012041861,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "0889c819",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T13:17:46Z"
+  },
+  {
+   "id": 37012040450,
+   "ime": "Build Android development APK",
+   "sha": "0889c819",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T13:17:45Z"
+  },
+  {
+   "id": 37009600771,
+   "ime": "Build Android development APK",
+   "sha": "c81722a2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:55:01Z"
+  },
+  {
+   "id": 37009528079,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T12:54:18Z"
+  },
+  {
+   "id": 37009527309,
+   "ime": "Build Android development APK",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T12:54:17Z"
+  },
+  {
+   "id": 37009526031,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T12:54:17Z"
+  },
+  {
+   "id": 37008069654,
+   "ime": "Build Android development APK",
+   "sha": "5bdeef52",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:40:10Z"
+  },
+  {
+   "id": 37005585355,
+   "ime": "Build Android development APK",
+   "sha": "b574e118",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:15:12Z"
+  }
+ ]
 }
