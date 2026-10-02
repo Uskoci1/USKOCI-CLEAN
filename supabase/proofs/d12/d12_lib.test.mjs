@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import * as lib from './d12_lib.mjs';
 import * as pins from './d12_pins.mjs';
 
@@ -259,8 +260,8 @@ test('the retention class text and the successor closure record are tied to the 
 test('the second-wall parity run of the proof has enough cases on both sides (the thresholds in d12_proof.mjs are tied to the matrix)', () => {
   let accepted = 0, refused = 0;
   for (const item of lib.buildMatrix()) { if (typeof item.value !== 'string') continue; const outcome = lib.classifyComment(item.value); if (outcome.outcome === 'ACCEPTED') accepted += 1; else if (outcome.outcome === 'REFUSED' && ['REVIEW_COMMENT_INVALID', 'REVIEW_COMMENT_TOO_LONG'].includes(outcome.name)) refused += 1; }
-  assert.ok(accepted >= 80 && refused >= 220, 'accepted ' + accepted + ', refused ' + refused);
-  const proof = readFileSync('supabase/proofs/d12/d12_proof.mjs', 'utf8'); assert.ok(proof.includes('functionAcceptedWallAccepted >= 80 && summary.functionRefusedWallViolated >= 220'), 'the proof thresholds are the ones asserted here');
+  assert.ok(accepted >= 150 && refused >= 220, 'accepted ' + accepted + ', refused ' + refused);
+  const proof = readFileSync('supabase/proofs/d12/d12_proof.mjs', 'utf8'); assert.ok(proof.includes('functionAcceptedWallAccepted >= 150 && summary.functionRefusedWallViolated >= 220'), 'the proof thresholds are the ones asserted here');
 });
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -427,3 +428,121 @@ test('round 3 / certificate 1 mutation: the old un-normalised text is caught by 
   assert.equal(old.slice(old.indexOf('pg_get_constraintdef(') - 8, old.indexOf('pg_get_constraintdef(')).endsWith('replace('), false);
 });
 
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// AFTER THE FIRST CI RUN (36949455489): the anonymous comparison, the noncharacters and the ASCII text transport
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+test('first CI run / ANON_IDENTICAL: the platform refusal quotes the CALLED function; the comparison masks the called name, requires each message to name its own function and everything else to be identical', () => {
+  const legacy = {status: 401, error: {code: '42501', message: 'permission denied for function rpc_submit_agreement_review'}}, v2 = {status: 401, error: {code: '42501', message: 'permission denied for function rpc_submit_agreement_review_v2'}};
+  // the observed pair of the first run: byte-different messages, identical once the called name is masked
+  assert.equal(lib.sameOutcome(legacy, v2), false, 'the plain comparison fails on exactly this pair (the CI observation)');
+  assert.equal(lib.sameOutcomeMaskingFunction(legacy, 'rpc_submit_agreement_review', v2, 'rpc_submit_agreement_review_v2'), true);
+  assert.equal(lib.maskFunctionName(legacy.error.message, 'rpc_submit_agreement_review'), 'permission denied for function <FUNCTION>');
+  assert.equal(lib.maskFunctionName(v2.error.message, 'rpc_submit_agreement_review_v2'), 'permission denied for function <FUNCTION>');
+  // the legacy name is a whole identifier: it does not match inside the v2 name, so the v2 message is NOT the legacy function's refusal
+  assert.equal(lib.namesFunction(v2.error.message, 'rpc_submit_agreement_review'), false); assert.equal(lib.namesFunction(legacy.error.message, 'rpc_submit_agreement_review_v2'), false);
+  assert.equal(lib.sameOutcomeMaskingFunction(v2, 'rpc_submit_agreement_review', legacy, 'rpc_submit_agreement_review_v2'), false, 'a refusal that names the OTHER function fails');
+  // MUTATIONS: every other difference still fails
+  const mutate = patch => ({status: 401, error: {code: '42501', message: 'permission denied for function rpc_submit_agreement_review_v2', ...patch.error}, ...patch.top});
+  assert.equal(lib.sameOutcomeMaskingFunction(legacy, 'rpc_submit_agreement_review', mutate({top: {status: 403}, error: {}}), 'rpc_submit_agreement_review_v2'), false, 'a different HTTP status');
+  assert.equal(lib.sameOutcomeMaskingFunction(legacy, 'rpc_submit_agreement_review', mutate({error: {code: '42883'}}), 'rpc_submit_agreement_review_v2'), false, 'a different SQLSTATE');
+  assert.equal(lib.sameOutcomeMaskingFunction(legacy, 'rpc_submit_agreement_review', mutate({error: {message: 'permission denied for table rpc_submit_agreement_review_v2'}}), 'rpc_submit_agreement_review_v2'), false, 'a different sentence');
+  assert.equal(lib.sameOutcomeMaskingFunction(legacy, 'rpc_submit_agreement_review', {status: 200, error: null}, 'rpc_submit_agreement_review_v2'), false, 'a success is not a refusal');
+  assert.equal(lib.sameOutcomeMaskingFunction({status: 200, error: null}, 'a', {status: 200, error: null}, 'b'), false, 'two successes are not two refusals');
+  // a name with a regular-expression metacharacter is matched literally
+  assert.equal(lib.namesFunction('permission denied for function a.b', 'a.b'), true); assert.equal(lib.namesFunction('permission denied for function axb', 'a.b'), false);
+  // the proof uses it for the anonymous pair, and pins each refusal exactly
+  const proof = readFileSync('supabase/proofs/d12/d12_proof.mjs', 'utf8');
+  assert.ok(proof.includes("lib.sameOutcomeMaskingFunction(anonL, 'rpc_submit_agreement_review', anonN, 'rpc_submit_agreement_review_v2')") && proof.includes('ANON_IDENTICAL_EXCEPT_THE_CALLED_FUNCTION_NAME'));
+  assert.ok(proof.includes("'permission denied for function rpc_submit_agreement_review', '42501'") && proof.includes("'permission denied for function rpc_submit_agreement_review_v2', '42501'"));
+  assert.ok(!proof.includes('lib.sameOutcome(anonL, anonN)'), 'the plain comparison of the two anonymous refusals is gone');
+});
+
+test('first CI run / noncharacters: the 66 Unicode noncharacters equal the Unicode property as THIS Node reads it, none is in a class table, and every one is an explicit matrix case whose expectation is derived from the tables', () => {
+  const oracle = []; for (let codePoint = 0; codePoint <= 0x10FFFF; codePoint++) if (/\p{Noncharacter_Code_Point}/u.test(String.fromCodePoint(codePoint))) oracle.push(codePoint);
+  assert.equal(oracle.length, 66); assert.deepEqual([...lib.NONCHARACTERS].sort((a, b) => a - b), oracle, 'U+FDD0..U+FDEF and U+xFFFE/U+xFFFF of the 17 planes');
+  const cases = lib.buildMatrix(), by = id => cases.find(item => item.id === id), hex = codePoint => codePoint.toString(16).toUpperCase().padStart(4, '0');
+  for (const codePoint of oracle) {
+    assert.ok(!lib.inRanges(lib.FORBIDDEN_RANGES, codePoint) && !lib.inRanges(lib.BLANK_RANGES, codePoint) && !lib.inRanges(lib.STRIP_RANGES, codePoint), 'DECISION PINNED (the closed forbidden class is not widened): U+' + hex(codePoint) + ' is in no class table');
+    const inner = by('noncharacter_inner_u' + hex(codePoint)); assert.ok(inner, 'an inner case for U+' + hex(codePoint)); assert.equal(inner.value, 'a' + String.fromCodePoint(codePoint) + 'b'); assert.deepEqual(inner.expect, {outcome: 'ACCEPTED'}, 'accepted verbatim');
+  }
+  // the code point of the first CI observation is exercised both as a neighbour of the plane-14 block and as a noncharacter
+  assert.deepEqual(by('neighbour_inner_uDFFFF').expect, {outcome: 'ACCEPTED'}); assert.deepEqual(by('noncharacter_inner_uDFFFF').expect, {outcome: 'ACCEPTED'}); assert.deepEqual(by('noncharacter_alone_uDFFFF').expect, {outcome: 'ACCEPTED'});
+  const adjacent = by('noncharacter_next_to_the_plane_14_block_and_its_first_member'); assert.deepEqual(adjacent.expect, lib.classifyComment(adjacent.value), 'next to a forbidden character the whole text is refused'); assert.equal(adjacent.expect.name, 'REVIEW_COMMENT_INVALID');
+  assert.equal(lib.codePoints(by('noncharacter_all_fdd0_to_fdef_in_one_text').value), 32); assert.equal(lib.codePoints(by('noncharacter_all_plane_ends_in_one_text').value), 34);
+  assert.deepEqual(by('residual_phone_split_by_a_noncharacter').expect, {outcome: 'ACCEPTED'}); assert.equal(by('residual_phone_split_by_a_noncharacter').group, 'KNOWN_RESIDUAL');
+  // the expectation really is DERIVED: if a table named a noncharacter the same cases flip (nothing is written by hand)
+  const widened = {...lib.DEFAULT_TABLES, forbidden: [...lib.FORBIDDEN_RANGES, [0xFFFF, 0xFFFF]]};
+  assert.equal(lib.classifyCommentWith('a' + String.fromCodePoint(0xFFFF) + 'b', widened).name, 'REVIEW_COMMENT_INVALID'); assert.equal(lib.classifyComment('a' + String.fromCodePoint(0xFFFF) + 'b').outcome, 'ACCEPTED');
+  // the mirror: a one-character comment of a noncharacter is a comment (not blank, not forbidden)
+  for (const codePoint of [0xFDD0, 0xFFFE, 0xFFFF, 0xDFFFF, 0x10FFFF]) assert.deepEqual(lib.classifyComment(String.fromCodePoint(codePoint)), {outcome: 'ACCEPTED', value: String.fromCodePoint(codePoint)});
+});
+
+test('first CI run / transport: every script that carries a text TO or reads a text FROM the database for a verdict is pure ASCII, the raw probe is the only exception, and assertAscii refuses a non-ASCII script by code point', () => {
+  const cases = lib.buildMatrix(), items = lib.transportCanaries();
+  const scripts = {matrix: lib.matrixScript(lib.matrixPayload(cases)), wall: lib.wallScript(lib.matrixPayload(cases.filter(item => typeof item.value === 'string')), '00000000-0000-0000-0000-000000000001'), ascii: lib.transportAsciiScript(items), rawOut: lib.transportRawOutScript(items)};
+  for (const [name, script] of Object.entries(scripts)) { assert.ok(lib.isAscii(script), name + ' script is pure ASCII'); assert.equal(lib.assertAscii(script, name), script); assert.ok(!/[\x00-\x08\x0B-\x1F\x7F]/.test(script), name + ': no control character'); assert.ok(!script.includes('\r'), name); }
+  const rawIn = lib.transportRawInScript(items); assert.equal(lib.isAscii(rawIn), false, 'the raw input probe carries the characters themselves (that is what it measures)');
+  assert.throws(() => lib.assertAscii(rawIn, 'rawIn'), /TRANSPORT_NOT_ASCII rawIn: U\+[0-9A-F]+/);
+  assert.throws(() => lib.assertAscii('select ' + String.fromCodePoint(0xDFFFF), 'x'), /TRANSPORT_NOT_ASCII x: U\+DFFFF/);
+  // the SQL of the verdict paths: base64 in, decoded in SQL; hex out; the digest of the decoded input; never the characters themselves
+  assert.ok(scripts.matrix.includes("convert_from(decode(x.b64, 'base64'), 'UTF8')") && scripts.matrix.includes("'value_hex', case when v is null then null else encode(convert_to(v, 'UTF8'), 'hex') end") && scripts.matrix.includes("encode(sha256(convert_to(c.json, 'UTF8')), 'hex')"));
+  assert.ok(!scripts.matrix.includes("'value', v") && !scripts.matrix.includes('json text'), 'the old raw text path is gone');
+  assert.ok(scripts.wall.includes("convert_from(decode(x.b64, 'base64'), 'UTF8')") && !scripts.wall.includes('json text'));
+  assert.ok(scripts.rawOut.includes("jsonb_build_object('id', x.id, 't', t.v)"), 'only the measuring probe reads characters back');
+  // the payload of a case is the base64 of the UTF-8 octets of ITS JSON text (the id is an ASCII identifier, the order is the position)
+  const payload = lib.matrixPayload(cases); assert.equal(payload.length, cases.length);
+  payload.forEach((entry, index) => { assert.equal(entry.id, cases[index].id); assert.ok(/^[A-Za-z0-9_]+$/.test(entry.id), 'ASCII identifier ' + entry.id); assert.equal(entry.ord, index); assert.equal(Buffer.from(entry.b64, 'base64').toString('utf8'), lib.caseJson(cases[index].value)); assert.equal(entry.sql_null, cases[index].sqlNull === true); });
+  assert.ok(payload.some(entry => entry.sql_null), 'the SQL NULL case keeps its own flag');
+});
+
+test('first CI run / transport: the ASCII path is byte exact for every noncharacter, every matrix text and a sweep of every Unicode scalar value (what the SQL decode and the hex answer do, done here with the same octets)', () => {
+  const cases = lib.buildMatrix().filter(item => typeof item.value === 'string' || item.value === null);
+  for (const item of cases) {
+    const json = lib.caseJson(item.value), arrived = Buffer.from(lib.utf8Base64(json), 'base64');
+    assert.equal(arrived.toString('hex'), Buffer.from(json, 'utf8').toString('hex')); assert.equal(lib.sha256Hex(arrived.toString('utf8')), lib.matrixInputDigest(item), 'the digest the database reports is the digest of what was sent: ' + item.id);
+    if (typeof item.value === 'string') { assert.equal(lib.fromUtf8Hex(lib.utf8Hex(item.value)), item.value); assert.equal(JSON.parse(arrived.toString('utf8')), item.value); }
+  }
+  for (const codePoint of lib.NONCHARACTERS) { const text = 'a' + String.fromCodePoint(codePoint) + 'b'; assert.equal(lib.utf8Hex(text).length, 2 * Buffer.byteLength(text, 'utf8')); assert.equal(lib.fromUtf8Hex(lib.utf8Hex(text)), text); assert.equal(lib.codePoints(text), 3); }
+  // every Unicode scalar value, in chunks of 4096, as base64 and as hex (no database: this proves the helpers, not the server)
+  for (let start = 1; start <= 0x10FFFF; start += 4096) {
+    const chunk = []; for (let codePoint = start; codePoint < Math.min(start + 4096, 0x110000); codePoint++) if (codePoint < 0xD800 || codePoint > 0xDFFF) chunk.push(String.fromCodePoint(codePoint)); const text = chunk.join('');
+    assert.equal(Buffer.from(lib.utf8Base64(text), 'base64').toString('utf8'), text); assert.equal(lib.fromUtf8Hex(lib.utf8Hex(text)), text);
+  }
+  // through a real child process (a stand-in for a byte-exact psql): the matrix script survives as bytes
+  const script = lib.matrixScript(lib.matrixPayload(lib.buildMatrix())), echoed = execFileSync(process.execPath, ['-e', 'process.stdin.pipe(process.stdout)'], {input: script, maxBuffer: 1 << 26});
+  assert.equal(echoed.toString('hex'), Buffer.from(script, 'utf8').toString('hex'));
+});
+
+test('first CI run / transport REGRESSION: a raw hop that drops noncharacters (the first CI observation: the text came back as ab) changes every raw script and leaves every ASCII script untouched; the verdict names the loss', () => {
+  const lossyHop = text => text.replace(/\p{Noncharacter_Code_Point}/gu, '');
+  const sent = 'a' + String.fromCodePoint(0xDFFFF) + 'b';
+  assert.equal(lossyHop(sent), 'ab', 'the observed symptom');
+  const cases = lib.buildMatrix(), items = lib.transportCanaries();
+  // the OLD transport (the characters inside the script) is changed by the lossy hop: the observed value is not the sent value
+  const oldPayload = JSON.stringify(cases.map((item, ord) => ({id: item.id, ord, sql_null: item.sqlNull === true, json: lib.caseJson(item.value)})));
+  assert.notEqual(lossyHop(oldPayload), oldPayload, 'the old raw payload does not survive such a hop'); assert.notEqual(lossyHop(lib.transportRawInScript(items)), lib.transportRawInScript(items));
+  // the NEW transport is immune to the same hop, script by script
+  for (const script of [lib.matrixScript(lib.matrixPayload(cases)), lib.wallScript(lib.matrixPayload(cases), '00000000-0000-0000-0000-000000000001'), lib.transportAsciiScript(items), lib.transportRawOutScript(items)]) assert.equal(lossyHop(script), script);
+  // the answer of the database as the proof reads it (hex): a lossy hop cannot touch it either, and the verdict function reports exactly this mutation
+  const item = cases.find(entry => entry.id === 'neighbour_inner_uDFFFF'), exact = {valueHex: lib.utf8Hex(item.value), valueChars: 3};
+  assert.equal(lib.acceptedTextDiffers(item, exact), false); assert.equal(lib.acceptedTextDiffers(item, {valueHex: lib.utf8Hex('ab'), valueChars: 2}), true, 'the first-run observation is a verdict failure');
+  assert.equal(lib.acceptedTextDiffers(item, {valueHex: lib.utf8Hex(item.value), valueChars: 2}), true, 'the character count alone also fails'); assert.equal(lib.acceptedTextDiffers(item, {valueHex: lib.utf8Hex('a' + String.fromCodePoint(0xDFFFE) + 'b'), valueChars: 3}), true, 'another noncharacter is not the sent one');
+  assert.equal(lossyHop(exact.valueHex), exact.valueHex);
+  // lostCases names the hop result: the missing code point and nothing else
+  assert.deepEqual(lib.lostCases([{id: 'x', value: sent}, {id: 'y', value: 'ab'}], new Map([['x', lib.utf8Hex('ab')], ['y', lib.utf8Hex('ab')]])), [{id: 'x', missing: ['U+DFFFF']}]);
+  assert.deepEqual(lib.lostCases([{id: 'x', value: sent}], new Map()), [{id: 'x', missing: ['U+0061', 'U+DFFFF', 'U+0062']}], 'an absent answer loses everything');
+});
+
+test('first CI run / the proof wires the transport: the matrix, the second wall and the stored text of the real path use it, the transport is measured before the matrix, and no raw payload quote is left', () => {
+  const proof = readFileSync('supabase/proofs/d12/d12_proof.mjs', 'utf8');
+  for (const needle of ['lib.matrixScript(lib.matrixPayload(cases))', 'lib.wallScript(lib.matrixPayload(stringCases), review.id)', 'lib.acceptedTextDiffers(item, observed)', 'lib.matrixInputDigest(cases[index])', 'THE_DATABASE_DECODED_EXACTLY_THE_TEXT_THAT_WAS_SENT',
+    'lib.transportCanaries()', 'lib.transportAsciiScript(items)', 'lib.transportRawInScript(items)', 'lib.transportRawOutScript(items)', 'lib.lostCases(', 'THE_ASCII_TRANSPORT_IS_BYTE_EXACT', "encode(convert_to(comment, 'UTF8'), 'hex')"]) assert.ok(proof.includes(needle), 'the proof uses ' + needle);
+  for (const old of ['q(JSON.stringify(payload))', 'q(JSON.stringify(cases))', "'value', v)", 'json: lib.caseJson(item.value)}))', "assert.equal(row.comment, item.value, 'THE_STORED_TEXT_IS_VERBATIM"]) assert.ok(!proof.includes(old), 'the old raw path is gone: ' + old);
+  assert.ok(proof.indexOf("await check('P4_THE_TEXT_TRANSPORT_OF_THE_MATRIX") < proof.indexOf("await check('P4_THE_VALIDATION_MATRIX_THROUGH_THE_SQL_FUNCTION"), 'the transport is measured before the matrix runs');
+  // the three noncharacters of the real PostgREST path and the noncharacter group assertion
+  for (const id of ['noncharacter_inner_uFDD0', 'noncharacter_inner_uDFFFF', 'noncharacter_inner_u10FFFF']) { assert.ok(proof.includes("'" + id + "'"), id); assert.ok(lib.buildMatrix().some(item => item.id === id), id); }
+  assert.ok(proof.includes("'NONCHARACTERS']) assert.ok(groups[group]?.total > 0") && proof.includes('THE_NONCHARACTER_GROUP_HAS_CASES_ON_BOTH_SIDES'));
+  // the proof text states the real matrix counts
+  const counts = {accepted: 0, refused: 0}; for (const item of lib.buildMatrix()) if (typeof item.value === 'string') { const outcome = lib.classifyComment(item.value); if (outcome.outcome === 'ACCEPTED') counts.accepted += 1; else if (outcome.outcome === 'REFUSED' && ['REVIEW_COMMENT_INVALID', 'REVIEW_COMMENT_TOO_LONG'].includes(outcome.name)) counts.refused += 1; }
+  assert.ok(proof.includes('the matrix has ' + counts.accepted + ' accepted and ' + counts.refused + ' refused string cases'), 'the proof text states the real counts ' + JSON.stringify(counts));
+});

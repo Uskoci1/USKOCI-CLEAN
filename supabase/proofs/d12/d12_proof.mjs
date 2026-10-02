@@ -756,7 +756,12 @@ await check('P3_V2_WITHOUT_A_COMMENT_IS_THE_LEGACY_COMMAND_STAR_ROW_AUDIT_ROW_EV
   }
   assert.deepEqual(written(notDone.id), {stars: 0, comments: 0, events: 0, audits: 0}); assert.deepEqual(written(done.id), {stars: 0, comments: 0, events: 0, audits: 0}, 'NOTHING_WRITTEN_BY_ANY_REFUSAL');
   // anonymous, and the stateful pairs (duplicate, request reuse)
-  const anonL = await call(anon, 'rpc_submit_agreement_review', base), anonN = await call(anon, 'rpc_submit_agreement_review_v2', base); assert.ok(anonL.error && lib.sameOutcome(anonL, anonN), 'ANON_IDENTICAL ' + JSON.stringify([lib.outcomeOf(anonL), lib.outcomeOf(anonN)]));
+  // first CI run (36949455489): the platform's refusal quotes the CALLED function ("permission denied for function <name>"), so the legacy and the v2 message can differ only by that name: the comparison masks the called name
+  // (a whole identifier), requires each message to name the function that was actually called and the rest (HTTP status, SQLSTATE, text) to be identical
+  const anonL = await call(anon, 'rpc_submit_agreement_review', base), anonN = await call(anon, 'rpc_submit_agreement_review_v2', base);
+  assert.ok(anonL.error && anonN.error && lib.sameOutcomeMaskingFunction(anonL, 'rpc_submit_agreement_review', anonN, 'rpc_submit_agreement_review_v2'), 'ANON_IDENTICAL_EXCEPT_THE_CALLED_FUNCTION_NAME ' + JSON.stringify([lib.outcomeOf(anonL), lib.outcomeOf(anonN)]));
+  mustRefuse(anonL, 'permission denied for function rpc_submit_agreement_review', '42501', 'ANON_LEGACY_NAMES_ITS_FUNCTION', {anon: true}); mustRefuse(anonN, 'permission denied for function rpc_submit_agreement_review_v2', '42501', 'ANON_V2_NAMES_ITS_FUNCTION', {anon: true});
+  report.phases.parity.anonymous = {legacy: lib.outcomeOf(anonL), v2: lib.outcomeOf(anonN), comparedWithTheCalledFunctionNameMasked: true};
   const dupL = seedAgreement(P.rq, P.wk, {title: 'dup legacy'}), dupN = seedAgreement(P.rq, P.wk, {title: 'dup v2'});
   mustOk(await submitLegacy(P.rq, reviewArgs(dupL, P.rq)), 'dup legacy first'); mustOk(await submitV2(P.rq, reviewArgs(dupN, P.rq)), 'dup v2 first');
   const d1 = await submitLegacy(P.rq, reviewArgs(dupL, P.rq)), d2 = await submitV2(P.rq, reviewArgs(dupN, P.rq)); assert.ok(d1.error && lib.sameOutcome(d1, d2), 'DUPLICATE_IDENTICAL'); mustRefuse(d2, 'REVIEW_ALREADY_SUBMITTED', '55000', 'DUPLICATE_NAME');
@@ -797,21 +802,50 @@ await check('P3_AN_OLD_CLIENT_NEVER_SEES_A_COMMENT_NOT_IN_ITS_OWN_RECEIPT_NOT_IN
 // P4 VALIDATION MATRIX: the SQL function, the table CHECKs as a second wall, and the real PostgREST path (exact name + SQLSTATE + HTTP status, nothing written)
 // ==================================================================================================================================================================
 const MATRIX = lib.buildMatrix();
+/**
+ * FIRST CI RUN (36949455489: 'a' + U+DFFFF + 'b' came back as 'ab'): the matrix carries every text to the database as ASCII (base64 of the UTF-8 octets of its JSON text, decoded in SQL) and reads the accepted value back as the
+ * HEX of its UTF-8 octets, never as characters. The verdict compares hex with hex (and the SHA-256 the database computed over what it decoded), so no client encoding, locale, lexer or stream can alter a character unnoticed.
+ */
 function runMatrix(cases) {
-  const payload = cases.map((item, ord) => ({id: item.id, ord, sql_null: item.sqlNull === true, json: lib.caseJson(item.value)}));
-  const script = `create function pg_temp.d12_try(p jsonb) returns jsonb language plpgsql as $f$
-declare v text;
-begin
-  v := private.review_comment_input_v1(p);
-  return jsonb_build_object('outcome', case when v is null then 'ABSENT' else 'ACCEPTED' end, 'value', v);
-exception when others then
-  return jsonb_build_object('outcome', 'REFUSED', 'sqlstate', sqlstate, 'message', sqlerrm);
-end $f$;
-select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'result', pg_temp.d12_try(case when c.sql_null then null else c.json::jsonb end)) order by c.ord), '[]'::jsonb)
-from jsonb_to_recordset(${q(JSON.stringify(payload))}::jsonb) as c(id text, ord integer, sql_null boolean, json text);`;
-  return JSON.parse(must(script, 'validation matrix', {timeoutMs: 120000}));
+  const results = JSON.parse(must(lib.matrixScript(lib.matrixPayload(cases)), 'validation matrix', {timeoutMs: 120000}));
+  assert.equal(results.length, cases.length, 'THE_MATRIX_ANSWERED_EVERY_CASE');
+  results.forEach((item, index) => assert.equal(item.in_sha256, lib.matrixInputDigest(cases[index]), 'THE_DATABASE_DECODED_EXACTLY_THE_TEXT_THAT_WAS_SENT ' + cases[index].id));
+  return results;
 }
-const observedOf = result => result.outcome === 'REFUSED' ? {outcome: 'REFUSED', name: result.message, sqlstate: result.sqlstate} : result.outcome === 'ACCEPTED' ? {outcome: 'ACCEPTED', value: result.value} : {outcome: 'ABSENT'};
+/** An accepted value is kept as hex octets (valueHex) and a character count (valueChars) for the verdict; `value` is the decoded text for display only. */
+const observedOf = result => result.outcome === 'REFUSED' ? {outcome: 'REFUSED', name: result.message, sqlstate: result.sqlstate} : result.outcome === 'ACCEPTED' ? {outcome: 'ACCEPTED', valueHex: result.value_hex, valueChars: result.value_chars, value: lib.fromUtf8Hex(result.value_hex)} : {outcome: 'ABSENT'};
+
+/** The raw stdout BYTES of a psql run (no UTF-8 decoding in this process): the transport check can then tell a character dropped by psql or the server from one dropped by the decoder. */
+function psqlBytes(script, {timeoutMs = 60000} = {}) {
+  try { return {ok: true, bytes: execFileSync('psql', PSQL_BASE, {input: Buffer.from(script, 'utf8'), stdio: ['pipe', 'pipe', 'pipe'], timeout: timeoutMs, maxBuffer: 32 * 1024 * 1024, killSignal: 'SIGKILL', env: {...env, PGAPPNAME: 'uskoci-d12-proof'}})}; }
+  catch (error) { return {ok: false, message: String(error?.stderr ?? error?.message ?? error).slice(0, 400)}; }
+}
+await check('P4_THE_TEXT_TRANSPORT_OF_THE_MATRIX_IS_ASCII_ONLY_AND_BYTE_EXACT_FOR_EVERY_NONCHARACTER_AND_THE_RAW_PSQL_HOPS_ARE_MEASURED_NOT_ASSUMED', async () => {
+  const items = lib.transportCanaries(), facts = {};
+  facts.psql = (() => { try { return execFileSync('psql', ['--version'], {encoding: 'utf8'}).trim(); } catch (error) { return 'UNAVAILABLE ' + String(error?.message ?? error).slice(0, 80); } })();
+  facts.clientEncoding = must('show client_encoding;', 'client encoding'); facts.serverEncoding = must('show server_encoding;', 'server encoding');
+  facts.environment = {LANG: env.LANG ?? null, LC_ALL: env.LC_ALL ?? null, LC_CTYPE: env.LC_CTYPE ?? null, PGCLIENTENCODING: env.PGCLIENTENCODING ?? null};
+  // (1) ASSERTED: the path the proof relies on (base64 in, hex out) carries every canary byte for byte, every noncharacter included
+  const ascii = JSON.parse(must(lib.transportAsciiScript(items), 'ascii transport')); assert.equal(ascii.length, items.length);
+  ascii.forEach((answer, index) => { assert.equal(answer.id, items[index].id); assert.equal(answer.hex, lib.utf8Hex(items[index].value), 'THE_ASCII_TRANSPORT_IS_BYTE_EXACT ' + items[index].id); assert.equal(answer.chars, lib.codePoints(items[index].value), 'THE_DATABASE_COUNTS_THE_CHARACTERS_IT_WAS_SENT ' + items[index].id); });
+  // (2) MEASURED, never asserted (it is a fact about the runner, not about the candidate; a failure of the measurement itself is recorded, never thrown): the raw INPUT hop (characters inside the script, hex out) ...
+  let inputLoss = [], outputLossAtPsql = [], outputLossAtDecoder = [], measurementError = null;
+  try {
+    const rawIn = psql(lib.transportRawInScript(items));
+    inputLoss = rawIn.ok ? lib.lostCases(items, new Map(JSON.parse(rawIn.stdout).map(answer => [answer.id, answer.hex]))) : [{error: rawIn.message ?? rawIn.stderr}];
+    // ... and the raw OUTPUT hop (base64 in, characters out): first as the BYTES psql wrote, then as the text this process decoded from them
+    const rawOut = psqlBytes(lib.transportRawOutScript(items));
+    if (rawOut.ok) {
+      outputLossAtPsql = items.filter(item => !rawOut.bytes.includes(Buffer.from(item.value, 'utf8'))).map(item => item.id);
+      const decoded = new Map(JSON.parse(rawOut.bytes.toString('utf8').trim()).map(answer => [answer.id, answer.t]));
+      outputLossAtDecoder = items.filter(item => !outputLossAtPsql.includes(item.id) && decoded.get(item.id) !== item.value).map(item => item.id);
+    } else outputLossAtPsql = [{error: rawOut.message}];
+  } catch (error) { measurementError = String(error?.message ?? error).slice(0, 300); }
+  const lossy = inputLoss.length > 0 || outputLossAtPsql.length > 0 || outputLossAtDecoder.length > 0 || measurementError !== null;
+  report.phases.transport = {canaries: items.length, noncharacters: lib.NONCHARACTERS.length, asciiBothWaysByteExact: true, rawInputLoss: inputLoss, rawOutputLossAtPsqlOrServer: outputLossAtPsql, rawOutputLossAtNodeDecoder: outputLossAtDecoder, measurementError, facts,
+    note: 'asserted: the ASCII path (base64 in, hex out) is byte exact; measured only: the raw hops (what the proof used to rely on). A loss on a raw hop is a fact about this runner, not about the candidate.'};
+  if (lossy) report.gaps.push('RAW_TEXT_HOPS_LOSE_CHARACTERS_ON_THIS_RUNNER (input: ' + JSON.stringify(inputLoss).slice(0, 300) + '; output at psql/server: ' + JSON.stringify(outputLossAtPsql).slice(0, 300) + '; output at the Node decoder: ' + JSON.stringify(outputLossAtDecoder).slice(0, 300) + (measurementError ? '; measurement error: ' + measurementError : '') + '): the proof carries every text as ASCII both ways, so no verdict depends on them');
+}, {});
 
 await check('P4_THE_VALIDATION_MATRIX_THROUGH_THE_SQL_FUNCTION_EQUALS_THE_INTENDED_RULES_AND_THE_JS_MIRROR_AND_THE_KNOWN_RESIDUALS_ARE_PINNED', async () => {
   const ids = MATRIX.map(item => item.id); assert.equal(new Set(ids).size, ids.length, 'MATRIX_IDS_UNIQUE');
@@ -824,12 +858,18 @@ await check('P4_THE_VALIDATION_MATRIX_THROUGH_THE_SQL_FUNCTION_EQUALS_THE_INTEND
     if (!lib.outcomeMatches(observed, item.expect)) mismatches.push({id: item.id, expected: item.expect, observed});
     const mirror = lib.classifyComment(item.value);
     if (!lib.outcomeMatches(observed, mirror)) mismatches.push({id: item.id, mirror, observed, kind: 'THE_JS_MIRROR_DISAGREES_WITH_THE_SQL'});
-    if (observed.outcome === 'ACCEPTED') assert.equal(observed.value, item.value, 'ACCEPTED_TEXT_IS_RETURNED_VERBATIM_NEVER_NORMALISED ' + item.id);
+    // first CI run: the verdict is read as octets, never as decoded characters: the text the function returns is the text that was sent, byte for byte and character for character (the server rejects, it never normalises).
+    // Collected, not thrown, so one run names EVERY case that comes back different (sent/returned hex are cut to 64 characters for the report).
+    if (observed.outcome === 'ACCEPTED' && lib.acceptedTextDiffers(item, observed)) mismatches.push({id: item.id, kind: 'ACCEPTED_TEXT_IS_RETURNED_VERBATIM_NEVER_NORMALISED', sentHex: lib.utf8Hex(item.value).slice(0, 64), returnedHex: String(observed.valueHex).slice(0, 64), sentChars: lib.codePoints(item.value), returnedChars: observed.valueChars});
     if (item.group === 'KNOWN_RESIDUAL') report.residuals.push({id: item.id, observed: observed.outcome === 'REFUSED' ? observed.name : observed.outcome, note: item.note});
   }
+  // first CI run: the Unicode noncharacters are explicit cases (derived from the class tables); today every one of them is stored and returned verbatim, which is pinned here as a residual, not blessed
+  { const nonchars = MATRIX.filter(item => item.group === 'NONCHARACTERS'), accepted = nonchars.filter(item => byId.get(item.id).outcome === 'ACCEPTED').length;
+    report.residuals.push({id: 'residual_noncharacters', observed: accepted + '_OF_' + nonchars.length + '_CASES_ACCEPTED_VERBATIM', note: 'the 66 Unicode noncharacters (U+FDD0..U+FDEF, U+xFFFE/U+xFFFF) are valid scalar values the closed text class does not name: stored, returned and shown as sent (a font may draw a replacement glyph); a product decision to forbid them is a table edit, not done here'}); }
   assert.deepEqual(mismatches, [], 'MATRIX_MISMATCHES ' + JSON.stringify(mismatches).slice(0, 1200));
   // non-vacuous: every rule has cases on BOTH sides of it
-  for (const group of ['ABSENT', 'TYPE', 'LENGTH', 'TRIM', 'CONTROL', 'BIDI_ZERO_WIDTH', 'INVISIBLE_FORBIDDEN', 'INVISIBLE_ALLOWED', 'ALLOWED', 'CONTACT', 'FORBIDDEN_RANGE_POINTS', 'FORBIDDEN_RANGE_NEIGHBOURS']) assert.ok(groups[group]?.total > 0, 'GROUP_HAS_CASES ' + group);
+  for (const group of ['ABSENT', 'TYPE', 'LENGTH', 'TRIM', 'CONTROL', 'BIDI_ZERO_WIDTH', 'INVISIBLE_FORBIDDEN', 'INVISIBLE_ALLOWED', 'ALLOWED', 'CONTACT', 'FORBIDDEN_RANGE_POINTS', 'FORBIDDEN_RANGE_NEIGHBOURS', 'NONCHARACTERS']) assert.ok(groups[group]?.total > 0, 'GROUP_HAS_CASES ' + group);
+  assert.ok(groups.NONCHARACTERS.ACCEPTED >= lib.NONCHARACTERS.length && groups.NONCHARACTERS.REFUSED > 0, 'THE_NONCHARACTER_GROUP_HAS_CASES_ON_BOTH_SIDES (every noncharacter inside a sentence is accepted, one text with a member of the forbidden plane-14 block is refused)');
   // round-2 finding (security #1): every forbidden range is exercised at both ends and in the middle (inside text: always refused; alone: refused unless it is white space) and both neighbours of every range are exercised (accepted unless they belong to the table)
   assert.ok(groups.FORBIDDEN_RANGE_POINTS.REFUSED > 0 && groups.FORBIDDEN_RANGE_POINTS.ABSENT > 0 && groups.FORBIDDEN_RANGE_NEIGHBOURS.ACCEPTED > 0, 'THE_RANGE_GROUPS_HAVE_CASES_ON_BOTH_SIDES');
   assert.ok(groups.LENGTH.ACCEPTED > 0 && groups.LENGTH.REFUSED > 0 && groups.TRIM.ACCEPTED > 0 && groups.TRIM.REFUSED > 0 && groups.ABSENT.ABSENT === groups.ABSENT.total && groups.ALLOWED.ACCEPTED === groups.ALLOWED.total && groups.INVISIBLE_ALLOWED.ACCEPTED === groups.INVISIBLE_ALLOWED.total);
@@ -881,21 +921,8 @@ await check('P4_THE_TABLE_CHECKS_AGREE_WITH_THE_FUNCTION_ON_THE_WHOLE_MATRIX_SO_
   // (not a curated list) is inserted directly as the database owner, each in a nested block that is always rolled back, and the two walls must AGREE: a text the function ACCEPTS must pass the CHECKs, a text the function refuses as
   // INVALID or TOO_LONG must violate a CHECK. (ABSENT stores nothing and the contact floor is a function-only rule: neither has a CHECK.)
   const review = rows(`select id from private.agreement_reviews where id = ${q(state.legacyBefore.reviewId)}`)[0]; assert.ok(review);
-  const cases = MATRIX.filter(item => typeof item.value === 'string').map((item, ord) => ({id: item.id, ord, json: lib.caseJson(item.value)}));
-  const script = `create function pg_temp.d12_wall(p text) returns text language plpgsql as $f$
-declare cname text;
-begin
-  begin
-    insert into private.agreement_review_comments_v1(review_id, author_account_id, target_account_id, comment, comment_sha256)
-      select r.id, r.reviewer_account_id, r.target_account_id, p, repeat('a', 64) from private.agreement_reviews r where r.id = ${q(review.id)};
-    raise exception 'D12_WALL_ACCEPTED' using errcode = 'P0001';
-  exception
-    when check_violation then get stacked diagnostics cname = constraint_name; return 'CHECK:' || coalesce(cname, '?');
-    when sqlstate 'P0001' then if sqlerrm = 'D12_WALL_ACCEPTED' then return 'ACCEPTED'; end if; raise;
-  end;
-end $f$;
-select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'wall', pg_temp.d12_wall((c.json::jsonb) #>> '{}')) order by c.ord), '[]'::jsonb)
-from jsonb_to_recordset(${q(JSON.stringify(cases))}::jsonb) as c(id text, ord integer, json text);`;
+  // first CI run: the same ASCII transport as the function matrix (base64 in, decoded in SQL); the answers are constraint names, so nothing here depends on a raw character hop either
+  const stringCases = MATRIX.filter(item => typeof item.value === 'string'), script = lib.wallScript(lib.matrixPayload(stringCases), review.id);
   const wall = new Map(JSON.parse(must(script, 'second wall parity', {timeoutMs: 120000})).map(item => [item.id, item.wall]));
   const functionOutcome = new Map(state.matrixResults.map(item => [item.id, observedOf(item.result)]));
   const disagreements = [], summary = {functionAcceptedWallAccepted: 0, functionRefusedWallViolated: 0, notCompared: 0};
@@ -908,7 +935,7 @@ from jsonb_to_recordset(${q(JSON.stringify(cases))}::jsonb) as c(id text, ord in
     else summary.notCompared += 1;
   }
   assert.deepEqual(disagreements, [], 'THE_FUNCTION_AND_THE_TABLE_CHECKS_DISAGREE ' + JSON.stringify(disagreements).slice(0, 1200));
-  assert.ok(summary.functionAcceptedWallAccepted >= 80 && summary.functionRefusedWallViolated >= 220, 'BOTH_SIDES_OF_THE_PARITY_ARE_EXERCISED (the matrix has 83 accepted and 227 refused string cases) ' + JSON.stringify(summary));
+  assert.ok(summary.functionAcceptedWallAccepted >= 150 && summary.functionRefusedWallViolated >= 220, 'BOTH_SIDES_OF_THE_PARITY_ARE_EXERCISED (the matrix has 160 accepted and 228 refused string cases, the 77 noncharacter cases included) ' + JSON.stringify(summary));
   assert.equal(Number(sql('select count(*) from private.agreement_review_comments_v1 where review_id = ' + q(review.id))), 0, 'EVERY_WALL_PROBE_WAS_ROLLED_BACK');
   report.phases.validation.secondWallParity = summary;
   report.notVerified.push('The Postgres SERVER LOG was not scanned for comment text: a malformed JSON string (a NUL or a lone surrogate) is rejected by PostgreSQL with a CONTEXT line that quotes a fragment of the JSON body, and a CHECK violation prints the failing row. The function/CHECK parity above makes the second unreachable through the function; the first is outside what a disposable database proves.');
@@ -947,10 +974,11 @@ await check('P4_REAL_POSTGREST_REFUSALS_ARE_EXACT_AND_WRITE_NOTHING_AND_ACCEPTED
   report.phases.validation.oddCharacters = odd;
   // accepted comments are stored verbatim (no normalisation) and read back identically through the author's own context; the length is counted in code points
   const stored = [];
-  for (const id of ['one_character', 'ascii_500', 'astral_500', 'mixed_astral_last_500', 'family_emoji_zwj', 'serbian_latin', 'devanagari_zwj', 'inner_lf', 'trailing_nbsp_is_not_trimmed', 'residual_obfuscated_email']) {
+  for (const id of ['one_character', 'ascii_500', 'astral_500', 'mixed_astral_last_500', 'family_emoji_zwj', 'serbian_latin', 'devanagari_zwj', 'inner_lf', 'trailing_nbsp_is_not_trimmed', 'residual_obfuscated_email', 'noncharacter_inner_uFDD0', 'noncharacter_inner_uDFFFF', 'noncharacter_inner_u10FFFF']) {
     const item = MATRIX.find(entry => entry.id === id), own = seedAgreement(P.rq, P.wk, {title: 'verbatim ' + id}), response = mustOk(await submitV2(P.rq, reviewArgs(own, P.rq, {comment: item.value})), 'accepted ' + id);
     assert.equal(response.comment, item.value, 'THE_RECEIPT_ECHOES_THE_TEXT_VERBATIM ' + id);
-    const row = commentRows(own.id)[0]; assert.equal(row.comment, item.value, 'THE_STORED_TEXT_IS_VERBATIM ' + id); assert.equal(row.comment_sha256, lib.sha256Hex(item.value));
+    // first CI run: the stored text is compared as the HEX of its octets (an ASCII answer), the same transport rule as the matrix: a raw character hop is never the verdict
+    const row = commentRows(own.id)[0]; assert.equal(sql(`select encode(convert_to(comment, 'UTF8'), 'hex') from private.agreement_review_comments_v1 where review_id = ${q(row.review_id)}`), lib.utf8Hex(item.value), 'THE_STORED_TEXT_IS_VERBATIM ' + id); assert.equal(row.comment_sha256, lib.sha256Hex(item.value));
     assert.equal(Number(sql(`select char_length(comment) from private.agreement_review_comments_v1 where review_id = ${q(row.review_id)}`)), lib.codePoints(item.value)); assert.equal(Number(sql(`select octet_length(comment) from private.agreement_review_comments_v1 where review_id = ${q(row.review_id)}`)), lib.utf8Octets(item.value));
     const context = mustOk(await contextV2(P.rq, own.id), 'own context ' + id); assert.equal(context.review.comment, item.value); assert.deepEqual(written(own.id), {stars: 1, comments: 1, events: 1, audits: 1});
     stored.push({id, codePoints: lib.codePoints(item.value), octets: lib.utf8Octets(item.value)});
@@ -1602,6 +1630,8 @@ await check('P13_THE_PROOF_TURNS_RED_WHEN_A_RULE_IS_WEAKENED_AND_EVERY_WEAKENED_
 // the report
 // ==================================================================================================================================================================
 const STATIC_NON_VACUITY = [
+  'FIRST CI RUN: P4 text transport -> every text reaches the database as base64 and returns as hex, so a character dropped by a raw hop (the first run saw U+DFFFF come back missing) can no longer change a verdict; the transport check asserts the ASCII path byte for byte for all 66 noncharacters and MEASURES the raw input and output hops separately (a loss is named with the hop and the code points); the offline test reproduces the observed loss with a lossy hop and shows the ASCII path immune',
+  'FIRST CI RUN: P3 anonymous parity -> the legacy and the v2 refusal are compared with the called function name masked and each must name the function that was called (an anonymous refusal of the wrong function, a different status or a different SQLSTATE fails)',
   'ROUND 1 (this round): P0 manifest -> the committed files equal the sha256 manifest (bytes: a CR changes it); the transport-safety scan (no escape text, ASCII only) would have failed the 47 backslash-u escapes of the first candidate',
   'ROUND 1: P2 applies the candidate BEHIND the integrity guard with psql -c (one Query message): a one-character change is refused by the database (GUARD_TEXT_INTEGRITY) before anything runs',
   'ROUND 1: P2 refusals STAR_TABLE_SHAPE_CHANGED / STAR_TABLE_POLICY_ADDED / COMPOSITE_FUNCTION_AUTHORITY_CHANGED / RETENTION_CLASS_TEXT_CHANGED and the three isolation-probe refusals (DIGEST_NOT_ISOLATED twice, PROBE_NOT_ROLLED_BACK) each ran the whole application to the end before the matching guard existed',
@@ -1635,7 +1665,7 @@ const STATIC_NON_VACUITY = [
   'P12 revert -> a revert that does not restore a rewritten body, the digest or the roster fails surface/pin/snapshot equality; a revert that ignores existing comments is refused by the first check',
 ];
 report.nonVacuity.unshift(...STATIC_NON_VACUITY);
-report.notVerified.push('Everything in this file has not run at the time of writing: the first CI run is the first observation of every SQL, PostgREST and closure outcome.',
+report.notVerified.push('The first CI run (36949455489, source f8e36e52) observed 42 passes, 2 failures and 1 skipped dependent; both failures were defects of THIS PROOF (a message that quotes the called function; a raw character hop). Everything changed since then (the ASCII text transport and hex verdicts, the 78 noncharacter cases, the anonymous comparison with the called function name masked, the transport measurement) has not run yet.',
   'The new client (v2 submit/context/reader services, the comment field, the capability gate, the error-name map) is not written: only the SERVER contract and the OLD shipped client are proved.',
   'Native (device) behaviour: nothing here is native acceptance; the chain is not DEV (ledger, OIDs, DEV-only items), its digest is chain-internal.',
   'Coupled privacy records: the frozen AF22 144 inventory and v5_account_erasure_proof are intentionally NOT edited (the erasure proof deep-equals the actual columns of its own historical stage, which never has the D12 table); the successor record docs/.../d12/D12_CLOSURE_INVENTORY_SUCCESSOR_20261001.json, EXPORT_PROJECTION.md and the legal/store drafts carry additive D12 notes. A published export policy bound to the new projection sha is not exercised.',

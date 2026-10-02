@@ -64,6 +64,11 @@ export const ALLOWED_INSIDE_RANGES = Object.freeze([[0x00AD, 0x00AD], [0x034F, 0
 /** What FORBIDDEN holds beyond the default-ignorable set. */
 export const FORBIDDEN_BEYOND_DEFAULT_IGNORABLE = Object.freeze([[0x0001, 0x0009], [0x000B, 0x001F], [0x007F, 0x009F], [0x2028, 0x2029], [0xFFF9, 0xFFFB], [0x13430, 0x1343F]]);
 export const inRanges = (ranges, codePoint) => ranges.some(([lo, hi]) => codePoint >= lo && codePoint <= hi);
+/**
+ * FIRST CI RUN: the 66 Unicode NONCHARACTERS (U+FDD0..U+FDEF and U+FFFE/U+FFFF of each of the 17 planes). They are valid scalar values, they are not default-ignorable and the closed text class does NOT name them: they are a documented
+ * residual (a font may draw a replacement glyph or nothing), ACCEPTED and returned byte for byte. The matrix derives their expectation from the class tables above, so deciding to forbid one later is a table edit that flips exactly these cases.
+ */
+export const NONCHARACTERS = Object.freeze([...Array.from({length: 32}, (_, index) => 0xFDD0 + index), ...Array.from({length: 17}, (_, plane) => [plane * 0x10000 + 0xFFFE, plane * 0x10000 + 0xFFFF]).flat()]);
 export const DIGIT_SETS = Object.freeze([[0x0660, 0x0669], [0x06F0, 0x06F9]]);
 /** The SQL text expression exactly as the generator writes it: a bracket expression built from chr() pieces (the generated SQL carries no escape text and no non-ASCII character). */
 export const chrPiece = codePoint => 'chr(' + codePoint + ')';
@@ -255,6 +260,16 @@ export function buildMatrix() {
     if (cp < 1 || seenNeighbours.has(cp)) continue; seenNeighbours.add(cp);
     add('FORBIDDEN_RANGE_NEIGHBOURS', 'neighbour_inner_u' + hex(cp), 'a' + ch(cp) + 'b', inRanges(FORBIDDEN_RANGES, cp) ? INVALID : ACCEPTED, 'the code point next to a forbidden range: forbidden only when it belongs to the table');
   }
+  // first CI run (36949455489, first observation): U+DFFFF is the code point just below the plane-14 block of the forbidden class AND a Unicode noncharacter. The first run saw it come back from the proof's raw text transport as 'ab'
+  // (the character missing) while the database kept it: the proof now carries every text as ASCII both ways and the noncharacters are explicit cases. The expectation is DERIVED from the class tables (a noncharacter is accepted unless a table names it),
+  // never written by hand; the closed forbidden class is NOT widened here (a product rule already reviewed). Known consequence, pinned in KNOWN_RESIDUAL below: a noncharacter inside a phone number splits the digit run like any visible character.
+  const verdictInner = cp => inRanges(FORBIDDEN_RANGES, cp) ? INVALID : ACCEPTED, verdictAlone = cp => inRanges(BLANK_RANGES, cp) ? ABSENT : inRanges(FORBIDDEN_RANGES, cp) ? INVALID : ACCEPTED;
+  for (const cp of NONCHARACTERS) add('NONCHARACTERS', 'noncharacter_inner_u' + hex(cp), 'a' + ch(cp) + 'b', verdictInner(cp), 'a Unicode noncharacter inside a sentence: not named by the closed class, stored and returned verbatim');
+  for (const cp of [0xFDD0, 0xFDEF, 0xFFFE, 0xFFFF, 0x1FFFE, 0xDFFFF, 0x10FFFE, 0x10FFFF]) add('NONCHARACTERS', 'noncharacter_alone_u' + hex(cp), ch(cp), verdictAlone(cp), 'a comment of ONE noncharacter: not white space, not forbidden: a one-character comment');
+  add('NONCHARACTERS', 'noncharacter_all_fdd0_to_fdef_in_one_text', NONCHARACTERS.slice(0, 32).map(ch).join(''), [...NONCHARACTERS.slice(0, 32)].some(cp => inRanges(FORBIDDEN_RANGES, cp)) ? INVALID : ACCEPTED);
+  add('NONCHARACTERS', 'noncharacter_all_plane_ends_in_one_text', NONCHARACTERS.slice(32).map(ch).join(''), NONCHARACTERS.slice(32).some(cp => inRanges(FORBIDDEN_RANGES, cp)) ? INVALID : ACCEPTED, 'U+FFFE, U+FFFF, U+1FFFE ... U+10FFFF: 34 characters of 3 or 4 octets');
+  add('NONCHARACTERS', 'noncharacter_next_to_the_plane_14_block_and_its_first_member', ch(0xDFFFF) + 'a' + ch(0xE0000), [0xDFFFF, 0xE0000].some(cp => inRanges(FORBIDDEN_RANGES, cp)) ? INVALID : ACCEPTED, 'the noncharacter is fine, the plane-14 tag block next to it is still forbidden (the whole text is refused)');
+  add('KNOWN_RESIDUAL', 'residual_phone_split_by_a_noncharacter', 'zovi 064' + ch(0xFFFF) + '1234567', verdictInner(0xFFFF), 'a noncharacter is visible (a replacement glyph or a box) and splits the digit run like any other character; only the invisible characters are removed from the floor copy');
   return cases;
 }
 /** Does an observed outcome satisfy an expectation? Every expectation is exact (nothing is locale dependent any more). */
@@ -265,6 +280,95 @@ export function outcomeMatches(observed, expect) {
 }
 /** The JSON text of a case for jsonb: a lone surrogate or NUL is never produced by the matrix. */
 export const caseJson = value => JSON.stringify(value === undefined ? null : value);
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// FIRST CI RUN: TEXT TRANSPORT BETWEEN THE PROOF AND THE DATABASE.
+// CI run 36949455489 (the first run): the case 'a' + U+DFFFF + 'b' (a Unicode noncharacter) was ACCEPTED by the SQL function but the text the proof read back was 'ab'. Offline evidence (see README_D12_PROOF.md, "Round 3"): the
+// function returns its input untouched; PostgreSQL 17.6 keeps the character through to_jsonb / jsonb_to_recordset / #>> (read-only on DEV); libpg_query's lexer keeps it in a quoted constant; the matrix payload and the output JSON round-trip
+// through a child process and JSON.parse byte for byte. What no offline run can reach is the psql process on the runner (stdin read, client encoding, stdout write), so the proof no longer RELIES on it: every text that must arrive or
+// come back byte-exact travels as ASCII only (base64 in, hex out, compared as hex, never decoded back for the verdict), and a transport check MEASURES the raw hops separately and names the hop that loses a character if one does.
+// ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+export const utf8Hex = text => Buffer.from(String(text), 'utf8').toString('hex');
+export const utf8Base64 = text => Buffer.from(String(text), 'utf8').toString('base64');
+export const fromUtf8Hex = hex => Buffer.from(String(hex), 'hex').toString('utf8');
+export const isAscii = text => /^[\x00-\x7F]*$/.test(String(text));
+/** Refuses (throws) any script that is not pure ASCII: nothing between the proof and the server may then depend on a client encoding, a locale, a lexer or a stream. */
+export function assertAscii(script, label) {
+  const bad = [...String(script)].find(character => character.codePointAt(0) > 0x7F);
+  if (bad !== undefined) throw new Error('TRANSPORT_NOT_ASCII ' + label + ': U+' + bad.codePointAt(0).toString(16).toUpperCase());
+  return script;
+}
+export const sqlLiteral = value => "'" + String(value).replaceAll("'", "''") + "'";
+/** The ASCII payload of a list of matrix items: the JSON text of each value as base64 of its UTF-8 octets (ids are ASCII identifiers). */
+export const matrixPayload = cases => cases.map((item, ord) => ({id: item.id, ord, sql_null: item.sqlNull === true, b64: utf8Base64(caseJson(item.value))}));
+/** The SHA-256 the database reports for the JSON text it decoded: the proof compares it with its own, so a text that did not arrive intact is named before any verdict is read. */
+export const matrixInputDigest = item => sha256Hex(caseJson(item.value));
+/**
+ * The matrix script: the JSON text arrives as base64, is decoded in SQL, parsed as jsonb and handed to the function; the answer carries the value as the HEX of its UTF-8 octets and its character count, plus the SHA-256 of the decoded input.
+ * Nothing in the script or in its answer is non-ASCII; the proof compares hex with hex.
+ */
+export function matrixScript(payload) {
+  return assertAscii(`create function pg_temp.d12_try(p jsonb) returns jsonb language plpgsql as $f$
+declare v text;
+begin
+  v := private.review_comment_input_v1(p);
+  return jsonb_build_object('outcome', case when v is null then 'ABSENT' else 'ACCEPTED' end, 'value_hex', case when v is null then null else encode(convert_to(v, 'UTF8'), 'hex') end, 'value_chars', case when v is null then null else char_length(v) end);
+exception when others then
+  return jsonb_build_object('outcome', 'REFUSED', 'sqlstate', sqlstate, 'message', sqlerrm);
+end $f$;
+select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'in_sha256', encode(sha256(convert_to(c.json, 'UTF8')), 'hex'), 'result', pg_temp.d12_try(case when c.sql_null then null else c.json::jsonb end)) order by c.ord), '[]'::jsonb)
+from (select x.id, x.ord, x.sql_null, convert_from(decode(x.b64, 'base64'), 'UTF8') as json from jsonb_to_recordset(${sqlLiteral(JSON.stringify(payload))}::jsonb) as x(id text, ord integer, sql_null boolean, b64 text)) c;`, 'matrixScript');
+}
+/** The second-wall script: the same ASCII payload, each text inserted directly into the comment table as the database owner inside a nested block that is always rolled back; the answer is ASCII (a constraint name or ACCEPTED). */
+export function wallScript(payload, reviewId) {
+  return assertAscii(`create function pg_temp.d12_wall(p text) returns text language plpgsql as $f$
+declare cname text;
+begin
+  begin
+    insert into private.agreement_review_comments_v1(review_id, author_account_id, target_account_id, comment, comment_sha256)
+      select r.id, r.reviewer_account_id, r.target_account_id, p, repeat('a', 64) from private.agreement_reviews r where r.id = ${sqlLiteral(reviewId)};
+    raise exception 'D12_WALL_ACCEPTED' using errcode = 'P0001';
+  exception
+    when check_violation then get stacked diagnostics cname = constraint_name; return 'CHECK:' || coalesce(cname, '?');
+    when sqlstate 'P0001' then if sqlerrm = 'D12_WALL_ACCEPTED' then return 'ACCEPTED'; end if; raise;
+  end;
+end $f$;
+select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'wall', pg_temp.d12_wall((c.json::jsonb) #>> '{}')) order by c.ord), '[]'::jsonb)
+from (select x.id, x.ord, convert_from(decode(x.b64, 'base64'), 'UTF8') as json from jsonb_to_recordset(${sqlLiteral(JSON.stringify(payload))}::jsonb) as x(id text, ord integer, b64 text)) c;`, 'wallScript');
+}
+/** The transport canaries: every noncharacter inside a sentence, the code points around the plane-14 block, and ordinary controls (an astral emoji, a two-octet letter, a private-use character). */
+export function transportCanaries() {
+  const hex = codePoint => codePoint.toString(16).toUpperCase().padStart(4, '0');
+  return [...NONCHARACTERS.map(codePoint => ({id: 'noncharacter_u' + hex(codePoint), value: 'a' + ch(codePoint) + 'b'})),
+    ...[0xDFFFD, 0xE1000, 0x10FFFD, 0x1F600, 0x10D, 0xFFFD, 0xFFFC, 0xE000].map(codePoint => ({id: 'control_u' + hex(codePoint), value: 'a' + ch(codePoint) + 'b'})),
+    {id: 'all_noncharacters_in_one_text', value: NONCHARACTERS.map(ch).join('')}];
+}
+/** Transport probe 1 (ASCII both ways, the one the proof relies on): base64 in, hex out. */
+export function transportAsciiScript(items) {
+  return assertAscii(`select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'hex', encode(convert_to(t.v, 'UTF8'), 'hex'), 'chars', char_length(t.v)) order by x.ord), '[]'::jsonb)
+from jsonb_to_recordset(${sqlLiteral(JSON.stringify(items.map((item, ord) => ({id: item.id, ord, b64: utf8Base64(item.value)}))))}::jsonb) as x(id text, ord integer, b64 text), lateral (select convert_from(decode(x.b64, 'base64'), 'UTF8') as v) t;`, 'transportAsciiScript');
+}
+/** Transport probe 2 (RAW in, hex out): the texts are written into the script as characters, exactly as the proof used to send them; the answer is ASCII, so a loss here is a loss on the INPUT hop (proof -> stdin -> psql -> server). */
+export const transportRawInScript = items => `select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'hex', encode(convert_to(x.t, 'UTF8'), 'hex'), 'chars', char_length(x.t)) order by x.ord), '[]'::jsonb)
+from jsonb_to_recordset(${sqlLiteral(JSON.stringify(items.map((item, ord) => ({id: item.id, ord, t: item.value}))))}::jsonb) as x(id text, ord integer, t text);`;
+/** Transport probe 3 (base64 in, RAW out): the answer carries the characters themselves, as the proof used to read them; a loss here is a loss on the OUTPUT hop (server -> psql -> stdout -> proof). */
+export function transportRawOutScript(items) {
+  return assertAscii(`select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 't', t.v) order by x.ord), '[]'::jsonb)
+from jsonb_to_recordset(${sqlLiteral(JSON.stringify(items.map((item, ord) => ({id: item.id, ord, b64: utf8Base64(item.value)}))))}::jsonb) as x(id text, ord integer, b64 text), lateral (select convert_from(decode(x.b64, 'base64'), 'UTF8') as v) t;`, 'transportRawOutScript');
+}
+/** The verdict of the matrix on an accepted text: the returned octets (hex) and the character count must be exactly those of the text that was sent (the server rejects, it never normalises). `observed` is {valueHex, valueChars}. */
+export const acceptedTextDiffers = (item, observed) => observed.valueHex !== utf8Hex(item.value) || observed.valueChars !== codePoints(item.value);
+/** Where did a raw hop lose a character? Compares the observed per-case hex (or the observed strings) with the sent ones; returns the lost cases with the code points that went missing. */
+export function lostCases(items, observedHexById) {
+  const lost = [];
+  for (const item of items) {
+    const observed = observedHexById.get(item.id);
+    if (observed === utf8Hex(item.value)) continue;
+    const kept = new Set([...fromUtf8Hex(observed ?? '')].map(character => character.codePointAt(0)));
+    lost.push({id: item.id, missing: [...new Set([...item.value].map(character => character.codePointAt(0)))].filter(codePoint => !kept.has(codePoint)).map(codePoint => 'U+' + codePoint.toString(16).toUpperCase().padStart(4, '0'))});
+  }
+  return lost;
+}
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // the apply-time integrity guard (the Voice B1 method): a JS MIRROR of build_d12.py guard_text(); the unit tests compare it with the manifest the generator wrote.
@@ -341,6 +445,19 @@ export function isRefusal(response, message, sqlstate, statuses = null) {
 }
 /** Compares two outcomes (legacy vs v2): same message, same code, same status. */
 export const sameOutcome = (a, b) => JSON.stringify(outcomeOf(a)) === JSON.stringify(outcomeOf(b));
+/**
+ * FIRST CI RUN (36949455489, ANON_IDENTICAL): the platform's own refusal quotes the CALLED function ("permission denied for function rpc_submit_agreement_review" versus "... rpc_submit_agreement_review_v2"), so two
+ * functions can never answer with a byte-identical message. The comparison masks the called function's name (a whole identifier: the legacy name must not match inside the v2 name) and then requires the rest to be identical,
+ * AND requires each message to name the function that was actually called (a refusal that names some other function fails).
+ */
+const identifierPattern = name => new RegExp('(?<![A-Za-z0-9_])' + String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z0-9_])', 'g');
+export const namesFunction = (message, functionName) => typeof message === 'string' && identifierPattern(functionName).test(message);
+export const maskFunctionName = (message, functionName) => (typeof message === 'string' ? message.replace(identifierPattern(functionName), '<FUNCTION>') : message);
+export function sameOutcomeMaskingFunction(a, nameA, b, nameB) {
+  const left = outcomeOf(a), right = outcomeOf(b);
+  if (left.ok || right.ok || !namesFunction(left.message, nameA) || !namesFunction(right.message, nameB)) return false;
+  return JSON.stringify({...left, message: maskFunctionName(left.message, nameA)}) === JSON.stringify({...right, message: maskFunctionName(right.message, nameB)});
+}
 /**
  * psql run with VERBOSITY=verbose prints `ERROR:  <SQLSTATE>: <message>` (then CONTEXT/LOCATION lines). Returns {sqlstate, message} or null.
  * The message is the FIRST line only: a multi-line message keeps its first line (the proof's names are single-line identifiers).
