@@ -30,6 +30,7 @@
     "expo-system-ui": "~57.0.3",
     "expo-web-browser": "~57.0.2",
     "lottie-react-native": "~7.3.8",
+    "patch-package": "8.0.1",
     "phosphor-react-native": "^3.0.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -60,7 +61,7 @@
   },
   "scripts": {
     "eas-build-pre-install": "node ./scripts/check-eas-preview.cjs",
-    "postinstall": "node ./scripts/sync-entry-reference-assets.cjs",
+    "postinstall": "patch-package --error-on-fail --error-on-warn && node ./scripts/verify-native-patches.cjs && node ./scripts/sync-entry-reference-assets.cjs",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

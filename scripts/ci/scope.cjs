@@ -22,7 +22,12 @@ const TESTS = {
 const CRITICAL = /session-epoch|return-target-ownership|cb1-receipt-boundary|m04-privatnost-kontakt|selectionIdempotency/;
 const SOURCE = /\.[cm]?[jt]sx?$/;
 const TEST_FILE = /(?:\.test|\.spec)\.[cm]?[jt]sx?$/;
-const BUILD = /^(?:package(?:-lock)?\.json|(?:babel|metro|jest|app)\.config\.[cm]?js|tsconfig.*\.json|index\.js|plugins\/|vendor\/)/;
+const BUILD = /^(?:package(?:-lock)?\.json|(?:babel|metro|jest|app)\.config\.[cm]?js|tsconfig.*\.json|index\.js|plugins\/|vendor\/|patches\/|scripts\/verify-native-patches\.cjs$)/;
+// RNR-01 / B22: the Reanimated patch contract (a Jest suite) guards the patch, its verifier, .gitattributes/.npmrc/eas.json and EVERY workflow
+// (no ignore-scripts, patch verified before native builds, attested APK). Scope sees paths only, so a change to any of them selects that suite
+// even in targeted mode (patches/ and the verifier are BUILD changes and already run everything).
+const NATIVE_PATCH_CONTRACT = '__tests__/reanimatedPatchContract.test.ts';
+const NATIVE_PATCH_GUARDED = /^(?:\.github\/workflows\/|patches\/|scripts\/verify-native-patches\.cjs$|\.gitattributes$|\.npmrc$|eas\.json$)/;
 
 function classify(paths) {
   const domains = new Set();
@@ -112,7 +117,8 @@ function testArguments(plan, tracked) {
   const tests = tracked.filter(path => TEST_FILE.test(path) && !path.endsWith('.cjs') &&
     (CRITICAL.test(path) || plan.domains.some(domain => TESTS[domain].test(path))));
   const sources = plan.changed.filter(path => SOURCE.test(path) && tracked.includes(path));
-  const targets = [...new Set([...tests, ...sources])].filter(path => !path.startsWith('-'));
+  const guards = plan.changed.some(path => NATIVE_PATCH_GUARDED.test(path)) ? tracked.filter(path => path === NATIVE_PATCH_CONTRACT) : [];
+  const targets = [...new Set([...tests, ...sources, ...guards])].filter(path => !path.startsWith('-'));
   if (!targets.length) throw new Error('NO_TARGETED_TESTS_SELECTED');
   return ['--runInBand', '--findRelatedTests', ...targets];
 }

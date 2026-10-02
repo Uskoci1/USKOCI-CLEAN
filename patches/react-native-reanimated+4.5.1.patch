@@ -1,0 +1,232 @@
+diff --git a/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/NativeProxy.kt b/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/NativeProxy.kt
+index 48e3771..b4d6d15 100644
+--- a/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/NativeProxy.kt
++++ b/node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/NativeProxy.kt
+@@ -37,6 +37,28 @@ open class NativeProxy {
+         init {
+             SoLoader.loadLibrary("reanimated")
+         }
++
++        // USKOCI patch RNR-01 (constants): tuning of the synchronous-update guard further down (registry row B22).
++        // A tag whose view exists but whose update still throws is retried no sooner than BASE ms after its first
++        // failure, doubling with every further failure up to MAX. Short on purpose: a tag without a mounted view is
++        // already skipped without trying, so a failure here is abnormal, and a long wait would only delay a view
++        // that recovers.
++        private const val SYNC_UPDATE_RETRY_BASE_MS = 250L
++        private const val SYNC_UPDATE_RETRY_MAX_MS = 2_000L
++
++        // Failing mounted tags remembered at once (about 100 bytes each). Far above the animated views of any screen, so
++        // it is only a memory bound. When it is reached, entries whose retry fell due STALE ms ago and was never
++        // attempted (their tag is gone) are evicted, at most once per STALE ms. A live back-off is never evicted to make
++        // room: that would only make the evicted tag fail again on the very next pass. A failing tag that still finds
++        // no room is retried on every pass like upstream, counted, without a stack trace.
++        private const val SYNC_UPDATE_FAILED_TAGS_MAX = 1_024
++        private const val SYNC_UPDATE_FAILURE_STALE_MS = 4_000L
++
++        // Skipped (unmounted) tags named in the log, at most this many per summary window.
++        private const val SYNC_UPDATE_NAMED_TAGS_MAX = 64
++
++        // The counters of skipped, backed-off and failed updates are logged as one line per window.
++        private const val SYNC_UPDATE_SUMMARY_WINDOW_MS = 5_000L
+     }
+ 
+     protected var mNodesManager: NodesManager? = null
+@@ -245,22 +267,194 @@ open class NativeProxy {
+             }.apply { isAccessible = true }
+     }
+ 
++    // USKOCI patch RNR-01 (guard): Reanimated 4.5.1 replays every retained registry entry on every draw-pass event, and
++    // react-native-svg raises that event in the middle of drawing. For a tag whose view is gone, the upstream call below
++    // throws RetryableMountingLayerException, the reflection layer wraps it, and Log.w prints both deep stacks, on every
++    // pass, without ever dropping the entry (the registry lives in C++). The guard keeps the behaviour and removes the cost:
++    //  - a tag with no mounted view is skipped before any exception is built (the call would have thrown, or done nothing
++    //    on a stopped surface); nothing is remembered about it, so the first pass after its view appears applies the
++    //    registry's last value exactly as before;
++    //  - a tag whose ViewState exists without an Android view (resolveView throws IllegalViewOperationException: a view
++    //    that is still being created, or a node that has none) is skipped as well, the way preserveMountedTags above
++    //    treats it: the upstream call would only replace the props stored in that ViewState by the animated ones and
++    //    touch no view, and React Native reads those stored props back only in updateState, for a ViewState with a view;
++    //  - a tag whose update still fails is logged once with its cause, then retried after a short back-off;
++    //  - everything else, and any other error of the check itself, goes through the upstream call.
++    // The state below is plain HashMap/HashSet. It is touched only on the UI thread: synchronouslyUpdateUIProps tests
++    // UiThreadUtil.isOnUiThread() once per call and off the UI thread skips the guard and behaves like upstream. No caller
++    // is expected off it: the draw-pass path (NodesManager.performOperationsRespectingDrawPass, from onEventDispatch on the
++    // UI thread and from maybeFlushUIUpdatesQueue on the UI runtime) is the one that reaches it here, and performOperations
++    // reaches it only under the ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS feature flag, which this app does not set. The asserts
++    // in the React Native and Reanimated calls on that path only log, and only in debug builds, so the test is what makes
++    // the state safe in a release build.
++    private class SyncUpdateFailure(
++        var count: Int,
++        var retryAtMs: Long,
++    )
++
++    private val syncUpdateFailures = HashMap<Int, SyncUpdateFailure>()
++    private val syncUpdateSkippedTagsLogged = HashSet<Int>()
++    private var syncUpdateSkipped = 0
++    private var syncUpdateViewless = 0
++    private var syncUpdateBackedOff = 0
++    private var syncUpdateFailed = 0
++    private var syncUpdateUntracked = 0
++    private var syncUpdateEvicted = 0
++    private var syncUpdateNextSweepMs = 0L
++    private var syncUpdateWindowStartMs = 0L
++
++    private fun forgetSyncUpdateFailure(viewTag: Int) {
++        if (syncUpdateFailures.isNotEmpty()) {
++            syncUpdateFailures.remove(viewTag)
++        }
++    }
++
++    private fun shouldApplySyncUpdate(viewTag: Int): Boolean {
++        val mounted =
++            try {
++                // Null exactly when MountingManager.updatePropsSynchronously would throw "Unable to find
++                // SurfaceMountingManager for tag" (or the surface is stopped and it would do nothing).
++                mFabricUIManager.resolveView(viewTag) != null
++            } catch (e: IllegalViewOperationException) {
++                // A ViewState registered while its Android view does not exist (see the guard comment): nothing to update.
++                forgetSyncUpdateFailure(viewTag)
++                syncUpdateViewless++
++                return false
++            } catch (e: Exception) {
++                // The check itself could not run: behave exactly like upstream and attempt the update.
++                return true
++            }
++        if (!mounted) {
++            forgetSyncUpdateFailure(viewTag)
++            syncUpdateSkipped++
++            if (syncUpdateSkippedTagsLogged.size < SYNC_UPDATE_NAMED_TAGS_MAX && syncUpdateSkippedTagsLogged.add(viewTag)) {
++                Log.w(
++                    "Reanimated",
++                    "[USKOCI_RNR01] synchronouslyUpdateUIProps skipped unmounted tag $viewTag " +
++                        "(named once per summary window; the update is retried silently on every pass)",
++                )
++            }
++            return false
++        }
++        if (syncUpdateFailures.isNotEmpty()) {
++            val failure = syncUpdateFailures[viewTag]
++            if (failure != null && SystemClock.uptimeMillis() < failure.retryAtMs) {
++                syncUpdateBackedOff++
++                return false
++            }
++        }
++        return true
++    }
++
++    private fun onSyncUpdateApplied(viewTag: Int) {
++        forgetSyncUpdateFailure(viewTag)
++    }
++
++    private fun evictStaleSyncUpdateFailures(now: Long): Boolean {
++        if (now < syncUpdateNextSweepMs) {
++            return false
++        }
++        syncUpdateNextSweepMs = now + SYNC_UPDATE_FAILURE_STALE_MS
++        val entries = syncUpdateFailures.values.iterator()
++        while (entries.hasNext()) {
++            if (now - entries.next().retryAtMs >= SYNC_UPDATE_FAILURE_STALE_MS) {
++                entries.remove()
++                syncUpdateEvicted++
++            }
++        }
++        return syncUpdateFailures.size < SYNC_UPDATE_FAILED_TAGS_MAX
++    }
++
++    private fun onSyncUpdateFailed(
++        viewTag: Int,
++        e: Exception,
++    ) {
++        syncUpdateFailed++
++        val now = SystemClock.uptimeMillis()
++        var failure = syncUpdateFailures[viewTag]
++        if (failure == null) {
++            if (syncUpdateFailures.size >= SYNC_UPDATE_FAILED_TAGS_MAX && !evictStaleSyncUpdateFailures(now)) {
++                syncUpdateUntracked++
++                return
++            }
++            failure = SyncUpdateFailure(0, 0L)
++            syncUpdateFailures[viewTag] = failure
++        }
++        failure.count++
++        val backOffMs = minOf(SYNC_UPDATE_RETRY_BASE_MS shl minOf(failure.count - 1, 10), SYNC_UPDATE_RETRY_MAX_MS)
++        failure.retryAtMs = now + backOffMs
++        if (failure.count == 1) {
++            Log.w(
++                "Reanimated",
++                "synchronouslyUpdateUIProps failed for tag $viewTag [USKOCI_RNR01] (first failure of this tag, cause below; " +
++                    "later failures are only counted, the tag is retried after $backOffMs ms and then after longer waits)",
++                (if (e is java.lang.reflect.InvocationTargetException) e.targetException else null) ?: e,
++            )
++        }
++    }
++
++    private fun logSyncUpdateSummaryIfDue() {
++        if (syncUpdateSkipped == 0 && syncUpdateViewless == 0 && syncUpdateBackedOff == 0 && syncUpdateFailed == 0) {
++            return
++        }
++        val now = SystemClock.uptimeMillis()
++        if (syncUpdateWindowStartMs == 0L) {
++            syncUpdateWindowStartMs = now
++            return
++        }
++        if (now - syncUpdateWindowStartMs < SYNC_UPDATE_SUMMARY_WINDOW_MS) {
++            return
++        }
++        Log.w(
++            "Reanimated",
++            "[USKOCI_RNR01] synchronouslyUpdateUIProps summary: skipped=$syncUpdateSkipped viewless=$syncUpdateViewless " +
++                "backedOff=$syncUpdateBackedOff failed=$syncUpdateFailed untracked=$syncUpdateUntracked " +
++                "evicted=$syncUpdateEvicted tracked=${syncUpdateFailures.size} windowMs=${now - syncUpdateWindowStartMs}",
++        )
++        syncUpdateSkipped = 0
++        syncUpdateViewless = 0
++        syncUpdateBackedOff = 0
++        syncUpdateFailed = 0
++        syncUpdateUntracked = 0
++        syncUpdateEvicted = 0
++        syncUpdateWindowStartMs = 0L
++        syncUpdateSkippedTagsLogged.clear()
++    }
++
+     @DoNotStrip
+     fun synchronouslyUpdateUIProps(
+         intBuffer: IntArray,
+         doubleBuffer: DoubleArray,
+     ) {
++        // USKOCI patch RNR-01 (call site): see the guard above. Off the UI thread the guard state is not touched.
++        val guarded = UiThreadUtil.isOnUiThread()
+         SynchronousPropsBufferParser.parse(intBuffer, doubleBuffer) { viewTag, props ->
+             if (BuildConfig.IS_REACT_NATIVE_86_OR_NEWER) {
+-                try {
+-                    updatePropsSynchronouslyMethod.invoke(mountingManager, viewTag, props)
+-                } catch (e: Exception) {
+-                    Log.w("Reanimated", "synchronouslyUpdateUIProps failed for tag $viewTag", e)
++                if (!guarded || shouldApplySyncUpdate(viewTag)) {
++                    try {
++                        updatePropsSynchronouslyMethod.invoke(mountingManager, viewTag, props)
++                        if (guarded) {
++                            onSyncUpdateApplied(viewTag)
++                        }
++                    } catch (e: Exception) {
++                        if (guarded) {
++                            onSyncUpdateFailed(viewTag, e)
++                        } else {
++                            Log.w(
++                                "Reanimated",
++                                "synchronouslyUpdateUIProps failed for tag $viewTag [USKOCI_RNR01: not on the UI thread, unguarded]",
++                                e,
++                            )
++                        }
++                    }
+                 }
+             } else {
+                 mFabricUIManager.synchronouslyUpdateViewOnUIThread(viewTag, props)
+             }
+         }
++        if (guarded) {
++            logSyncUpdateSummaryIfDue()
++        }
+     }
+ 
+     @DoNotStrip

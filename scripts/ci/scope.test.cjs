@@ -38,6 +38,32 @@ test('dependency/build changes run full regression once in the source job', () =
   assert.equal(makePlan(['package-lock.json']).mode, 'full');
   assert.deepEqual(classify(['package-lock.json']), DOMAINS);
 });
+test('a dependency patch (patch-package, RNR-01) and its verifier are build changes: full regression, every domain', () => {
+  for (const path of ['patches/react-native-reanimated+4.5.1.patch', 'scripts/verify-native-patches.cjs']) {
+    assert.equal(makePlan([path]).mode, 'full', path);
+    assert.deepEqual(classify([path]), DOMAINS, path);
+  }
+});
+test('a workflow, .gitattributes, .npmrc or eas.json edit runs the Reanimated patch contract even in targeted mode (RNR-01)', () => {
+  const contract = '__tests__/reanimatedPatchContract.test.ts';
+  const tracked = [contract, 'src/data/locationResolver.ts', 'src/store/__tests__/session-epoch.test.ts'];
+  for (const path of ['.github/workflows/p6-native-apk.yml', '.github/workflows/build-android-dev-apk.yml', '.gitattributes', '.npmrc', 'eas.json']) {
+    const plan = makePlan([path]);
+    assert.equal(plan.mode, 'targeted', path);
+    assert.ok(testArguments(plan, tracked).includes(contract), path);
+  }
+  // Patch and verifier files are build changes: the full run covers the contract, nothing needs forcing.
+  assert.deepEqual(testArguments(makePlan(['patches/react-native-reanimated+4.5.1.patch']), tracked), ['--runInBand']);
+});
+test('an ordinary source change does not pull the Reanimated patch contract into the targeted run', () => {
+  const contract = '__tests__/reanimatedPatchContract.test.ts';
+  const tracked = [contract, 'src/data/locationResolver.ts', 'src/store/__tests__/session-epoch.test.ts'];
+  assert.ok(!testArguments(makePlan(['src/data/locationResolver.ts']), tracked).includes(contract));
+});
+test('the contract is only forced when it is tracked: a workflow-only change still has a test to run', () => {
+  assert.ok(testArguments(makePlan(['.github/workflows/p6-native-apk.yml']), ['__tests__/reanimatedPatchContract.test.ts']).includes('__tests__/reanimatedPatchContract.test.ts'));
+  assert.throws(() => testArguments(makePlan(['.github/workflows/p6-native-apk.yml']), []), /NO_TARGETED/);
+});
 test('targeted selection keeps critical boundaries plus changed and domain tests', () => {
   const tracked = ['src/store/__tests__/session-epoch.test.ts', 'src/data/__tests__/w02-location-client.test.ts', 'src/data/locationResolver.ts', 'src/data/__tests__/p2-data-export-client.test.ts'];
   const args = testArguments(makePlan(['src/data/locationResolver.ts']), tracked);
