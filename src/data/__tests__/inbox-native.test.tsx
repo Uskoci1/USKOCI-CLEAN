@@ -23,7 +23,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),Re
   return Reflect.get(target,key);
 }});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
-jest.mock('react-native-svg',()=>({__esModule:true,default:'Svg',SvgXml:'NativeSvgXml',Path:'Path',Circle:'Circle',Rect:'Rect',Ellipse:'Ellipse'}));
+jest.mock('react-native-svg',()=>({__esModule:true,default:'Svg',SvgXml:'NativeSvgXml',Path:'Path',Circle:'Circle',Rect:'Rect',Ellipse:'Ellipse',Defs:'Defs',LinearGradient:'LinearGradient',Stop:'Stop'}));
 jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
 jest.mock('../../store/uloga',()=>({postaviUlogu:(role:string)=>mockRole(role),useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));

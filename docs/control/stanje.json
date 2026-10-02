@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T20:32:56Z",
+  "osvezeno": "2026-10-02T21:10:52Z",
   "grana": "HEAD",
-  "head": "7a41f34e",
-  "head_poruka": "Unify product foundation and Home with guarded task and profile recovery",
+  "head": "c6659fec",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 223,
@@ -1518,10 +1518,10 @@
       "ownerFeedback": "Owner reports credit paid and rejects loading, mic/composition and map behavior. Earlier402 is historical, not current availability proof. Fixed source: opening layout jump and lost unsaved pin after recovery. Live speech cause and end-to-end acceptance remain open."
      },
      "postPhoneVisualPolish": {
-      "status": "WHOLE_APP_AUDIT_FOUNDATION_IMPLEMENTED_AWAITING_EMULATOR",
+      "status": "EMULATOR_CRITIQUED_SECOND_COMPOSITION_IMPLEMENTED",
       "file": "src/ui/aiFirst/VoiceComposer.tsx",
-      "change": "Latest owner full UI/UX takeover: 45 production routes / 78 overlapping surface records; Home command composition, vivid AA primary palette, typography, semantic art, task/AI hierarchy; warm task refresh, partial offer-order disclosure and profile Back protection.",
-      "checks": "Types/whitespace PASS; targeted existing checks PASS after reviewed expectation reconciliation. Home/FactArt/voice/layout257; profile Back8; Agreement context87. Source only, exact APK native review next.",
+      "change": "Actual7a41 Home/AI/Discovery/task/offer/Agreement critique; compact Home, keyboard-aware AI opening, public price/capacity/route summary, intrinsic offer counter, open Agreement context and two-row map controls. Group older-page transport recovery remains same-context/read-only.",
+      "checks": "TypeScript PASS. Affected existing checks pass after precise reviewed visual reconciliation; automatedP5/PKG006 failures retained. Discovery combined159-suite cases had one5s timeout and one subsequent assertion; isolated3 relevant cases PASS with unchanged source/tests. Next CI/APK still required.",
       "installedSource": "6fb39b301888527350701741c659bb32cbe617bd",
       "limits": "Server diagnostic remains UNAPPLIED. True spoken AI, provider/STT runtime, complete whole-app visual and connected scenario acceptance remain open.",
       "files": [
@@ -1531,7 +1531,11 @@
        "src/ui/v2/NeedPresentation.tsx"
       ],
       "evidence": "docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json",
-      "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json"
+      "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json",
+      "emulatorSource": "7a41f34e20975e8efc80666177c31fd2bb63dcac",
+      "emulatorBuild": 37061255937,
+      "nativeReview": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_NATIVE_REVIEW_20261002.json",
+      "nativeAcceptance": false
      }
     },
     "ciReconciliation": {
@@ -8972,5 +8976,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37061255937,
+   "ime": "Build Android development APK",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T20:32:39Z"
+  },
+  {
+   "id": 37061247960,
+   "ime": "Control tracker refresh",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37061247941,
+   "ime": "EX-04 S3 rating state proof",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37061247837,
+   "ime": "D12 written review comment proof",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37061247797,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37061247788,
+   "ime": "P5 ready task and matching contract",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37061247781,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "7a41f34e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T20:32:35Z"
+  },
+  {
+   "id": 37053689793,
+   "ime": "P5 ready task and matching contract",
+   "sha": "632eb46f",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T19:22:28Z"
+  },
+  {
+   "id": 37053689770,
+   "ime": "Control tracker refresh",
+   "sha": "632eb46f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:22:28Z"
+  },
+  {
+   "id": 37051296452,
+   "ime": "Build Android development APK",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:52Z"
+  },
+  {
+   "id": 37051283329,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:46Z"
+  },
+  {
+   "id": 37051282564,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  }
+ ]
 }

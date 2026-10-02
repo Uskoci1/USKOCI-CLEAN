@@ -268,7 +268,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         if (!spoken || spoken.length > 4000 || !canAct() || !canSubmit || request.current) return false;
         const bound = speechPrompt.current;
         if (bound && bound.generation === input.session.generation && (bound.blocked || (bound.lease && !bound.lease.isCurrent()))) return false;
-        const lease = bound?.generation === input.session.generation ? bound.lease : null;
+        const lease = bound && bound.generation === input.session.generation ? bound.lease : null;
         speechPrompt.current = null; // Ownership transfers to the journalled normal-turn path before speech becomes IDLE.
         void submitTurn(spoken, null, lease);
         return true;

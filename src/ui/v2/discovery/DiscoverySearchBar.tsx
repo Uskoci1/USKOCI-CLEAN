@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Check, Crosshair, DotsThree, MagnifyingGlass, Plus, SlidersHorizontal, X, type Icon } from 'phosphor-react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { plural } from '../../system/plural';
+import { layoutClassFor, roundTextScale, type WindowRoom } from '../../system/textScale';
 import { CHIP_CHOSEN_INSET, chipChosen, sys } from '../../system/tokens';
 
 /** A quick chip over the map: one existing filter, toggled at once, without opening the search. */
@@ -27,8 +29,9 @@ const CHIP_SIDE = sys.space.md;
  * search in two lines — where, then when and the other conditions — and opens the search panel. Beside it "Uslovi
  * pretrage" opens the same panel at its conditions and counts how many are on. The adjacent menu preserves secondary
  * destinations without another header (a standalone caller may instead offer its publication shortcut).
- * Quick chips toggle real filters at once; a chosen chip has a neutral well, ink edge and tick. The rail gets its own full width, rather than competing with Filteri and the menu. The chips
- * fold away when the caller says so (the list at its full height and scrolled); search and the 48 dp toolbar stay.
+ * At ordinary width/text size, search, Filter and More share one surface as sibling controls. Large text or an
+ * insufficient summary budget keeps the full-width search and separate toolbar. One white scrolling rail holds the
+ * real quick filters; only selected choices have a well and tick. Folding removes that rail, never search/tools.
  *
  * While the list is narrowed to the map's area or to one point, the pill carries its own "×" at its right end, "Prikaži
  * sve zadatke": the way back to every task is where the narrowing is said, not a chip that would appear under the
@@ -36,11 +39,13 @@ const CHIP_SIDE = sys.space.md;
  * exactly as tall with it as without it.
  */
 export function DiscoverySearchBar({ where, conditions, conditionCount, chips, chipsShown, onSearch, onConditions, onNew, onMore, onClearWhere,
-  onLayout, onChipsHeight, nearby }: {
+  onLayout, onChipsHeight, nearby, layoutRoom }: {
   /** Line 1: where the search looks. */ where: string;
   /** Line 2: when, and the other conditions (or "Dodaj uslove"). */ conditions: string;
   /** How many conditions are on: the count on "Uslovi pretrage". */ conditionCount: number;
   chips: readonly QuickChip[]; chipsShown: boolean;
+  /** Existing parent window measurement; this component adds no Dimensions subscription. */
+  layoutRoom?: WindowRoom;
   nearby?: { onPress: () => void; busy: boolean; message?: string; onSettings?: () => void };
   onSearch: () => void; onConditions: () => void; onNew?: () => void;
   /** Secondary account/publication entries share one menu so the map does not need a second header. */
@@ -55,7 +60,21 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   /** The room the row of chips takes, the gap above it included: exactly what the list gains when they fold away. */
   onChipsHeight?: (room: number) => void;
 }) {
-  const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+  const scale = roundTextScale(layoutRoom?.scale ?? 1);
+  const width = measuredWidth === null ? layoutRoom?.width ?? 0 : Math.min(measuredWidth, layoutRoom?.width ?? measuredWidth);
+  // Keep a real text budget after BOTH 48dp controls, clear-where and the search icon. The badge may grow.
+  const badgeRoom = conditionCount ? Math.max(20, String(conditionCount).length * sys.type.label.fontSize * scale + 2 * sys.space.xs) : 0;
+  const filterRoom = conditionCount ? 20 + sys.space.xs + badgeRoom + 2 * sys.space.sm : chrome.control;
+  const toolsRoom = filterRoom + (onMore || onNew ? sys.space.xs + chrome.control : 0);
+  const searchFixedRoom = sys.space.base + 22 + sys.space.md + (onClearWhere ? CLEAR_WIDTH : sys.space.sm);
+  const summaryRoom = width - 2 * sys.space.base - 2 - 4 - toolsRoom - searchFixedRoom;
+  const compact = !!layoutRoom && !layoutClassFor(width, scale).stacked && summaryRoom >= 96 * scale;
+  const measure = (event: LayoutChangeEvent) => {
+    const { y, height, width: actualWidth } = event.nativeEvent.layout;
+    if (Number.isFinite(actualWidth) && actualWidth > 0) setMeasuredWidth(current => current === actualWidth ? current : actualWidth);
+    onLayout(Math.ceil(y + height));
+  };
   const measureChips = (event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
     // The toolbar remains when chips fold. Return the rail's measured height and the bar's gap.
@@ -65,9 +84,9 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   const tools = <>
     <Press accessibilityRole="button" accessibilityLabel={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
         accessibilityState={{ selected: conditionCount > 0 }} haptic="select" hitSlop={0} onPress={onConditions}
-        style={[s.filter, conditionCount > 0 && s.filterOn]}>
+        style={[s.filter, compact && s.filterCompact, conditionCount > 0 && s.filterOn]}>
         <SlidersHorizontal size={20} weight="bold" color={sys.color.ink} />
-        <T variant="note" style={s.filterText}>Filteri</T>
+        {!compact ? <T variant="note" style={s.filterText}>Filteri</T> : null}
         {conditionCount ? <View testID="conditions-badge" style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <T variant="label" style={s.badgeText}>{conditionCount}</T></View> : null}
       </Press>
@@ -102,7 +121,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           style={[s.pill, s.pillWide, onClearWhere && s.pillClearable]}>
           <MagnifyingGlass size={22} weight="bold" color={sys.color.ink} />
           <View style={s.lines}>
-            {/* The full-width summary keeps two lines at every text size. Full values remain in its spoken value and search panel. */}
+            {/* Same current summary, two lines; full values remain spoken and available in the search panel. */}
             <T variant="bodyStrong" style={s.where} numberOfLines={1}>{where}</T>
             <T variant="meta" tone="muted" numberOfLines={1}>{conditions}</T>
           </View>
@@ -112,11 +131,12 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           <View style={s.clearCircle}><X size={16} weight="bold" color={sys.color.ink} /></View>
         </Press> : null}
       </View>
+      {compact ? <View testID="discovery-search-tools" style={s.toolCluster}>{tools}</View> : null}
       </View>
     </View>
-    <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
+    {!compact ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
       <View style={[s.toolCluster, s.toolClusterWide]}>{tools}</View>
-    </View>
+    </View> : null}
     {quickFilters}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
@@ -140,7 +160,8 @@ const s = StyleSheet.create({
   // The words end where the clear button begins.
   pillClearable: { paddingRight: CLEAR_WIDTH },
   pillWide: { borderRadius: sys.radius.card },
-  fullRail: { flexGrow: 0, alignSelf: 'stretch' },
+  fullRail: { flexGrow: 0, alignSelf: 'stretch', marginHorizontal: sys.space.base,
+    borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   lines: { flex: 1, minWidth: 0 },
   where: { lineHeight: 20, color: sys.color.ink },
   // Over the pill's right end, from its top edge to its bottom edge: never taller than the pill, never under 48 wide.
@@ -152,6 +173,8 @@ const s = StyleSheet.create({
   filter: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48,
     paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     borderWidth: 1, borderColor: sys.color.lineStrong },
+  filterCompact: { minWidth: chrome.control, paddingHorizontal: sys.space.sm, gap: sys.space.xs,
+    borderWidth: 0, borderRadius: sys.radius.control, backgroundColor: 'transparent' },
   filterOn: { backgroundColor: sys.color.wash, borderColor: sys.color.ink },
   filterText: { color: sys.color.ink, fontWeight: '600' },
   // It grows with the text size rather than cut its number.
@@ -159,11 +182,10 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
-  chipsFullWidth: { paddingVertical: 0 },
-  // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
-  // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.
+  chipsFullWidth: { paddingHorizontal: sys.space.xs, paddingVertical: 0 },
+  // One rail surface gives every label contrast over the map. Only selected filters receive their own inset.
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
-    borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+    borderWidth: 1, borderColor: 'transparent', backgroundColor: 'transparent' },
   chipOn: { ...chipChosen, borderColor: sys.color.ink, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
   chipText: { fontWeight: '500', color: sys.color.ink },
   chipTextOn: { color: sys.color.ink, fontWeight: '600' },

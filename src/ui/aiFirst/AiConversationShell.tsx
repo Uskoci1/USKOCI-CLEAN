@@ -229,7 +229,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
-          <AssistantPresence />
+          {!keyboard ? <AssistantPresence /> : null}
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>

@@ -139,7 +139,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
            "props": {
             "size": 40,
             "weight": "fill",
-            "color": "#FA8229"
+            "color": "#FF7A1A"
            },
            "children": null
           }
@@ -166,7 +166,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
            "props": {
             "size": 40,
             "weight": "fill",
-            "color": "#FA8229"
+            "color": "#FF7A1A"
            },
            "children": null
           }
@@ -193,7 +193,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
            "props": {
             "size": 40,
             "weight": "fill",
-            "color": "#FA8229"
+            "color": "#FF7A1A"
            },
            "children": null
           }
@@ -220,7 +220,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
            "props": {
             "size": 40,
             "weight": "fill",
-            "color": "#FA8229"
+            "color": "#FF7A1A"
            },
            "children": null
           }
@@ -415,7 +415,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
            "props": {
             "size": 16,
             "weight": "bold",
-            "color": "#076E4E"
+            "color": "#00845A"
            },
            "children": null
           },
@@ -1054,7 +1054,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
          "props": {
           "size": 28,
           "weight": "fill",
-          "color": "#FA8229"
+          "color": "#FF7A1A"
          },
          "children": null
         },
@@ -1063,7 +1063,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
          "props": {
           "size": 28,
           "weight": "fill",
-          "color": "#FA8229"
+          "color": "#FF7A1A"
          },
          "children": null
         },
@@ -1072,7 +1072,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
          "props": {
           "size": 28,
           "weight": "fill",
-          "color": "#FA8229"
+          "color": "#FF7A1A"
          },
          "children": null
         },
@@ -1081,7 +1081,7 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
          "props": {
           "size": 28,
           "weight": "fill",
-          "color": "#FA8229"
+          "color": "#FF7A1A"
          },
          "children": null
         },

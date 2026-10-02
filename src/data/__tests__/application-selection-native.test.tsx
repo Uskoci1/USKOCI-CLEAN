@@ -89,7 +89,7 @@ async function reviewOffer() {
   expect(press('Pošalji ovu Prijavu')).toBeDefined();
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
-async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
+async function offer() { await render(); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
 // Step 7 (2026-09-24): an offer opens as a sheet over the list and its one green action, "Izaberi ovu ponudu", asks in an
 // in-app confirmation. It was a page with "Pregledaj povezivanje" and a review page behind it; these helpers pinned that
 // look. Android Back on the sheet (its Modal's request) is how an offer is closed now, where the offer page had its own
@@ -138,7 +138,7 @@ it('keeps a long accessible message preview bounded and opens the full saved mes
 });
 
 it('reviews an offer without writing or sending and returns to the unchanged draft on Back', async () => {
-  await offer(); await edit('Kratka napomena', '  Donosimo trake.  ');
+  await offer(); await edit('Poruka uz prijavu', '  Donosimo trake.  ');
   expect(press('Pošalji ovu Prijavu')).toBeUndefined();
   await tap('Pregledaj ponudu');
   expect(text()).toContain('Ovo šalješ'); expect(text()).toContain('4.500 RSD');
@@ -150,13 +150,13 @@ it('reviews an offer without writing or sending and returns to the unchanged dra
   await act(async () => retainedSend());
   expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
   expect(press('Pošalji ovu Prijavu')).toBeUndefined();
-  const note = tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Kratka napomena')[0];
+  const note = tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Poruka uz prijavu')[0];
   expect(note.props.value).toBe('  Donosimo trake.  ');
 });
 it('a retained review cannot send a later edited offer; a new review sends that exact offer once', async () => {
   await offer(); await tap('Pregledaj ponudu'); const oldSend = press('Pošalji ovu Prijavu');
-  await tap('Izmeni ponudu'); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '6500');
-  await edit('Kratka napomena', '  Donosimo trake.  ');
+  await tap('Izmeni ponudu'); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '6500');
+  await edit('Poruka uz prijavu', '  Donosimo trake.  ');
   await act(async () => oldSend()); expect(mockSubmit).not.toHaveBeenCalled();
   await tap('Pregledaj ponudu'); expect(text()).toContain('6.500 RSD');
   const send = press('Pošalji ovu Prijavu'); await act(async () => { send(); send(); });
@@ -182,7 +182,7 @@ it('reviews flexible time without making up an exact interval and keeps missing 
   expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Upiši svoju cenu da pregledaš ponudu.');
   expect(text()).toContain('Cena još nije upisana'); expect(text()).not.toMatch(/\d RSD/);
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await tap('Pregledaj ponudu');
+  await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await tap('Pregledaj ponudu');
   expect(text()).toContain('Tačan početak i kraj još nisu dogovoreni.');
   expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
@@ -269,21 +269,22 @@ it.each(['blur', 'account'])('a confirmed application link cannot navigate after
   await act(async () => open()); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('keeps offered price total and rejects trailing garbage or overfill', async () => {
-  await offer(); expect(text()).toContain('Ukupan iznos za sve ljude koje dovodiš, ne po osobi.'); expect(text()).toMatch(/ukupno\s+·/);
+  await offer(); expect(text()).toContain('Tvoja ukupna ponuda'); expect(text()).toContain('Za sve ljude koje dovodiš.');
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === '4.500 RSD ukupno, dolaze 2 osobe')).not.toHaveLength(0);
   const review = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj ponudu')[0];
   // The route's own guard stays authoritative: it is called directly with each bad draft, past the grey button.
   const routeSubmit = async () => { await act(async () => {
     await tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation).props.submit(); }); };
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500abc');
+  await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500abc');
   // r6: the grey button's reason is the field's own sentence (it said "Cena mora biti ceo iznos u dinarima." beside it).
   expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Upiši ceo iznos u dinarima, bez tačaka i slova.');
   expect(text()).toContain('Upiši ceo iznos u dinarima, bez tačaka i slova.');
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
   await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
-  await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '4');
-  // r6: the stepper's line states the count once; the button says what to do (it repeated "Ima mesta za još 3 osobe.").
+  await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '4');
+  // The capacity appears once beside the count; the button says how to fix an overfill.
   expect(review().props.disabled).toBe(true); expect(review().props.accessibilityHint).toBe('Smanji broj ljudi na 3 da pregledaš ponudu.');
-  expect(text().split('Ima mesta za još 3 osobe.')).toHaveLength(2);
+  expect(text().split('Traži 3 osobe')).toHaveLength(2);
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu Prijavu')).toBeUndefined();
   await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
@@ -443,7 +444,7 @@ it('binds displayed fixed price to the same Need revision and prevents editing t
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } });
   await render();
   // A price the task names is a fact, not a field: nothing to type it into, and it is the Need's own amount.
-  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Ukupna cena za ljude koje dovodiš (RSD)')).toHaveLength(0);
+  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Tvoja ukupna ponuda za ljude koje dovodiš (RSD)')).toHaveLength(0);
   expect(text()).toContain('6.000 RSD'); expect(text()).not.toContain('4.500 RSD');
   await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, potrebaRevizija: 3, predlozeniPocetak: null, predlozeniKraj: null });
@@ -454,10 +455,13 @@ it('prices a per-person task by the people this application brings', async () =>
   const perPerson = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } };
   mockNeed.mockResolvedValue(perPerson); mockTask.mockResolvedValue({ ...perPerson, primaNovePrijave: true });
   await render();
-  const priceFields = () => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Ukupna cena za ljude koje dovodiš (RSD)');
-  expect(text()).toContain('5.000 RSD po osobi'); expect(text()).toContain('računa po broju ljudi');
-  expect(priceFields()).toHaveLength(0); expect(text()).toContain('Ukupno za 1 osobu: 5.000 RSD');
-  await tap('Jedna osoba više'); expect(text()).toContain('10.000 RSD'); expect(text()).toContain('Ukupno za 2 osobe: 10.000 RSD');
+  const priceFields = () => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Tvoja ukupna ponuda za ljude koje dovodiš (RSD)');
+  expect(text()).toContain('5.000 RSD po osobi');
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Cena zadatka: 5.000 RSD po osobi')).not.toHaveLength(0);
+  expect(priceFields()).toHaveLength(0);
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === '5.000 RSD ukupno, dolazi 1 osoba')).not.toHaveLength(0);
+  await tap('Jedna osoba više'); expect(text()).toContain('10.000 RSD ukupno');
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === '10.000 RSD ukupno, dolaze 2 osobe')).not.toHaveLength(0);
   expect(priceFields()).toHaveLength(0);
   await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 10000, pokrivenaMesta: 2, potrebaRevizija: 3 });
@@ -466,7 +470,8 @@ it('covers every place on a task whose price is for the whole task', async () =>
   const total = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 18000, valuta: 'RSD', prikaz: '18.000 RSD' } };
   mockNeed.mockResolvedValue(total); mockTask.mockResolvedValue({ ...total, primaNovePrijave: true });
   await render();
-  expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('pokriva sva mesta: 3 osobe');
+  expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('18.000 RSD za ceo zadatak');
+  expect(text()).toContain('Traži 3 osobe');
   expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Koliko ljudi dolazi')).toHaveLength(0);
   expect(text()).toContain('Dolaze 3 osobe'); expect(press('Jedna osoba više')).toBeUndefined();
   await sendOffer();
@@ -619,7 +624,7 @@ describe('the composer as a checkout step', () => {
     await render();
     expect(text()).toContain('Unos ormara'); expect(text()).toContain('Tražim ponude'); expect(text()).toContain('Traži 3 osobe');
     expect(text()).not.toContain('0 / 3'); expect(text()).not.toContain('popunjeno');
-    expect(tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Unos ormara, Tražim ponude'))).not.toHaveLength(0);
+    expect(tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel === 'Unos ormara, Liman 2, Novi Sad, Tražim ponude')).not.toHaveLength(0);
   });
   it('steps the people between one and the places left, and says so when the typed number is too many', async () => {
     await render();
@@ -632,7 +637,7 @@ describe('the composer as a checkout step', () => {
     await edit('Koliko ljudi dolazi', '');
     const review = step('Pregledaj ponudu');
     expect(review.props.disabled).toBe(true); expect(review.props.accessibilityHint).toBe('Upiši svoju cenu da pregledaš ponudu.');
-    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500');
+    await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500');
     expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Upiši koliko ljudi dolazi.'); expect(text()).toContain('broj ljudi nije upisan');
     await edit('Koliko ljudi dolazi', '0'); expect(step('Pregledaj ponudu').props.accessibilityHint).toBe('Upiši koliko ljudi dolazi.');
     await edit('Koliko ljudi dolazi', '2'); expect(step('Pregledaj ponudu').props.disabled).toBe(false);
@@ -666,7 +671,9 @@ describe('the composer as a checkout step', () => {
     const amounts = () => tree!.root.findAll(node => String(node.type) === 'T' && node.props.children === '5.000 RSD');
     expect(amounts()).toHaveLength(1); expect(text()).toContain('5.000 RSD po osobi');
     const head = tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Unos ormara, '));
-    expect(head).toHaveLength(1); expect(head[0].props.accessibilityLabel).toBe('Unos ormara, Liman 2, Novi Sad, 20. sept · 10–11h, Traži 3 osobe');
+    expect(head).toHaveLength(1); expect(head[0].props.accessibilityLabel).toBe('Unos ormara, Liman 2, Novi Sad');
+    expect(text()).toContain('Traži 3 osobe');
+    expect(step('Termin Prijave').props.accessibilityValue.text).toContain('10:00–11:00');
     expect(step('Pregledaj ponudu').props.icon).toBeUndefined();
   });
   it('a task that no longer takes applications locks its fields and offers the other tasks beside the reason', async () => {
@@ -674,9 +681,9 @@ describe('the composer as a checkout step', () => {
     mockTask.mockResolvedValue({ ...need(), primaNovePrijave: false, rokZaPrijaveIso: null });
     mockFocused = false; await update(); mockFocused = true; await update();
     expect(text()).toContain('Zadatak više ne prima prijave.'); expect(step('Pregledaj ponudu').props.disabled).toBe(true);
-    for (const label of ['Ukupna cena za ljude koje dovodiš (RSD)', 'Koliko ljudi dolazi', 'Kratka napomena']) expect(inputs(label)[0].props.editable).toBe(false);
+    for (const label of ['Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', 'Koliko ljudi dolazi', 'Poruka uz prijavu']) expect(inputs(label)[0].props.editable).toBe(false);
     expect(step('Jedna osoba više').props.disabled).toBe(true); expect(step('Termin Prijave').props.disabled).toBe(true);
-    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '9999'); expect(inputs('Ukupna cena za ljude koje dovodiš (RSD)')[0].props.value).toBe('4500');
+    await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '9999'); expect(inputs('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)')[0].props.value).toBe('4500');
     const go = press('Pogledaj druge zadatke'); expect(go).toBeDefined();
     await act(async () => { go(); go(); });
     expect(mockRouter.replace.mock.calls).toEqual([['/zadaci']]); expect(mockSubmit).not.toHaveBeenCalled();

@@ -92,7 +92,7 @@ test('a confirmed Agreement without server permission leads with the conversatio
   // Round-1 critique A13 (owner step 8): the state is the step's title and the next step its sentence; the title
   // used to be the step, which the sentence under it then said again.
   expect(copy).toContain('Dogovoreno'); expect(copy).not.toContain('Sledeći korak'); expect(copy).not.toContain('Potvrdi završetak kada je posao obavljen');
-  expect(copy).toContain('Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.');
+  expect(copy).toContain('Završetak potvrđuješ kada je posao obavljen.');
   expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
@@ -479,14 +479,14 @@ test('a Dogovor that does not name the other side keeps the word Dogovor and say
   expect(texts()).not.toContain('Čeka se potvrda završetka');
 });
 
-// Round-1 critique A13 and B17 (owner step 8): on a 1:1 Dogovor the bar already names the one other person, so the
-// list of both sides and "1 osoba" said them again; the facts took a fifth of the screen.
+// The 1:1 overview keeps identity in the bar and no duplicated participants block. Accepted covered people
+// remain explicit beside the total, including one person; a group retains its participant details.
 describe('the overview of a 1:1 Dogovor says each thing once', () => {
   const people = () => texts().match(/Ti · (tražiš pomoć|uskačeš)/g) ?? [];
-  test('it has no participants block and no people fact; a group Dogovor keeps both', async () => {
+  test('it omits a duplicated participants block but states accepted people; a group Dogovor keeps both', async () => {
     await render(base());
-    expect(people()).toHaveLength(0); expect(texts()).not.toMatch(/\d osob/);
-    expect(tree.root.findAll(node => node.props.accessibilityLabel?.startsWith?.('Dogovoreni broj osoba:'))).toHaveLength(0);
+    expect(people()).toHaveLength(0); expect(texts()).toContain('1 osoba');
+    expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Dogovoreni broj osoba: 1 osoba')).toHaveLength(1);
     await act(async () => tree.unmount());
     await render(base({ pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1 } }));
     expect(people()).toEqual(['Ti · tražiš pomoć']); expect(texts()).toContain('Uskače');

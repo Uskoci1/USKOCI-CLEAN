@@ -10,7 +10,7 @@ import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
-import { floating, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
@@ -101,8 +101,8 @@ export function AgreementFact({ art, label, value, note, basis, money = false, l
   </View>;
 }
 
-/** Source task context; only its authoritative route makes it a link. Compact history uses an open row;
- * the standalone overview keeps its card. Accepted terms live separately in both compositions. */
+/** Source task context stays open on the white surface. Only its authoritative route makes it a link;
+ * accepted terms live separately from this current task context. Compact history keeps its existing row. */
 export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, compact = false }: {
   agreement: DogovorProjekcija;
   /** Only provided when the authoritative source task id is available. */
@@ -122,12 +122,14 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
     {onOpenTask ? <CaretRight size={22} color={sys.color.muted} /> : null}
   </View> : <View style={s.taskOverview}>
     <T accessibilityRole="header" variant="cardTitle" style={s.ink}>{title}</T>
-    {/* These are source-task context, not a precise location granted by the accepted Agreement. */}
-    <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
-      <T variant="note" tone="muted" style={s.taskPlaceCopy}>{taskPlace}</T></View>
-    <View style={s.taskDestination}>
-      <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
-      {onOpenTask ? <CaretRight size={18} color={sys.color.muted} /> : null}
+    <View style={s.taskMeta}>
+      {/* Source-task area is coarse context, never the Agreement's private location. */}
+      <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
+        <T variant="note" tone="muted" style={s.taskPlaceCopy}>{taskPlace}</T></View>
+      <View style={s.taskDestination}>
+        <T style={s.taskDestinationLabel} variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
+        {onOpenTask ? <CaretRight size={18} color={sys.color.muted} /> : null}
+      </View>
     </View>
   </View>;
   return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}${compact ? '' : `. ${taskPlace}`}`}
@@ -138,19 +140,19 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
 
 /** Accepted facts remain a readable record, separate from the source task's current detail. */
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
-  const people = agreementPeople(a);
+  // The overview states the accepted count even for one person; compact chat can omit that repeated fact.
+  const people = compact ? agreementPeople(a) : osoba(a.pokrivenost.popunjeno);
   const scope = a.prihvacenObim;
   const discloseScope = scope ? Array.from(scope).length > 180 || /[\r\n]/.test(scope) : false;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
   const facts = <View style={compact ? s.facts : s.acceptedDetails}>
     {compact ? <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} /> : null}
     <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} labelVisible={!compact} />
-    {!compact && people ? <AgreementFact art="users" label="Dogovoreni broj osoba" value={people} labelVisible /> : null}
   </View>;
   const price = <View style={compact ? s.acceptedPrice : undefined}>
     <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA}
       basis={compact && amount ? 'ukupno' : null} money={/\d/.test(amount)} labelVisible={!compact} prominent={!compact && /\d/.test(amount)} />
-    {compact && people ? <AgreementFact art="users" label="Ljudi" value={people} /> : null}
+    {people ? <AgreementFact art="users" label={compact ? 'Ljudi' : 'Dogovoreni broj osoba'} value={people} /> : null}
   </View>;
   return <View style={s.terms}>
     <View style={s.termsHeading}>
@@ -204,18 +206,19 @@ export function AgreementSection({ label, summary, art, children }: { label: str
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { ...floating, padding: sys.space.base, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
+  hero: { minHeight: 48, paddingVertical: sys.space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
   heroCompact: { minHeight: 48, justifyContent: 'center' },
   context: { gap: sys.space.base },
   terms: { gap: sys.space.sm, paddingVertical: sys.space.sm },
   termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   taskCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  taskOverview: { gap: sys.space.xs },
-  taskPlace: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, marginTop: sys.space.xs },
+  taskOverview: { gap: sys.space.sm },
+  taskMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.xs },
+  taskPlace: { flexDirection: 'row', alignItems: 'flex-start', flexBasis: 160, flexGrow: 1, flexShrink: 1, minWidth: 0, gap: sys.space.sm },
   taskPlaceCopy: { flex: 1, minWidth: 0 },
-  taskDestination: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, marginTop: sys.space.sm },
+  taskDestination: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, flexShrink: 0, maxWidth: '100%' },
+  taskDestinationLabel: { flexShrink: 1 },
   acceptedTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },

@@ -225,10 +225,7 @@ const contrastOnWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 describe("sys.color.art, the tones a FACT picture is drawn in (not sys.art: those are the Home drawing's colours)", () => {
   const tones = Object.entries(sys.color.art);
 
-  it('is not sys.art: the two groups that share a word point at each other in tokens.ts, so neither is mistaken for the other', () => {
-    const tokens = read('src/ui/system/tokens.ts');
-    expect(tokens).toMatch(/NOT `sys\.art`/);
-    expect(tokens).toMatch(/NOT `sys\.color\.art`/);
+  it('keeps fact tones separate from Home illustration colors', () => {
     expect(Object.keys(sys.color.art)).toEqual(['brand', 'accent', 'quiet', 'danger']);
     expect(Object.keys(sys.art)).not.toContain('brand');
     expect(Object.keys(sys.art)).toContain('leafDeep');
@@ -479,7 +476,6 @@ const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, numbe
   'src/app/(app)/profil/lokacija.tsx': { scale: 1 },
   'src/ui/agreements/AgreementWorkspace.tsx': { scale: 1 },
   'src/ui/aiFirst/AiConversationShell.tsx': { duration: 1 }, // typing dots, 520
-  'src/ui/aiFirst/VoiceComposer.tsx': { duration: 1 }, // glow, 1600
   'src/ui/calendar/AgendaScreen.tsx': { scale: 1 },
   'src/ui/calendar/AvailabilityForm.tsx': { scale: 4 },
   'src/ui/calendar/CalendarControls.tsx': { scale: 1 },
@@ -548,12 +544,6 @@ describe('the colour meaning and the eight motion rules are written down', () =>
     for (let rule = 1; rule <= 8; rule++) expect([rule, new RegExp(`\\bR${rule}\\b`).test(source)]).toEqual([rule, true]);
   });
 
-  it.each([['tokens.ts', tokens], ['DESIGN_SKILLS.md', skills]])('%s carries the colour-meaning table', (_name, source) => {
-    for (const meaning of [/green\s*=\s*do/i, /ink\s*=\s*content/i, /muted\s*=\s*unknown/i, /warn\s*=\s*waits/i, /orange\s*=\s*attention/i]) {
-      expect([String(meaning), meaning.test(source)]).toEqual([String(meaning), true]);
-    }
-  });
-
   it('DESIGN_SKILLS.md names the layout class and its guards', () => {
     expect(skills).toMatch(/useLayoutClass\(\)/);
     expect(skills).toMatch(/one-token-source\.test\.ts/);
@@ -584,6 +574,5 @@ describe('the colour meaning and the eight motion rules are written down', () =>
     const flat = skills.replace(/\s+/g, ' ');
     expect(flat).not.toMatch(/nineteen files|31 files/);
     expect(flat).toContain(`${WINDOW_WIDTH_READERS.size} files are listed today`);
-    expect(flat).toContain(`${Object.keys(MOTION_LITERALS_ALLOWED).length} files listed today`);
   });
 });

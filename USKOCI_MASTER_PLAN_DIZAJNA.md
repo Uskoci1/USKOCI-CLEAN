@@ -2,7 +2,7 @@
 
 The latest owner51-section instruction authorizes full presentation/flow redesign within existing functional contracts. Old visual locks below are historical. Current source audit, design language, typography, motion contract and vertical sequence: [UIUX_PLAN_AND_STATUS_20261002.md](docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md#whole-product-takeover--source-audit-and-first-vertical-implementation-2026-10-02). [Complete source route matrix](docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json).
 
-Foundation/Home/task/AI changes are an IMPLEMENTED CANDIDATE awaiting exact-source APK visual review, not a confirmed whole-app canon. After native critique, confirmed decisions update this section. Current execution/acceptance remains in docs/control/redovi.json and the LIVE plan. The historical rollback below remains evidence for its old source only; it is not today's runtime pointer.
+Foundation/Home/task/AI source7a41f34e now has a real emulator critique: [screenshots and scope](docs/implementation/ui-ux-pass-20261002/TAKEOVER_NATIVE_REVIEW_20261002.md). Home needs a shorter entry; task/offer/Agreement composition is being corrected. White/ink reading and semantic art are retained as the reviewed direction; no whole-app canon or completion is claimed. After native critique, confirmed decisions update this section. Current execution/acceptance remains in docs/control/redovi.json and the LIVE plan. The historical rollback below remains evidence for its old source only; it is not today's runtime pointer.
 
 ## Historical checkpoints (retained, no longer current)
 

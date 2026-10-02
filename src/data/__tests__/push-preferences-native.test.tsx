@@ -1,4 +1,5 @@
 import React from 'react';
+import { sys } from '../../ui/system/tokens';
 import Renderer, { act } from 'react-test-renderer';
 import { AccessibilityInfo, AppState, Linking, Platform, StyleSheet } from 'react-native';
 import { PushPreferences, PushPreferencesView } from '../../ui/notifications/PushPreferences';
@@ -201,17 +202,17 @@ it('a switch row is one focus stop, spoken as a switch, drawn green on white ins
  const drawn = row.findByProps({ importantForAccessibility: 'no-hide-descendants' });
  const toggle = drawn.findByProps({ value: true });
  expect(toggle.props.accessibilityLabel).toBeUndefined();
- expect(toggle.props.trackColor).toEqual({ false: '#CDCDCD', true: '#076E4E' });
- expect(toggle.props.thumbColor).toBe('#FFFFFF');
+ expect(toggle.props.trackColor).toEqual({ false: sys.color.lineStrong, true: sys.color.green });
+ expect(toggle.props.thumbColor).toBe(sys.color.surface);
 });
 it('the one green action is Save, in the footer, grey with its reason until something changes', async () => {
  await mount();
  const save = button('Sačuvaj podešavanja');
- expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe('#076E4E');
+ expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe(sys.color.green);
  expect(save.props.disabled).toBe(true);
  expect(save.props.reason).toBe('Nema nesačuvanih izmena.');
  expect(tree.root.findByProps({ testID: 'settings-primary-footer' }).findAllByType('Button' as never).map(x => x.props.label)).toEqual(['Sačuvaj podešavanja']);
- const greens = tree.root.findAllByType('Button' as never).filter(x => StyleSheet.flatten(x.props.style)?.backgroundColor === '#076E4E');
+ const greens = tree.root.findAllByType('Button' as never).filter(x => StyleSheet.flatten(x.props.style)?.backgroundColor === sys.color.green);
  expect(greens).toHaveLength(1);
 });
 it('reports unsaved changes to the route, and shows the check only once the saved values are read back', async () => {

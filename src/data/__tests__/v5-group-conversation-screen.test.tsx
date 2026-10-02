@@ -157,3 +157,15 @@ it('offers a message to support with a plain tap, so no gesture is needed',async
  expect(tree!.root.findByType('SupportContextEntry' as never).props.reference).toEqual({kind:'GROUP_MESSAGE',id:M,revision:null});
  expect(text().split('Razgovor je završen').length-1).toBe(0);expect(mockService.send).not.toHaveBeenCalled();
 });
+
+
+it('keeps failed older-page history readable with an explicit retry and clears it when the route blurs',async()=>{
+ mockService.messages.mockResolvedValueOnce(ok({messages:[message],nextBeforeSequence:'1',nextAfterSequence:null}));await render();
+ mockService.messages.mockResolvedValueOnce({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'});await tap('Starije poruke');
+ expect(text()).toContain(message.body);expect(text()).toContain('Starije poruke nisu učitane');expect(text()).not.toContain('Razgovor nije učitan');
+ expect(action('Ponovo učitaj starije poruke').disabled).toBe(false);expect(send('Pošalji poruku grupi')).toBeUndefined();
+ const oldRetry=action('Ponovo učitaj starije poruke').onPress;
+ await act(async()=>{mockFocused=false;tree!.update(page());});
+ expect(text()).not.toContain(message.body);const reads=mockService.messages.mock.calls.length;
+ await act(async()=>oldRetry());expect(mockService.messages).toHaveBeenCalledTimes(reads);expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+});

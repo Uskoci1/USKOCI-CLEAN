@@ -1163,6 +1163,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <Animated.View testID="discovery-search-backing" pointerEvents="none" accessible={false} importantForAccessibility="no"
         style={[s.searchBacking, { height: listTop + sys.radius.sheet }, searchBacking]} />
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
+        layoutRoom={{ width: windowWidth, scale: fontScale }}
         nearby={where === 'remote' ? undefined : { onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
         chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
         onMore={() => { Keyboard.dismiss(); setMore(true); }}

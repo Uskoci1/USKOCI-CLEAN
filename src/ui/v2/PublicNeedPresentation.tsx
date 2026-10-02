@@ -6,7 +6,6 @@ import type { PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { inicijali } from '../../lib/inicijali';
 import { vreme } from '../../lib/vreme';
-import { osoba } from '../system/plural';
 import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
@@ -17,7 +16,7 @@ import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
-import { TaskDecisionLogistics, TaskDecisionPerson, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
+import { TaskDecisionSummary, TaskDecisionPerson, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -92,12 +91,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
-        <View style={s.brief}>
-          <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
-            filled={`${need.pokrivenost.popunjeno}/${need.pokrivenost.ukupno}`}
-            spokenFilled={`popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
-        </View>
+        <TaskDecisionSummary need={need} price={price} />
         {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
         <TaskDecisionRequirements rows={needRequirementRows(need)} />
         {/* Trust follows an understanding of the work. A missing rating stays explicitly missing. */}
@@ -152,7 +146,6 @@ const s = StyleSheet.create({
   state: { gap: 12 },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
   hero: { gap: sys.space.md, backgroundColor: sys.color.surface },
-  brief: { gap: sys.space.base },
   publisher: { gap: sys.space.md, paddingTop: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line },
   badgeRow: { flexDirection: 'row' },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

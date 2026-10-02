@@ -78,7 +78,7 @@ async function reviewOffer() {
   expect(press('Pošalji ovu Prijavu')).toBeDefined();
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
-async function offer() { await render(); await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
+async function offer() { await render(); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
 it('rearms read and Retry after returning to the same retained tab', async () => {
@@ -273,7 +273,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await render();
     expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
     expect(text()).toContain('nije čitljiv');
-    await edit('Ukupna cena za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
+    await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
   });
   it('a known refusal of the retried command permits a reset that clears the journal; an unknown outcome keeps it', async () => {
@@ -402,7 +402,7 @@ describe('R18 storage integrity', () => {
 
   it('unknown offer survives profile return and remount with the exact original request and terms', async () => {
     mockSubmit.mockResolvedValueOnce(unknown);
-    await offer(); await edit('Kratka napomena', 'Sačuvaj ovu tačnu ponudu.'); await sendOffer();
+    await offer(); await edit('Poruka uz prijavu', 'Sačuvaj ovu tačnu ponudu.'); await sendOffer();
     const first = mockSubmit.mock.calls[0][0];
     await tap('Dopuni radni profil');
     mockFocused = false; await update();

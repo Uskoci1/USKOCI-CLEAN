@@ -20,7 +20,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
   const controller=new GroupConversationController({agreementId,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
   controller.subscribe(()=>{if(current()){const next=controller.snapshot();setState(next);if(next.phase==='CONFIRMED'){input.current='';setDraft('');}}});void controller.load();
   const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
-  return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';};
+  return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
  },[agreementId,accountId,accountRevision,epoch]));
  const renderedOwner=owner.current,controller=engine.current;
  const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller&&controller?.snapshot()===state

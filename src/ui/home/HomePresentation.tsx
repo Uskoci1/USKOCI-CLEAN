@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowUpRight, CaretRight, MapTrifold } from 'phosphor-react-native';
+import { CaretRight, MapTrifold } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -43,13 +43,9 @@ function StartActions({ compact, onPublish, onEarn }: {
       <View style={s.createMain}>
         <View style={s.actionCopy}>
           <T accessibilityRole="header" style={s.actionTitle}>Objavi zadatak</T>
-          <T variant="copy" tone="muted">Opiši šta ti treba. Zajedno ćemo složiti detalje.</T>
+          <T variant="copy" tone="muted">Opiši šta ti treba.</T>
         </View>
         <HomeLaunchArt kind="publish" compact={compact} />
-      </View>
-      <View style={s.createFoot}>
-        <T variant="note" style={s.createLabel}>Počni razgovor</T>
-        <View style={s.createArrow}><ArrowUpRight size={20} color={sys.color.onGreen} /></View>
       </View>
     </Press>
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Nađi posao blizu."
@@ -263,10 +259,6 @@ const s = StyleSheet.create({
   createMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   actionCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   actionTitle: { fontSize: 24, lineHeight: 29, fontWeight: '600', letterSpacing: -0.7, color: sys.color.ink },
-  createFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
-  createLabel: { color: sys.color.green, fontWeight: '600' },
-  createArrow: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.green,
-    alignItems: 'center', justifyContent: 'center' },
   discoverEntry: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
     paddingVertical: sys.space.md, paddingHorizontal: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },

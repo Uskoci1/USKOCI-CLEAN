@@ -106,7 +106,8 @@ describe('turn receipt contract and SDK error transport', () => {
   it.each(['SUCCEEDED', 'PROCESSING'])('sends the same explicit key and preserves %s', async state => {
     const value = turn(state); mockInvoke.mockResolvedValue(ok(value));
     await expect(client.sendMessage(C, '  Original text  ', K)).resolves.toEqual({ ok: true, podatak: value });
-    expect(mockInvoke).toHaveBeenCalledWith('uskoci-ai-interview', { body: { conversationId: C, text: 'Original text', clientRequestId: K } });
+    expect(mockInvoke).toHaveBeenCalledWith('uskoci-ai-interview', { body: { conversationId: C, text: 'Original text', clientRequestId: K },
+      headers: { 'x-client-info': 'uskoci-app/ai-availability-v1' } });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
   });
   it('parses only a strict HTTP409 FAILED envelope as a known command result', async () => {

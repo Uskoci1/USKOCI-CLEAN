@@ -81,3 +81,36 @@ it('binds receipt identity and mark count to immutable command arguments across 
  command.groupId=ID;command.bodySha256='b'.repeat(64);owner.accountId=B;done(ok(receipt()));expect((await pending).ok).toBe(true);
  const ids=[M],marked=service.markRead(G,ids,account);ids.push(K);done(ok({accountId:A,groupId:G,markedCount:2,authoritative:true}));expect((await marked).ok).toBe(false);
 });
+
+
+it('classifies only an opted-in message-page SDK status-zero failure; context and writes stay generic',async()=>{
+ const noResponse={data:null,error:{message:'TypeError: private transport details',code:''},status:0,statusText:''};
+ mockRpc.mockResolvedValue(noResponse);
+ expect(await service.messages(G,account)).toMatchObject({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE'});
+ expect(await service.context(ID,account)).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+ expect(await service.send(j,'Zajednička poruka',account)).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+ expect(JSON.stringify(await service.messages(G,account))).not.toContain('private transport details');
+});
+it.each([
+ [{data:null,error:{message:'GROUP_NOT_AVAILABLE',code:'42501'},status:403},'GROUP_NOT_AVAILABLE'],
+ [{data:null,error:{message:'AUTH_CONTEXT_CHANGED',code:'28000'},status:401},'AUTH_CONTEXT_CHANGED'],
+ [{data:null,error:{message:'unknown denial',code:''},status:401},'GROUP_UNCONFIRMED'],
+ [{data:null,error:{message:'unknown failure',code:''}},'GROUP_UNCONFIRMED'],
+ [{data:null,error:null,status:200},'GROUP_RECEIPT_INVALID'],
+])('never classifies a denial, unmapped response or invalid receipt as page transport failure %#',async(response,kod)=>{
+ mockRpc.mockResolvedValue(response);expect(await service.messages(G,account)).toMatchObject({ok:false,kod});
+});
+it('uses only its own bounded read timeout and lets an account change take precedence',async()=>{
+ jest.useFakeTimers();
+ try{
+  mockRpc.mockImplementation(()=>new Promise(()=>{}));
+  const pageRead=service.messages(G,account);jest.advanceTimersByTime(15_000);
+  expect(await pageRead).toMatchObject({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE'});
+  const contextRead=service.context(ID,account);jest.advanceTimersByTime(15_000);
+  expect(await contextRead).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+  const stale=service.messages(G,account);mockOwner.accountRevision++;jest.advanceTimersByTime(15_000);
+  expect(await stale).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
+ }finally{jest.useRealTimers();}
+ mockOwner.accountRevision=3;mockRpc.mockRejectedValue(new Error('RPC_RECEIPT_TIMEOUT'));
+ expect(await service.messages(G,account)).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+});

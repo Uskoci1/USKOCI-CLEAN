@@ -13,6 +13,10 @@ const mockMarkets = [
 const mockRefresh = jest.fn(), mockSaveCall = jest.fn(), mockWriter = jest.fn();
 type Editor = { data: WorkerLocation | null; loading: boolean; busy: boolean; error: string | null; uncertain: boolean; saved: boolean };
 let mockEditor: Editor;
+jest.mock('../../store/sesija', () => ({
+  useSesija: () => ({ user: { id: 'account-a' }, accountRevision: 1 }),
+  sesijaSada: () => ({ user: { id: 'account-a' }, accountRevision: 1 }),
+}));
 jest.mock('../marketClientService', () => ({ marketClientService: { list: jest.fn() } }));
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => ({
   data: { ok: true, podatak: mockMarkets }, loading: false, error: false, refresh: jest.fn(),

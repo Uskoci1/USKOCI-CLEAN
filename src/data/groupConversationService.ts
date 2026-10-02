@@ -56,7 +56,7 @@ export const groupConversationService={
   if(!uuid(groupId)||(cursor.after!==undefined&&(!groupSequence(cursor.after,true)||cursor.before!==undefined))||(cursor.before!==undefined&&!groupSequence(cursor.before)))
    return Promise.resolve(failure('GROUP_CURSOR_INVALID','Osveži razgovor.'));
   const after=cursor.after??null,before=cursor.before??null;
-  return readReceipt<GroupPage>({...options,account,rpc:'rpc_read_group_messages_v5',args:{p_expected_user_id:account.accountId,p_group_id:groupId,p_after_sequence:after,p_before_sequence:before},decode:raw=>{
+  return readReceipt<GroupPage>({...options,readTransportUnavailable:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',account,rpc:'rpc_read_group_messages_v5',args:{p_expected_user_id:account.accountId,p_group_id:groupId,p_after_sequence:after,p_before_sequence:before},decode:raw=>{
    const r=record(raw);if(!envelope(r,account,groupId)||!r||!keys(r,['accountId','groupId','messages','nextBeforeSequence','nextAfterSequence','authoritative'])||!Array.isArray(r.messages)||r.messages.length>50)return null;
    let last=0;const ids=new Set<string>();for(const value of r.messages){const m=record(value);if(!m||!keys(m,['messageId','sequence','senderAccountId','body','createdAt','mine'])||!uuid(m.messageId)||!uuid(m.senderAccountId)
     ||!groupSequence(m.sequence)||!groupBody(m.body)||!timestamp(m.createdAt)||typeof m.mine!=='boolean'||m.mine!==sameId(m.senderAccountId,account.accountId)||ids.has(m.messageId)

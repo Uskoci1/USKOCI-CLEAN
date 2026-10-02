@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight } from 'phosphor-react-native';
+import { Glyph } from '../system/Glyph';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
@@ -88,7 +88,7 @@ function OwnTaskLink({ art, role, label, detail, accessibilityLabel, onPress, di
     scaleTo={sys.motion.scale.row} style={[s.actionRow, disabled && s.disabled]}>
     <View style={s.actionArt}><FactArt kind={art} size={32} cut="art" role={role} /></View>
     <View style={s.actionCopy}><T style={s.sectionTitle}>{label}</T><T variant="note" tone="muted">{detail}</T></View>
-    {trailing}<CaretRight size={18} color={sys.color.muted} />
+    {trailing}<Glyph name="caret-right" size={20} tone="muted" />
   </Press>;
 }
 
@@ -186,6 +186,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View>
         {loading || error ? <View accessibilityLiveRegion="polite" style={s.refreshNotice}>
           <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Prikazan je prethodni pregled. Osveži podatke pre sledeće radnje.'}</T>
+          {error && !loading ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
           {error && !loading ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={props.onRefresh} /> : null}
         </View> : null}
         {/* A draft the publish gate refuses says why, once, where the owner reads first. */}

@@ -3,8 +3,8 @@ import { groupConversationService, parseGroupJournal, groupBody, groupBodyHash, 
 import type { ReceiptAccount } from '../../data/serverReceipt';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|'ERROR';context:GroupContext|null;messages:GroupMessage[];
- before:string|null;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null};
-export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,journal:null,receipt:null,canRetry:false,message:null};
+ before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null};
+export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,olderPageUnavailable:false,journal:null,receipt:null,canRetry:false,message:null};
 export class GroupConversationController{
  private state:GroupState={...initialGroupState};private busy=false;private disposed=false;private journalLoaded=false;private inMemoryBody:string|null=null;private listeners=new Set<()=>void>();
  private operationRevision=0;private marking=false;private visible:{groupId:string;ids:string[]}|null=null;
@@ -32,19 +32,29 @@ export class GroupConversationController{
   }
   this.update({context:result.podatak,...(!result.podatak.group?{messages:[],before:null}:{})});return true;
  }
- private async page(before?:string){const group=this.state.context?.group;if(!group){this.update({phase:'READY'});return;}
-  const result=await this.service.messages(group.groupId,this.deps.account,before?{before}:{});if(!this.current())return;
-  if(!result.ok){this.update({phase:'ERROR',messages:[],before:null,message:result.poruka});return;}
+ private async page(before?:string){const context=this.state.context,group=context?.group;if(!group){this.update({phase:'READY'});return;}
+  let result:Awaited<ReturnType<typeof groupConversationService.messages>>;
+  try{result=await this.service.messages(group.groupId,this.deps.account,before?{before}:{});}
+  catch{this.visible=null;this.update({phase:'ERROR',context:null,messages:[],before:null,olderPageUnavailable:false,message:'Razgovor nije učitan. Pokušaj ponovo.'});return;}
+  if(!this.current())return;
+  if(!result.ok){
+   this.visible=null;
+   // Only an older page's proven transport failure may keep this owned in-memory history. No fresh-send or read-mark permission.
+   const retain=!!before&&result.kod==='GROUP_PAGE_TRANSPORT_UNAVAILABLE'&&this.state.context===context&&this.state.messages.length>0;
+   this.update({phase:'ERROR',canRetry:false,olderPageUnavailable:retain,...(retain?{}:{context:null,messages:[],before:null}),
+    message:retain?'Starije poruke nisu učitane. Prikazane poruke ostaju dostupne.':result.poruka});return;
+  }
   const merged=before?[...result.podatak.messages,...this.state.messages]:result.podatak.messages;
   // De-duplicate a boundary without inventing messages from the command receipt.
   const ids=new Set<string>(),messages=merged.filter(m=>!ids.has(m.messageId)&&!!ids.add(m.messageId));
-  this.update({phase:'READY',messages,before:result.podatak.nextBeforeSequence,message:null});
+  this.update({phase:'READY',messages,before:result.podatak.nextBeforeSequence,olderPageUnavailable:false,message:null});
  }
  refresh=()=>!this.journalLoaded?this.load():this.run(async()=>{
-  this.update({phase:'LOADING',canRetry:false,message:null});if(!await this.context())return;
+  this.update({phase:'LOADING',canRetry:false,olderPageUnavailable:false,message:null});if(!await this.context())return;
   if(this.state.journal)await this.recover();else await this.page();
  });
- older=()=>this.run(async()=>{if(this.state.phase==='READY'&&this.state.before){const before=this.state.before;this.update({phase:'LOADING'});await this.page(before);}});
+ older=()=>this.run(async()=>{if((this.state.phase==='READY'||(this.state.phase==='ERROR'&&this.state.olderPageUnavailable))&&this.state.before){
+  const before=this.state.before;this.update({phase:'LOADING',olderPageUnavailable:false,message:null});await this.page(before);}});
  managementNext=()=>this.run(async()=>{const g=this.state.context?.group;if(this.state.phase!=='READY'||g?.role!=='REQUESTER'||!g.managementNextId)return;
   const result=await this.service.context(this.deps.agreementId,this.deps.account,g.managementNextId);if(!this.current())return;
   if(!result.ok){this.update({message:result.poruka});return;}const next=result.podatak.group;

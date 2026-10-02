@@ -54,7 +54,7 @@ it.each([
   ['upcoming', '26. sep · 17:00–19:00', 'Jelena Nikolić'],
   ['flexible', 'Fleksibilno · tokom sledeće nedelje', 'Aleksandra Konstantinović-Radovanović'],
   ['untimed', 'Prevod uputstva na engleski', 'Druga strana'],
-  ['empty', 'Šta rešavamo', 'Još nemaš prijavu'],
+  ['empty', 'Još nemaš Zadatak', 'Još nemaš prijavu'],
   ['unavailable', 'Dogovori trenutno nisu učitani.', 'Podaci o obavezama trenutno nisu učitani.'],
 ])('renders the real Home for %s without a gallery wrapper or live action', async (scene, first, second) => {
   mockParams = { scene };

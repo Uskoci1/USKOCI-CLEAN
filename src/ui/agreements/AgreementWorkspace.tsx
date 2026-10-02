@@ -62,7 +62,7 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   // then said the same step again ("Kada završiš, označi završetak. Kada završiš, označi završetak…").
   return { tone: 'green', title: 'Dogovoreno', body: !party ? null : worker
     ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
-    : 'Završetak možeš potvrditi kada je posao obavljen, i pre nego što ga druga strana označi.' };
+    : 'Završetak potvrđuješ kada je posao obavljen.' };
 }
 
 /** The step's own words where the step is mine, shared by the step card and the head of Poruke. */
@@ -104,8 +104,8 @@ export function NextStepCard({ title, body, tone = 'green', children }: { title:
   const waits = tone === 'warn' || tone === 'danger';
   return <View accessibilityRole="summary" style={waits ? [inset, s.tinted, { backgroundColor: toneSoft[tone] }] : s.next}>
     <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
-      <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
-    {body ? <T variant="copy" tone="muted" style={s.nextBody}>{body}</T> : null}
+      <T variant={waits ? "heading" : "bodyStrong"} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
+    {body ? <T variant={waits ? "copy" : "note"} tone="muted" style={s.nextBody}>{body}</T> : null}
     {children}
   </View>;
 }

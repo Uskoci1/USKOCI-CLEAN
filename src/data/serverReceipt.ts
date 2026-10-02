@@ -25,6 +25,8 @@ export type ReceiptOptions<T> = {
   fallback: string;
   invalid: string;
   write?: boolean;
+  /** Closed opt-in for read-only local timeout / SDK no-response; never classifies server rejection. */
+  readTransportUnavailable?: string;
 };
 export type ReceiptAccount = { accountId: string; accountRevision: number };
 
@@ -55,12 +57,15 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     ? 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja; za ponavljanje koristiš isti zahtev.'
     : 'Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo.');
   if (!current()) return changed();
+  const localTimeout = new Error('RPC_RECEIPT_TIMEOUT');
+  const transportUnavailable = () => !options.write && options.readTransportUnavailable
+    ? failure(options.readTransportUnavailable, 'Veza je prekinuta. Pokušaj ponovo.') : unconfirmed();
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     // No automatic write replay. A timeout bounds the caller, not server execution.
     const response: unknown = await Promise.race([
       Promise.resolve(options.request()),
-      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('RPC_RECEIPT_TIMEOUT')), options.timeoutMs ?? 15_000); }),
+      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(localTimeout), options.timeoutMs ?? 15_000); }),
     ]);
     if (!current()) return changed();
     const result = record(response);
@@ -69,16 +74,19 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
       const error = record(result.error);
       const name = error?.message;
       // Never turn arbitrary backend/provider text into a public code or message.
-      return typeof name === 'string' && Object.prototype.hasOwnProperty.call(options.errors, name)
-        ? failure(name, options.errors[name]) : unconfirmed();
+      if (typeof name === 'string' && Object.prototype.hasOwnProperty.call(options.errors, name)) return failure(name, options.errors[name]);
+      // PostgREST's own no-response sentinel. HTTP/auth/server errors keep the generic fail-closed path.
+      if (result.status === 0 && result.data === null && error?.code === '') return transportUnavailable();
+      return unconfirmed();
     }
     const decoded = options.decode(result.data);
     if (decoded === null) return failure(options.invalid, options.write
       ? 'Potvrda radnje nije stigla cela. Osveži prikaz pre ponovnog pokušaja.'
       : 'Podaci nisu stigli u ispravnom obliku. Pokušaj ponovo.');
     return { ok: true, podatak: decoded };
-  } catch {
-    return current() ? unconfirmed() : changed();
+  } catch (error) {
+    if (!current()) return changed();
+    return error === localTimeout ? transportUnavailable() : unconfirmed();
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }

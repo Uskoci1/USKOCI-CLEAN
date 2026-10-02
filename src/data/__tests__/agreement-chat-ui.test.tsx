@@ -637,7 +637,7 @@ describe('D03 actual message component', () => {
       const send = button('Pošalji poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
-      expect(circle(send).backgroundColor).toBe(sys.color.green); expect(flat(send.props.style).opacity).toBeUndefined();
+      expect(circle(send).backgroundColor).toBe(sys.color.ink); expect(flat(send.props.style).opacity).toBeUndefined();
       const toolbar = send.parent!;
       const pill = toolbar.parent!;
       expect(flat(toolbar.props.style)).toMatchObject({ minHeight: 48, flexDirection: 'row' });

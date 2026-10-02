@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -93,7 +91,7 @@ describe('the requirement line', () => {
 
   // Review r3 item 5: a vehicle and a tool are FactArt kinds of their own, drawn at the card's 16 px; the picker's
   // Pictogram (a 32 px-and-up scene, two of whose fallbacks were orange) is no longer drawn on a card at all.
-  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing, at 24 px', async () => {
+  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing, at 28 px', async () => {
     await render(<TaskCard item={task({ detalji: detail({}, { vestine: ['Selidbe'], vozila: ['Kombi'], alati: ['Bušilica'] }) })} onOpen={jest.fn()} />);
     expect(texts()).toContain('Kombi'); expect(texts()).not.toContain('Bušilica'); expect(facts()).toContain('vehicle'); expect(facts()).not.toContain('tool');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { vozila: ['Automobil', 'Prikolica'] }) })} onOpen={jest.fn()} />));
@@ -104,7 +102,7 @@ describe('the requirement line', () => {
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { alati: ['Bušilica'] }) })} onOpen={jest.fn()} />));
     expect(texts()).toContain('Bušilica'); expect(facts()).toContain('tool'); expect(facts()).not.toContain('vehicle');
     const art = tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'tool');
-    expect(art.map(node => node.props.size)).toEqual([24]);
+    expect(art.map(node => node.props.size)).toEqual([28]);
     expect(tree.root.findAll(node => String(node.type) === 'Pictogram')).toHaveLength(0);
   });
 });
@@ -462,43 +460,37 @@ describe('review r3', () => {
   });
 });
 
-// Wave-1 review, minor (h): the colour-meaning table says green = a fact that IS confirmed and muted = a term that is not set. The
-// calendar mark was always green, so a flexible or absent term wore the green of a fixed one.
-describe('the calendar mark follows the colour meaning', () => {
+// Owner takeover: calendar art identifies a time fact; the actual schedule text carries certainty.
+describe('calendar artwork does not imply confirmation', () => {
   const FIXED = { kind: 'FIXED_WINDOW', startsAt: '2026-09-24T15:00:00Z', endsAt: '2026-09-24T17:00:00Z' } as const;
   const calendar = () => tree.root.find(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'calendar');
 
-  it('is green for a fixed window that names its time', async () => {
+  it('uses time artwork for a fixed window, including an end-only window', async () => {
     await render(<TaskCard item={task({ schedule: FIXED })} onOpen={jest.fn()} />);
-    expect(calendar().props.tone).toBe('brand');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: '2026-09-24T17:00:00Z' } })} onOpen={jest.fn()} />));
-    expect(calendar().props.tone).toBe('brand');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
   });
 
-  it.each(['FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'] as const)('is quiet for a %s term: it is a range, not a confirmed time', async kind => {
+  it.each(['FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'] as const)('uses time artwork for a %s term without branding it confirmed', async kind => {
     await render(<TaskCard item={task({ schedule: { kind, startsAt: '2026-09-24T00:00:00Z', endsAt: '2026-09-30T22:00:00Z' } })} onOpen={jest.fn()} />);
-    expect(calendar().props.tone).toBe('quiet');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
   });
 
-  it('is quiet when the read carried no schedule and the card falls back on its words, or a fixed window names no instant at all', async () => {
+  it('keeps fallback words when a schedule is absent and the same neutral time role on owned tasks', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(calendar().props.tone).toBe('quiet');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
     expect(textNode('24. sep · 17:00')).toBeTruthy();
     await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: null } })} onOpen={jest.fn()} />));
-    expect(calendar().props.tone).toBe('quiet');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
     // My own task has the same rule.
     await act(async () => tree.update(<TaskCard item={mine({ schedule: FIXED })} onOpen={jest.fn()} />));
-    expect(calendar().props.tone).toBe('brand');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
-    expect(calendar().props.tone).toBe('quiet');
+    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
   });
 
-  it("is the same rule on the pin's card, so one task never has a green calendar on the map and a grey one in the list", () => {
-    const peek = readFileSync(join(__dirname, '../../ui/v2/discovery/DiscoveryPeek.tsx'), 'utf8');
-    expect(peek).toMatch(/kind="calendar" size=\{24\} cut="art" tone=\{scheduleConfirmed\(item\.schedule\) \? 'brand' : 'quiet'\}/);
-  });
-
-  it('says only the colour: the words beside it are the same, and the pure rule agrees', async () => {
+  it('keeps the schedule confirmation classifier independent of the artwork', async () => {
     expect([scheduleConfirmed(undefined), scheduleConfirmed(FIXED), scheduleConfirmed({ kind: 'FLEXIBLE', startsAt: FIXED.startsAt, endsAt: FIXED.endsAt }),
       scheduleConfirmed({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: null })]).toEqual([false, true, false, false]);
   });

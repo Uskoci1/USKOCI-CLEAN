@@ -225,19 +225,16 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
-  it('conservatively rereads W04 after same-account token refresh while identity revision stays stable', async () => {
-    const refresh = deferred<PrilikaProjekcija>();
-    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(refresh.promise);
+  it('preserves W04 content and actions across token refresh for the same identity revision', async () => {
+    mockLoad.mockResolvedValueOnce(detail());
     await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
     mockEpoch++;
     await act(async () => oldPress());
-    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
     await update();
     expect(mockAccountRevision).toBe(1);
-    expect(mockLoad).toHaveBeenCalledTimes(2);
-    expect(text()).not.toContain('Zadatak task-a');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    await act(async () => refresh.resolve(detail()));
+    expect(mockLoad).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('Zadatak task-a');
     expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 

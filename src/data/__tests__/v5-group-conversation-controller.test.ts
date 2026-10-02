@@ -75,3 +75,29 @@ it('message read denial and now-unavailable context cannot retain previously vis
  f.service.messages.mockResolvedValue(ok({messages:[message()],nextBeforeSequence:null,nextAfterSequence:null}));await f.controller.refresh();expect(f.controller.snapshot().messages).toHaveLength(1);
  f.service.context.mockResolvedValue(ok({...context(),available:false,group:null}));await f.controller.refresh();expect(f.controller.snapshot()).toMatchObject({phase:'READY',messages:[],before:null});
 });
+
+
+it('retains only same-context older history on transport failure, without enabling sends or read marking, then retries the exact cursor',async()=>{
+ const f=fixture();f.service.messages.mockResolvedValueOnce(ok({messages:[message('2')],nextBeforeSequence:'2',nextAfterSequence:null}));await f.controller.load();
+ const loaded=f.controller.snapshot().messages;
+ f.service.messages.mockResolvedValueOnce({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'});await f.controller.older();
+ expect(f.controller.snapshot()).toMatchObject({phase:'ERROR',olderPageUnavailable:true,before:'2'});expect(f.controller.snapshot().messages).toBe(loaded);
+ await f.controller.send('Nova poruka');await f.controller.markVisible([M]);expect(f.service.send).not.toHaveBeenCalled();expect(f.service.markRead).not.toHaveBeenCalled();
+ f.service.messages.mockResolvedValueOnce(ok({messages:[{...message(),messageId:K}],nextBeforeSequence:null,nextAfterSequence:'1'}));await f.controller.older();
+ expect(f.service.messages.mock.calls.slice(1).map(call=>call[2])).toEqual([{before:'2'},{before:'2'}]);
+ expect(f.controller.snapshot()).toMatchObject({phase:'READY',olderPageUnavailable:false,before:null});expect(f.controller.snapshot().messages.map(m=>m.sequence)).toEqual(['1','2']);
+});
+it.each(['GROUP_UNCONFIRMED','GROUP_NOT_AVAILABLE','AUTH_CONTEXT_CHANGED','AUTH_ACCOUNT_CHANGED','GROUP_RECEIPT_INVALID'])('clears older transcript and context for non-transport failure %s',async kod=>{
+ const f=fixture();f.service.messages.mockResolvedValueOnce(ok({messages:[message('2')],nextBeforeSequence:'2',nextAfterSequence:null}));await f.controller.load();
+ f.service.messages.mockResolvedValue({ok:false,kod,poruka:'Nije dostupno.'});await f.controller.older();
+ expect(f.controller.snapshot()).toMatchObject({phase:'ERROR',olderPageUnavailable:false,context:null,messages:[],before:null});
+});
+it('transport failure cannot retain initial/refresh data and disposal retires retained older history',async()=>{
+ const f=fixture();f.service.messages.mockResolvedValueOnce(ok({messages:[message('2')],nextBeforeSequence:'2',nextAfterSequence:null}));await f.controller.load();
+ f.service.messages.mockResolvedValue({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'});await f.controller.older();
+ expect(f.controller.snapshot().messages).toHaveLength(1);await f.controller.refresh();
+ expect(f.controller.snapshot()).toMatchObject({phase:'ERROR',olderPageUnavailable:false,context:null,messages:[],before:null});
+ const pending=fixture(),gate=deferred<unknown>();pending.service.messages.mockResolvedValueOnce(ok({messages:[message('2')],nextBeforeSequence:'2',nextAfterSequence:null}));await pending.controller.load();
+ pending.service.messages.mockReturnValue(gate.promise);const older=pending.controller.older();pending.controller.dispose();gate.resolve({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza.'});await older;
+ expect(pending.controller.snapshot()).toMatchObject({messages:[],context:null,olderPageUnavailable:false});
+});

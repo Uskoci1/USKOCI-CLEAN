@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Ceo proizvod: audit završen u izvoru → prvi objedinjeni emulator paket",
-    "note": "45 produkcionih ruta i 78 opisa površina/podtokova. Implementiran kandidat novog Home-a, življe palete, tipografije, task/AI hijerarhije i konkretnih popravki osvežavanja/Back-a. Sledi build, stvarni screenshot, nezavisna kritika i sledeći vertikalni tok. Nijedan novi ekran nije proglašen prihvaćenim samo iz koda; provider, pravi glasovni AI i store granice ostaju otvoreni."
+    "title": "Stvarni APK pregledan → drugi povezani UI paket → nova native provera",
+    "note": "Audit45ruta ostaje osnova. Emulator7a41 pokazao prevelik Home i ponavljanje u zadatku/prijavi/Dogovoru; konkretne kompozicione korekcije su implementirane. CI nalazi popravljeni, grupna istorija čuva samo dokazani stariji transportni prekid. Sledi tačan objedinjeni build i ponovna provera istih ekrana, pa ostali profili/kalendar/notifikacije/settings i motion pass. Pravi govorni AI, provider/STT i store nisu proglašeni završenim."
   },
   "evidence": [
     {

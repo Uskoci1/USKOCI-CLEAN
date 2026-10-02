@@ -49,9 +49,10 @@ export type GroupConversationPresentationProps = {
 export function GroupConversationPresentation(p: GroupConversationPresentationProps) {
   const { state } = p, group = state.context?.group ?? null, ready = state.phase === 'READY';
   const retry = state.phase === 'UNKNOWN' && state.canRetry;
+  const olderUnavailable = state.phase === 'ERROR' && state.olderPageUnavailable && !!group && state.messages.length > 0;
   const first = state.phase === 'LOADING' && !state.messages.length && !group;
   // As in Poruke: a thread is anchored to the composer, a state (the first read, an error, nothing to show) to the middle.
-  const centred = first || state.phase === 'ERROR' || (ready && (!group || state.messages.length === 0));
+  const centred = first || (state.phase === 'ERROR' && !olderUnavailable) || (ready && (!group || state.messages.length === 0));
   const me = state.context?.accountId;
   // In a conversation the arrival IS the message. The history that was already there settles silently, "Starije poruke"
   // does not replay the thread, and only a message that has just landed moves.
@@ -65,7 +66,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const name = (message: GroupMessage) => message.mine ? 'Ti' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
   const header = <View style={[s.stack, s.gutter]}>
     {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
-    {state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
+    {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
     {group ? <>
       <T variant="copy" tone="muted">Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
@@ -94,8 +95,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
       </View> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
       body="Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
-    {state.message && state.phase !== 'ERROR' ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
-    {state.before ? <V2Action label="Starije poruke" kind="quiet" disabled={!ready} onPress={p.onOlder} /> : null}
+    {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
+    {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={p.onOlder} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
       body={group.canSend ? 'Vidiš poruke od svog ulaska u grupu. Napiši prvu.' : 'Vidiš poruke od svog ulaska u grupu.'} /> : null}

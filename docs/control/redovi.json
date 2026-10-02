@@ -5912,10 +5912,10 @@
             "ownerFeedback": "Owner reports credit paid and rejects loading, mic/composition and map behavior. Earlier402 is historical, not current availability proof. Fixed source: opening layout jump and lost unsaved pin after recovery. Live speech cause and end-to-end acceptance remain open."
           },
           "postPhoneVisualPolish": {
-            "status": "WHOLE_APP_AUDIT_FOUNDATION_IMPLEMENTED_AWAITING_EMULATOR",
+            "status": "EMULATOR_CRITIQUED_SECOND_COMPOSITION_IMPLEMENTED",
             "file": "src/ui/aiFirst/VoiceComposer.tsx",
-            "change": "Latest owner full UI/UX takeover: 45 production routes / 78 overlapping surface records; Home command composition, vivid AA primary palette, typography, semantic art, task/AI hierarchy; warm task refresh, partial offer-order disclosure and profile Back protection.",
-            "checks": "Types/whitespace PASS; targeted existing checks PASS after reviewed expectation reconciliation. Home/FactArt/voice/layout257; profile Back8; Agreement context87. Source only, exact APK native review next.",
+            "change": "Actual7a41 Home/AI/Discovery/task/offer/Agreement critique; compact Home, keyboard-aware AI opening, public price/capacity/route summary, intrinsic offer counter, open Agreement context and two-row map controls. Group older-page transport recovery remains same-context/read-only.",
+            "checks": "TypeScript PASS. Affected existing checks pass after precise reviewed visual reconciliation; automatedP5/PKG006 failures retained. Discovery combined159-suite cases had one5s timeout and one subsequent assertion; isolated3 relevant cases PASS with unchanged source/tests. Next CI/APK still required.",
             "installedSource": "6fb39b301888527350701741c659bb32cbe617bd",
             "limits": "Server diagnostic remains UNAPPLIED. True spoken AI, provider/STT runtime, complete whole-app visual and connected scenario acceptance remain open.",
             "files": [
@@ -5925,7 +5925,11 @@
               "src/ui/v2/NeedPresentation.tsx"
             ],
             "evidence": "docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json",
-            "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json"
+            "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json",
+            "emulatorSource": "7a41f34e20975e8efc80666177c31fd2bb63dcac",
+            "emulatorBuild": 37061255937,
+            "nativeReview": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_NATIVE_REVIEW_20261002.json",
+            "nativeAcceptance": false
           }
         },
         "ciReconciliation": {

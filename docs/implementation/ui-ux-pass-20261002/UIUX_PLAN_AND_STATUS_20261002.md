@@ -229,3 +229,10 @@ Personal name and work area now share explicit toolbar/Android Back discard prot
 
 
 Targeted check reconciliation is complete: Home/FactArt/voice/layout4 suites257 checks PASS; profile Back8/8; Agreement context/read87/87;7 additional existing affected suites passed. Initial obsolete-layout/component/prose failures are retained in [source check receipt](TAKEOVER_SOURCE_CHECKS_20261002.json). This is not emulator acceptance.
+
+
+### Exact APK critique and second source iteration
+
+First takeover APK7a41f34e is installed and has real Home, AI/keyboard/large-font, Discovery, public task, offer and Agreement screenshots. [Bounded review and corrections](TAKEOVER_NATIVE_REVIEW_20261002.md). Home is explicitly REPAIR, not accepted: its hero pushed active work down. Same-APK host graphics resolved emulator blank pins. Follow-up source compacts Home/offer/public detail and retains group history only for a classified older-page transport failure. Required CI failures were investigated and corrected locally; current automatic green status is not yet claimed. No whole-app/provider/phone/store completion.
+
+Second iteration source now also includes two-row responsive Discovery controls, public route/price/capacity summary, open Agreement context with explicit accepted people, and removal of decorative AI presence while the keyboard is open. Exact focused results and retained Discovery timeout: [iteration2 checks](TAKEOVER_ITERATION2_CHECKS_20261002.json). Existing controller/action authority remains; these newer layouts require the next exact APK.

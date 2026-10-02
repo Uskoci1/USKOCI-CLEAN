@@ -79,7 +79,7 @@ const sheets = () => tree.root.findAllByType(ConfirmSheet);
 const confirmation = () => sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress;
 const retainedAnswer = () => sheet().props.onConfirm;
 const confirm = async () => { const action = confirmation(); await act(async () => { action(); }); };
-const readback = async () => { await act(async () => { await press('Pokušaj ponovo').props.onPress(); }); };
+const readback = async (label = 'Pokušaj ponovo') => { await act(async () => { await press(label).props.onPress(); }); };
 async function appState(state: string) { await act(async () => { mockAppState.currentState = state;
   [...mockAppListeners].forEach(listener => listener(state)); }); }
 beforeEach(() => {
@@ -149,7 +149,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     await render(); await tap('Pregledaj za objavu');
     expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).not.toContain('private SQL');
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(0);
-    await readback(); await tap('Pregledaj za objavu'); expect(mockEdit).toHaveBeenCalledTimes(2);
+    await readback('Osveži zadatak'); await tap('Pregledaj za objavu'); expect(mockEdit).toHaveBeenCalledTimes(2);
   });
   it.each(['Need', 'remaining search'] as const)('bounds a hanging %s read and retires its late result', async source => {
     jest.useFakeTimers(); const pending = deferred();
