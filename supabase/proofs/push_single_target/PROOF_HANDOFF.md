@@ -1,5 +1,11 @@
 # Executable disposable proof handoff
 
+## Current execution — 3 October
+
+CI37075875304 at dd0c778f passed predecessor replay and all six offline Edge cases, then failed before candidate installation because direct UPDATE of cron.job is denied. Nine dependent database checks were correctly skipped. The follow-up uses the established SQL.pauseSchedulers()/cron.alter_job helper and adds three grouped denial/retention cases (13 database groups total). These changes have syntax/source review only until the next exact CI result. The preparation record below is historical.
+
+The admission is scoped to the reviewed Edge path within the existing trusted-service credential boundary. Baseline service_role direct write privileges on attempts can synthesize/reset/remove admissions; private RPC ACL alone is NOT database-enforced separation from that principal. No new ACL boundary is claimed or silently introduced. Additional checks exercise existing ownership plus the whole-row DELETE patch in a rolled-back transaction, not the complete closure state machine.
+
 Status: prepared, JavaScript syntax checked, **not executed against any database**. No provider call, CI dispatch, live write or canonical edit was made. Do not label this package DEV-ready.
 
 Copy the package files (except the `.github` subtree) to `supabase/proofs/push_single_target/`; copy the supplied workflow to `.github/workflows/push-single-target-proof.yml`. The nested Edge file is deliberately a proof candidate, not an automatic replacement of the deployed Edge source. Root reviews, commits and dispatches. Existing dependencies and replay scripts are reused; no new dependency is added.

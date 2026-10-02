@@ -22,8 +22,8 @@
     "certificate-proof.mjs": "461a305b6eb45843f66d825a9e8b13bfd98394f63d83adb1d2842777e405df20",
     "candidate-runtime.mjs": "a188e1b4b7f46a3ad9b16111c59890816838cbae508bc21aeb03afcc22738338",
     "edge.test.mjs": "e663be09a89b62f8e2dfd3a69e317318024e12c11350821f82e624ba79531253",
-    "proof.mjs": "f26fb25980a2826e6c21d464cdc24a55833ede1150697d17d61927fc600175e6",
+    "proof.mjs": "d630ccc7ebfde03a4e31ab6b8e31445ae06ab320fd7911ba3f55262e4a27e733",
     "package-proof.py": "c25f43ecb491b155f0625da5c3174bbbd04d782ef9bc831bd4bd2127c5f1f47f"
   },
-  "workflowSha256": "c9db1ab559bcb034a97e0cffa129d42d771a1871a8d4ac3f68e911414306b21e"
+  "workflowSha256": "dc1c82dfd7440d6c8e9f784cfd36079e03e01cf4f5b41a1986bc9d9af903062c"
 }

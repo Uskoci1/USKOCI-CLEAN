@@ -36,7 +36,7 @@ let before,installed,party,agreement,device,session,otherDevice,syntheticProvide
 const CERT='CERTIFICATE_INSTALL_EXACT_REVERT_REAPPLY';
 await h.check(CERT,async()=>{
  // Pause only local background jobs, matching the established disposable harness.
- sql('update cron.job set active=false where active');
+ sql(SQL.pauseSchedulers());
  before=snapshot(rt);const patch=installWithCertificate(body('install.disposable.sql'),before,manifest);roster=patch.roster;
  sql(patch.text);installed=snapshot(rt);assert.equal(installed.ready,true);assert.notEqual(installed.digest,before.digest);
  assert.deepEqual(installed.datasets,before.datasets);assert.deepEqual(installed.export_catalog,before.export_catalog);
@@ -120,6 +120,53 @@ await h.check('OBSERVED_BEGIN_REVOKE_LOCK_RACE_AND_DEVICE_CHANGE_REFUSE_TOKEN',a
 await h.check('NON_SERVICE_DENIED_AND_REVERT_REFUSES_DURABLE_ADMISSIONS',async()=>{
  for(const client of [anon,party.requester.client,party.stranger.client])for(const name of ['rpc_claim_push_single_target','rpc_claim_push_single_target_receipt']){const r=await client.rpc(name,{p_admission_id:randomUUID()});assert.equal(r.error?.code,'42501');assert.equal(r.data,null);}
  assert.throws(()=>sql(revertWithCertificate(body('revert.disposable.sql'),before,installed)),/ADMITTED_ATTEMPTS_PREVENT_SCHEMA_REVERT/);assert.equal(snapshot(rt).digest,installed.digest);
+},fixtureReq);
+await h.check('WRONG_ROLE_SESSION_REVISION_AND_EXPIRED_ADMISSION_LEAVE_NO_ATTEMPT',async()=>{
+ const d=await item(),dev=rows(`select id,revision from public.notification_push_devices where user_id=${q(party.requester.id)}::uuid order by created_at,id`)[0],prior=backlog();
+ const dates=rows("select clock_timestamp()+interval '5 minutes' expiry,clock_timestamp()-interval '1 second' past,clock_timestamp()+interval '1 hour' deadline")[0];
+ for(const [role,sid,revision,expiry,error] of [
+  ['WORKER',session,dev.revision,dates.expiry,'PUSH_TARGET_UNAVAILABLE'],
+  ['REQUESTER',randomUUID(),dev.revision,dates.expiry,'PUSH_DEVICE_CHANGED'],
+  ['REQUESTER',session,dev.revision+1,dates.expiry,'PUSH_DEVICE_CHANGED'],
+  ['REQUESTER',session,dev.revision,dates.past,'PUSH_TARGET_UNAVAILABLE']]) {
+  const id=randomUUID();
+  const call=`select private.admit_push_single_target_v1(${q(id)}::uuid,${q(randomUUID())}::uuid,${q(party.requester.id)}::uuid,${q(role)},${q(d.event)}::uuid,${q(d.delivery)}::uuid,${q(dev.id)}::uuid,${revision},${q(sid)}::uuid,${q(expiry)}::timestamptz,${q(dates.deadline)}::timestamptz)`;
+  assert.throws(()=>sql(call),new RegExp(error));assert.equal(sql(`select count(*) from public.notification_push_attempts where id=${q(id)}::uuid`),'0');
+ }
+ assert.equal(backlog(),prior);
+},fixtureReq);
+await h.check('PREFERENCE_CLOSURE_AND_SESSION_RECHECK_BEFORE_TOKEN_EXPOSURE',async()=>{
+ for(const reason of ['PREFERENCE','CLOSURE','SESSION']) {
+  const a=admit(await item()),c=await target(a.id);assert.equal(c.kind,'SEND');
+  const originalSession=rows(SQL.sessionNotAfter(session))[0].not_after;
+  try {
+   if(reason==='PREFERENCE')await rt.prefs(party.requester.client,party.requester.id,'REQUESTER',{dogovor_enabled:false});
+   if(reason==='CLOSURE')sql(SQL.insertClosureRequest(party.requester.id));
+   if(reason==='SESSION')sql(SQL.expireSession(session));
+   assert.deepEqual(await begin(c),{kind:'SUPPRESSED'});assert.equal(state(a.id).send_count,0);assert.equal((await target(a.id)).kind,'NONE');
+  } finally {
+   if(reason==='PREFERENCE')await rt.prefs(party.requester.client,party.requester.id,'REQUESTER',{dogovor_enabled:true});
+   if(reason==='CLOSURE')sql(SQL.deleteClosureRequest(party.requester.id));
+   if(reason==='SESSION')sql(SQL.restoreSession(session,originalSession));
+  }
+ }
+},fixtureReq);
+await h.check('NEW_METADATA_REMAINS_IN_EXISTING_OWNER_SCOPE_AND_WHOLE_ROW_ERASURE_PATCH',async()=>{
+ const a=admit(await item()),generation=randomUUID();
+ sql(`begin;
+ do $p$ declare predicate text;owned boolean;foreign_owned boolean;patch jsonb;n integer;begin
+ predicate:=private.closure_redaction_scope_v5('public.notification_push_attempts');
+ execute format('select exists(select 1 from public.notification_push_attempts t where t.id=$2 and (%s))',predicate) into owned using ${q(party.requester.id)}::uuid,${q(a.id)}::uuid;
+ execute format('select exists(select 1 from public.notification_push_attempts t where t.id=$2 and (%s))',predicate) into foreign_owned using ${q(party.stranger.id)}::uuid,${q(a.id)}::uuid;
+ if owned is distinct from true or foreign_owned is distinct from false then raise exception 'ADMISSION_OWNER_SCOPE';end if;
+ select private.closure_redaction_patch_v5('public.notification_push_attempts',to_jsonb(t),${q(party.requester.id)}::uuid,${q(generation)}::uuid) into patch from public.notification_push_attempts t where id=${q(a.id)}::uuid;
+ if patch is distinct from '{"operation":"DELETE","patch":{}}'::jsonb then raise exception 'ADMISSION_ERASURE_NOT_WHOLE_ROW';end if;
+ -- Execute the existing predicate plus DELETE patch in a rollback-only local transaction; this is not the whole closure state machine.
+ execute format('delete from public.notification_push_attempts t where t.id=$2 and (%s)',predicate) using ${q(party.requester.id)}::uuid,${q(a.id)}::uuid;
+ get diagnostics n=row_count;if n<>1 then raise exception 'ADMISSION_ERASURE_ROW_COUNT';end if;
+ if exists(select 1 from public.notification_push_attempts where id=${q(a.id)}::uuid) then raise exception 'ADMISSION_METADATA_REMAINS';end if;
+ end $p$;rollback;`);
+ assert.equal(state(a.id).consumed,false,'rollback preserves durable admission for later no-revert proof');
 },fixtureReq);
 await h.check('ACTUAL_EDGE_EXACT_TARGET_DEFAULT_OFF_THEN_SEND_ONCE_WITH_SYNTHETIC_PROVIDER',async()=>{
  const a=admit(await item()),b=backlog(),read=sql(SQL.readStateInApp());let enabled=false,io=0;
