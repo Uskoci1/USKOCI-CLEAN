@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { publicProfileClientService } from '../../data/publicProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 
 type Role = 'narucilac' | 'uskocer';
 type Fact = { role: Role; count: number | null };
@@ -17,9 +17,7 @@ type Fact = { role: Role; count: number | null };
 export function ProfileWorkSummary({ requesterProfileId, workerProfileId }: {
   requesterProfileId: string | null; workerProfileId: string | null;
 }) {
-  const { width } = useWindowDimensions();
-  const textScale = useTextScale();
-  const stacked = width < 360 || textScale >= 1.3;
+  const { stacked } = useLayoutClass();
   const load = useCallback(async (signal: AbortSignal): Promise<Fact[]> => {
     const targets: { id: string; role: Role }[] = [];
     if (workerProfileId) targets.push({ id: workerProfileId, role: 'uskocer' });

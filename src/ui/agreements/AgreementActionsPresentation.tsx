@@ -40,7 +40,7 @@ function Fact({ art, label, value, before }: { art: FactArtKind; label: string; 
   const compared = before !== undefined && before !== null, changed = compared && before !== value;
   const spoken = changed ? `${label}: ${value}, umesto ${before}` : compared ? `${label}: ${value}, bez promene` : `${label}: ${value}`;
   return <View style={s.fact} accessible accessibilityLabel={spoken}>
-    <FactArt kind={art} size={24} />
+    <FactArt kind={art} size={24} cut="art" />
     <View style={s.factCopy}>
       <T variant="meta" tone="muted">{label}</T>
       <T variant={art === 'money' ? 'bodyStrong' : 'body'} style={art === 'money' ? s.money : undefined}>{value}</T>
@@ -66,7 +66,7 @@ const reviewTitle = (command: AgreementActionCommand) => command.kind === 'PROPO
   : command.kind === 'WITHDRAW' ? 'Povlačenje predloga' : command.accept ? 'Prihvatanje izmene' : 'Odbijanje predloga';
 const actionLabel = (command: AgreementActionCommand) => command.kind === 'PROPOSE' ? 'Pošalji predlog izmene'
   : command.kind === 'CANCEL' ? 'Otkaži Dogovor' : command.kind === 'WITHDRAW' ? 'Povuci predlog' : command.accept ? 'Prihvati izmenu' : 'Odbij predlog';
-/** Ending, withdrawing or refusing is drawn in the danger colour; proposing and accepting are the green primary. */
+/** Ending, withdrawing or refusing is drawn in the danger colour; proposing and accepting use the ink primary. */
 const ending = (command: AgreementActionCommand) => command.kind === 'CANCEL' || command.kind === 'WITHDRAW' || (command.kind === 'RESPOND' && !command.accept);
 
 /**
@@ -108,13 +108,13 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
       title={form.reentry ? 'Ponovni unos prvobitnog zahteva' : form.kind === 'CANCEL' ? 'Otkazivanje Dogovora' : 'Predlog izmene'} step="Korak 1 od 2" />;
     body = <Form form={form} base={snapshot?.terms ?? null} busy={busy} onEdit={p.onEdit} />;
     // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped.
-    footer = <V2Action label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction} disabled={busy}
+    footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction} disabled={busy}
       error={p.error} onPress={p.onPrepareForm} />;
   } else if (review) {
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustani od radnje" disabled={busy}
       title={reviewTitle(review)} step={review.kind === 'PROPOSE' || review.kind === 'CANCEL' ? 'Korak 2 od 2' : undefined} />;
     body = <Review review={review} proposed={p.proposed} base={snapshot?.terms ?? null} />;
-    footer = <V2Action label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'}
+    footer = <V2Action tone="neutral" label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'}
       style={ending(review) ? [s.danger, busy && !sending && s.dangerResting] : brandAction}
       loading={sending} disabled={busy && !sending} error={p.error} onPress={p.onSend} />;
   } else {
@@ -135,11 +135,11 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
           <T variant="bodyStrong">{words.unconfirmed}</T>
           {p.error ? <T variant="copy">{p.error}</T> : null}
         </View>
-        <V2Action label="Proveri ishod radnje" style={brandAction} onPress={p.onRefresh} />
+        <V2Action tone="neutral" label="Proveri ishod radnje" style={brandAction} onPress={p.onRefresh} />
         {reentry
-          ? <V2Action label={p.journalKind === 'CANCEL' ? 'Ponovo unesi otkazivanje' : 'Ponovo unesi predlog'} disabled={!p.canRetry}
+          ? <V2Action tone="neutral" label={p.journalKind === 'CANCEL' ? 'Ponovo unesi otkazivanje' : 'Ponovo unesi predlog'} disabled={!p.canRetry}
             reason={p.canRetry ? null : 'Prvo proveri ishod radnje.'} onPress={() => p.onOpenForm(p.journalKind as 'PROPOSE' | 'CANCEL', true)} />
-          : <V2Action label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proveri ishod radnje.' : null}
+          : <V2Action tone="neutral" label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proveri ishod radnje.' : null}
             onPress={p.onRetry} />}
       </View>;
     } else if (p.phase === 'CONFIRMED' || p.phase === 'REJECTED') {
@@ -152,7 +152,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
           {record ? <T variant="copy">{record}</T> : null}
           {confirmed && p.journalKind === 'PROPOSE' ? <T variant="copy" tone="muted">Uslovi se menjaju tek kada druga strana prihvati predlog.</T> : null}
         </View>
-        <V2Action label="Prikaži aktuelni Dogovor" style={brandAction} onPress={p.onAcknowledge} />
+        <V2Action tone="neutral" label="Prikaži aktuelni Dogovor" style={brandAction} onPress={p.onAcknowledge} />
       </View>;
     } else if (snapshot) {
       body = <Hub snapshot={snapshot} accountId={p.accountId} error={p.error} busy={busy} onOpenForm={p.onOpenForm} onPrepare={p.onPrepare} />;
@@ -169,31 +169,33 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
 function Hub({ snapshot, accountId, error, busy, onOpenForm, onPrepare }: { snapshot: AgreementChangeSnapshot; accountId: string; error: string | null; busy: boolean;
   onOpenForm: AgreementActionsPresentationProps['onOpenForm']; onPrepare: AgreementActionsPresentationProps['onPrepare'] }) {
   const actions = snapshot.actions;
-  // One green per screen: the other side's proposal, when one waits for my answer; otherwise proposing a change.
+  // One primary decision: the other side's proposal, when one waits for my answer; otherwise proposing a change.
   const answerWaits = actions.canRespondChange && snapshot.proposals.some(proposal => proposal.proposedBy !== accountId);
   return <View style={s.stack}>
     {error ? <T variant="copy" tone="danger" accessibilityRole="alert">{error}</T> : null}
     {busy ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Proveravamo važeće uslove…</T> : null}
-    <View style={s.section}><T variant="heading" accessibilityRole="header">Važeći uslovi</T><Terms terms={snapshot.terms} /></View>
+    {/* Pending proposals lead with the next decision. Each fact already states what it replaces; the full current
+        record stays open below, so moving it does not hide terms or suggest the proposal is already accepted. */}
     {snapshot.proposals.map(proposal => {
       const mine = proposal.proposedBy === accountId;
       // Every command here opens its review step, so it says the deed ("Prihvati izmenu"), not "look at accepting".
-      return <View key={proposal.proposalId} style={[s.section, s.parted]}>
+      return <View key={proposal.proposalId} style={s.proposal}>
         <T variant="heading" accessibilityRole="header">{mine ? 'Tvoj predlog čeka odgovor' : snapshot.counterpartName ? `${snapshot.counterpartName} predlaže` : 'Predlog druge strane'}</T>
         <Terms terms={proposal.terms} base={snapshot.terms} />
         {proposal.reason ? <Reason text={proposal.reason} /> : null}
         {actions.canRespondChange && !mine ? <>
-          <V2Action label="Prihvati izmenu" style={brandAction} disabled={busy || !proposal.termsAvailable}
+          <V2Action tone="neutral" label="Prihvati izmenu" style={brandAction} disabled={busy || !proposal.termsAvailable}
             reason={proposal.termsAvailable ? null : 'Uslovi predloga nisu dostupni za pregled.'} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: true })} />
-          <V2Action label="Odbij predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: false })} />
+          <V2Action tone="neutral" label="Odbij predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: false })} />
         </> : null}
-        {actions.canWithdrawChange && mine ? <V2Action label="Povuci predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'WITHDRAW', proposal })} /> : null}
+        {actions.canWithdrawChange && mine ? <V2Action tone="neutral" label="Povuci predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'WITHDRAW', proposal })} /> : null}
       </View>;
     })}
+    <View style={s.section}><T variant="heading" accessibilityRole="header">Važeći uslovi</T><Terms terms={snapshot.terms} /></View>
     {actions.canProposeChange && snapshot.terms || actions.canCancel ? <View style={[s.section, s.parted]}>
-      {actions.canProposeChange && snapshot.terms ? <V2Action label="Predloži izmenu" style={answerWaits ? undefined : brandAction}
+      {actions.canProposeChange && snapshot.terms ? <V2Action tone="neutral" label="Predloži izmenu" style={answerWaits ? undefined : brandAction}
         disabled={busy} onPress={() => onOpenForm('PROPOSE')} /> : null}
-      {actions.canCancel ? <V2Action label="Otkaži Dogovor" kind="destructive" disabled={busy} onPress={() => onOpenForm('CANCEL')} /> : null}
+      {actions.canCancel ? <V2Action tone="neutral" label="Otkaži Dogovor" kind="destructive" disabled={busy} onPress={() => onOpenForm('CANCEL')} /> : null}
     </View> : null}
   </View>;
 }
@@ -264,10 +266,11 @@ const s = StyleSheet.create({
   section: { gap: sys.space.md },
   // Sections part by a hairline and air, never by a box around a box.
   parted: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine, paddingTop: sys.space.base },
-  facts: { gap: sys.space.md },
+  proposal: { gap: sys.space.md, paddingBottom: sys.space.base, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  facts: { gap: sys.space.base },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  factCopy: { flex: 1, gap: 2 },
-  money: { color: sys.color.money },
+  factCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  money: { color: sys.color.ink },
   notice: { ...inset, gap: sys.space.sm, backgroundColor: sys.color.warnSoft },
   quote: { gap: 2, paddingLeft: sys.space.md, borderLeftWidth: 3, borderLeftColor: sys.color.lineStrong },
   // The outcome: the mark on the left, the heading and its record, and the one way on, full width like every primary.

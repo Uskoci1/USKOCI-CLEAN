@@ -55,16 +55,12 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
   /** The room the row of chips takes, the gap above it included: exactly what the list gains when they fold away. */
   onChipsHeight?: (room: number) => void;
 }) {
-  // The search keeps its full width at every size; conditions never compete with its words.
-  const separateTools = true;
-  // One full-width rail avoids squeezing chips beside the persistent toolbar.
-  const railBelow = true;
   const measure = (event: LayoutChangeEvent) => { const { y, height } = event.nativeEvent.layout; onLayout(Math.ceil(y + height)); };
   const measureChips = (event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
-    // The toolbar remains when chips fold. A separate rail returns its entire measured height and the bar's gap;
-    // an inline rail returns only the height above the existing 48 dp toolbar. Never feed a folded zero back.
-    if (height > 0) onChipsHeight?.(railBelow ? height + sys.space.sm : Math.max(0, height - chrome.control));
+    // The toolbar remains when chips fold. Return the rail's measured height and the bar's gap.
+    // Never feed a folded zero back.
+    if (height > 0) onChipsHeight?.(height + sys.space.sm);
   };
   const tools = <>
     <Press accessibilityRole="button" accessibilityLabel={conditionCount ? `Uslovi pretrage, ${plural(conditionCount, 'aktivan', 'aktivna', 'aktivnih')}` : 'Uslovi pretrage'}
@@ -82,8 +78,8 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
     </View> : null}
   </>;
   const quickFilters = chipsShown && (chips.length || nearby) ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-    accessibilityLabel="Brzi filteri" style={railBelow ? s.fullRail : s.rail}
-    contentContainerStyle={[s.chips, railBelow ? s.chipsFullWidth : s.chipsBesideTools]} onLayout={measureChips}>
+    accessibilityLabel="Brzi filteri" style={s.fullRail}
+    contentContainerStyle={[s.chips, s.chipsFullWidth]} onLayout={measureChips}>
     {nearby ? <Press accessibilityRole="button" accessibilityLabel="U blizini"
       accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
       accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
@@ -103,7 +99,7 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
       <View style={s.search}>
         <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
           accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={0.98} onPress={onSearch}
-          style={[s.pill, separateTools && s.pillWide, onClearWhere && s.pillClearable]}>
+          style={[s.pill, s.pillWide, onClearWhere && s.pillClearable]}>
           <MagnifyingGlass size={22} weight="bold" color={sys.color.ink} />
           <View style={s.lines}>
             {/* The full-width summary keeps two lines at every text size. Full values remain in its spoken value and search panel. */}
@@ -116,14 +112,12 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
           <View style={s.clearCircle}><X size={16} weight="bold" color={sys.color.ink} /></View>
         </Press> : null}
       </View>
-      {separateTools ? null : <View style={s.inlineTools}>{tools}</View>}
       </View>
     </View>
-    {separateTools ? <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
-      <View style={[s.toolCluster, railBelow && s.toolClusterWide]}>{tools}</View>
-      {railBelow ? null : quickFilters ?? <View style={s.rail} />}
-    </View> : quickFilters}
-    {railBelow ? quickFilters : null}
+    <View testID="discovery-search-tools" pointerEvents="box-none" style={s.row}>
+      <View style={[s.toolCluster, s.toolClusterWide]}>{tools}</View>
+    </View>
+    {quickFilters}
     {nearby?.message ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" style={s.noticeText}>{nearby.message}</T>
       {nearby.onSettings ? <Press accessibilityRole="button" accessibilityLabel="Podešavanja lokacije" hitSlop={0}
@@ -146,7 +140,6 @@ const s = StyleSheet.create({
   // The words end where the clear button begins.
   pillClearable: { paddingRight: CLEAR_WIDTH },
   pillWide: { borderRadius: sys.radius.card },
-  rail: { flex: 1, minWidth: 0 },
   fullRail: { flexGrow: 0, alignSelf: 'stretch' },
   lines: { flex: 1, minWidth: 0 },
   where: { lineHeight: 20, color: sys.color.ink },
@@ -154,7 +147,6 @@ const s = StyleSheet.create({
   clear: { position: 'absolute', top: 0, bottom: 0, right: 0, width: CLEAR_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   clearCircle: { width: 28, height: 28, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   tool: { width: chrome.control, height: chrome.control },
-  inlineTools: { flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: sys.color.line, paddingLeft: 2 },
   toolCluster: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   toolClusterWide: { flex: 1, justifyContent: 'space-between' },
   filter: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48,
@@ -167,7 +159,6 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
-  chipsBesideTools: { paddingHorizontal: 0 },
   chipsFullWidth: { paddingVertical: 0 },
   // A chip over the map: white with the strong hairline, which is what draws it on the map (no shadow: a lift that the
   // scrolling row cut off at its edges read as a smudge). Chosen, the system's one chosen-chip look.

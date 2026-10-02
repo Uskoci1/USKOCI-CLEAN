@@ -2288,7 +2288,7 @@ test('at large text the search stays two lines with separate tools and the pin p
 });
 
 // Review of V47, items 17 and 19: over the map the pill is drawn by the card edge, and the chips carry no shadow that the
-// scrolling row would cut off; a chosen chip is the one chosen-chip look (pale green, green edge and words, a tick).
+// scrolling row would cut off; a chosen chip keeps its selected well, ink edge and words, and an ink tick.
 test('over the map: search and tools share one edge; a quick chip has no shadow and selection stays visible', async () => {
   await render();
   expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
@@ -2297,7 +2297,7 @@ test('over the map: search and tools share one edge; a quick chip has no shadow 
   await act(async () => quick('Navedena cena').props.onPress());
   const chosen = quick('Navedena cena'), style = StyleSheet.flatten(chosen.props.style);
   expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.ink });
-  expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.green);
+  expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
   expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
   // A condition under the count removes itself by name, and takes 48 to a finger.
   await act(async () => tree.unmount()); initial = { ...initial, query: 'Pomoć' }; await render();

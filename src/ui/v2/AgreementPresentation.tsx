@@ -101,7 +101,8 @@ export function AgreementFact({ art, label, value, note, basis, money = false, l
   </View>;
 }
 
-/** Source task context; only its authoritative route makes this card a link. Accepted terms live separately. */
+/** Source task context; only its authoritative route makes it a link. Compact history uses an open row;
+ * the standalone overview keeps its card. Accepted terms live separately in both compositions. */
 export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, compact = false }: {
   agreement: DogovorProjekcija;
   /** Only provided when the authoritative source task id is available. */
@@ -111,27 +112,28 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
   const title = readableTitle(a.naslov);
   const remote = a.rezim === 'DALJINSKI';
   const taskPlace = remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno';
+  const surface = compact ? s.heroCompact : s.hero;
   const content = compact ? <View style={s.titleRow}>
-    <FactArt kind="document" size={28} />
+    <FactArt kind="document" size={24} cut="art" />
     <View style={s.taskCopy}>
       <T accessibilityRole="header" style={s.acceptedTitle}>{title}</T>
-      <T variant="note" tone={onOpenTask ? 'green' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
+      <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
     </View>
-    {onOpenTask ? <CaretRight size={22} color={sys.color.green} /> : null}
+    {onOpenTask ? <CaretRight size={22} color={sys.color.muted} /> : null}
   </View> : <View style={s.taskOverview}>
     <T accessibilityRole="header" variant="cardTitle" style={s.ink}>{title}</T>
     {/* These are source-task context, not a precise location granted by the accepted Agreement. */}
     <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
       <T variant="note" tone="muted" style={s.taskPlaceCopy}>{taskPlace}</T></View>
     <View style={s.taskDestination}>
-      <T variant="note" tone={onOpenTask ? 'green' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
-      {onOpenTask ? <CaretRight size={18} color={sys.color.green} /> : null}
+      <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
+      {onOpenTask ? <CaretRight size={18} color={sys.color.muted} /> : null}
     </View>
   </View>;
   return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}${compact ? '' : `. ${taskPlace}`}`}
     accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
-    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
-    : <View style={s.hero}>{content}</View>;
+    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={surface}>{content}</Press>
+    : <View style={surface}>{content}</View>;
 }
 
 /** Accepted facts remain a readable record, separate from the source task's current detail. */
@@ -204,6 +206,7 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
   hero: { ...floating, padding: sys.space.base, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
     borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
+  heroCompact: { minHeight: 48, justifyContent: 'center' },
   context: { gap: sys.space.base },
   terms: { gap: sys.space.sm, paddingVertical: sys.space.sm },
   termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -213,7 +216,7 @@ const s = StyleSheet.create({
   taskPlace: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, marginTop: sys.space.xs },
   taskPlaceCopy: { flex: 1, minWidth: 0 },
   taskDestination: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, marginTop: sys.space.sm },
-  acceptedTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, color: sys.color.ink },
+  acceptedTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
   acceptedDetails: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },

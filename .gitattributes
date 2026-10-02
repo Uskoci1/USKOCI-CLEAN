@@ -81,3 +81,6 @@ patches/*.patch text eol=lf
 # EX-06 / EX-07 server candidates are applied from their exact bytes; keep LF on every OS (the guarded DO refuses CRLF).
 supabase/candidates/ex06b_*.sql text eol=lf
 supabase/candidates/ex07_*.sql text eol=lf
+
+# RC02 exact candidate/revert and pinned function-body bytes.
+supabase/candidates/ex05-rc02-20261002/** text eol=lf
