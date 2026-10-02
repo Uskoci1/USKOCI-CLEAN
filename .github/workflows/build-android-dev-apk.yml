@@ -57,6 +57,8 @@ env:
   # AI-LOCATION-01: DEV SQL 20261002185306 and interview Edge v51 readback verified.
   # Remove this compile-time flag and rebuild to disable contextual map replies.
   EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
+  # MESSAGES-INBOX-01: DEV migration 20261002223407, exact RPC and ACL postflight passed.
+  EXPO_PUBLIC_CONVERSATION_INBOX: '1'
   CI: '1'
   NODE_ENV: production
 

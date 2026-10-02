@@ -3,7 +3,7 @@ import { GroupConversationScreen } from '../../../ui/groups/GroupConversationScr
 import { useSesija } from '../../../store/sesija';
 
 export default function GroupConversationRoute(){
- const params=useLocalSearchParams<{id?:string|string[]}>(),session=useSesija();
+ const params=useLocalSearchParams<{id?:string|string[];from?:string|string[]}>(),session=useSesija();
  const id=typeof params.id==='string'?params.id:'';
- return <GroupConversationScreen key={`${session.user?.id??''}:${session.accountRevision}:${id}`} agreementId={id}/>;
+ return <GroupConversationScreen key={`${session.user?.id??''}:${session.accountRevision}:${id}`} agreementId={id} fromInbox={params.from==='poruke'}/>;
 }

@@ -9,6 +9,7 @@ import { useTextScale } from '../system/textScale';
 import { BuildIdentity } from '../BuildIdentity';
 import { Avatar } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
+import { V2Action } from '../v2/V2Action';
 
 /** The identity passport reserves the same size for a real photo, initials and unavailable identity. */
 export const PROFILE_AVATAR = 72;
@@ -76,7 +77,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
         {identity.reputation ? <View style={s.reputation}>{identity.reputation}</View> : null}
       </View>}
       <View style={s.editName}>
-        <SettingsAction label="Ime na profilu" kind="quiet" disabled={busy} onPress={() => open('/profil/podaci')} />
+        <V2Action label="Ime na profilu" kind="quiet" tone="neutral" compact disabled={busy} onPress={() => open('/profil/podaci')} />
       </View>
     </View>
 
@@ -147,7 +148,7 @@ const s = StyleSheet.create({
   city: { justifyContent: 'center', maxWidth: '100%' },
   // Do not center or constrain the supplied node's children: it can contain full review comments and retry actions.
   reputation: { alignSelf: 'stretch', minWidth: 0 },
-  editName: { alignSelf: 'center', maxWidth: '100%', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
+  editName: { alignSelf: 'center', maxWidth: '100%' },
   shrink: { flexShrink: 1 },
   retry: { alignSelf: 'center', marginTop: sys.space.xs },
   name: { ...sys.type.pageTitle, textAlign: 'center', alignSelf: 'stretch', letterSpacing: -0.5 },

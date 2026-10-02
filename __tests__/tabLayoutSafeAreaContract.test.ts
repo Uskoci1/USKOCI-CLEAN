@@ -126,7 +126,7 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     expect(configuration().screens.map((screen) => screen.name).sort()).toEqual(files);
   });
 
-  it('keeps usable controls above the rounded container clearance and no-slide navigation', () => {
+  it('keeps usable controls above the system navigation clearance and no-slide navigation', () => {
     const { options } = configuration();
     expect(options.animation).toBe('none');
     expect(options.tabBarStyle.height - 2 * options.tabBarStyle.padding).toBeGreaterThanOrEqual(48);
@@ -147,22 +147,17 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     expect(configuration(34, 2).options.tabBarAllowFontScaling).toBe(true);
   });
 
-  // UI/UX pass, wave 2, item 2.1 (2026-10-02): the next three checks pin the NEW bar. The old one was a 12/16 label with its own
-  // letter spacing, a height of `max(70, 30 + 3 + 10 + 8 + label)` with the icon's 30 spelled in the layout, and an active tab painted
-  // by `tabBarActiveBackgroundColor`. Nothing in this file pinned those values (they lived in the layout), so no old check had to be
-  // loosened: now the label is the `tab` type variant, the height is `tabBarHeight` (it follows the icon size and the measured label
-  // height), and the chosen tab's capsule is the button's own animated child, so the navigator no longer paints it. The values the
-  // old bar did pin are in `v5-tab-navigation.test.tsx` (the icon's `muted` prop) and in `screen-chrome.test.tsx` (glyph 22 regular).
-  it('makes the bar exactly as high as the icon and the label need: 71 at ordinary text, 74 on the owner\'s phone at 1.15, 77 at 1.3', () => {
+  // Existing layout contract: actual icon host + measured label + preserved system navigation clearance.
+  it('makes the bar exactly as high as the icon and the label need: 64 at ordinary text, 67 on the owner\'s phone at 1.15, 70 at 1.3', () => {
     const height = (fontScale: number, width = 390) => configuration(0, fontScale, width).options.tabBarStyle;
     expect(height(1).height).toBe(tabBarHeight(sys.type.tab.lineHeight, height(1).padding));
-    expect(height(1).height).toBe(71);
-    expect(height(1.15, 361).height).toBe(74); // the owner's phone: 361 dp at font scale 1.15
-    expect(height(1.3, 361).height).toBe(77);
+    expect(height(1).height).toBe(64);
+    expect(height(1.15, 361).height).toBe(67); // the owner's phone: 361 dp at font scale 1.15
+    expect(height(1.3, 361).height).toBe(70);
     expect(height(1.15, 361).height - 2 * height(1.15, 361).padding).toBeGreaterThanOrEqual(48);
   });
 
-  it('draws the tab label in the `tab` variant, and leaves the chosen tab\'s fill to the button\'s own capsule', () => {
+  it('draws the tab label in the `tab` variant, and keeps navigator selection fill disabled', () => {
     const { options } = configuration();
     expect(options.tabBarActiveBackgroundColor).toBeUndefined();
     const label = options.tabBarLabel({ children: 'Početna' });
@@ -171,10 +166,10 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     expect(label.props.variant).toBeUndefined(); // the variant lives in TabLabel, not at the call site
   });
 
-  it('keeps the bar a floating, rounded surface with a hairline: the look of the bar did not change, only its content', () => {
+  it('keeps the root navigation a full-width white rail with a quiet top separator', () => {
     const style = configuration().options.tabBarStyle;
-    expect(style).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: 4, marginTop: 8 });
-    expect(style.marginHorizontal).toBe(16);
+    expect(style).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 0, borderRadius: 0, padding: 0, marginTop: 0 });
+    expect(style.marginHorizontal).toBe(0);
   });
 
   // The bar holds on every phone it is judged on: 320 dp (narrow), 340 (the edge of narrow), 361 (the owner's HONOR) and 411 (a large

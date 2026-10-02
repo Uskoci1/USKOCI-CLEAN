@@ -1,0 +1,183 @@
+import { memo, useCallback, useMemo, type ReactNode } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import type { ConversationInboxItem } from '../../contracts/conversationInbox';
+import { inicijali } from '../../lib/inicijali';
+import { trenutak, type Trenutak } from '../../lib/trenutak';
+import { Press } from '../Press';
+import { T } from '../Text';
+import { Avatar } from '../system/Avatar';
+import { FactArt } from '../system/FactArt';
+import { ConversationArt } from '../system/ConversationArt';
+import { StateView } from '../system/StateView';
+import { neprocitanih } from '../system/plural';
+import { useLayoutClass } from '../system/textScale';
+import { sys } from '../system/tokens';
+import { V2Action } from '../v2/V2Action';
+
+/** Alias only: the admitted reader's contract owns these facts. */
+export type ConversationInboxRow = ConversationInboxItem;
+export const conversationRowKey = (row: ConversationInboxRow): string => `${row.kind}:${row.id}`;
+
+export type ConversationInboxPresentationProps = {
+  /** null means no authoritative page yet; [] is a successfully read empty inbox. Order is the server's order. */
+  items: readonly ConversationInboxRow[] | null;
+  loading: boolean; refreshing: boolean; error: boolean;
+  paging: boolean; pageError: boolean; hasMore: boolean;
+  /** Account/focus retirement and navigation admission belong to the caller. */
+  disabled?: boolean; openingDisabled?: boolean; openingKey?: string | null;
+  unavailableKeys?: ReadonlySet<string>; openErrorKey?: string | null;
+  onOpen: (row: ConversationInboxRow) => void; onRefresh: () => void; onLoadMore: () => void;
+  /** Only supply an already-authorized photo node. The presentation never fetches photos or message media. */
+  renderAvatar?: (row: ConversationInboxRow) => ReactNode;
+  /** Optional route chrome, outside the scrolling list. Does not create a bell or any data read. */
+  header?: ReactNode;
+  /** The existing Dogovori screen includes Agreements without messages. Optional real route callback only. */
+  onAgreements?: () => void;
+  bottomInset?: number; zona?: string; sada?: Date;
+};
+
+type ListRow = { type: 'day'; key: string; label: string; first: boolean }
+  | { type: 'conversation'; key: string; item: ConversationInboxRow; moment: Trenutak | null };
+
+/** Do not sort/group by counterpart or event time. Multiple tasks with one person are distinct conversations. */
+export function conversationInboxRows(items: readonly ConversationInboxRow[], options: { zona?: string; sada?: Date } = {}): ListRow[] {
+  const rows: ListRow[] = [];
+  let day: string | null = null;
+  for (const item of items) {
+    const moment = trenutak(item.lastMessage.createdAt, options);
+    if (moment && moment.kljuc !== day) {
+      day = moment.kljuc;
+      rows.push({ type: 'day', key: `day:${day}:${conversationRowKey(item)}`, label: moment.dan, first: rows.length === 0 });
+    }
+    rows.push({ type: 'conversation', key: conversationRowKey(item), item, moment });
+  }
+  return rows;
+}
+
+/** Preserve a media caption as well as kind. No invented duration, sender identity or delivery/read status. */
+export function conversationPreview(message: ConversationInboxRow['lastMessage']): string {
+  const caption = message.preview?.trim();
+  const content = message.kind === 'PHOTO' ? ['Fotografija', caption].filter(Boolean).join(' · ')
+    : message.kind === 'VOICE' ? ['Glasovna poruka', caption].filter(Boolean).join(' · ')
+      : caption || 'Tekst poruke nije dostupan';
+  return `${message.mine ? 'Ti: ' : ''}${content}`;
+}
+
+const EMPTY_KEYS: ReadonlySet<string> = new Set();
+const EMPTY_ITEMS: readonly ConversationInboxRow[] = [];
+const rowKey = (row: ListRow) => row.key;
+
+export function ConversationInboxPresentation({ items, loading, refreshing, error, paging, pageError, hasMore,
+  disabled = false, openingDisabled = false, openingKey = null, unavailableKeys = EMPTY_KEYS, openErrorKey = null,
+  onOpen, onRefresh, onLoadMore, renderAvatar, header, onAgreements, bottomInset = 0, zona, sada,
+}: ConversationInboxPresentationProps) {
+  const { stacked } = useLayoutClass();
+  const rows = useMemo(() => conversationInboxRows(items ?? EMPTY_ITEMS, { zona, sada }), [items, zona, sada]);
+  const reading = loading || refreshing;
+  const readDisabled = disabled || reading || paging;
+  const openDisabled = disabled || openingDisabled || openingKey !== null;
+  // Keep RefreshControl mounted while reading; the caller still owns async single-flight admission.
+  const refresh = useCallback(() => { if (!readDisabled) onRefresh(); }, [readDisabled, onRefresh]);
+  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListRow>) => row.type === 'day'
+    ? <T variant="meta" tone="muted" accessibilityRole="header" style={[s.day, row.first && s.firstDay]}>{row.label}</T>
+    : <ConversationRow item={row.item} moment={row.moment} stacked={stacked}
+        unavailable={unavailableKeys.has(row.key)} failed={openErrorKey === row.key} opening={openingKey === row.key}
+        disabled={openDisabled || unavailableKeys.has(row.key)} onOpen={onOpen} photo={renderAvatar?.(row.item)} />,
+  [stacked, unavailableKeys, openErrorKey, openingKey, openDisabled, onOpen, renderAvatar]);
+
+  const listHeader = <View style={s.heading}>
+    <T variant="pageTitle" accessibilityRole="header">Poruke</T>
+    {items !== null && error ? <View style={s.notice}>
+      <T variant="note" accessibilityRole="alert">Razgovori nisu osveženi.</T>
+      <T variant="note" tone="muted">Poslednji učitani razgovori ostaju prikazani. Osveži ih da nastaviš.</T>
+      <V2Action label="Osveži razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
+    </View> : null}
+  </View>;
+  const empty = items === null
+    ? error && !reading
+      ? <StateView kind="error" title="Razgovori nisu učitani" body="Proveri vezu pa pokušaj ponovo."
+          primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: readDisabled }} />
+      : <StateView kind="loading" title="Učitavamo razgovore…" skeleton={{ count: 4, rows: 2, variant: 'plain' }} />
+    : error ? null : <View style={s.empty}>
+      <ConversationArt size={144} />
+      <T variant="title" accessibilityRole="header" style={s.center}>Još nema razgovora</T>
+      <T variant="copy" tone="muted" style={s.center}>Poruke iz tvojih Dogovora i grupnih razgovora pojaviće se ovde.</T>
+      {onAgreements ? <V2Action label="Otvori Dogovore" kind="secondary" onPress={onAgreements} disabled={openDisabled} /> : null}
+    </View>;
+  const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
+    {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}
+    <V2Action label={pageError ? 'Pokušaj ponovo' : 'Učitaj starije razgovore'} kind="quiet" onPress={onLoadMore}
+      disabled={readDisabled} loading={paging} accessibilityLabel={pageError ? 'Ponovo učitaj starije razgovore' : undefined} />
+  </View> : null;
+
+  return <View style={s.screen}>
+    {header}
+    <FlatList data={rows} keyExtractor={rowKey} renderItem={renderItem}
+      ListHeaderComponent={listHeader} ListEmptyComponent={empty} ListFooterComponent={footer}
+      contentContainerStyle={[s.content, { paddingBottom: Math.max(0, bottomInset) + sys.space.xl }]}
+      refreshing={items !== null && reading} onRefresh={refresh}
+      keyboardShouldPersistTaps="handled" initialNumToRender={12} />
+  </View>;
+}
+
+type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; stacked: boolean;
+  disabled: boolean; opening: boolean; unavailable: boolean; failed: boolean; photo?: ReactNode;
+  onOpen: (row: ConversationInboxRow) => void };
+const ConversationRow = memo(function ConversationRow({ item, moment, stacked, disabled, opening, unavailable, failed, photo, onOpen }: RowProps) {
+  const title = item.kind === 'GROUP' ? 'Grupni razgovor' : item.counterpart?.displayName?.trim() || 'Razgovor';
+  const preview = conversationPreview(item.lastMessage);
+  // Private unread is explicitly unknown in V1, even if an upstream caller accidentally supplies a number.
+  const unread = item.kind === 'GROUP' && item.unreadMessageCount !== null && Number.isSafeInteger(item.unreadMessageCount)
+    && item.unreadMessageCount > 0 ? item.unreadMessageCount : null;
+  const status = unavailable ? 'Razgovor trenutno nije dostupan.' : failed ? 'Razgovor nije otvoren. Pokušaj ponovo.' : null;
+  const time = moment ? `${moment.dan}, ${moment.sat}` : null;
+  const label = [title, item.task.title, preview, time, unread === null ? null : neprocitanih(unread), status].filter(Boolean).join('. ');
+  return <Press accessibilityRole="button" accessibilityLabel={label}
+    accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}
+    accessibilityState={{ disabled, busy: opening }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={1}
+    onPress={() => onOpen(item)} style={s.row}>
+    <View style={s.avatar} accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={40} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={40} />)}
+    </View>
+    <View style={s.copy}>
+      <View style={[s.rowHeading, stacked && s.rowHeadingStacked]}>
+        <T variant="bodyStrong" style={s.name}>{title}</T>
+        {moment ? <T variant="meta" tone="muted" style={s.time}>{moment.sat}</T> : null}
+      </View>
+      <T variant="note" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
+      <View style={s.previewRow}>
+        <T variant="note" tone={unread === null ? 'muted' : 'ink'} numberOfLines={stacked ? undefined : 2} style={s.preview}>{preview}</T>
+        {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
+      </View>
+      {status ? <T variant="note" tone="muted" accessibilityRole={failed ? 'alert' : undefined}>{status}</T> : null}
+      {opening ? <View style={s.opening}><ActivityIndicator size="small" color={sys.color.ink} />
+        <T variant="meta" tone="muted">Otvaramo razgovor…</T></View> : null}
+    </View>
+  </Press>;
+});
+
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.surface },
+  content: { flexGrow: 1, width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: sys.space.lg },
+  heading: { paddingTop: sys.space.sm, paddingBottom: sys.space.sm, gap: sys.space.md },
+  notice: { gap: sys.space.xs, paddingVertical: sys.space.sm },
+  day: { paddingTop: sys.space.lg, paddingBottom: sys.space.xs, fontWeight: '500' },
+  firstDay: { paddingTop: sys.space.sm },
+  row: { minHeight: 72, paddingVertical: sys.space.base, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  avatar: { width: 40, height: 40, flexShrink: 0 },
+  copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  rowHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  rowHeadingStacked: { flexDirection: 'column', gap: sys.space.xs },
+  name: { flexShrink: 1, flexGrow: 1, minWidth: 0, color: sys.color.ink },
+  time: { flexShrink: 0, fontVariant: ['tabular-nums'] },
+  previewRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: sys.space.sm },
+  preview: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 },
+  unread: { minWidth: 24, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs,
+    borderRadius: sys.radius.pill, backgroundColor: sys.color.ink },
+  unreadText: { color: sys.color.surface, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  opening: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, marginTop: sys.space.xs },
+  empty: { paddingVertical: sys.space.xxl, alignItems: 'center', gap: sys.space.md },
+  center: { textAlign: 'center', maxWidth: '100%' },
+  footer: { paddingVertical: sys.space.base, gap: sys.space.sm },
+});

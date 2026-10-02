@@ -11,15 +11,10 @@ jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
 
 import { Press } from '../../Press';
 import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
-import { nested, sys } from '../tokens';
+import { sys } from '../tokens';
 
-/**
- * The tab bar's selection, drawn (UI/UX pass, wave 2, item 2.1; audits HP-03, ICO-06, MO-M11). The selected tab used to be a
- * background colour that swapped in one frame, an icon that was a pure function of "selected" and a 12/16 label. Now the
- * capsule is always mounted and fades, a 20 by 3 green pill marks its top edge, the icon is the flat mark at rest and the
- * sticker when chosen with a cross-fade and one pop, and all of it is React Native Animated on the native driver (B22: not
- * Reanimated, nothing laid out or exited, opacity and transform only), instant under reduced motion.
- */
+/** Existing selection, motion and accessibility coverage, reconciled to the quiet four-tab chrome.
+ * Both tones retain the same mark silhouette. Native-driver and reduced-motion behavior are unchanged. */
 let tree: ReactTestRenderer;
 beforeEach(() => { mockReduced = false; });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
@@ -31,47 +26,40 @@ const layer = (cut: 'mark' | 'art') => tree.root.findAll(node => typeof node.typ
 const easeOut = Easing.bezier(...sys.motion.easeOut);
 
 describe('the numbers the bar is built from', () => {
-  it('has a 30 px icon, the 3 px gap above the label, the 5 px the navigator keeps beside a tab, a 20 by 3 pill and a pop of 8 %', () => {
-    expect([TAB_ICON, TAB_LABEL_GAP, TAB_ITEM_PADDING]).toEqual([30, 3, 5]);
-    expect(TAB_INDICATOR).toEqual({ width: 20, height: 3 });
-    expect(TAB_POP).toBe(1.08);
+  it('uses compact drawings and spacing while retaining a visible selection marker', () => {
+    expect([TAB_ICON, TAB_LABEL_GAP, TAB_ITEM_PADDING]).toEqual([24, 3, 3]);
+    expect(TAB_INDICATOR).toEqual({ width: 18, height: 2 });
+    expect(TAB_POP).toBe(1.04);
   });
 
-  // Looked at on a static mock drawn from the real pictures at 361 dp and text 1.15 (a layout check, not the phone): with the
-  // navigator's 5 above the icon and 5 under the label the green pill stood under 3 dp above the top of the Dogovori bubble and the
-  // picture and the word sat low in the capsule. Two dp move from under the label to over the icon, so the pill has air and the
-  // content stands in the middle; the bar is exactly as high.
-  it('keeps 7 above the icon and 3 under the label, which add up to the 10 the navigator keeps (5 and 5): the bar is no higher for it', () => {
-    expect([TAB_ITEM_TOP, TAB_ITEM_BOTTOM]).toEqual([7, 3]);
-    expect(TAB_ITEM_TOP + TAB_ITEM_BOTTOM).toBe(2 * TAB_ITEM_PADDING);
-    // The pill (3 high, on the capsule's top edge) clears the icon: more room above the picture than the pill is high, plus the
-    // 1 dp the 30 px picture stands out of its 28 px box.
-    expect(TAB_ITEM_TOP - 1 - TAB_INDICATOR.height).toBeGreaterThanOrEqual(3);
-    // The label keeps room under it: the capsule's rounded foot never sits on the word.
+  it('leaves room above the drawing for the marker and below the scalable label', () => {
+    expect([TAB_ITEM_TOP, TAB_ITEM_BOTTOM]).toEqual([7, 5]);
+    expect(TAB_ITEM_TOP - TAB_INDICATOR.height).toBeGreaterThanOrEqual(3);
     expect(TAB_ITEM_BOTTOM).toBeGreaterThanOrEqual(3);
   });
 
   it('makes the bar as high as the icon, the gap, the tab padding, the bar padding and the label actually need', () => {
-    // 30 + 3 + 2 x 5 + 2 x 4 + the label's height.
-    expect(tabBarHeight(sys.type.tab.lineHeight, 4)).toBe(71);
-    expect(tabBarHeight(sys.type.tab.lineHeight * 1.15, 4)).toBe(74);
-    expect(tabBarHeight(sys.type.tab.lineHeight * 1.3, 4)).toBe(77);
+    // Actual 28dp icon host + 3gap + 7top + 5bottom + 1hairline + scalable label.
+    expect(tabBarHeight(sys.type.tab.lineHeight, TAB_BAR_PADDING)).toBe(64);
+    expect(tabBarHeight(sys.type.tab.lineHeight * 1.15, TAB_BAR_PADDING)).toBe(67);
+    expect(tabBarHeight(sys.type.tab.lineHeight * 1.3, TAB_BAR_PADDING)).toBe(70);
     // A two-line label at a large text size makes the bar grow with it; nothing is clipped.
-    expect(tabBarHeight(64, 4)).toBe(115);
-    // Never under 70, the height every earlier bar had, and always a whole number of dp.
-    expect(tabBarHeight(0, 4)).toBe(70);
-    expect(Number.isInteger(tabBarHeight(23.4, 4))).toBe(true);
+    expect(tabBarHeight(64, TAB_BAR_PADDING)).toBe(108);
+    // Minimum target stays whole, and every height rounds up to a whole dp.
+    expect(tabBarHeight(0, TAB_BAR_PADDING)).toBe(56);
+    expect(Number.isInteger(tabBarHeight(23.4, TAB_BAR_PADDING))).toBe(true);
     // The 48 px control stays whole inside it.
-    expect(tabBarHeight(sys.type.tab.lineHeight, 4) - 2 * 4).toBeGreaterThanOrEqual(48);
+    expect(tabBarHeight(sys.type.tab.lineHeight, TAB_BAR_PADDING) - 2 * TAB_BAR_PADDING).toBeGreaterThanOrEqual(48);
   });
 });
 
 describe('the capsule of the chosen tab', () => {
-  it('is always mounted, drawn in the neutral selection well, over the whole tab, and never takes a touch', async () => {
+  it('is always mounted, over the whole tab without a filled selection well, and never takes a touch', async () => {
     await render(<TabCapsule selected={false} radius={20} />);
     const capsule = byId('tab-capsule');
     expect(capsule).toBeDefined();
-    expect(flat(capsule)).toMatchObject({ backgroundColor: sys.color.greenSoft, borderRadius: 20, position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 });
+    expect(flat(capsule)).toMatchObject({ borderRadius: 20, position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 });
+    expect(flat(capsule).backgroundColor).toBeUndefined();
     expect(capsule.props.pointerEvents).toBe('none');
     // Not selected: still there, fully transparent.
     expect(flat(capsule).opacity).toBe(0);
@@ -83,11 +71,11 @@ describe('the capsule of the chosen tab', () => {
     expect(flat(byId('tab-capsule')).opacity).toBe(1);
   });
 
-  it('carries a 20 by 3 green pill on its top edge, which fades with it', async () => {
+  it('carries a compact green marker on its top edge, which fades with it', async () => {
     await render(<TabCapsule selected radius={20} />);
     const pill = flat(byId('tab-indicator'));
-    expect(pill).toMatchObject({ width: 20, height: 3, backgroundColor: sys.color.green, position: 'absolute', top: 0, alignSelf: 'center' });
-    expect(pill.borderRadius).toBeGreaterThanOrEqual(1.5);
+    expect(pill).toMatchObject({ width: TAB_INDICATOR.width, height: TAB_INDICATOR.height, backgroundColor: sys.color.green, position: 'absolute', top: 0, alignSelf: 'center' });
+    expect(pill.borderRadius).toBeGreaterThanOrEqual(TAB_INDICATOR.height / 2);
     // It lives inside the capsule, so its opacity is the capsule's.
     expect(byId('tab-capsule').findAll(node => node.props.testID === 'tab-indicator').length).toBeGreaterThan(0);
   });
@@ -120,18 +108,17 @@ describe('the capsule of the chosen tab', () => {
 });
 
 describe('the icon of a tab', () => {
-  it('draws the flat mark in the quiet tone at rest, and the sticker in the brand tone when chosen, both at 30', async () => {
+  it('draws the same 24dp mark silhouette in quiet and brand tones', async () => {
     await render(<TabGlyph kind="home" selected={false} />);
     expect(pictures().map(node => node.props)).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'home', size: TAB_ICON, cut: 'mark', tone: 'quiet' }),
-      expect.objectContaining({ kind: 'home', size: TAB_ICON, cut: 'art', tone: 'brand' }),
+      expect.objectContaining({ kind: 'home', size: TAB_ICON, cut: 'mark', tone: 'brand' }),
     ]));
     expect(pictures()).toHaveLength(2);
-    // The sticker is only drawn above 24 px, so the tab's 30 is the art cut and the mark is forced.
-    expect(TAB_ICON).toBeGreaterThan(24);
+    expect(TAB_ICON).toBe(24);
   });
 
-  it('shows the mark at rest and the sticker when chosen, and keeps both mounted', async () => {
+  it('shows the quiet mark at rest and brand mark when chosen, and keeps both mounted', async () => {
     await render(<TabGlyph kind="map" selected={false} />);
     expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([1, 0]);
     // The same two layers stay mounted when the tab is chosen (that is what lets them cross-fade).
@@ -139,13 +126,13 @@ describe('the icon of a tab', () => {
     await act(async () => tree.update(<TabGlyph kind="map" selected />));
     expect([layer('mark'), layer('art')]).toEqual([mark, art]);
     expect(pictures()).toHaveLength(2);
-    // Drawn chosen from the start: the sticker only.
+    // Drawn chosen from the start: the brand layer only (legacy art testID retained).
     await act(async () => tree.unmount());
     await render(<TabGlyph kind="map" selected />);
     expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([0, 1]);
   });
 
-  it('cross-fades over the toggle token on the native driver and pops once, 1.0 to 1.08 to 1, only on a selection', async () => {
+  it('cross-fades over the toggle token on the native driver and pops once, 1.0 to 1.04 to 1, only on a selection', async () => {
     const timing = jest.spyOn(Animated, 'timing');
     const sequence = jest.spyOn(Animated, 'sequence');
     await render(<TabGlyph kind="agreements" selected={false} />);
@@ -153,11 +140,11 @@ describe('the icon of a tab', () => {
     expect(sequence).not.toHaveBeenCalled();
     await act(async () => tree.update(<TabGlyph kind="agreements" selected />));
     const calls = timing.mock.calls.map(([, config]) => config as { toValue: number; duration: number; useNativeDriver: boolean; easing: unknown });
-    // The cross-fade over the toggle token, then the two legs of the pop: up to 1.08 over the press token, back to 1 over the toggle.
+    // The cross-fade over the toggle token, then the two legs of the pop: up to 1.04 over the press token, back to 1 over the toggle.
     expect(calls.map(call => [call.toValue, call.duration])).toEqual([[1, sys.motion.toggle], [TAB_POP, sys.motion.press], [1, sys.motion.toggle]]);
     expect(sequence).toHaveBeenCalledTimes(1);
     expect(calls.every(call => call.useNativeDriver === true && typeof call.easing === 'function')).toBe(true);
-    // The pop never goes under 1 and never overshoots the 8 %.
+    // The pop never goes under 1 and never overshoots the 4 %.
     expect(Math.max(...calls.map(call => call.toValue))).toBe(TAB_POP);
     expect(Math.min(...calls.map(call => call.toValue))).toBeGreaterThanOrEqual(1);
   });
@@ -188,7 +175,7 @@ describe('the icon of a tab', () => {
 });
 
 describe('the label of a tab', () => {
-  it('is the tab type variant (14 on 20, 600), never the 12 on 16 label, in muted at rest and in green when chosen', async () => {
+  it('is the tab type variant (14 on 20, 600), never the 12 on 16 label, in muted at rest and in ink when chosen', async () => {
     await render(<TabLabel selected={false}>Zadaci</TabLabel>);
     const text = () => tree.root.findAllByType(Text)[0];
     expect(flat(text())).toMatchObject({ fontSize: sys.type.tab.fontSize, lineHeight: sys.type.tab.lineHeight, color: sys.color.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
@@ -197,7 +184,7 @@ describe('the label of a tab', () => {
     expect(flat(text()).fontFamily).toBe('Inter-SemiBold');
     expect(flat(text()).letterSpacing).toBeUndefined(); // the 0.6 of the old label variant is gone with the variant
     await act(async () => tree.update(<TabLabel selected>Zadaci</TabLabel>));
-    expect(flat(text()).color).toBe(sys.color.green);
+    expect(flat(text()).color).toBe(sys.color.ink);
     // It is never shrunk or cut: the person's text size decides.
     expect(text().props.numberOfLines).toBeUndefined();
     expect(text().props.adjustsFontSizeToFit).toBeUndefined();
@@ -217,9 +204,9 @@ describe('the preview the design board draws', () => {
   const tabs = () => tree.root.findAll(node => node.type === (Press as unknown));
   const chosen = () => tabs().filter(tab => tab.props.accessibilityState.selected).map(tab => tab.props.accessibilityLabel);
 
-  it('is the real parts in a bar surface: the three tabs, the first chosen, with the padding, corner and capsule corner of the bar itself', async () => {
+  it('is the real parts in a bar surface: the four tabs, the first chosen, with the padding, corner and capsule corner of the bar itself', async () => {
     await render(<TabBarPreview />);
-    expect(tabs().map(tab => tab.props.accessibilityLabel)).toEqual(['Početna', 'Zadaci', 'Dogovori']);
+    expect(tabs().map(tab => tab.props.accessibilityLabel)).toEqual(['Početna', 'Zadaci', 'Dogovori', 'Poruke']);
     expect(chosen()).toEqual(['Početna']);
     for (const tab of tabs()) {
       expect(tab.props).toMatchObject({ accessibilityRole: 'tab', haptic: 'none', scaleTo: 1, hitSlop: 0 });
@@ -227,18 +214,18 @@ describe('the preview the design board draws', () => {
       // The same room round the picture and the word as the real button (`TAB_ITEM_*`), so the pill has the air it has there.
       expect(flat(tab)).toMatchObject({ paddingHorizontal: TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM, borderRadius: TAB_CAPSULE });
     }
-    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: TAB_BAR_PADDING });
-    expect(TAB_CAPSULE).toBe(nested(sys.radius.card, TAB_BAR_PADDING));
-    expect(tree.root.findAll(node => node.type === (TabCapsule as unknown)).map(node => node.props.radius)).toEqual([TAB_CAPSULE, TAB_CAPSULE, TAB_CAPSULE]);
+    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 0, borderTopWidth: 1, borderRadius: 0, padding: TAB_BAR_PADDING });
+    expect(TAB_CAPSULE).toBe(0);
+    expect(tree.root.findAll(node => node.type === (TabCapsule as unknown)).map(node => node.props.radius)).toEqual([TAB_CAPSULE, TAB_CAPSULE, TAB_CAPSULE, TAB_CAPSULE]);
   });
 
   it('moves the choice, the capsule and the icon together when a tab is tapped, and says so at once to a screen reader', async () => {
     await render(<TabBarPreview />);
     await act(async () => tabs()[1].props.onPress());
     expect(chosen()).toEqual(['Zadaci']);
-    expect(tree.root.findAll(node => node.type === (TabCapsule as unknown)).map(node => node.props.selected)).toEqual([false, true, false]);
-    expect(tree.root.findAll(node => node.type === (TabGlyph as unknown)).map(node => node.props.selected)).toEqual([false, true, false]);
-    expect(tree.root.findAll(node => node.type === (TabLabel as unknown)).map(node => node.props.selected)).toEqual([false, true, false]);
+    expect(tree.root.findAll(node => node.type === (TabCapsule as unknown)).map(node => node.props.selected)).toEqual([false, true, false, false]);
+    expect(tree.root.findAll(node => node.type === (TabGlyph as unknown)).map(node => node.props.selected)).toEqual([false, true, false, false]);
+    expect(tree.root.findAll(node => node.type === (TabLabel as unknown)).map(node => node.props.selected)).toEqual([false, true, false, false]);
     await act(async () => tabs()[2].props.onPress());
     expect(chosen()).toEqual(['Dogovori']);
   });

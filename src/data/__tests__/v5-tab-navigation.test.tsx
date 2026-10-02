@@ -19,8 +19,7 @@ jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 
 import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
 import { StyleSheet } from 'react-native';
-import { nested, sys } from '../../ui/system/tokens';
-import { TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel } from '../../ui/system/TabBarItem';
+import { TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel } from '../../ui/system/TabBarItem';
 let tree: ReactTestRenderer;
 const routes = ['index', 'zadaci', 'dogovori', 'profil', 'profil/obavestenja', 'moje-aktivnosti', 'prilike', 'mapa', 'prilike/[id]', 'oceni-dogovor']
   .map(name => ({ name, key: name }));
@@ -35,6 +34,19 @@ function tabButton(name: string, history: string[]) {
 }
 beforeEach(() => { mockWindow = { width: 390, height: 844, scale: 1, fontScale: 1 }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('adds the owner-requested Poruke root only in a build paired with the conversation reader', async () => {
+  const old = process.env.EXPO_PUBLIC_CONVERSATION_INBOX;
+  process.env.EXPO_PUBLIC_CONVERSATION_INBOX = '1';
+  try {
+    await act(async () => { tree = create(<Tabs />); });
+    const visible = tree.root.findAllByType('Screen' as React.ElementType).filter(screen => screen.props.options.href !== null);
+    expect(visible.map(screen => screen.props.name)).toEqual(['index', 'zadaci', 'dogovori', 'poruke']);
+  } finally {
+    if (old === undefined) delete process.env.EXPO_PUBLIC_CONVERSATION_INBOX;
+    else process.env.EXPO_PUBLIC_CONVERSATION_INBOX = old;
+  }
+});
 
 /**
  * Owner decision 1 (2026-09-19): one shell for an account that may at
@@ -77,16 +89,13 @@ it('keeps every earlier destination registered and reachable by its URL, only no
     'profil', 'potrebe/[id]/pregled', 'potrebe/[id]/kandidati', 'prilike/[id]', 'prilike/[id]/prijava']) expect(hidden(name)).toBeNull();
 });
 
-// Round 2c (verifier vf, should 5): the selected capsule sat inside the bar with the bar's own 24 corner, so the two
-// lines did not follow each other. It is the bar's corner minus the bar's padding.
-it('nests the selected capsule inside the bar: its corner is the bar\'s corner minus the padding between them', async () => {
+it('keeps the full-width rail and its tab surface aligned without nested rounded cards', async () => {
   await act(async () => { tree = create(<Tabs />); });
   const options = optionsFor('zadaci', ['index', 'zadaci']);
-  const { borderRadius: bar, padding } = options.tabBarStyle;
   const capsule = StyleSheet.flatten(options.tabBarButton({ children: 'Zadaci', 'aria-selected': true }).props.style).borderRadius;
-  expect(bar).toBe(sys.radius.card);
-  expect(capsule).toBe(nested(bar, padding)); expect(options.tabBarItemStyle.borderRadius).toBe(capsule);
-  expect(capsule).toBeLessThan(bar);
+  expect(options.tabBarStyle).toMatchObject({ borderRadius: 0, marginHorizontal: 0, marginTop: 0 });
+  expect(capsule).toBe(TAB_CAPSULE);
+  expect(options.tabBarItemStyle.borderRadius).toBe(capsule);
 });
 
 it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {
@@ -112,17 +121,16 @@ it('draws the chosen tab as an always-mounted capsule inside the button, without
   await act(async () => { tree = create(<Tabs />); });
   const capsuleOf = (button: React.ReactElement<{ children: React.ReactNode }>) =>
     React.Children.toArray(button.props.children).find(child => React.isValidElement(child) && child.type === TabCapsule) as React.ReactElement<{ selected: boolean; radius: number }>;
-  const { borderRadius: bar, padding } = optionsFor('zadaci', ['index', 'zadaci']).tabBarStyle;
   for (const [name, selected] of [['zadaci', true], ['index', false], ['dogovori', false]] as const) {
     const button = tabButton(name, ['index', 'zadaci']);
     expect(button.props).toMatchObject({ haptic: 'none', scaleTo: 1, hitSlop: 0, accessibilityRole: 'tab' });
     expect(button.props.hapticOn).toBeUndefined();
     // The capsule is there for EVERY tab, chosen or not (so it can fade), and says whether it is chosen.
     expect(capsuleOf(button)).toBeDefined();
-    expect(capsuleOf(button).props).toMatchObject({ selected, radius: nested(bar, padding) });
+    expect(capsuleOf(button).props).toMatchObject({ selected, radius: TAB_CAPSULE });
     // `selected` for a screen reader is immediate: it never waits for the 180 ms fade.
     expect(button.props.accessibilityState).toEqual({ selected });
-    // 7 above the picture and 3 under the word (they add up to the navigator's 5 and 5): the pill has air over the picture.
+    // The same spacing constants are used in the real navigator and its preview.
     expect(StyleSheet.flatten(button.props.style)).toMatchObject({ paddingHorizontal: TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM });
   }
   // The navigator no longer paints the chosen tab itself, and the Press carries no background of its own.
@@ -130,7 +138,7 @@ it('draws the chosen tab as an always-mounted capsule inside the button, without
   expect(optionsFor('zadaci', ['index', 'zadaci']).tabBarActiveBackgroundColor).toBeUndefined();
 });
 
-it('draws every tab label in the `tab` variant through TabLabel, chosen in green and the rest muted', async () => {
+it('draws every tab label in the `tab` variant through TabLabel, chosen in ink and the rest muted', async () => {
   await act(async () => { tree = create(<Tabs />); });
   for (const [name, title, selected] of [['index', 'Početna', false], ['zadaci', 'Zadaci', true], ['dogovori', 'Dogovori', false]] as const) {
     const label = optionsFor(name, ['index', 'zadaci']).tabBarLabel({ children: title });
@@ -145,7 +153,7 @@ it.each(['index', 'zadaci', 'dogovori'])('profile settings preserve the originat
   const selected = ['index', 'zadaci', 'dogovori'].filter(name => tabButton(name, history).props.accessibilityState.selected);
   expect(selected).toEqual([origin]);
   // UI/UX pass, wave 2, item 2.1 (ON PURPOSE): the icon used to be a FactArt whose `muted` prop said "not chosen"; it is now a
-  // TabGlyph that cross-fades the flat mark and the sticker, and it says `selected`.
+  // TabGlyph that cross-fades quiet and brand marks, and it says `selected`.
   expect(optionsFor(origin, history).tabBarIcon({ focused: false }).props.selected).toBe(true);
   expect(optionsFor(origin, history).tabBarIcon({ focused: false }).type).toBe(TabGlyph);
 });
@@ -197,7 +205,8 @@ it('gives enlarged full labels room without shrinking them or dropping their ico
   mockWindow = { ...mockWindow, width: 320, fontScale: 2 };
   await act(async () => tree.update(<Tabs />));
   const home = optionsFor('index', ['index']), tasks = optionsFor('zadaci', ['index']), agreements = optionsFor('dogovori', ['index']);
-  expect(home.tabBarStyle.marginHorizontal).toBeLessThan(ordinary.tabBarStyle.marginHorizontal);
+  expect(home.tabBarStyle.marginHorizontal).toBe(0);
+  expect(ordinary.tabBarStyle.marginHorizontal).toBe(0);
   expect(agreements.tabBarItemStyle.flex).toBeGreaterThan(home.tabBarItemStyle.flex);
   expect(home.tabBarItemStyle.flex).toBeGreaterThan(tasks.tabBarItemStyle.flex);
   expect(StyleSheet.flatten(home.tabBarButton({ children: 'Početna' }).props.style).paddingHorizontal).toBe(0);

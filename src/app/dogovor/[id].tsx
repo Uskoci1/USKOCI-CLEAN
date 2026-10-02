@@ -68,15 +68,15 @@ function AgreementStatus({ loading = false, error = false, retry }: { loading?: 
 }
 export default function Dogovor() {
   // A notification about a message opens the conversation itself, not the overview it lives behind.
-  const { id, tab, messageId } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[] }>();
+  const { id, tab, messageId, from } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[] }>();
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
   if (messageId !== undefined && (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId))) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
-    requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined} />;
+    fromInbox={from === 'poruke'} requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined} />;
 }
-function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId }: {
-  id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string;
+function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox }: {
+  id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
 }) {
   const izvor = useIzvor();
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
@@ -272,11 +272,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       if (Keyboard.isVisible()) { Keyboard.dismiss(); return true; }
       // Poruke is an inner view of this route, not another navigator entry.
       // Returning to its overview must retain pending/unknown command owners.
-      setTab('pregled');
+      if (fromInbox) { if (router.canGoBack()) router.back(); else router.replace('/poruke'); }
+      else setTab('pregled');
       return true;
     });
     return () => { current = false; subscription.remove(); };
-  }, [chatVisible, ownsAccount]));
+  }, [chatVisible, ownsAccount, fromInbox]));
   if (!foreground || resumeRequired) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
@@ -431,7 +432,13 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
-        waiting={waitingForMe} onOverview={() => setTab('pregled')} chat={{ messages: namedMessages, loading: messages.loading,
+        waiting={waitingForMe} onOverview={() => setTab('pregled')}
+        onBack={fromInbox ? () => {
+          if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {
+            if (router.canGoBack()) router.back(); else router.replace('/poruke');
+          }
+        } : undefined}
+        chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
           writable, terminal: !dogovor.chatDostupan, refresh: refreshMessages, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,
           hasOlder: !!messages.olderCursor, hasNewer: !!messages.newerCursor,

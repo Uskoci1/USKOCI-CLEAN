@@ -8,7 +8,7 @@ import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { ConversationArt } from '../system/ConversationArt';
+import { AiAssistantArt, AiAssistantWelcome, type AssistantWelcomeMemory } from './AiAssistantArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
@@ -85,6 +85,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const [inputHeight, setInputHeight] = useState(48);
   const [expandedDraft, setExpandedDraft] = useState(false);
   const [disclosure, setDisclosure] = useState({ key: p.conversationKey, expanded: false });
+  const assistantWelcome = useRef<AssistantWelcomeMemory>({ key: p.conversationKey, consumed: false });
   const expanded = disclosure.key === p.conversationKey && disclosure.expanded;
   const input = useRef<TextInput>(null);
   const thread = useRef<ScrollView>(null);
@@ -230,7 +231,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
         }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
-          {!keyboard ? <AssistantPresence /> : null}
+          {!keyboard ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
+            <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
+          </View> : null}
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {p.openings?.length && p.canEdit ? <View style={s.openings}>
@@ -349,17 +352,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
 /** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
 function Mark() {
   return <View testID="ai-assistant-mark" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.mark}>
-    <FactArt kind="chat" size={24} cut="art" role="ai" />
-  </View>;
-}
-
-/**
- * The AI illustration belongs to the opening. An idle welcome is static: nothing is listening or processing yet.
- * Only the real busy state below carries continuing motion.
- */
-function AssistantPresence() {
-  return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
-    <ConversationArt size={88} />
+    <AiAssistantArt size={24} />
   </View>;
 }
 

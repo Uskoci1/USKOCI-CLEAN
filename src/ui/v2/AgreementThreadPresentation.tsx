@@ -17,6 +17,8 @@ type Props = {
   agreement: DogovorProjekcija;
   person?: UcesnikProjekcija;
   onOverview: () => void;
+  /** Inbox entry returns to the inbox; the task identity still opens accepted terms. */
+  onBack?: () => void;
   waiting?: string | null;
   chat: ComponentProps<typeof AgreementChat>;
 };
@@ -27,7 +29,7 @@ type Props = {
  * role and accepted terms join the history scroll; the short bar always retains Back and the accepted overview.
  * The chat itself never remounts when that composition changes: its draft, selected message and photo tray survive.
  */
-export function AgreementThreadPresentation({ agreement, person, onOverview, waiting = null, chat }: Props) {
+export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, waiting = null, chat }: Props) {
   const { height } = useWindowDimensions();
   const scale = useTextScale();
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
@@ -51,7 +53,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, wai
     if (next > 0) setAvailableHeight(current => current === next ? current : next);
   }}>
     {compact ? <View testID="agreement-thread-compact-bar" style={s.bar}>
-      <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onOverview} />
+      <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onBack} />
       <View style={s.barTitle}>
         <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1}>
           {person && scale < 1.6 ? person.ime : 'Poruke'}
@@ -65,7 +67,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, wai
       </Press>
     </View> : <>
       <View testID="agreement-thread-full-bar" style={s.bar}>
-        <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onOverview} />
+        <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onBack} />
         {person ? person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials : null}
         {/* The person alone cannot identify a conversation when we share several jobs. Keep this exact task
             beside the person, with one explicit way back to its accepted terms, not a second generic icon. */}

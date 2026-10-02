@@ -241,3 +241,5 @@ Second iteration source now also includes two-row responsive Discovery controls,
 ### Owner material references and third composition iteration
 
 See [iteration3 scope, actual baseline, Figma and limits](MATERIAL_COMPOSITION_ITERATION3_20261002.md). Original dimensional art and pins, identity-first profile, tactile quick controls and broader chat writing area are source-integrated. Exact build/native acceptance stays separate. The owner additionally requests a true chronological Messages inbox; existing notifications cannot honestly substitute for an authoritative conversation index.
+
+03.10: [Inbox, native kritika i sledeći povezani paket](INBOX_AND_NATIVE_20261003.md). Reader DEV primenjen; novi UI nije označen kao native prihvaćen pre novog APK-a.

@@ -50,6 +50,20 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
+it.each([844, 480])('keeps inbox Back separate from task context at height %s without remounting the draft', async height => {
+  mockWindow = { ...mockWindow, height };
+  props.onBack = jest.fn();
+  await render();
+  await act(async () => button('Nazad').props.onPress());
+  expect(props.onBack).toHaveBeenCalledTimes(1);
+  expect(props.onOverview).not.toHaveBeenCalled();
+  const context = height < 560 ? `Uslovi Dogovora: ${agreement.naslov}. Potvrdi završetak`
+    : `Dogovor: ${agreement.naslov}. ${agreement.ucesnici[0].ime}`;
+  await act(async () => button(context).props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(1);
+  expect(button('Napiši poruku').props.value).toBe('Moj sačuvani nacrt');
+});
+
 it('gives 320 dp / font scale 2 history the full identity and accepted terms while keeping overview outside the scroll', async () => {
   mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
   await render();
@@ -141,7 +155,8 @@ it('lets enlarged text use a full-width draft without recreating it or closing p
   mockWindow = { ...mockWindow, fontScale: 1.5 };
   await act(async () => tree.update(<AgreementThreadPresentation {...props} />));
   expect(button('Napiši poruku')).toBe(input);
-  expect(flat(input.props.style).flex).toBeUndefined();
+  // The dedicated writing row keeps the input flexible at both scales; identity and draft must survive.
+  expect(flat(input.props.style).flex).toBe(1);
   expect(input.props.value).toBe('Moj sačuvani nacrt');
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
   expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);

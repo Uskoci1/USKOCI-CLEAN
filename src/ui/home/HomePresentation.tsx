@@ -12,7 +12,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { sys } from '../system/tokens';
+import { materialControl, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeLaunchArt } from './HomeLaunchArt';
@@ -39,7 +39,7 @@ function StartActions({ compact, onPublish, onEarn }: {
 }) {
   return <View style={s.actions}>
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
-      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={s.createEntry}>
+      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised]}>
       <View style={s.createMain}>
         <View style={s.actionCopy}>
           <T accessibilityRole="header" style={s.actionTitle}>Objavi zadatak</T>
@@ -255,6 +255,7 @@ const s = StyleSheet.create({
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
   actions: { gap: sys.space.sm, paddingTop: sys.space.sm },
   createEntry: { padding: sys.space.lg, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
+    borderWidth: 1, borderColor: sys.color.surface,
     gap: sys.space.md },
   createMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   actionCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },

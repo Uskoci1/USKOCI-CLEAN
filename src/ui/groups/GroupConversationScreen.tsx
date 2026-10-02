@@ -9,7 +9,7 @@ import { GroupConversationController,initialGroupState } from './GroupConversati
 import { GroupConversationPresentation } from './GroupConversationPresentation';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { SupportContextEntry } from '../support/SupportContextEntry';
-export function GroupConversationScreen({agreementId}:{agreementId:string}){
+export function GroupConversationScreen({agreementId,fromInbox=false}:{agreementId:string;fromInbox?:boolean}){
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[draft,setDraft]=useState(''),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null),input=useRef('');
@@ -36,7 +36,7 @@ export function GroupConversationScreen({agreementId}:{agreementId:string}){
  const viewability=useRef({viewAreaCoveragePercentThreshold:60,minimumViewTime:600}).current;
  const openAgreement=(id:string)=>{if(current())router.push({pathname:'/dogovor/[id]',params:{id}});};
  // The conversation was opened from its Dogovor: back returns there, and only a cold start (no stack) opens it anew.
- const back=()=>{if(!current())return;if(router.canGoBack())router.back();else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});};
+ const back=()=>{if(!current())return;if(router.canGoBack())router.back();else if(fromInbox)router.replace('/poruke');else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});};
  const ready=state.phase==='READY',group=state.context?.group;
  const body=normalizeGroupBody(draft);
  return <GroupConversationPresentation state={state} draft={draft} draftLength={Array.from(body).length} draftSendable={!!groupBody(body)} showPeople={showPeople} listKey={generation} viewability={viewability} onVisible={onVisible}

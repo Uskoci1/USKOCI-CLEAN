@@ -1,0 +1,27 @@
+# Inbox and connected native iteration — 3 October
+
+The owner requested a dedicated day-grouped conversation inbox with direct chat entry, task context inside the chat, original dimensional artwork and a coherent whole-app flow. The latest explicit instruction authorizes necessary Supabase work on the existing DEV project; this is no production/store release. Supplied Airbnb images remain quality references, while Airtasker text informs marketplace flow. Neither is copied as product authority.
+
+## Real native evidence and resulting decisions
+
+Phone source9cdbe3b092ae9356fc699965522837a5c7c79579, run37070094274, APK SHA256 6738fac64561bdcf8c74945d6de9230ce2ee545922956c0443eabe55b2b51c18; emulator source7c7a34c3df0554b9086016b7103bcb38fb9fe3a7 (only generated-document difference), run37070100309, SHA256 f2f638b6b2c5c245783b2156328ba388c12fb02ea04046fff127f4c71a7d7ded. Both passed three artifact attestations and installed with existing UID/session retained. Local receipts: native-w2/takeover3-{phone,emulator}-{verified,install}.json. These are source3 builds, not the inbox build below.
+
+Actual Home/profile/Discovery/Agreement and active/terminal chats were inspected on the emulator. Physical Home was visually inspected and profile/Agreement captured. An attempted physical chat tap failed after the owner navigated Home: that capture is NOT phone chat evidence. Screenshots with actual account/message data stay local. No business message was sent in this inspection.
+
+Native critique: the large rounded bottom navigation competed with content; profile edit competed with identity; publication artwork worked but the action lacked material depth. This source changes the navigation to a quiet full-width white rail, keeps readable labels and selection/motion/accessibility, makes name editing subordinate, and adds a subtle raised surface to the existing publication action. Actual map close-zoom rendering remains a separate open inspection item. Active-chat refresh action still merits a composition pass.
+
+## Connected Poruke contract
+
+One row per private Agreement/group conversation, sorted by latest caller-visible message, grouped by day. Own messages are included; multiple messages update the same conversation. Rows expose person/task/preview/time. Private unread is unknown and is not invented from legacy read_at; group unread uses actual visibility. No N+1 avatar/media fetch, signed media URLs or list-side ACK.
+
+Tap opens private chat or group directly. Task context still opens canonical Agreement overview. Back from inbox-origin chat returns to Poruke, with keyboard dismissed first. Focus/identity guards and destination authorization remain. Retained pages are revalidated at the same depth; background/account retirement cannot expose the old account's rows. Transport failure may retain read-only content; schema/authorization failure clears it. Existing incoming push hints coalesce a focused revalidation; no polling or invented realtime subscription.
+
+The reader was applied on canonical DEV as migration20261002223407. Six postflight checks passed at22:38:57.775784Z; exact function MD5 c972c1004450436d665cf2f4b9d1fcca and authenticated-only EXECUTE ACL matched. Full closure digest checks passed inside the candidate transaction before/after DDL, without rewriting certificates. Receipt: supabase/operations/dev-alpha/ledger/20261003_messages_inbox_01_application.receipt.json. Frozen preparation manifest retains its historical SOURCE_CANDIDATE status; this application receipt is newer execution evidence.
+
+CI37073045950 at a4af277f8f99b828a4e71ad324187046da013035 passed47 isolated PostgreSQL17 assertions using the exact function, four pinned helpers and ACL. This is not HTTP, full migration, provider or scale proof. Security advisor notes intentional authenticated SECURITY DEFINER exposure; its expected-user/auth.uid, restrictions/membership/visibility boundary is deliberate and tested. Other project advisories were not declared resolved.
+
+## Source checks and remaining native acceptance
+
+TypeScript --noEmit PASS. Seven focused suites ultimately132 checks PASS (inbox client/model, chat presentation, tab navigation/motion/safe area); one old rounded-bar visual expectation initially failed and was reconciled with the intentional rail redesign. No behavioral assertion was weakened. Inbox gate is enabled only after DEV postflight, in both DEV and push-proof workflows. Push-proof also now matches the six already-applied DEV feature flags it previously omitted.
+
+New inbox/rail/profile/publication refinement still requires its exact APK and native screenshots. Original white/green/orange robot is integrated as local88dp welcome and24dp speaker identity in both AI chats, preserving their distinct introductions; one240ms native-driver fade, static reduced motion, no fake listening/voice state. Asset provenance is in assets/ai/PROVENANCE.md. Existing AI layout40 checks and TypeScript passed after integration. No hand-wave rig or spoken AI reply is claimed. rs.uskoci.dev remains non-Firebase; physical delivery uses the separate configured push-proof package, and emulator is not a push device. Single-target transport, matching preferences, whole-app consistency and store work remain open.

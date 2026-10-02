@@ -7,9 +7,11 @@ import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
+import { conversationInboxBuilt } from '../../data/conversationInboxGate';
 
 /**
- * One shell for one account: Početna | Zadaci | Dogovori (owner decision 1, 2026-09-19, which
+ * One shell for one account: Početna | Zadaci | Dogovori | Poruke (inbox paired with its DEV reader).
+ * The original owner decision 1, 2026-09-19,
  * supersedes the two intent-shaped shells of 2026-09-16; the middle tab is Zadaci since the owner's
  * information architecture of 2026-09-23, which retired the Mapa tab and the duplicate `/prilike` root).
  * The same person may own tasks, have applied to other people's and hold Dogovori on both sides at once,
@@ -23,20 +25,20 @@ import { Press } from '../../ui/Press';
  * review, the location and photo steps, support. They are pushed, not switched to, and with the
  * navigator's `animation: 'none'` not one of them moved: the screen was simply replaced, which is
  * why walking through the app felt like redrawing rather than going somewhere. Switching between
- * the three real tabs stays instant, which is what the tab contract records and what a tab bar is for.
+ * the root tabs stays instant, which is what the tab contract records and what a tab bar is for.
  */
 const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.push } } };
 
-// The bar's own parts (the always-mounted selected capsule with its 20 by 3 pill, the flat-mark and sticker icon that cross-fade
-// and pop once, the `tab` label, the height that follows them) live in `ui/system/TabBarItem` with the reasons, and the motion
+// The bar's own parts (the always-mounted selection marker, consistent mark icons that cross-fade
+// and respond once, the `tab` label, the height that follows them) live in `ui/system/TabBarItem`, and the motion
 // is React Native Animated on the native driver, never Reanimated (UI/UX pass, wave 2, item 2.1). The scene change between the
-// three tabs is still the navigator's `animation: 'none'` below: item 2.2 (one transition language) waits for the owner's recordings.
+// root tabs is still the navigator's `animation: 'none'` below.
 //
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
-const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;
+const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements', poruke: 'chat' } as const;
 // At enlarged text, longer Serbian names earn more width instead of breaking in the middle of a word.
-const LABEL_SPACE = { index: 7.5, zadaci: 6.25, dogovori: 8.5 } as const;
+const LABEL_SPACE = { index: 7.5, zadaci: 6.25, dogovori: 8.5, poruke: 6.5 } as const;
 type Primary = keyof typeof PRIMARY;
 function isPrimary(name: string): name is Primary { return Object.hasOwn(PRIMARY, name); }
 function sectionOf(state: { index: number; routes: readonly { name: string; key: string }[];
@@ -197,7 +199,7 @@ export default function TabLayout() {
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
       // The height follows the icon and the actual label height (`tabBarHeight`); no font shrinking or truncation.
       tabBarStyle: { ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING),
-        marginHorizontal: roomyLabels ? 8 : 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
+        marginHorizontal: 0, marginTop: 0, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
@@ -209,6 +211,7 @@ export default function TabLayout() {
     <Tabs.Screen name="prilike" options={{ href: null, ...REDIRECT }} />
     <Tabs.Screen name="mapa" options={{ href: null, ...REDIRECT }} />
     <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
+    <Tabs.Screen name="poruke" options={{ title: 'Poruke', tabBarAccessibilityLabel: 'Poruke', ...(conversationInboxBuilt() ? {} : { href: null, ...FULL }) }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...FULL }} />

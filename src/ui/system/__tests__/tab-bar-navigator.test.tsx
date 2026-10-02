@@ -68,26 +68,27 @@ describe('the three tabs as the navigator draws them', () => {
     }
   });
 
-  it('draws the chosen tab with its capsule shown, its sticker up and its label green, and the others at rest, from the first frame', async () => {
+  it('draws the chosen tab with its capsule shown, its brand mark shown and its label in ink, and the others at rest, from the first frame', async () => {
     await opened('/');
     const capsuleOpacity = hosts('tab-capsule').map(node => flat(node).opacity);
     expect(capsuleOpacity).toEqual([1, 0, 0]);
-    // Both copies of a chosen icon show the sticker and hide the mark, and both copies of a resting one the mark.
+    // Both copies of a chosen icon show the brand layer, and both copies of a resting one show the quiet layer.
     const art = hosts('tab-glyph-art').map(node => flat(node).opacity), mark = hosts('tab-glyph-mark').map(node => flat(node).opacity);
     expect(art).toEqual([1, 1, 0, 0, 0, 0]);
     expect(mark).toEqual([0, 0, 1, 1, 1, 1]);
     const words = tree.root.findAllByType(Text).filter(node => labels.includes(String(node.props.children)));
-    expect(words.map(node => flat(node).color)).toEqual([sys.color.green, sys.color.muted, sys.color.muted]);
+    expect(words.map(node => flat(node).color)).toEqual([sys.color.ink, sys.color.muted, sys.color.muted]);
     // Nothing moved to get there.
     expect(tab('Početna')!.props.accessibilityState).toEqual({ selected: true });
   });
 
-  it('draws every tab icon at 30 in both cuts: the flat mark in the quiet tone, the sticker in the brand tone', async () => {
+  it('draws each tab in the same 24dp mark family with quiet and brand layers', async () => {
     await opened('/');
     const pictures = tree.root.findAll(node => node.type === ('FactArt' as unknown));
     expect(pictures).toHaveLength(12);
-    for (const picture of pictures) expect(picture.props).toMatchObject({ size: TAB_ICON, ...(picture.props.cut === 'mark' ? { tone: 'quiet' } : { cut: 'art', tone: 'brand' }) });
-    expect(pictures.filter(node => node.props.cut === 'mark')).toHaveLength(6);
+    for (const picture of pictures) expect(picture.props).toMatchObject({ size: TAB_ICON, cut: 'mark' });
+    expect(pictures.filter(node => node.props.tone === 'quiet')).toHaveLength(6);
+    expect(pictures.filter(node => node.props.tone === 'brand')).toHaveLength(6);
     expect(['home', 'map', 'agreements'].map(kind => pictures.filter(node => node.props.kind === kind).length)).toEqual([4, 4, 4]);
   });
 });
