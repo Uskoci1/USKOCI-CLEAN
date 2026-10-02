@@ -42,6 +42,10 @@ The owner writes Serbian (Latin script, informal, many typos). Answer him in pla
 - Red rows: A16 HITNO (out of V1 by the owner's decision), B05 Pretraga i filteri, P05 Podsetnik (deferred). Rows with a missing light: D13, P04, P05, N01, N02, N03, S01, S02, S03, S04.
 - Blockers B01-B24: closed or accepted B01, B04, B06, B17, B18 (accepted debt), B23, B24 (applied); partial B05, B07, B09, B10, B11, B15, B19, B22 (measured, not closed); open B12 (iOS), B13 (legal/stores), B16 (old versions), B21 (signing); B02 and B14 "PROVERITI".
 
+### 1.5 Regression gate at the handoff (2026-10-02, 12:15-12:19, after all code commits and before the docs-only commits)
+- `npx tsc --noEmit -p tsconfig.json`: exit 0, no output.
+- `npx jest --maxWorkers=4 --testTimeout=120000`: **422 suites passed of 422, 9,236 tests passed, 9 skipped, 6 snapshots passed** (222 s). This is JEST on the authoring machine, not CI and not a device. The pushed head started about 13 workflows (list with `gh run list`); none had finished when this page was written.
+
 ## 2. What was done on 2026-10-01 and 2026-10-02 (short)
 
 - **D12** (written review comment): server applied and verified (79 of 79 read-only checks); client written behind the OFF flag (section 5).

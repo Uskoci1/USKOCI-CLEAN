@@ -21,6 +21,7 @@ Većina aplikacije je napisana i proverena kodom, serverski deo je velikim delom
 
 - Tvojih 75 odluka prihvaćeno i zapisano; AGENTS.md dopunjen (osim jedne rečenice koju sistem nije dozvolio).
 - 11 jedinica rada (i skripte za emulator) predato i commit-ovano, sve na nivou **koda i testova** (nijedna nije u APK-u, nijedna nije pokrenuta u CI): prijava (poruke), UI talas 2, Moji zadaci, bezbednosno ime (EX-07 S06), dokaz za povratne linkove prijave (EX-07 S03), ex06b, D12 klijent, dva dokaza za poruke (EX-05 S01, S02), dokaz za dispečer (EX-06 S04), kritika emulatora.
+- Provera celog projekta posle svih izmena koda: tipovi čisti (tsc), **jest 422 od 422 paketa, 9.236 testova prošlo** (to je provera na mašini, nije CI ni uređaj).
 - Samo prijava (EX-07 S02) je prošla nezavisnu reviziju. Ostale čekaju reviziju i CI; to je prvi posao Codex-a.
 - 42 commit-a danas, 350 fajlova, oko +68.000 linija (uglavnom dokazi, testovi i dokumenta).
 
