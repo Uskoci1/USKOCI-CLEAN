@@ -381,10 +381,14 @@ jobs:
           mkdir -p "$EX05_S01_ARTIFACT_DIR" "$N07_ARTIFACT_DIR" "$N08_ARTIFACT_DIR" "$D03_ARTIFACT_DIR"
           git rev-parse HEAD > "$EX05_S01_ARTIFACT_DIR/source-binding.txt"
           npm ci
-      - name: Reconstruct the disposable historical live-79 baseline and prepare the real disposable accounts
+      - name: Reconstruct the disposable historical live-79 baseline
         run: |
           set -euo pipefail
           bash supabase/proofs/ru5_device_ui_live79_env.sh
+      # GITHUB_ENV values from the baseline become available only in a later step.
+      - name: Prepare the real disposable accounts
+        run: |
+          set -euo pipefail
           node supabase/proofs/ru5_device_ui_fixture.mjs
       - name: The frozen N07, N08 and D03 proofs at their own position (live79 to history 84, 85, 86), unchanged; each report is kept even when a proof fails
         run: |

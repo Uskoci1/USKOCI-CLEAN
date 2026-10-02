@@ -289,7 +289,11 @@
         "test": "Round11: TypeScript PASS; 5 distinct focused suites / 100 tests PASS; final caption touch-size adjustment source-reviewed. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
         "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
         "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
+        "codex_ci_20261002": {
+          "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
+          "scope": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED"
+        }
       }
     },
     {
@@ -1467,6 +1471,10 @@
           ],
           "serverSide": "toplo tačno čitanje ~25 ms; prvi poziv u novom backend-u ~260 ms; gateway upstream za tačno čitanje p50 ~210–250 ms; pg_stat_statements: 499 poziva, srednje 121,6 ms",
           "finding": "B24: jedna PostgREST sesija na DEV-u ponavlja MEDIA_VERSION_CONFLICT (40001) ~100 zapisa i ~470 rollback-ova u sekundi; hipoteza (neprovereno): neograničen retry 40001 u PostgREST-u"
+        },
+        "codex_ci_20261002": {
+          "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
+          "scope": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED"
         }
       }
     },
@@ -2375,7 +2383,11 @@
           "device": "PENDING",
           "voice": "B1/B2 UNSHIPPED"
         },
-        "round73": "P6 obuhvat: čitanje poruka ograničeno na 50 po čitanju i 200 u klijentskom prozoru (B3), ACK do 50 ID-eva; pretplata ima vlasnika. Nema novog P6 programiranja ni velikog SQL opterećenja."
+        "round73": "P6 obuhvat: čitanje poruka ograničeno na 50 po čitanju i 200 u klijentskom prozoru (B3), ACK do 50 ID-eva; pretplata ima vlasnika. Nema novog P6 programiranja ni velikog SQL opterećenja.",
+        "codex_ci_20261002": {
+          "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
+          "scope": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING"
+        }
       }
     },
     {
@@ -4554,23 +4566,32 @@
       {
         "id": "EX07-S06",
         "commit": "fa45c62d",
-        "level": "SOURCE + OFFLINE",
+        "level": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / FLAG OFF / NOT APPLIED",
         "independent_review": "none",
-        "next": "CI run of ex07-s06-proof.yml; review; approval block only after green"
+        "next": "Read detailed proof and independently review candidate/client before approval block or flag change.",
+        "ci_run": 36994974869,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "EX07-S03",
         "commit": "85339a90",
-        "level": "SOURCE + OFFLINE",
-        "independent_review": "none",
-        "next": "CI run of ex07-s03-auth-callbacks-proof.yml (disposable emulator evidence only)"
+        "level": "CI HARNESS_BROKEN / HTTP NOT RUN / NATIVE INCONCLUSIVE",
+        "independent_review": "Independent failure classification only; full unit review open.",
+        "next": "Fix disposable Mailpit port 54324 conflict and emulator form/field driver; preserve 6 pass, 0 fail, 3 error, 5 not run receipt.",
+        "ci_run": 36994975017,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "EX06-S06-EX06B",
         "commit": "6c979c12",
-        "level": "SOURCE + OFFLINE",
+        "level": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / NOT APPLIED",
         "independent_review": "none",
-        "next": "CI run of ex06b-alias-proof.yml; owner questions A15 etc.; approval block only after green"
+        "next": "Read detailed proof and independent candidate review before promoting approval block; no DEV application.",
+        "ci_run": 36994974872,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "D12-CLIENT",
@@ -4582,23 +4603,32 @@
       {
         "id": "EX05-S01",
         "commit": "b0858f11",
-        "level": "SOURCE + OFFLINE",
-        "independent_review": "none",
-        "next": "first CI cycle with pin_gate_mode=report"
+        "level": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING",
+        "independent_review": "Harness failure and patch independently reviewed: OK; full package review remains open.",
+        "next": "Rerun the split baseline/fixture steps; require N07/N08/D03 reports and evidence verdict. No DEV/device acceptance.",
+        "ci_run": 36994974974,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "EX06-S04",
         "commit": "2c21e61b",
-        "level": "SOURCE + OFFLINE",
+        "level": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED",
         "independent_review": "none",
-        "next": "first CI run with pins=report; F5-F12 are hypotheses"
+        "next": "Triage 8 findings with stated chain-fidelity limits; 54/54 cases decided, 9 probes confirmed, 0 harness errors. No new DEV reproduction.",
+        "ci_run": 36994974997,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "EX05-S02",
         "commit": "b2fa3f60",
-        "level": "SOURCE + OFFLINE",
+        "level": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED",
         "independent_review": "folded in during the round",
-        "next": "first CI run with pin_gate_only=true, then a full run"
+        "next": "Review the 35-interleaving report; prepare lock-order correction with disposable proof and named approval before DEV.",
+        "ci_run": 36994974880,
+        "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+        "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
       },
       {
         "id": "UI-CRITIQUE-W1",
@@ -4725,7 +4755,6 @@
       "option_a_window3_result": "PROZOR 3 (vlasnikovo „ajde sad“, 2.10. u noći 23:29-23:34 po telefonu, skripta 262 s, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, telefon posle nije dirnut; prvo ADB interfejs nije bio vidljiv jer je USB debugging bio isključen, ništa nije poslato dok ga vlasnik nije uključio): GRANICA STRANE DOKAZANA NA TELEFONU za S1, S2 i S4. DOKAZANO: pull-to-refresh sa pravog vrha vraća S1 Istoriju na prvu stranu (2 kartice, foot „Prikaži još“); šetnja do kraja = 17 od 17 kartica, isti redosled i tekst kao baza, bez duplikata/anomalije i BEZ reda greške; S4 Kandidati (strane od 1): skrol do kartice „Pomoć pri nošenju ormara“, 2 od 2 kandidata pročitana, „Uporedi“ otvoreno sa obe prijave; ciklusi zadatak -> Prijave -> Back 10 od 10 (otvaranje 6,7-7,6 s, Back 3,2-3,5 s, uključuje polling UI dump-a, gornja granica); bez pada i ANR; 10405 frejmova, janky 0,44 %, p99 14 ms; PSS 483 MB (posmatranje, bez osnove za poređenje). DEV brojači: rpc_list_need_candidates_page +22 (5 -> 27), rpc_list_need_candidates +0 (40 -> 40, nijedno čitanje cele liste kandidata), rpc_list_my_needs_page +19, rpc_get_my_agreement_review +0. RED GREŠKE IZ PROZORA 2 SE NIJE PONOVIO (isti niz koraka čist; prozor 1 takođe čist: viđen u 1 od 3 pune šetnje); uzrok i dalje neodređen (app log ima samo platformska WARN upozorenja, nema JS linije ni izuzetka); kontrola „Pokušaj ponovo“ NIJE isprobana. NEMA nativno: odbijanje mešanih revizija (CI dokaz i unit testovi, ne telefon), loading skeleton i retry reda greške, pozitivan put ocene (drugi nalog), Home brojevi i dalje čitaju cele liste (A01), veličina strane je TEST vrednost (2/2/1; proizvodne 30/30/50 se ne mogu preći sa trenutnim podacima), ništa na iOS-u ni drugom Android uređaju, test APK nije proizvodni build. EX-04 NIJE zatvoren mojom odlukom: zatvaranje „sa granicama“ (kao P6) je vlasnikova odluka. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 6); docs/implementation/product-v1-closure-20260926/finalization-20260927/ex04-physical-honor/",
       "closure_20261001": "ZATVORENO SA GRANICAMA 1.10. (vlasnik, na pitanje „EX-04: zatvoriti sa granicama, da ili ne?“: „DA“). Zatvoren je TAČNO obim EX04_PERSONAL_LISTS_PLAN (A09 Moji zadaci, B10 Moje prijave, A11 Kandidati, RC-03 stanje ocene = A01 + D01): straničenje server+klijent, primenjeno na DEV (ledger 216-219, sertifikat 58447d77 nepromenjen), dokazano na telefonu pri test veličinama strane. NIJE zatvoreno šire merilo reda iz LIVE plana 5.4 (oba učesnika završavaju posao i oporavak, 27 P2 tokova, dvonaložni scenario 9.3): EX04-L0. Granice (tačno, EX04_CLOSURE_RECEIPT): L0 šire merilo reda; L1 mešane revizije samo CI/unit; L2 red greške „Nije uspelo učitavanje još zadataka.“ viđen jednom u 3 šetnje, uzrok neodređen, „Pokušaj ponovo“ i loading skeleton neprobani - OTVARA EX-04 ponovo ako se ponovi; L3 pozitivan put ocene (drugi nalog); L4 Home brojevi A01 čitaju cele liste; L5 test veličine strane 2/2/1 umesto 30/30/50 (podaci premali); L6 Back posle dubokog skrola vraća najviše 5 strana (dizajn); L7 ZATVORENO 2.10. 00:19: test APK zamenjen normalnim DEV build-om 81b8a833 (run 36931086522, izvor fb865dd7) sa install -r, sesija i podaci sačuvani; L8 jedan telefon, jedan nalog, bez iOS-a i dugotrajne sesije. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_CLOSURE_RECEIPT_20261001.md",
       "open_items": ["A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve", "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)", "Preostalo za EX-04 posle prozora 3 (ROUND_79 odeljak 6): granica strane S1/S2/S4, pull-to-refresh i ciklusi kandidata su DOKAZANI na telefonu pri test vrednostima; ostaju granice koje vlasnik prihvata ako zatvara EX-04 „sa granicama“: red greške viđen jednom (1 od 3 šetnje) i neponovljen, kontrola „Pokušaj ponovo“ i loading skeleton neprobani, mešana revizija samo CI/unit, pozitivan put ocene (drugi nalog) nedokazan, Home brojevi (A01), test vrednosti strane 2/2/1 umesto 30/30/50, bez iOS-a. Test APK je još instaliran; sledeći normalan DEV build ga zamenjuje.", "Nije dokazano: HTTP/JWT poziv novih čitača kroz PostgREST kao zaseban posmatrani događaj (aplikacijini pozivi novih RPC-ova uspeli su i vidljivi su u pg_stat_statements), troškovi na produkcijskom obimu", "Vlasnikove odluke koje ostaju: B09/PKG-049 (serverska cena) i pisani komentar D12; svaki revert traži novo posebno PRIMENI"],
-
       "withdrawn": "rpc_home_summary() kao imenovana isporuka: ne postoji ni u jednom kanonskom izvoru; Home ide kroz postojeću projekciju (RC-03).",
       "not_in_scope": ["sačuvani zadaci (tok ne postoji među 62 reda)", "pisani komentar uz ocenu D12 (poseban server/privacy/moderation paket i odvojeno prihvatanje)", "D03-D05 poruke i grupa, P01 inbox, N06 blokirani, P05 podsetnik (EX-05 / EX-07 / P4)"],
       "owner_gates": ["PRIMENI za svaki DEV kandidat", "B09 / PKG-049: da li server mora da sprovodi cenu koju zadaje naručilac (LIVE §9.2: plan ne izmišlja politiku cene)", "D12 pisani komentar: poseban server paket", "HONOR prozor (oko 4 min) za preostale cikluse S2/Kandidati i pull-to-refresh; izbor vlasnika za dokaz granice strane (test-only veličina strane + novi APK, ili state-changing DEV fixture)"],
@@ -4749,17 +4778,19 @@
         },
         "EX05-S01": {
           "title": "Disposable re-proof of the chat server legs on the post-B24 and Voice B1 chain",
-          "status": "SOURCE + OFFLINE 2026-10-02 (commit b0858f11): six updated chat proof copies (text, readers, photo, group, voice, push), pin gate over 60 DEV functions, B24 Part 1 chain variant, evidence matrix of 16 rows all NOT RUN, workflow ex05-s01-chat-reproof.yml NOT RUN (chain job 1-2 hours; first cycle pin_gate_mode=report); finding: the PKG-010 chain driver does not plan on the head, so the photo and group rows read NOT RE-RUN; G22 (push ON, in-app OFF) and G16 (group send emits nothing) are RECORDED by the proofs, not asserted; unreviewed; docs: ex05/EX05_S01_ROUND_NOTE_20261002.md, EX05_S01_EVIDENCE_TABLE_20261002.md",
+          "status": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING; run 36994974974 at 3ae018be. Rerun the split baseline/fixture steps; require N07/N08/D03 reports and evidence verdict. No DEV/device acceptance.",
           "autonomous": true,
           "depends_on": "EX05-S00 (baseline) preferred, not required",
-          "first_owner_boundary": "None for the proof. A confirmed contract defect (for example G22) becomes a server candidate that needs 'primeni' to apply"
+          "first_owner_boundary": "None for the proof. A confirmed contract defect (for example G22) becomes a server candidate that needs 'primeni' to apply",
+          "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
         },
         "EX05-S02": {
           "title": "RC-02 targeted concurrent proof for media cancellation",
-          "status": "SOURCE + OFFLINE 2026-10-02 (commit b2fa3f60): targeted concurrent proof of the RC-02 media-cancel lock order (35 pre-registered interleavings, positive and negative controls, chain-fidelity gate over 42 function pins and 11 trigger pins); static finding RC02-F1/F2 (a cancel of a READY task photo deadlocks with a removal or a completion retry) is expected to REPRODUCE in a green run; workflow ex05-s02-rc02-proof.yml NOT RUN (first run pin_gate_only=true); an independent reviewer's findings were folded in; no fix written (a fix is a separate gated slice needing the owner's exact 'primeni'); docs: ex05/EX05_S02_RC02_ROUND_NOTE_20261002.md, supabase/proofs/ex05/README_EX05_S02.md",
+          "status": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED; run 36994974880 at 3ae018be. Review the 35-interleaving report; prepare lock-order correction with disposable proof and named approval before DEV.",
           "autonomous": true,
           "depends_on": "none",
-          "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest"
+          "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest",
+          "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
         },
         "EX05-S03": {
           "title": "Reconnect, anchor and unknown-outcome review with focused client tests",
@@ -4963,10 +4994,11 @@
                 },
                 "S04": {
                       "title": "Dispatch lifecycle negative-case proof and probe of the untested inferences",
-                      "status": "SOURCE + OFFLINE 2026-10-02 (commit 2c21e61b): dispatch lifecycle negative-case proof (50 labelled scenarios with positive controls, 9 probes) and eight PREDICTED findings F5-F12 (hypotheses read from pinned DEV bodies and reproduced only by a simulated world: F5 an applied worker is still sent the opportunity and F10 a closed-search task fails every tick are the two major ones); workflow ex06-s04-proof.yml NOT RUN (first run: input pins=report); unreviewed; docs: ex06/EX06_S04_DESIGN_AND_PREDICTED_FINDINGS_20261002.md, supabase/proofs/ex06/README_S04.md",
+                      "status": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED; run 36994974997 at 3ae018be. Triage 8 findings with stated chain-fidelity limits; 54/54 cases decided, 9 probes confirmed, 0 harness errors. No new DEV reproduction.",
                       "autonomous": true,
                       "depends_on": "S01, S03 (shared fixtures)",
-                      "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval."
+                      "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval.",
+                      "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
                 },
                 "S05": {
                       "title": "Field-to-consumer map (documentation + contract test)",
@@ -5111,10 +5143,11 @@
         },
         "EX07-S03": {
           "title": "Disposable-chain proof for signup confirmation and recovery callbacks",
-          "status": "SOURCE + OFFLINE 2026-10-02 (commit 85339a90): disposable-stack provider proof P01-P15, emulator driver E01-E16, 158 python + 22 jest tests; workflow ex07-s03-auth-callbacks-proof.yml NOT RUN (60-90 minutes; first run will probably need emulator iteration); results will be DISPOSABLE EMULATOR evidence only; unreviewed; docs: ex07/EX07_S03_AUTH_CALLBACKS_PROOF_20261002.md, supabase/proofs/ex07/s03/README.md",
+          "status": "CI HARNESS_BROKEN / HTTP NOT RUN / NATIVE INCONCLUSIVE; run 36994975017 at 3ae018be. Fix disposable Mailpit port 54324 conflict and emulator form/field driver; preserve 6 pass, 0 fail, 3 error, 5 not run receipt.",
           "autonomous": true,
           "depends_on": "none",
-          "first_owner_boundary": "Real provider evidence (dashboard allowlist, sender, disposable mailbox) is the owner's (gap G06)."
+          "first_owner_boundary": "Real provider evidence (dashboard allowlist, sender, disposable mailbox) is the owner's (gap G06).",
+          "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
         },
         "EX07-S04": {
           "title": "Legal matrices in parallel (technical drafts only)",
@@ -5605,6 +5638,58 @@
       "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_58_P6_GUARDED_NATIVE_PROOF_BUILD.md",
       "completed": true,
       "outcome": "P6 ZAVRŠEN SA GRANICAMA prijavljen 2026-09-30 (P6_CLOSURE_RECEIPT.md); vlasnik je potom naložio nastavak po planu: checkpoint → C0 → Discovery polish → ostali V1 tokovi; kandidat izmeren na telefonu u Round 74."
+    },
+    "codex_continuation_20261002": {
+      "document": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
+      "baseline_head": "14d41f8043c04f7c975738c54efa660ebeb07f64",
+      "ownership": "Owner explicitly transferred checkout to Codex; continue existing closure plan and UI/AI quality work.",
+      "level": "SOURCE + LOCAL 138/138 for EX05-S01 harness fix; original CI reports inspected; no new APK or device proof.",
+      "dev": "Read-only 2026-10-02T10:35:43Z: ledger 221, certified/live 0579191d equal, retention ready, 0/2880 failed cron, 11 active Edge functions; no writes.",
+      "ci": [
+        {
+          "unit": "EX05-S01",
+          "run": 36994974974,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "failure",
+          "scope": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING"
+        },
+        {
+          "unit": "EX05-S02",
+          "run": 36994974880,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "success",
+          "scope": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED"
+        },
+        {
+          "unit": "EX06-S04",
+          "run": 36994974997,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "success",
+          "scope": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED"
+        },
+        {
+          "unit": "EX06-S06-EX06B",
+          "run": 36994974872,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "success",
+          "scope": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / NOT APPLIED"
+        },
+        {
+          "unit": "EX07-S06",
+          "run": 36994974869,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "success",
+          "scope": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / FLAG OFF / NOT APPLIED"
+        },
+        {
+          "unit": "EX07-S03",
+          "run": 36994975017,
+          "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
+          "conclusion": "failure",
+          "scope": "CI HARNESS_BROKEN / HTTP NOT RUN / NATIVE INCONCLUSIVE"
+        }
+      ],
+      "publication": "Local generated views only; hosted Claude artifact pending."
     }
   }
 }

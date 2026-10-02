@@ -64,6 +64,22 @@ test('the workflow never reaches DEV or PROD, a provider, a secret or a linked p
   assert.match(text, /assertLocalDeviceProofTargets/);
 });
 
+test('D03 environment producers complete in earlier Actions steps than their consumers', () => {
+  // GITHUB_ENV writes are available only to subsequent steps, not later commands
+  // in the same run block. CI 36994974974 failed before any account was prepared.
+  const steps = workflow.jobs['d03-position'].steps;
+  const stepFor = command => {
+    const indices = steps.flatMap((step, index) => (step.run ?? '').includes(command) ? [index] : []);
+    assert.equal(indices.length, 1, command + ' must run exactly once');
+    return indices[0];
+  };
+  const baseline = stepFor('bash supabase/proofs/ru5_device_ui_live79_env.sh');
+  const fixture = stepFor('node supabase/proofs/ru5_device_ui_fixture.mjs');
+  const proof = stepFor('node supabase/proofs/notifications/n07_forward_promotion_proof.mjs');
+  assert.ok(baseline < fixture, 'fixture needs RU5_DEVICE_* from the completed baseline step');
+  assert.ok(fixture < proof, 'N07 needs the account identities from the completed fixture step');
+});
+
 test('every step that follows a possible failure and must still capture evidence runs with !cancelled() or always()', () => {
   const steps = workflow.jobs.chain.steps;
   const named = pattern => steps.find(step => pattern.test(step.name ?? ''));
