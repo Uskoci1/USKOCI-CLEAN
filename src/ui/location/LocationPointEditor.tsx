@@ -14,6 +14,9 @@ import { brandAction, sys } from '../system/tokens';
 import { LocationDetails, LocationField } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
 
+/** Optional UI shortcuts for the single point currently shown in the conversation. */
+export type PointReplyActions = { confirm?: () => boolean; correct?: () => boolean };
+
 type Props = {
   slot: LocationSlot; title: string; point?: ConfirmedLocationPoint; scopeKey: string; disabled: boolean;
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
@@ -24,6 +27,7 @@ type Props = {
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
   onCorrectInConversation?: () => void;
+  onReplyActionsReady?: (actions: PointReplyActions | null) => void;
   /** Confirming the point is the primary action where nothing else saves (the conversation's point sheet); in the long
    *  form the footer's save is, so there the confirmation is white. */
   confirmAsPrimary?: boolean;
@@ -35,7 +39,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, presentation = 'form', onCorrectInConversation, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, presentation = 'form', onCorrectInConversation, onReplyActionsReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
@@ -62,6 +66,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [candidatePage, setCandidatePage] = useState(0);
   const [focused, setFocused] = useState(false);
   const focus = useRef(false), requestEpoch = useRef(0), renderEpoch = useRef(0);
   const rendered = ++renderEpoch.current;
@@ -90,36 +95,65 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const saved = current.current.point;
     setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
     setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });
-  }, [disabled, resolver]);
+    if (conversation) setAddress(saved?.address ?? '');
+  }, [disabled, resolver, conversation]);
   const owns = () => alive.current && focus.current && !current.current.disabled && rendered === renderEpoch.current;
   const retireSearch = (clearCandidatePin = false) => {
     renderEpoch.current++; requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null);
+    setCandidatePage(0);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     if (clearCandidatePin && origin.kind === 'PROVIDER_CANDIDATE') { setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); }
   };
   const invalidate = () => { setPending(true); setError(false); onInvalidate(); };
+  const lookupAddress = async (next: ResolvedPinPosition, adoptProposal: boolean) => {
+    const epoch = requestEpoch.current, owner = sesijaSada();
+    const ownsRequest = () => alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current
+      && sesijaSada().user?.id === owner.user?.id && sesijaSada().accountRevision === owner.accountRevision;
+    setLookupMode('reverse'); setLookup({ status: 'LOADING' });
+    try {
+      const result = await resolver.reverse({ position: next, countryCode, scopeKey });
+      if (!ownsRequest()) return;
+      setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
+      // The reverse contract admits at most one address. It labels the user's pin;
+      // the provider's nearest coordinates must never replace that exact selection.
+      if (adoptProposal && result.status === 'PROPOSALS' && result.candidates.length === 1) {
+        setAddress(result.candidates[0].label); setSelectedLabel(result.candidates[0].label);
+      }
+    } catch {
+      if (ownsRequest()) setLookup({ status: 'UNAVAILABLE' });
+    }
+  };
   const choose = (next: ResolvedPinPosition) => {
     if (!owns()) return;
     retireSearch(); setCorrectionOpen(false);
     setPosition(next); setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
+    if (conversation) {
+      // Conversation: a completed drag/map tap updates the draft address too.
+      // Clear the old address now; a newer edit/point/visit retires this lookup.
+      setAddress('');
+      void lookupAddress(next, true);
+    }
   };
   const changeSearch = (value: string) => {
     if (!owns()) return;
     retireSearch(); setSearchText(value); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
+    if (conversation) setAddress('');
   };
   const search = async () => {
     if (!owns() || lookup.status === 'LOADING') return;
     retireSearch(); setLookupMode('search'); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(); setLookup({ status: 'LOADING' });
+    if (conversation) setAddress('');
     const epoch = requestEpoch.current;
     try {
       const result = await resolver.search({ text: searchText, countryCode, scopeKey });
       if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
-      // A validated provider result is a proposal, never a confirmed location or
-      // private-address assignment. Other matches remain available for correction.
+      // Conversation proposals include the visible draft address. Only the human
+      // confirmation saves it; the full form retains its separate explicit adoption.
       if (conversation && result.status === 'PROPOSALS' && result.candidates[0]) {
         const candidate = result.candidates[0];
         setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label);
+        setAddress(candidate.label);
         setCorrectionOpen(false);
       }
     } catch {
@@ -164,17 +198,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   const reverse = async () => {
     if (!owns() || !position || lookup.status === 'LOADING') return;
-    // Explicit lookup only; preserve the user's point throughout transport.
-    // A provider's nearest place may have different coordinates.
-    retireSearch(); setLookupMode('reverse'); setLookup({ status: 'LOADING' });
-    const epoch = requestEpoch.current;
-    try {
-      const result = await resolver.reverse({ position, countryCode, scopeKey });
-      if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
-      setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
-    } catch {
-      if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
-    }
+    // The full form still requires explicit address adoption. The conversation's
+    // retry uses the same draft-only lookup as a completed manual pin movement.
+    retireSearch();
+    await lookupAddress(position, conversation);
   };
   const selectCandidate = (candidate: LocationResolverCandidate) => {
     if (!owns()) return;
@@ -184,6 +211,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     }
     const alternatives = conversation && lookup.status === 'PROPOSALS' ? lookup : null;
     retireSearch(); setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label); setCorrectionOpen(false);
+    if (conversation) setAddress(candidate.label);
     if (alternatives) setLookup(alternatives);
     invalidate();
   };
@@ -194,25 +222,41 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   const cancelSearch = () => { if (owns()) { retireSearch(lookupMode === 'search'); if (lookupMode === 'search') invalidate(); } };
   const confirm = () => {
-    if (!owns() || !position) return;
+    if (!owns() || !position || lookup.status === 'LOADING') return false;
     const privateAddress = address.trim() ? locationPrivateText(address, 1000) : null;
     const accessNotes = notes.trim() ? locationPrivateText(notes, 2000) : null;
-    if (privateAddress === undefined || accessNotes === undefined) { setError(true); return; }
+    if (privateAddress === undefined || accessNotes === undefined) { setError(true); return false; }
     const latitudeE6 = Math.round(position.latitude * 1e6), longitudeE6 = Math.round(position.longitude * 1e6);
     if (!Number.isSafeInteger(latitudeE6) || !Number.isSafeInteger(longitudeE6)
-      || Math.abs(latitudeE6) > 90e6 || Math.abs(longitudeE6) > 180e6) { setError(true); return; }
+      || Math.abs(latitudeE6) > 90e6 || Math.abs(longitudeE6) > 180e6) { setError(true); return false; }
     retireSearch();
     onConfirm({ slot, latitudeE6, longitudeE6, origin,
       ...(privateAddress !== null ? { address: privateAddress } : {}), ...(accessNotes !== null ? { accessNotes } : {}) });
-    setPending(false); setError(false);
+    setPending(false); setError(false); return true;
   };
+  const correct = () => {
+    if (!owns() || !position || lookup.status === 'LOADING') return false;
+    // Retire a second activation synchronously, without cancelling the pin or lookup results.
+    renderEpoch.current++; setCorrectionOpen(true); return true;
+  };
+  const replyChanged = useRef(onReplyActionsReady); replyChanged.current = onReplyActionsReady;
+  // Refresh closures after each committed view, but clean up only on unmount. Consumers compare capability booleans,
+  // so publishing a fresh guarded callback never creates a render-registration loop.
+  useEffect(() => {
+    replyChanged.current?.(conversation && focused && !disabled && position && lookup.status !== 'LOADING'
+      ? { confirm, ...(!correctionOpen ? { correct } : {}) } : null);
+  });
+  useEffect(() => () => replyChanged.current?.(null), []);
   if (conversation) {
     const loading = lookup.status === 'LOADING';
-    // A moved pin has no newly resolved address. Keep the old description as context, not its label.
+    // A moved pin keeps the conversation description separate from its new address.
     const manualProposal = !!position && pending && origin.kind === 'MANUAL_PIN';
-    const label = manualProposal ? 'Tačka izabrana na mapi' : selectedLabel || point?.address || initialQuery;
+    const label = !position ? 'Lokacija nije određena' : pending
+      ? address.trim() || 'Tačka izabrana na mapi' : selectedLabel || point?.address || 'Tačka potvrđena na mapi';
     const confirmed = !!point && !pending;
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
+    const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
+    const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
     const lookupMessage = lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
       : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili probaj kasnije.'
         : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
@@ -229,26 +273,45 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           ? confirmed ? 'Potvrđena tačka. Možeš da je izmeniš.'
             : alternatives.length > 1 ? 'Ima više predloga. Proveri pin pre potvrde.' : 'Proveri pin, pa potvrdi mesto.'
           : loading ? 'Tražimo mesto iz razgovora…' : 'Obeleži tačno mesto na mapi.'}</T>
-        {manualProposal && initialQuery ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
+        {(manualProposal || !position) && initialQuery ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View>
       {!position && !loading && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}
       {!loading || position ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey}
         disabled={disabled || !focused} height={220} /> : null}
+      {position && (manualProposal || correctionOpen) ? <>
+        {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
+        {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
+          && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <>
+          <T variant="note" tone="muted" accessibilityLiveRegion="polite">Adresa nije određena. Tačka je ostala tamo gde je izabrana. Upiši adresu ili pokušaj ponovo.</T>
+          <Button tone="neutral" label="Ponovo pronađi adresu" kind="quiet" disabled={disabled || !focused} onPress={reverse} />
+        </> : null}
+        <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
+          editable={!disabled && focused} onChangeText={value => {
+            if (owns()) { retireSearch(); setAddress(value); invalidate(); }
+          }} />
+      </> : null}
       <T variant="meta" tone="muted">Svi vide približno područje. Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
       {position ? <>
         <Button tone="neutral" label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
           style={confirmAsPrimary ? brandAction : undefined} disabled={disabled || !focused || loading} onPress={confirm} />
-        <Button tone="neutral" label={correctionOpen ? 'Sakrij opcije izmene' : 'Ispravi mesto'} kind="quiet"
-          disabled={disabled || !focused} onPress={() => { if (owns()) setCorrectionOpen(value => !value); }} />
+        <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
+          disabled={disabled || !focused} onPress={() => { if (correctionOpen) { if (owns()) setCorrectionOpen(false); } else correct(); }} />
       </> : null}
       {correctionOpen ? <>
         <T variant="note" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi, pa potvrdi izmenu.</T>
-        {alternatives.length > 1 ? alternatives.map((candidate, index) => <Button tone="neutral"
-          key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={candidate.label}
+        {alternatives.length > 1 ? visibleCandidates.map((candidate, index) => <Button tone="neutral"
+          key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`} label={candidate.label}
           accessibilityLabel={`Izaberi predlog: ${candidate.label}`} kind="secondary"
           disabled={disabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
+        {alternatives.length > 3 ? <View style={{ gap: sys.space.xs }}>
+          <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Predlozi {candidatePage * 3 + 1}–{Math.min(alternatives.length, candidatePage * 3 + 3)} od {alternatives.length}</T>
+          {candidatePage > 0 ? <Button tone="neutral" label="Prethodni predlozi" kind="quiet" disabled={disabled || !focused}
+            onPress={() => { if (owns()) setCandidatePage(page => Math.max(0, page - 1)); }} /> : null}
+          {candidatePage < lastCandidatePage ? <Button tone="neutral" label="Još predloga" kind="quiet" disabled={disabled || !focused}
+            onPress={() => { if (owns()) setCandidatePage(page => Math.min(lastCandidatePage, page + 1)); }} /> : null}
+        </View> : null}
       </> : null}
       {(correctionOpen || !position) && onCorrectInConversation ? <Button tone="neutral" label="Ispravi u razgovoru" kind="quiet"
         disabled={disabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}

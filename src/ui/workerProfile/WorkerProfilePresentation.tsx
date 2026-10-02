@@ -14,7 +14,8 @@ import { PickerGrid, PickerTile } from '../system/PickerTile';
 import { pictogramCatalog, type PictogramGroup } from '../system/Pictogram';
 import { StateView } from '../system/StateView';
 import { plural } from '../system/plural';
-import { card, sys, field } from '../system/tokens';
+import { sys, field } from '../system/tokens';
+import { useLayoutClass } from '../system/textScale';
 import { SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
@@ -96,7 +97,7 @@ export function WorkerProfileFooter({ message, error, held = false, children }: 
   return <>
     {message || error ? <View testID="worker-profile-answer" style={[s.answer, typing && s.answerTyping]}>
       {message ? <View style={s.statusLine}><FactArt kind="check" size={20} />
-        <T accessibilityRole="alert" variant="body" style={[s.grow, s.green]}>{message}</T></View> : null}
+        <T accessibilityRole="alert" variant="body" style={[s.grow, s.ink]}>{message}</T></View> : null}
       {error ? <T accessibilityRole="alert" variant="body" style={s.danger}>{error}</T> : null}
     </View> : null}
     <View testID="worker-profile-actions" style={[s.answer, typing && s.footerAside]} accessibilityElementsHidden={typing}
@@ -117,7 +118,7 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
 }
 
 function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}><FactArt kind={art} size={24} /><T variant="heading" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
+  return <View style={s.head}><FactArt kind={art} size={24} cut="art" /><T variant="heading" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
@@ -134,6 +135,7 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen = f
   values: string[]; pending: string; setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void;
   disabled: boolean; inputRef?: RefObject<TextInput | null>;
 }) {
+  const { stacked } = useLayoutClass();
   const full = values.length >= MAX_TERMS;
   const add = () => { const term = pending.replace(/^ +| +$/g, '');
     if (disabled || !term || Array.from(term).length > 500 || full) return;
@@ -144,23 +146,23 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen = f
     {description ? <T variant="note" tone="muted">{description}</T> : null}
     {values.length ? <View style={s.chips}>
       {values.map((value, index) => <Press key={index} accessibilityRole="button" accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`}
-        accessibilityState={{ disabled }} disabled={disabled} haptic="select" hitSlop={{ top: 4, bottom: 4 }}
+        accessibilityState={{ disabled }} disabled={disabled} haptic="select" hitSlop={0}
         onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }} style={s.chip}>
-        <T variant="note" style={s.chipText}>{value}</T><X size={16} color={sys.color.green} weight="bold" />
+        <T variant="note" style={s.chipText}>{value}</T><X size={16} color={sys.color.muted} weight="bold" />
       </Press>)}
     </View> : null}
-    <View style={s.addRow}>
+    <View style={[s.addRow, stacked && s.addRowStacked]}>
       <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder={placeholder} placeholderTextColor={sys.color.muted}
         value={pending} editable={!disabled && !full} onChangeText={text => { if (!disabled) setPending(text); }}
-        onSubmitEditing={add} maxLength={500} style={[s.input, s.grow, (disabled || full) && s.inputLocked]} />
-      <V2Action label="Dodaj" accessibilityLabel={`Dodaj: ${label}`} kind="secondary" compact onPress={add}
-        disabled={disabled || !pending.trim() || full} style={s.add} />
+        onSubmitEditing={add} maxLength={500} style={[s.input, stacked ? s.addInputStacked : s.grow, (disabled || full) && s.inputLocked]} />
+      <V2Action tone="neutral" label="Dodaj" accessibilityLabel={`Dodaj: ${label}`} kind="secondary" compact onPress={add}
+        disabled={disabled || !pending.trim() || full} style={[s.add, stacked && s.addStacked]} />
     </View>
     {full ? <T variant="note" tone="muted">Najviše 50 stavki.</T> : null}
     {group && quickLabel ? <Disclosure label={quickLabel} defaultExpanded={quickOpen}>
       <PickerGrid>{tiles.map(tile => {
         const selected = hasTerm(values, tile.label), blocked = !selected && full;
-        return <PickerTile key={tile.kind} kind={tile.kind} label={tile.label} size="medium" mode="multiple" selected={selected}
+        return <PickerTile key={tile.kind} kind={tile.kind} label={tile.label} size="medium" mode="multiple" tone="neutral" selected={selected}
           disabled={disabled || blocked} reason={blocked ? 'Najviše 50 stavki' : undefined}
           onPress={() => { if (!disabled && !blocked) change(toggleTerm(values, tile.label)); }} />;
       })}</PickerGrid>
@@ -205,7 +207,7 @@ const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Ime i bar 
 type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/podrska';
 
 /**
- * Whether tasks can be offered to you, first. Active is one green line. A draft (or no profile yet) is a flat note with
+ * Whether tasks can be offered to you, first. Active is one line with a colored check. A draft is an open section with
  * the three things activation waits for, each marked ready or missing; they are not buttons, because the footer's
  * primary already leads to the first missing one. "Ready" is said only when the route's primary really is the
  * activation (the three checks can pass while the capacity revision still has to be loaded or a change saved). A
@@ -216,13 +218,13 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   navigate: (path: WorkerNavigation) => void;
 }) {
   if (status === 'ACTIVE') return <View style={s.activeLine}>
-    <FactArt kind="check" size={20} /><T variant="bodyStrong" style={[s.grow, s.green]}>Profil je aktivan</T>
+    <FactArt kind="check" size={20} /><T variant="bodyStrong" style={[s.grow, s.ink]}>Profil je aktivan</T>
   </View>;
   // Moderation wording stays the owner's until one word is chosen ("suspendovan" here, "obustavljen" on the hub).
   if (status === 'SUSPENDED') return <View style={[s.status, s.suspended]}>
     <T variant="bodyStrong" style={s.danger}>Profil je trenutno suspendovan</T>
     <T variant="note" style={s.ink}>Dok traje suspenzija, zadaci ti se ne nude.</T>
-    <V2Action label="Piši podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
+    <V2Action tone="neutral" label="Piši podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
   </View>;
   const draft = status === 'DRAFT';
   return <View style={s.status}>
@@ -279,9 +281,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       disabled={disabled} inputRef={capacityRef} />
     {/* Where and when are set in their own editors, each with its own save; here they are read and opened. */}
     <View style={s.rows}>
-      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={26} />} disabled={disabled}
+      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={24} cut="art" />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" icon={<FactArt kind="clock" size={26} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
+      <SettingsRow label="Dostupnost" icon={<FactArt kind="clock" size={24} cut="art" />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
         detail={`Status „Mogu odmah“ je ${draft.dostupanOdmah ? 'uključen' : 'isključen'}. Nije oznaka HITNO niti dozvola za push obaveštenja.`} />
     </View>
     <TermsPicker label="Alat i oprema" art="tool" group="alat" placeholder="Dodaj alat" quickLabel="Brzi izbor alata" quickOpen={false}
@@ -297,14 +299,14 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </Disclosure>
     {openConversation ? <View style={s.rows}>
-      <SettingsRow label="Uredi profil kroz razgovor" icon={<FactArt kind="chat" size={26} />} disabled={disabled} last onPress={openConversation} />
+      <SettingsRow label="Uredi profil kroz razgovor" icon={<FactArt kind="chat" size={24} cut="art" />} disabled={disabled} last onPress={openConversation} />
     </View> : null}
     <T variant="note" tone="muted" style={s.center}>Veštine, alat i vozila navodiš ti. Izmena profila ne prepisuje već poslate Prijave.</T>
   </View>;
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, shrink: { flexShrink: 1 },
-  ink: { color: sys.color.ink }, green: { color: sys.color.green }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
+  ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
   start: { alignSelf: 'flex-start' },
   content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
@@ -315,9 +317,9 @@ const s = StyleSheet.create({
   form: { gap: sys.space.xxl },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // A note inside the screen is a flat tint, never a card (the one card rule): wash for a draft, danger-soft for a suspension.
-  status: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, padding: sys.space.base, gap: sys.space.md },
-  suspended: { backgroundColor: sys.color.dangerSoft },
+  // Activation requirements are an open reading section; suspension keeps its meaningful warning surface.
+  status: { paddingVertical: sys.space.base, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, gap: sys.space.md },
+  suspended: { backgroundColor: sys.color.dangerSoft, paddingHorizontal: sys.space.base, borderRadius: sys.radius.control, borderBottomWidth: 0 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   checklist: { gap: 4 },
@@ -329,12 +331,15 @@ const s = StyleSheet.create({
   input: { ...field },
   multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  addRowStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  addInputStacked: { alignSelf: 'stretch' },
   add: { minWidth: 72 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addStacked: { alignSelf: 'flex-end' },
+  stepper: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   count: withInter({ width: 88, textAlign: 'center', fontSize: 20, lineHeight: 26, fontWeight: '700', fontVariant: ['tabular-nums'] }),
-  rows: { ...card, paddingVertical: 0, paddingHorizontal: 18 },
+  rows: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
 });

@@ -21,10 +21,19 @@ import { CardFact, CardTitle, CardValue, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
+import type { PointReplyActions } from '../location/LocationPointEditor';
 import { publicSummary, type Summary } from './draftSummary';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
+
+// Only an entire explicit reply belongs to the visible point. Longer sentences remain ordinary conversation text.
+const pointReply = (text: string): keyof PointReplyActions | null => {
+  const value = text.trim().toLocaleLowerCase().replace(/[.!?]+$/, '').trim();
+  return value === 'to je to' || value === 'то је то' ? 'confirm'
+    : value === 'nije tu' || value === 'није ту' ? 'correct' : null;
+};
+
 
 type Props = {
   /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
@@ -78,7 +87,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   editing?: boolean;
   /** Something the server still needs is one people never see (the category): the card claims nothing is missing. */
   hiddenMissing?: boolean;
-  /** A complete draft gets one primary review action beside the composer instead of repeating it here. */
+  /** A complete draft becomes the final summary in the thread, with review and edit entries inside this one card. */
   reviewAtEnd?: boolean;
 }) {
   const large = useTextScale() >= 1.3;
@@ -87,8 +96,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
   const ready = open && !stillNeeded && !hiddenMissing;
   // A complete authoritative draft is no longer presented as if it were still being collected. It keeps the same
-  // TaskFace language, but shows the facts needed for the decision and leaves exactly one primary review action in the
-  // conversation footer. This is not the published TaskCard/Peek and carries no publication state.
+  // TaskFace language and shows the facts needed for the decision with one guarded primary review action.
+  // This is not the published TaskCard/Peek and carries no publication state.
   const readyForReview = ready && reviewAtEnd;
   const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
@@ -112,25 +121,30 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       <DisclosureCaret size={20} color={sys.color.muted} />
     </Press>}
     {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
-      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" role="location" />} text={summary.zone} lines={0} /> : null}
+      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" role="location" />} text={summary.zone} lines={0} />
+        : <T variant="note" tone="muted">Lokacija nije određena</T>}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" role="time" />} text={summary.schedule} lines={0} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" role="people" />} text={summary.people} lines={0} /> : null}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
       : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null}
-    {summary.value || !reviewAtEnd ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
+    {summary.value || !reviewAtEnd || readyForReview ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
       {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
         <CardValue value={summary.value} large />
       </View> : null}
-      {!reviewAtEnd ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
-        accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
+      {!reviewAtEnd || readyForReview ? <Press testID="intake-draft-review" accessibilityRole="button"
+        accessibilityLabel={readyForReview ? 'Izmeni podatke zadatka' : reviewLabel}
+        accessibilityHint={readyForReview ? 'Otvara pregled u kome možeš da izmeniš podatke pre objave.'
+          : editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
         onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
-        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
+        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{readyForReview ? 'Izmeni' : reviewLabel}</T>
         <CaretRight size={18} color={canReview ? sys.color.ink : sys.color.muted} />
       </Press> : null}
     </View> : null}
+    {readyForReview ? <V2Action tone="neutral" label={editing ? 'Pregledaj izmene' : 'Pregledaj i objavi'}
+      style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} /> : null}
   </View>;
 }
 
@@ -146,6 +160,14 @@ export function IntakePresentation(props: Props) {
   const editingPlaceNow = useRef(false);
   const closePlace = useRef<(() => void) | null>(null);
   const registerPlaceClose = useCallback((close: (() => void) | null) => { closePlace.current = close; }, []);
+  const placeReplies = useRef<PointReplyActions | null>(null);
+  const [replyCapabilities, setReplyCapabilities] = useState({ confirm: false, correct: false });
+  const registerPlaceReplies = useCallback((actions: PointReplyActions | null) => {
+    placeReplies.current = actions;
+    const confirm = !!actions?.confirm, correct = !!actions?.correct;
+    setReplyCapabilities(previous => previous.confirm === confirm && previous.correct === correct ? previous : { confirm, correct });
+  }, []);
+
   const reportEditingPlace = useCallback((editing: boolean) => {
     editingPlaceNow.current = editing; setEditingPlace(editing);
   }, []);
@@ -174,6 +196,23 @@ export function IntakePresentation(props: Props) {
   const needsPoint = open && gap.total > 0 && gap.done < gap.total;
   const showPlace = open && hasConversation && conversation.safety !== 'BLOCK' && gap.total > 0;
   const placeDisabled = busy || pending || !props.canEdit || !!props.error;
+  const reply = pointReply(value);
+  const replyVisible = showPlace && !pointAskHidden && !placeDisabled && gap.total === 1;
+  const localReply = !!reply && replyVisible && replyCapabilities[reply];
+  const replyView = { value, placeKey, localReply };
+  const currentReplyView = useRef(replyView); currentReplyView.current = replyView;
+  const send = () => {
+    if (currentReplyView.current !== replyView || !props.canSubmit) return;
+    if (localReply && reply) {
+      const action = placeReplies.current?.[reply];
+      if (!action || !action()) return;
+      // A consumed activation cannot run twice before the next render. Failed/stale actions keep the draft untouched.
+      placeReplies.current = null; registerPlaceReplies(null);
+      props.onChange(''); return;
+    }
+    if (!editingPlaceNow.current) props.onSend();
+  };
+
   const reviewAllowed = props.canReview && !editingPlace;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
   // contain it, because the AI is not allowed to propose it). A required fact the AI has already proposed is not listed:
@@ -207,7 +246,8 @@ export function IntakePresentation(props: Props) {
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    value={value} canEdit={props.canEdit} canSend={props.canSubmit && !editingPlace}
+    cardPlacement={readyForReview ? 'end' : 'top'}
+    value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || localReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
@@ -215,7 +255,7 @@ export function IntakePresentation(props: Props) {
     welcomeDetail="Opiši posao svojim rečima. Pre objave sve pregledaš."
     openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
-    onChange={props.onChange} onSend={outsidePlace(props.onSend)}
+    onChange={props.onChange} onSend={send}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace ? undefined : props.voice}
     attach={props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
       onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
@@ -225,7 +265,6 @@ export function IntakePresentation(props: Props) {
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
-    footerAction={readyForReview ? <V2Action tone="neutral" label={props.reviewLabel} style={brandAction} onPress={outsidePlace(props.onReview)} /> : undefined}
     actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
@@ -240,19 +279,27 @@ export function IntakePresentation(props: Props) {
       </View> : null}
       {safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
     </> : undefined}
-    // A fragment is truthy even when every branch inside it is null, which drew an empty
-    // panel in the thread. The slot is filled only when there is something to act on.
-    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !showPlace ? undefined : <>
+    // The map is task context on the white reading surface. Recovery keeps its own distinct status well.
+    context={showPlace ? <>
       {showPlace && !pointAskHidden ? <>
         <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
           <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
             onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}
+            onReplyActionsReady={registerPlaceReplies}
             onSaved={props.onRefresh} onClose={() => { reportEditingPlace(false); setHiddenPlace(placeKey); }} />
         </Suspense>
       </> : null}
+      {replyVisible && (replyCapabilities.confirm || replyCapabilities.correct) ? <T variant="note" tone="muted">
+        {replyCapabilities.confirm ? 'Za ovaj pin napiši „to je to“ za potvrdu' : 'Za ovo mesto'}
+        {replyCapabilities.correct ? replyCapabilities.confirm ? ' ili „nije tu“ za izmenu.' : ' napiši „nije tu“ za izmenu.' : '.'}
+      </T> : null}
       {showPlace && pointAskHidden
         ? <V2Action tone="neutral" label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : null}
+    </> : undefined}
+    // A fragment is truthy even when every branch inside it is null, which drew an empty
+    // panel in the thread. The slot is filled only when there is something to act on.
+    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback ? undefined : <>
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>

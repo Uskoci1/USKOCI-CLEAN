@@ -27,7 +27,9 @@ export function useAiDraftDisclosure() {
 export type AiConversationShellProps = {
   /** Separates arrival/announcement ownership when a different conversation replaces this view. */ conversationKey?: string;
   /** The chrome's title; the chrome draws no line under it (no copy that explains where you are). */ title: string;
-  /** The one live card pinned above the thread; null until there is something to pin. */ card: (compact: boolean) => ReactNode;
+  /** The one live card; null until there is something to show. */ card: (compact: boolean) => ReactNode;
+  /** A completed draft can become the next decision at the end of the thread, shown once. */
+  cardPlacement?: 'top' | 'end';
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void;
@@ -36,6 +38,8 @@ export type AiConversationShellProps = {
   /** The "···" of rare actions. Left out when there is nothing to offer, so the chrome shows no dead control. */
   onOptions?: () => void;
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
+  /** Current task context, such as its location, on the conversation's open white surface. */
+  context?: ReactNode;
   /** The conversation's next primary step, shown above the composer when the draft is ready. */
   footerAction?: ReactNode;
   /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
@@ -114,6 +118,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // On a narrow display with very large text the summary can consume half the usable screen.
   // Keep the same review target in the scroll, rather than reserving that space above every message.
   const inlineSummary = textScale >= 1.6 || height < 500;
+  const cardAtEnd = p.cardPlacement === 'end';
   const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
@@ -170,14 +175,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
         right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." icon={DotsThree} onPress={p.onOptions} /> : undefined} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
-      {pinned && !inlineSummary ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
+      {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
         { maxHeight: compact ? 180 : Math.min(300, height * 0.36) }]} contentContainerStyle={compact ? s.cardAreaCompact : s.cardContents}
         keyboardShouldPersistTaps="handled" nestedScrollEnabled>{pinned}</ScrollView> : null}
       <View style={s.flex}>
       <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
-        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && s.threadEmpty]}
+        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && !p.context && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => { cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
         onScroll={syncReadingPosition}
@@ -206,7 +211,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         // The first pending turn already belongs at the bottom, even before the server returns a message ID.
         onContentSizeChange={(_width, content) => { geometry.current.content = content; followAfterLayout(); }}>
         {/* Always mounted: inserting/removing inline context preserves the sentence being read below it. */}
-        <View testID="ai-inline-context" style={pinned && inlineSummary ? s.inlineContext : undefined} onLayout={event => {
+        <View testID="ai-inline-context" style={pinned && inlineSummary && !cardAtEnd ? s.inlineContext : undefined} onLayout={event => {
           const previous = contextHeight.current, next = event.nativeEvent.layout.height, delta = next - previous;
           contextHeight.current = next;
           // An anchor inside the draft must stay there when its details open. Only transcript below the old
@@ -216,7 +221,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             historyOffset.current = Math.max(0, historyOffset.current + delta);
             thread.current?.scrollTo({ y: historyOffset.current, animated: false });
           }
-        }}>{pinned && inlineSummary ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
+        }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
         {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
           <AssistantPresence />
@@ -255,9 +260,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
             <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}
+        {p.context ? <View testID="ai-task-context">{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
+        {pinned && cardAtEnd ? <View testID="ai-end-card">{pinned}</View> : null}
         </View>
       </ScrollView>
       {/* This control gets its own measured row. An overlay hid the expanded draft/review on small screens;

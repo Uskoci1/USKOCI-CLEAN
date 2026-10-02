@@ -123,12 +123,14 @@ describe('the conversation point ask', () => {
     const onEditingChange = jest.fn();
     const { onClose } = await mount(undefined, undefined, { onEditingChange });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
+    expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
+    await press('Prikaži mapu');
     expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: true, points: [
       { id: 'start', label: 'Polazište: Sačuvano polazište', latitude: 45.255, longitude: 19.845 },
       { id: 'end', label: 'Odredište: Sačuvano odredište', latitude: 45.250111, longitude: 19.845 },
     ] });
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
-    await press('Sakrij mapu');
+    await press('Zatvori pregled mesta');
     expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
@@ -139,8 +141,10 @@ describe('the conversation point ask', () => {
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...value, geography,
       resolvedLocation: { ...value.resolvedLocation!, binding: { ...value.resolvedLocation!.binding, geography } } } } });
     await mount();
+    expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
+    await press('Prikaži mapu');
     expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: false,
-      points: [{ id: 'start', label: 'Mesto rada: Lenke Dunđerski 11, Novi Sad' }] });
+      points: [{ id: 'start', label: 'Mesto rada: Tačka potvrđena na mapi' }] });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
   });
 
@@ -158,7 +162,7 @@ describe('the conversation point ask', () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const onEditingChange = jest.fn();
     const { onClose } = await mount(undefined, undefined, { onEditingChange });
-    await press('Izmeni mesto na mapi');
+    await press('Izmeni');
     expect(editor().props.point).toEqual(point('start'));
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     expect(onEditingChange).toHaveBeenLastCalledWith(true);
@@ -172,7 +176,7 @@ describe('the conversation point ask', () => {
     let editingNow = false;
     await mount(undefined, undefined, { onEditingChange: editing => { editingNow = editing; } });
     expect(editingNow).toBe(false);
-    const begin = tree!.root.findByProps({ label: 'Izmeni mesto na mapi' }).props.onPress;
+    const begin = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
     await act(async () => {
       begin();
       // A retained parent send/review callback can run here, before React's effects.
@@ -183,7 +187,7 @@ describe('the conversation point ask', () => {
   it('warns about an unconfirmed saved-point edit without claiming saved points will be lost', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const { onClose } = await mount();
-    await press('Izmeni mesto na mapi');
+    await press('Izmeni');
     await act(async () => editor().props.onInvalidate());
     await press('Zatvori');
     expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Izmena tačke nije potvrđena',
@@ -206,7 +210,7 @@ describe('the conversation point ask', () => {
   it('discarding a pending edit restores a clean saved baseline and does not create a second loss warning', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const { onClose } = await mount();
-    await press('Izmeni mesto na mapi'); await act(async () => editor().props.onInvalidate());
+    await press('Izmeni'); await act(async () => editor().props.onInvalidate());
     await choose('Odredište'); await answer('confirm-sheet-confirm'); await choose('Polazište');
     expect(editor().props.point).toEqual(point('start'));
     await press('Zatvori');
@@ -236,14 +240,16 @@ describe('the conversation point ask', () => {
     mockRead.mockResolvedValue({ ok: true, podatak: initial });
     mockSave.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, review: receipt } });
     const onEditingChange = jest.fn(); const { onSaved } = await mount(undefined, undefined, { onEditingChange });
-    await press('Izmeni mesto na mapi'); await act(async () => editor().props.onInvalidate());
+    await press('Izmeni'); await act(async () => editor().props.onInvalidate());
     expect(mockSave).not.toHaveBeenCalled();
     await act(async () => editor().props.onConfirm(moved));
     expect(mockSave).toHaveBeenCalledTimes(1); expect(onSaved).toHaveBeenCalledTimes(1);
     expect(mockSave.mock.calls[0][0].expectedRevision).toBe(initial.revision);
+    expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
+    await press('Prikaži mapu');
     expect(tree!.root.findByType(LocationMapPreview).props.points[0]).toMatchObject({ latitude: 45.26 });
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
-    await press('Izmeni mesto na mapi');
+    await press('Izmeni');
     expect(editor().props.point).toEqual(moved);
     await act(async () => editor().props.onConfirm(moved));
     expect(mockSave.mock.calls[1][0].expectedRevision).toBe(receipt.revision);
@@ -285,7 +291,7 @@ describe('the conversation point ask', () => {
   it('removes navigation while disabled and rejects a retained edit entry', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const callbacks = await mount();
-    const oldEdit = tree!.root.findByProps({ label: 'Izmeni mesto na mapi' }).props.onPress;
+    const oldEdit = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
     await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} disabled />));
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     await act(async () => oldEdit());
@@ -296,7 +302,7 @@ describe('the conversation point ask', () => {
   it.each(['account', 'ABA'] as const)('rejects a saved preview edit entry after %s changes', async reason => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const callbacks = await mount();
-    const oldEdit = tree!.root.findByProps({ label: 'Izmeni mesto na mapi' }).props.onPress;
+    const oldEdit = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
     mockSession = { user: { id: reason === 'ABA' ? mockSession.user.id : '33333333-3333-4333-8333-333333333333' }, accountRevision: 3 };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review([point('start'), point('end')]), accountId: mockSession.user.id } });
     await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} />));

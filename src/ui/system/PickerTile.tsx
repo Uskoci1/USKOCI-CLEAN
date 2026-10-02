@@ -24,7 +24,7 @@ const Layout = createContext<PickerLayout>('grid');
  * picture and a 15 px label. Inside a one-column grid every tile becomes a 64 px row: the picture at 40, the label
  * beside it and the check at the row's end. The spoken role, label and state are the same in every layout.
  */
-export function PickerTile({ kind, label, selected, disabled = false, reason, mode = 'multiple', size = 'large', onPress }: {
+export function PickerTile({ kind, label, selected, disabled = false, reason, mode = 'multiple', size = 'large', tone = 'brand', onPress }: {
   kind: PictogramKind; label: string; selected: boolean; disabled?: boolean;
   /** Why a disabled tile cannot be chosen, in plain words ("Treba vozačka B"). */
   reason?: string;
@@ -32,6 +32,8 @@ export function PickerTile({ kind, label, selected, disabled = false, reason, mo
   mode?: 'single' | 'multiple';
   /** `large` for a picker screen's handful of choices; `medium` for a longer grid inside a form. */
   size?: 'large' | 'medium';
+  /** Neutral selection keeps colored artwork and the explicit check without a large green panel. */
+  tone?: 'brand' | 'neutral';
   onPress: () => void;
 }) {
   const list = useContext(Layout) === 'list', medium = size === 'medium';
@@ -40,7 +42,7 @@ export function PickerTile({ kind, label, selected, disabled = false, reason, mo
     accessibilityLabel={why ? `${label}. ${why}` : label}
     accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={onPress}
     haptic={disabled ? 'none' : 'select'} scaleTo={list ? sys.motion.scale.row : sys.motion.scale.button}
-    style={[list ? s.row : [s.tile, medium && s.tileMedium], selected && s.selected, disabled && s.disabled]}>
+    style={[list ? s.row : [s.tile, medium && s.tileMedium], selected && (tone === 'neutral' ? s.selectedNeutral : s.selected), disabled && s.disabled]}>
     {list ? <>
       <Pictogram kind={kind} size={40} disabled={disabled} />
       <View style={s.rowCopy}>
@@ -78,6 +80,7 @@ const s = StyleSheet.create({
   row: { flexBasis: '100%', flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: 16, paddingVertical: 8, gap: 12,
     borderRadius: sys.radius.control, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: sys.color.iconWell },
   selected: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green },
+  selectedNeutral: { backgroundColor: sys.color.surface, borderColor: sys.color.ink },
   disabled: { opacity: 0.55 },
   check: { position: 'absolute', top: 10, right: 10 },
   checkMedium: { top: 8, right: 8 },

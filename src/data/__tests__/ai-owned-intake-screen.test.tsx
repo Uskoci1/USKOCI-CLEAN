@@ -599,7 +599,7 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).toContain('Kada ti treba pomoć?');
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
-  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
+  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' });
   await act(async () => review.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
@@ -629,8 +629,8 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
-  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' });
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(1);
   await options(); expect(menuItems('Pregledaj zadatak')).toHaveLength(1);
   await closeMenu();
   await act(async () => { review.props.onPress(); review.props.onPress(); });
@@ -682,10 +682,10 @@ it('never names a category and does not call the draft ready while only the cate
   await act(async () => tree.unmount());
   const done = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
   mockLoad.mockResolvedValue(done); await resume();
-  expect(text()).toContain('Pregledaj zadatak');
-  expect(tree.root.findAllByProps({ testID: 'ai-footer-action' })).toHaveLength(1);
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
-  const review = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' });
+  expect(text()).toContain('Pregledaj i objavi');
+  expect(tree.root.findAllByProps({ testID: 'ai-footer-action' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(1);
+  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' });
   await act(async () => review.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
@@ -701,7 +701,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text and dis
   await type('Dopuna koju još nisam poslao.');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' }).props.onPress());
   const first = mockRouter.push.mock.calls.at(-1)![0].params;
   expect(Object.keys(first).sort()).toEqual(['conversationId', 'intakeReturn']);
   await blur();
@@ -716,7 +716,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text and dis
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
   expect(mockSend).toHaveBeenCalledTimes(sends);
   await type('Izmenjena neposlata dopuna.');
-  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' }).props.onPress());
   const second = mockRouter.push.mock.calls.at(-1)![0].params;
   expect(second.intakeReturn).not.toBe(first.intakeReturn);
   expect(readIntakeReviewReturn(second.intakeReturn, id)?.params).toEqual(originalParams);
@@ -727,7 +727,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text and dis
 it('retires the review return when the original intake unmounts', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos ormara')] }));
   await resume();
-  await act(async () => tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj i objavi' }).props.onPress());
   const token = mockRouter.push.mock.calls.at(-1)![0].params.intakeReturn;
   await blur(); expect(readIntakeReviewReturn(token, id)).not.toBeNull();
   await act(async () => tree.unmount());
@@ -741,7 +741,7 @@ it('the card of a task being changed says "Izmena" and names the review the way 
   mockLoad.mockResolvedValue(bound); await resume();
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
-  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj izmene' })).toBeDefined();
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj izmene' })).toBeDefined();
 });
 
 // Review r4 ra item 6: the REVIEW/CLARIFY note describes the draft, so it stays on the card when the card is compact.
@@ -751,7 +751,7 @@ it('keeps the complete safety note visible on the collapsed card during a pendin
   mockLoad.mockResolvedValue(flagged); await resume();
   const card = () => tree.root.findByProps({ testID: 'intake-task-summary' });
   const noteOf = () => card().findAll(node => node.type === ('T' as React.ElementType) && node.props.variant === 'note' && node.props.tone === 'muted'
-    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.');
+    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.' && node.props.children !== 'Lokacija nije određena');
   expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
   // A sent message makes the card compact (the shell's rule while a turn is pending).
   await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());

@@ -39,7 +39,7 @@ import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { DraftCard } from '../../ui/v2/IntakePresentation';
 import { WorkerAiCard } from '../../ui/workerProfile/WorkerAiPresentation';
 import { CardValue } from '../../ui/v2/TaskFace';
-import { V2Action } from '../../ui/v2/V2Action';
+
 let tree: ReactTestRenderer;
 const idle: VoiceSnapshot = { phase: 'IDLE', session: null, finalText: '', interimText: '', audioLevel: null, fallbackText: '', error: null };
 const controller = () => ({ begin: jest.fn(() => true), release: jest.fn(), cancel: jest.fn(), useFallback: jest.fn(), getSnapshot: () => idle });
@@ -289,21 +289,21 @@ describe('deliberate reading intent', () => {
 });
 
 
-it('shows a complete task as ready for review with its decision facts visible and no second review action in the card', async () => {
+it('shows a complete task in the thread with its decision facts, one review primary and a quiet edit entry', async () => {
   const review = jest.fn(), p = props();
   p.card = compact => <DraftCard summary={{ title: 'Prenos ormara', value: { kind: 'amount', amount: '4.000 RSD', basis: 'ukupno' },
     zone: 'Novi Sad · Liman', schedule: '3. okt · 17:00–19:00', people: '2 osobe' }}
     stillNeeded={null} open busy={false} compact={compact} canReview onReview={review} note={null} reviewAtEnd />;
-  p.footerAction = <V2Action label="Pregledaj zadatak" onPress={review} />;
+  p.cardPlacement = 'end';
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
   expect(text()).toContain('Spremno za pregled');
   expect(text()).toContain('Prenos ormara'); expect(text()).toContain('Novi Sad · Liman');
   expect(text()).toContain('3. okt · 17:00–19:00'); expect(text()).toContain('2 osobe'); expect(text()).toContain('4.000 RSD');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(1);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
-  expect(tree.root.findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  expect(tree.root.findAllByProps({ label: 'Pregledaj i objavi' })).toHaveLength(1);
+  await act(async () => tree.root.findByProps({ label: 'Pregledaj i objavi' }).props.onPress());
   expect(review).toHaveBeenCalledTimes(1);
 });
 

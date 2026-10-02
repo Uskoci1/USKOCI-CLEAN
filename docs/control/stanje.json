@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T17:29:36Z",
+  "osvezeno": "2026-10-02T18:04:52Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "c93e0bf2",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "545dafa0",
+  "head_poruka": "docs(media): normalize RC02 application record endings",
   "server": {
    "snimljeno": "2026-10-02T17:25:57Z",
    "migracije": 222,
@@ -1478,6 +1478,10 @@
      "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
     },
     "voiceAndComposerContinuation": {
+     "locationConversation20261002": "SOURCE REVIEWED: one proposed pin, address lookup after committed move, canonical confirmation, compact green-check saved item, three alternatives/page and one ready task card at thread end. Typed whole replies to je to/nije tu use existing guarded single-point actions; direct spoken confirmation remains open. Changed stationary point synchronizes private exactAddress/binding. No new provider/native execution; public coarse/private exact separation retained.",
+     "profileSupport20261002": "SOURCE: worker form uses neutral selected controls, shared responsive layout, 48dp term chips and open sections; support rows lead with topic and keep DECIDED neutral. D12 load-more privacy-null clears all earlier comments; flag remains OFF pending D12a contract.",
+     "automaticCi7912806f": "R20 run37040460119 SUCCESS on7912806f:159 focused,422 suites/9225 checks/6 snapshots. Existing automatic result only; does not validate newer location/profile/support source. Jest delayed-exit warning remains unattributed.",
+     "ownerVoiceControlClarification": "Hold microphone sends on release and gets a text reply. Far-right waveform must start genuine spoken AI conversation on one tap. Current waveform still uses transcription-only mode; true duplex audio remains unimplemented and is not substituted by TTS.",
      "latestArtifactReceipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37037950035.json — source5110ed03 build/checksums/attestations PASS, not installed; excludes newer7912806f source.",
      "connectedFinishing": "SOURCE: next-decision-first Agreement changes, neutral actions and readable facts; shared profile layout; unreachable Discovery branches removed. TypeScript passed; no new tests/native acceptance.",
      "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPLICATION.md — DEV APPLIED on owner PRIMENI RC02 DEV, migration20261002172532. Exact payload/body/catalog/certificate readback PASS; new concurrency/native acceptance not performed.",
@@ -8929,27 +8933,67 @@
  },
  "ci": [
   {
+   "id": 37041163344,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "545dafa0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:25Z"
+  },
+  {
+   "id": 37041163284,
+   "ime": "D12 written review comment proof",
+   "sha": "545dafa0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:25Z"
+  },
+  {
+   "id": 37041118062,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:04Z"
+  },
+  {
+   "id": 37041117981,
+   "ime": "D12 written review comment proof",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:03Z"
+  },
+  {
+   "id": 37041117961,
+   "ime": "Control tracker refresh",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T17:30:03Z"
+  },
+  {
    "id": 37040460230,
    "ime": "EX-06 ex06b alias registry proof",
    "sha": "7912806f",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-10-02T17:24:12Z"
   },
   {
    "id": 37040460204,
    "ime": "EX-06 S04 dispatch lifecycle proof",
    "sha": "7912806f",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-10-02T17:24:12Z"
   },
   {
    "id": 37040460159,
    "ime": "EX-06 ex06a flexible window proof",
    "sha": "7912806f",
-   "stanje": "in_progress",
-   "ishod": "",
+   "stanje": "completed",
+   "ishod": "success",
    "vreme": "2026-10-02T17:24:12Z"
   },
   {
@@ -8983,46 +9027,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-02T17:01:58Z"
-  },
-  {
-   "id": 37037926592,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "5110ed03",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T17:01:46Z"
-  },
-  {
-   "id": 37037926246,
-   "ime": "Control tracker refresh",
-   "sha": "5110ed03",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T17:01:46Z"
-  },
-  {
-   "id": 37035707806,
-   "ime": "Control tracker refresh",
-   "sha": "e6427075",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T16:42:09Z"
-  },
-  {
-   "id": 37035707773,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "e6427075",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T16:42:09Z"
-  },
-  {
-   "id": 37034535430,
-   "ime": "Build Android development APK",
-   "sha": "c64dc8bd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T16:31:38Z"
   }
  ]
 }

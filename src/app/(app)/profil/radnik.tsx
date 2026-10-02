@@ -166,12 +166,12 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
   return <WorkerProfileFrame back={back} footer={visible ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
-    {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
-      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
+    {pending && (editor.uncertain || editor.error) ? <V2Action tone="neutral" label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
+      : <V2Action tone="neutral" label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
         disabled={!enabled} loading={transportBusy} success={!!message} onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
-    {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
-    {pending && enabled ? <V2Action label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
+    {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {pending && enabled ? <V2Action tone="neutral" label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}

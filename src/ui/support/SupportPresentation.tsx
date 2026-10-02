@@ -9,8 +9,7 @@ import { InlineNote, QuietLine } from '../privacy/InlineNote';
 import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
-import { FactArt } from '../system/FactArt';
-import { CatalogArt, type CatalogArtKind } from '../system/CatalogArt';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { cardCompact, field, inset, sys } from '../system/tokens';
@@ -118,11 +117,12 @@ export function SupportRecovery({ busy, absent, working = null, onRead, onCancel
 
 /**
  * The state of a case as a small chip: the words, on a tint that matches them. Waiting for the person is the one orange
- * tint (it asks something of them); in progress and decided are green; received and closed are quiet.
+ * tint (it asks something of them). Progress and a recorded decision use neutral ink: DECIDED does not say whether
+ * the request was accepted or rejected. Received and closed remain quiet.
  */
 const chipTone: Record<SupportStatus, { ground: string; ink: string }> = {
-  RECEIVED: { ground: sys.color.wash, ink: sys.color.muted }, IN_REVIEW: { ground: sys.color.greenSoft, ink: sys.color.green },
-  WAITING_FOR_AUTHOR: { ground: sys.color.orangeSoft, ink: sys.color.waitingInk }, DECIDED: { ground: sys.color.greenSoft, ink: sys.color.green },
+  RECEIVED: { ground: sys.color.wash, ink: sys.color.muted }, IN_REVIEW: { ground: sys.color.wash, ink: sys.color.ink },
+  WAITING_FOR_AUTHOR: { ground: sys.color.orangeSoft, ink: sys.color.waitingInk }, DECIDED: { ground: sys.color.wash, ink: sys.color.ink },
   CLOSED: { ground: sys.color.wash, ink: sys.color.muted },
 };
 export function SupportStatusChip({ status }: { status: SupportStatus }) {
@@ -132,7 +132,7 @@ export function SupportStatusChip({ status }: { status: SupportStatus }) {
   </View>;
 }
 
-const channelArt: Record<SupportChannel, CatalogArtKind> = { SERVICE: 'support', TASK: 'support', LEGAL_PRIVACY: 'lock', SAFETY: 'shield' };
+const channelArt: Record<SupportChannel, FactArtKind> = { SERVICE: 'support', TASK: 'support', LEGAL_PRIVACY: 'lock', SAFETY: 'shield' };
 /**
  * One request in the list: what it is about (the name), its state, when it last moved and its number. The number is
  * shown before the time (round 5 review): two requests on the same topic differ by it, and it is the number the
@@ -146,7 +146,7 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
   return <Press accessibilityRole="button" accessibilityLabel={`${topic}, ${supportLabel(status)}${unread ? ', novo' : ''}, ${time}, zahtev #${caseNumber}`}
     accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99} onPress={onPress}
     style={[supportStyles.caseRow, !last && supportStyles.rowLine, disabled && supportStyles.faded]}>
-    <View style={supportStyles.caseArt}><CatalogArt kind={channelArt[channel] ?? 'support'} muted={disabled} /></View>
+    <View style={supportStyles.caseArt}><FactArt kind={channelArt[channel] ?? 'support'} size={24} cut="art" muted={disabled} /></View>
     <View style={supportStyles.caseCopy}>
       <T variant="bodyStrong" numberOfLines={2}>{topic}</T>
       <View style={supportStyles.caseMeta}>
@@ -263,13 +263,14 @@ export const supportStyles = StyleSheet.create({
   chip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: sys.radius.pill },
   chipText: { fontWeight: '600' },
   tabular: { fontVariant: ['tabular-nums'] },
-  caseRow: { minHeight: 72, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  caseRow: { minHeight: 72, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   rowLine: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
   faded: { opacity: 0.45 },
-  caseArt: { width: 40, height: 40, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
-  caseCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  caseMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  caseEnd: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  caseArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  caseCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
+  // Topic, current state, then reference/time: each has a stable reading line instead of an accidental wrap.
+  caseMeta: { alignItems: 'flex-start', gap: sys.space.xs },
+  caseEnd: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   unread: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
   choice: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   choiceCopy: { flex: 1, minWidth: 0, gap: 2 },

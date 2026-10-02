@@ -10,9 +10,10 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action as Button } from '../v2/V2Action';
-import { LocationPointEditor } from './LocationPointEditor';
+import { LocationPointEditor, type PointReplyActions } from './LocationPointEditor';
 import { LocationMapPreview } from './LocationMapPreview';
 import { useConfirmSheet } from '../system/ConfirmSheet';
+import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
 
 /**
@@ -49,6 +50,11 @@ const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string =>
   return parts.filter((part, index) => parts.findIndex(other => other.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(', ');
 };
 
+/** A manually confirmed coordinate is not a resolved address; the conversation seed stays separate. */
+const confirmedPointLabel = (point: ConfirmedLocationPoint, value: NeedLocationReview['value']): string =>
+  point.address || (point.origin.kind === 'MANUAL_PIN' ? 'Tačka potvrđena na mapi'
+    : seed(point.slot, value) || 'Tačka potvrđena na mapi');
+
 type State =
   | { kind: 'LOADING' }
   | { kind: 'FAILED'; message: string; review?: NeedLocationReview }
@@ -58,6 +64,7 @@ type State =
 
 type Props = { conversationId: string; onSaved: () => void; onClose: () => void;
   disabled?: boolean; onEditingChange?: (editing: boolean) => void;
+  onReplyActionsReady?: (actions: PointReplyActions | null) => void;
   onCloseRequestReady?: (handler: (() => void) | null) => void };
 
 const savedPoints = (value: NeedLocationReview['value']) => normalizeNeedLocation(value)?.resolvedLocation?.points ?? [];
@@ -82,6 +89,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>([]);
   const baseline = useRef<readonly ConfirmedLocationPoint[]>([]);
   const [editing, setEditing] = useState(false);
+  const [summaryMapOpen, setSummaryMapOpen] = useState(false);
   const [selected, setSelected] = useState<LocationSlot | null>(null);
   const [pendingSlot, setPendingSlot] = useState<LocationSlot | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
@@ -97,8 +105,17 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     reportedEditing.current = value; editingChanged.current?.(value);
   }, []);
   const closeRequestChanged = useRef(props.onCloseRequestReady); closeRequestChanged.current = props.onCloseRequestReady;
+  const editorReplies = useRef<PointReplyActions | null>(null);
+  const [replyCapabilities, setReplyCapabilities] = useState({ confirm: false, correct: false });
+  const registerEditorReplies = useCallback((actions: PointReplyActions | null) => {
+    editorReplies.current = actions;
+    const confirm = !!actions?.confirm, correct = !!actions?.correct;
+    setReplyCapabilities(previous => previous.confirm === confirm && previous.correct === correct ? previous : { confirm, correct });
+  }, []);
+  const replyChanged = useRef(props.onReplyActionsReady); replyChanged.current = props.onReplyActionsReady;
+
   const view = useRef<object | null>(null);
-  const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit, editing, props.disabled]); view.current = renderedView;
+  const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit, editing, summaryMapOpen, props.disabled]); view.current = renderedView;
   const renderedFocus = focusEpoch.current;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -117,7 +134,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     if (!ownsAccount() || saving.current || disabled.current) return;
     const epoch = ++loadEpoch.current;
     view.current = null;
-    setState({ kind: 'LOADING' });
+    setState({ kind: 'LOADING' }); setSummaryMapOpen(false);
     const result = await needLocationClientService.read(props.conversationId).catch(() => ({ ok: false as const,
       kod: 'NEED_LOCATION_READ_FAILED', poruka: 'Mesto nije učitano. Pokušaj ponovo.' }));
     if (!ownsAccount() || disabled.current || epoch !== loadEpoch.current) return;
@@ -163,17 +180,25 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     }
     saving.current = true;
     const visit = focusEpoch.current;
+    // A stationary task has one private address. Keep it aligned with the exact
+    // point the person just confirmed, including an explicitly unresolved address.
+    // Route/area-wide private text is not replaced by one of its component points.
+    const start = all.find(point => point.slot === 'start');
+    const savedStart = baseline.current.find(point => point.slot === 'start');
+    const changedStart = start && (!savedStart || pointKey(start) !== pointKey(savedStart));
+    const exactAddress = current.value.geography.mode === 'STATIONARY' && changedStart
+      ? start.address?.trim() || null : current.value.exactAddress;
     setState({ kind: 'SAVING', review: current });
     const result = await needLocationClientService.save({
       conversationId: props.conversationId, expectedRevision: current.revision, confirmed: true,
       value: {
         taskCountryCode: current.value.taskCountryCode,
         geography: current.value.geography,
-        exactAddress: current.value.exactAddress,
+        exactAddress,
         accessNotes: current.value.accessNotes,
         resolvedLocation: { version: 1, points: all,
           binding: { taskCountryCode: current.value.taskCountryCode, geography: current.value.geography,
-            exactAddress: current.value.exactAddress } },
+            exactAddress } },
       },
     }).catch(() => ({ ok: false as const, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED',
       poruka: 'Čuvanje mesta nije potvrđeno. Potvrđene tačke su ostale za ponovni pokušaj.' }));
@@ -181,7 +206,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     if (!ownsAccount()) return;
     if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return; }
     const saved = result.podatak.review, confirmed = savedPoints(saved.value);
-    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setEditing(false);
+    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setEditing(false); setSummaryMapOpen(false);
     setState({ kind: 'SAVED', review: saved });
     if (focus.current && focusEpoch.current === visit) props.onSaved();
   }, [props, ownsAccount]);
@@ -248,6 +273,28 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   }, [editingDecision, inactive, ownsAccount]);
   const summaryPoints = review ? savedPoints(review.value) : [];
   const completeSummary = slots.length > 0 && slots.every(slot => summaryPoints.some(point => point.slot === slot));
+  const editSaved = () => {
+    if (!canAct() || !review?.editable || editing || !completeSummary) return false;
+    view.current = null; setSummaryMapOpen(false); reportEditing(true); setEditing(true); setState({ kind: 'READY', review });
+    return true;
+  };
+  const replyScope = slots.length === 1 && !!country && !!review?.editable && !inactive
+    && (state.kind === 'READY' || state.kind === 'SAVED');
+  const runEditorReply = (kind: keyof PointReplyActions) => {
+    if (!replyScope || !canAct() || !editing || state.kind !== 'READY') return false;
+    const action = editorReplies.current?.[kind];
+    if (!action || !action()) return false;
+    editorReplies.current = null; replyChanged.current?.(null);
+    return true;
+  };
+  useEffect(() => {
+    replyChanged.current?.(!replyScope ? null : editing && state.kind === 'READY'
+      ? { ...(replyCapabilities.confirm ? { confirm: () => runEditorReply('confirm') } : {}),
+          ...(replyCapabilities.correct ? { correct: () => runEditorReply('correct') } : {}) }
+      : completeSummary ? { correct: editSaved } : null);
+  });
+  useEffect(() => () => replyChanged.current?.(null), []);
+
   if (state.kind === 'LOADING') return <T accessibilityLiveRegion="polite" tone="muted">Otvaramo mesto zadatka…</T>;
   // A failed save used to offer a reload, which re-read the server over the pins the person had
   // just placed by hand: the work that is hardest to get was the work least protected. The points
@@ -279,24 +326,37 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   </View>;
 
   if (!editing && completeSummary) return <View style={{ gap: 12 }}>
-    <T accessibilityRole={state.kind === 'SAVED' ? 'alert' : 'header'} variant="bodyStrong" tone="success">
-      {state.kind === 'SAVED' ? 'Mesto je sačuvano.' : 'Mesto na mapi je potvrđeno.'}
-    </T>
-    {summaryPoints.map(point => <View key={point.slot} style={{ gap: 4 }}>
-      <T variant="bodyStrong">{title(point.slot, geography)}</T>
-      <T variant="note" tone="muted">{point.address || seed(point.slot, review.value) || 'Tačka potvrđena na mapi'}</T>
-    </View>)}
-    {!inactive ? <LocationMapPreview scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}`}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <FactArt kind="check" size={24} cut="art" role="confirmed" />
+      </View>
+      <T accessibilityRole={state.kind === 'SAVED' ? 'alert' : 'header'} variant="bodyStrong" style={{ flex: 1 }}>
+        {state.kind === 'SAVED' ? 'Mesto je sačuvano.' : 'Mesto na mapi je potvrđeno.'}
+      </T>
+    </View>
+    {summaryPoints.map(point => {
+      const description = point.origin.kind === 'MANUAL_PIN' && !point.address ? seed(point.slot, review.value) : '';
+      return <View key={point.slot} style={{ gap: 4 }}>
+        {slots.length > 1 ? <T variant="bodyStrong">{title(point.slot, geography)}</T> : null}
+        <T variant="note" tone="muted">{confirmedPointLabel(point, review.value)}</T>
+        {description ? <T variant="note" tone="muted">Opis iz razgovora: {description}</T> : null}
+      </View>;
+    })}
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <Button tone="neutral" kind="quiet" compact style={{ minHeight: 48, flexShrink: 1 }}
+        label={summaryMapOpen ? 'Sakrij mapu' : 'Prikaži mapu'} disabled={inactive} onPress={() => {
+          if (!canAct()) return;
+          view.current = null; setSummaryMapOpen(open => !open);
+        }} />
+      {review.editable ? <Button tone="neutral" kind="quiet" compact style={{ minHeight: 48, flexShrink: 1 }}
+        label="Izmeni" accessibilityLabel="Nije tu? Izmeni mesto" disabled={inactive} onPress={editSaved} /> : null}
+    </View>
+    {summaryMapOpen && !inactive ? <LocationMapPreview scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}`}
       points={summaryPoints.map(point => ({ id: point.slot,
-        label: `${title(point.slot, geography)}${point.address || seed(point.slot, review.value)
-          ? `: ${point.address || seed(point.slot, review.value)}` : ''}`,
+        label: `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`,
         latitude: point.latitudeE6 / 1_000_000, longitude: point.longitudeE6 / 1_000_000 }))}
       route={geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP'} /> : null}
-    {review.editable ? <Button kind="secondary" label="Izmeni mesto na mapi" disabled={inactive} onPress={() => {
-      if (!canAct()) return;
-      view.current = null; reportEditing(true); setEditing(true); setState({ kind: 'READY', review });
-    }} /> : null}
-    <Button kind="quiet" label="Sakrij mapu" disabled={inactive} onPress={leave} />
+    {summaryMapOpen ? <Button tone="neutral" kind="quiet" label="Zatvori pregled mesta" disabled={inactive} onPress={leave} /> : null}
   </View>;
 
   if (!review.editable) return <View style={{ gap: 12 }}>
@@ -329,6 +389,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}
       presentation="conversation" onCorrectInConversation={leave}
+      onReplyActionsReady={slots.length === 1 ? registerEditorReplies : undefined}
       disabled={state.kind === 'SAVING' || inactive} onInvalidate={() => {
         if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);
       }} onConfirm={confirm} /> : null}

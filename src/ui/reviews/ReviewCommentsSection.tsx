@@ -20,10 +20,10 @@ const NOTHING: Loaded = { items: [], hasMore: false, cursor: null };
 /** What the section holds, and for WHICH account and profile it holds it: anything else is not shown, not even for a frame. */
 type State = { scope: string; phase: 'loading' | 'error' | 'nothing' | 'ready'; data: Loaded; more: 'idle' | 'loading' | 'error' };
 const waiting = (scope: string, phase: State['phase'] = 'loading'): State => ({ scope, phase, data: NOTHING, more: 'idle' });
-/** A page appended to what is shown: a comment that came twice is shown once; "nothing here" leaves what is shown and offers no more. */
-const appended = (current: Loaded, page: ReviewCommentPage | null): Loaded => page === null ? { ...current, hasMore: false, cursor: null } : {
+/** Append an admitted page: a comment that came twice is shown once. Privacy-null is handled before this helper. */
+const appended = (current: Loaded, page: ReviewCommentPage): Loaded => ({
   items: [...current.items, ...page.items.filter(item => !current.items.some(seen => seen.reviewId === item.reviewId))],
-  hasMore: page.hasMore, cursor: page.nextAfter };
+  hasMore: page.hasMore, cursor: page.nextAfter });
 
 /**
  * "Komentari" of a profile (D12): the written comments ABOUT the person whose profile this is, newest first, a page of 20 at a
@@ -44,7 +44,7 @@ export function ReviewCommentsSection({ profileId, photo }: { profileId: string;
   const scope = `${accountId ?? ''}:${accountRevision}:${profileId}`;
   const [held, setHeld] = useState<State>(() => waiting(scope));
   const state = held.scope === scope ? held : waiting(scope);
-  // A read belongs to the account and the profile that asked: a later one retires it, and so does leaving the screen.
+  // A read belongs to the account and profile that asked: a later load or unmount retires it.
   const generation = useRef(0), asking = useRef(false);
 
   const load = useCallback(async () => {
@@ -70,8 +70,10 @@ export function ReviewCommentsSection({ profileId, photo }: { profileId: string;
     try { result = await reviewCommentsClientService.list(profileId, { after: cursor, limit: REVIEW_COMMENT_PAGE_SIZE }, { accountId, accountRevision }); } catch { result = null; }
     if (mine !== generation.current) return;
     asking.current = false;
+    // An authoritative null revokes this list, including earlier pages. A transport failure still offers retry.
     setHeld(current => current.scope !== scope ? current : !result || !result.ok ? { ...current, more: 'error' }
-      : { ...current, more: 'idle', data: appended(current.data, result.podatak) });
+      : result.podatak === null ? waiting(scope, 'nothing')
+        : { ...current, more: 'idle', data: appended(current.data, result.podatak) });
   };
 
   if (!accountId || state.phase === 'nothing') return null;

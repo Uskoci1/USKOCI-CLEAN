@@ -271,21 +271,21 @@ describe('compact conversation proposal', () => {
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
     await press('Potvrdi tačku: Početak');
-    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin });
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin, address: candidate.label });
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
   });
 
-  it('keeps ambiguous alternatives behind correction and never adopts a candidate label as a private address', async () => {
+  it('keeps ambiguous alternatives behind correction and saves only on explicit confirmation', async () => {
     const other = { ...candidate, label: 'Another actual result', position: { latitude: 45, longitude: 19 },
       origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
     const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
     const correct = jest.fn();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
     expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
-    await press('Ispravi mesto'); await press('Izaberi predlog: ' + other.label);
+    await press('Nije tu'); await press('Izaberi predlog: ' + other.label);
     expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
     expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
-    await press('Ispravi mesto'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
+    await press('Nije tu'); expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
     await press('Ispravi u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled(); expect(resolver.search).toHaveBeenCalledTimes(1);
   });
@@ -305,7 +305,7 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1);
   });
 
-  it('preserves the saved pin and private details, and retires its old confirm after a manual move', async () => {
+  it('preserves saved notes, refreshes the moved pin address, and retires its old confirm', async () => {
     const resolver = configured(), point = { slot: 'start' as const, latitudeE6: 45200000, longitudeE6: 19800000,
       origin: { kind: 'MANUAL_PIN' as const }, address: 'Saved private address', accessNotes: 'Saved note' };
     await render({ resolver, point, presentation: 'conversation', autoLocate: true, initialQuery: 'Place' });
@@ -313,7 +313,7 @@ describe('compact conversation proposal', () => {
     await act(async () => map().props.onChoose({ latitude: 45.3, longitude: 19.9 }));
     await act(async () => old()); expect(props.onConfirm).not.toHaveBeenCalled();
     await press('Potvrdi tačku: Početak');
-    expect(props.onConfirm).toHaveBeenCalledWith({ ...point, latitudeE6: 45300000, longitudeE6: 19900000 });
+    expect(props.onConfirm).toHaveBeenCalledWith({ ...point, latitudeE6: 45300000, longitudeE6: 19900000, address: candidate.label });
   });
 
   it('does not turn a late disabled lookup into a proposal or admit an old correction callback', async () => {
@@ -389,7 +389,7 @@ describe('inert compact location gallery', () => {
     } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });
     if (scene === 'ambiguous') {
       expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
-      await press('Ispravi mesto');
+      await press('Nije tu');
       expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(2);
     }
     await press('Potvrdi tačku: Mesto rada');
@@ -399,7 +399,7 @@ describe('inert compact location gallery', () => {
     expect(mockGalleryRouter.replace).not.toHaveBeenCalled();
   });
   it('offers local composer correction/reset and a safe exit, with no command or production resolver dependency', async () => {
-    await mount(); await press('Ispravi mesto'); await press('Ispravi u razgovoru');
+    await mount(); await press('Nije tu'); await press('Ispravi u razgovoru');
     const shell = tree.root.findByType('AiShell' as React.ElementType);
     await act(async () => { shell.props.onChange('Probna ispravka'); shell.props.onSend(); });
     expect(tree.root.findByType('AiShell' as React.ElementType).props).toMatchObject({ value: 'Probna ispravka', canSend: false });
