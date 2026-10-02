@@ -66,7 +66,7 @@ const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, sect
 });
 
 /**
- * Moji zadaci: the requester's own Tasks in three sets (Aktivni · Nacrti · Istorija), one underlined segmented control that
+ * Moji zadaci: the requester's own Tasks in three sets (Aktivni · Nacrti · Istorija), one capsule segmented control that
  * has its whole row, a toolbar under it (how many tasks the set shows, search, filters), then the cards. Other people's tasks
  * are the Zadaci tab (`DiscoveryPresentation`, the map under a list sheet, owner step 4, 2026-09-24); the discovery list and
  * map that used to share this file are gone with it. My own tasks carry no creation action over their cards (Početna has
@@ -166,7 +166,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           the row, so it scrolls only when it has to, and a label is never cut. */}
       <View testID="own-tasks-tabs" style={s.tabs}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.tabsContent}>
-          <Segmented appearance="underline" options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} style={s.tabTrack} />
+          <Segmented appearance="pill" contentSized options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} style={s.tabTrack} />
         </ScrollView>
       </View>
       {/* Under them: how many tasks the set shows, which used to scroll away as the list's header, and the two controls. Filters

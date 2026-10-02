@@ -13,7 +13,7 @@ import type { MarketplacePaging } from '../../ui/v2/MarketplacePresentation';
  *
  *  1. STRUCTURE: the tab row holds the tabs and nothing else, over the whole width; search and filters (the filters now with the
  *     word "Filteri" beside the drawing) stand in a toolbar of their own under it, together with the count line that used to
- *     scroll away as the list's header. The tabs keep the underline indicator, a 48 dp touch height and their 14 px words.
+ *     scroll away as the list's header. U16 uses content-sized capsules, a 48 dp touch height and unchanged 14 px words.
  *  2. THE FIT, by arithmetic from the bundled Inter (`cardHeadFit.textWidth`, whose table `task-card-layout-class` holds to the
  *     font file): at 320, 361 and 411 dp and at text scale 1, 1.15 and 1.3, the tabs as they are drawn (the labels, the count that
  *     waits for the person's choice, and the counts of the other sets where they fit) are never wider than the row, so the row
@@ -118,7 +118,7 @@ describe('the tab row holds the tabs and nothing else', () => {
     expect(order).toEqual(['own-tasks-tabs', 'own-tasks-toolbar']);
   });
 
-  it('gives the tabs the whole row: a horizontal scroller that stretches to it, the tabs spread over it, and the underline is the tab bar\'s own', async () => {
+  it('gives the capsules the whole row, preserving intrinsic label widths and a scroller only for overflow', async () => {
     await render();
     const tabs = byId('own-tasks-tabs'), scroller = tabs.findByType('ScrollView' as React.ElementType);
     // The row pads the screen's 20 dp each side, like the toolbar and the list under it (the room the estimate measures against).
@@ -129,10 +129,10 @@ describe('the tab row holds the tabs and nothing else', () => {
     expect(scroller.props).toMatchObject({ horizontal: true, showsHorizontalScrollIndicator: false, bounces: false, keyboardShouldPersistTaps: 'handled' });
     expect(StyleSheet.flatten(scroller.props.contentContainerStyle)).toMatchObject({ flexGrow: 1 });
     const track = scroller.findByProps({ accessibilityRole: 'tablist' });
-    expect(style(track)).toMatchObject({ flexGrow: 1, justifyContent: 'space-between', gap: TAB_GAP, borderBottomWidth: 1 });
-    // Underline tabs, not the grey pill: the track is white and each tab marks itself with a 3 dp bottom edge.
-    expect(style(track).backgroundColor).toBe(sys.color.surface);
-    expect(style(tabPresses()[0])).toMatchObject({ minHeight: 48, borderBottomWidth: 3 });
+    expect(style(track)).toMatchObject({ flexGrow: 1, justifyContent: 'space-between', gap: TAB_GAP,
+      padding: TAB_GEOMETRY.trackPadding / 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.control });
+    expect(style(track).borderBottomWidth).toBeUndefined();
+    expect(style(tabPresses()[0])).toMatchObject({ minHeight: 48, flexBasis: 'auto', flexShrink: 0, borderRadius: sys.radius.pill });
   });
 
   it('the count line, which used to be the list\'s scrolling header, stands in the toolbar beside the controls', async () => {
@@ -192,7 +192,7 @@ describe('the tabs are never wider than their row, so the row does not scroll', 
     ['two-digit counts everywhere', { total: 330, active: 100, waiting: 12, drafts: 12, history: 218 }],
   ];
 
-  it('the geometry the estimate assumes is the one the tab bar draws (4 dp each side of a label, 6 dp to its count, a 22 dp pill with 6 dp inside), and the sizes are the tokens', async () => {
+  it('the estimate matches the native capsule padding, track padding, badge and unchanged type sizes', async () => {
     rows = [row('a', { brojPrijavaZaIzbor: 1 })]; paging = makePaging({ ...SERVER, waiting: 1 });
     await render();
     const segment = tab('Aktivni'), pill = segment.findAll(node => node.type === VIEW && style(node).minWidth === 22)[0];

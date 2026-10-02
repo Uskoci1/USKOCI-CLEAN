@@ -21,11 +21,14 @@ const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
  * the indicator follows over the toggle duration, or settles immediately under reduced motion. Until
  * the selected segment is measured it paints its own selection, so the first frame is never empty.
  */
-export function Segmented<K extends string>({ options, value, onChange, scroll = false, style, appearance = 'pill' }: {
+export function Segmented<K extends string>({ options, value, onChange, scroll = false, style, appearance = 'pill', contentSized = false }: {
   options: readonly SegmentedOption<K>[]; value: K; onChange: (key: K) => void; scroll?: boolean; style?: object;
   appearance?: 'pill' | 'underline';
+  /** Intrinsic-width capsules: labels/counts keep their room and share the remaining space (U16, own-task tabs). */
+  contentSized?: boolean;
 }) {
   const underline = appearance === 'underline';
+  const contentPill = contentSized && !underline;
   const sliding = !scroll || underline;
   const reduced = useReducedMotion();
   const [layouts, setLayouts] = useState<Partial<Record<K, { x: number; width: number }>>>({});
@@ -65,7 +68,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
       // says nothing. In a rail that scrolls the segment also waits out the press delay before it gives, as a row does.
       haptic={selected ? 'none' : 'select'} scaleTo={sys.motion.scale.button} unstable_pressDelay={scroll ? PRESS_DELAY : undefined}
       onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
-      style={[s.segment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
+      style={[s.segment, contentPill && s.contentSegment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>
       {option.badge !== undefined && option.badge !== null ? <View style={[s.badge, option.badgeTone === 'attention' ? s.badgeAttention : selected ? s.badgeSelected : null]}>
         <T variant="label" style={[s.badgeText, option.badgeTone === 'attention' ? s.badgeTextAttention : selected ? s.badgeTextSelected : null]}>{String(option.badge)}</T></View> : null}
@@ -73,15 +76,15 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
   });
   const indicator = target ? <Animated.View pointerEvents="none" importantForAccessibility="no-hide-descendants"
     style={underline ? [s.underlineIndicator, { transform: [{ translateX }, { scaleX: lineWidth }] }]
-      : [s.indicator, { width: target.width, transform: [{ translateX }] }]} /> : null;
+      : [s.indicator, contentPill && s.capsule, { width: target.width, transform: [{ translateX }] }]} /> : null;
   // The track is the grey band, and when the segments scroll it has to be the part that stays put.
   // Putting it on the scrolling content made the band end wherever the last visible segment did,
   // mid-word, so a control that scrolls looked like a control that was cut off.
   if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist"
-    style={[s.track, underline && s.underlineTrack, style]} contentContainerStyle={s.scrollRow}>
+    style={[s.track, contentPill && s.capsule, underline && s.underlineTrack, style]} contentContainerStyle={s.scrollRow}>
     {underline ? <View style={s.underlineScrollRow}>{indicator}{items}</View> : items}
   </ScrollView>;
-  return <View accessibilityRole="tablist" style={[s.track, underline && s.underlineTrack, style]}>
+  return <View accessibilityRole="tablist" style={[s.track, contentPill && s.capsule, underline && s.underlineTrack, style]}>
     {indicator}
     {items}
   </View>;
@@ -92,6 +95,8 @@ const s = StyleSheet.create({
   scrollRow: { flexDirection: 'row', gap: 3, alignItems: 'center' },
   segment: { flexGrow: 1, flexBasis: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: nested(sys.radius.control, 4),
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  capsule: { borderRadius: sys.radius.pill },
+  contentSegment: { flexBasis: 'auto', flexShrink: 0, minHeight: 48, paddingHorizontal: 8, borderRadius: sys.radius.pill },
   selected: { backgroundColor: sys.color.surface, shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   // Measured x is inside the track's padding box, so the pill starts at the track's left edge. No elevation: on
   // Android an elevated view is drawn above its non-elevated siblings, so the pill would cover the chosen label.

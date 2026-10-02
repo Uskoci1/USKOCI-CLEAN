@@ -96,6 +96,22 @@ test('reduced motion places the underline at the measured target and updated wid
   expect(tab('Istorija').props.accessibilityState.selected).toBe(true);
 });
 
+test('content-sized capsules keep labels intact and move selection to the measured unequal-width tab', async () => {
+  await render(control('active', { appearance: 'pill', contentSized: true }));
+  expect(StyleSheet.flatten(tab('Aktivni').props.style)).toMatchObject({
+    flexBasis: 'auto', flexGrow: 1, flexShrink: 0, minHeight: 48, paddingHorizontal: 8, borderRadius: sys.radius.pill,
+  });
+  await measure('Aktivni', 4, 118); await measure('Istorija', 125, 97);
+  await update(control('history', { appearance: 'pill', contentSized: true }));
+  expect(tab('Istorija').props.accessibilityState.selected).toBe(true);
+  expect(flatIndicator()).toMatchObject({ width: 97, borderRadius: sys.radius.pill });
+  expect(tab('Istorija').props.haptic).toBe('none');
+  mockReduced = true;
+  await update(control('active', { appearance: 'pill', contentSized: true }));
+  expect(flatIndicator().transform[0].translateX.__getValue()).toBe(4);
+  expect(flatIndicator().width).toBe(118);
+});
+
 test('a scrolling underline belongs to the measured content row, while the fixed pill keeps its first-frame fallback', async () => {
   await render(control('active', { scroll: true }));
   await measure('Aktivni', 0, 86);

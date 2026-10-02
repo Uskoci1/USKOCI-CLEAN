@@ -25,7 +25,7 @@ import { textWidth } from './cardHeadFit';
  * bundled Inter Bold (`cardHeadFit.textWidth`), and its limits are the ones named there: the widths are the wide side (Bold for
  * every tab although only the chosen one is bold, a linear text scale although Android 14+ scales less than linearly), so a row
  * that fits here is expected to fit on the phone with room; it is arithmetic, not a render. When even the labels and the count of
- * what waits do not fit (a text size beyond the 1.3 the tests cover: from about 1.45 on a 320 dp phone), the row is a horizontal
+ * what waits do not fit (beyond the tested width/text-size grid), the row is a horizontal
  * scroller (see `MarketplacePresentation`) and scrolls instead of clipping: that is the resilience fallback, never the look.
  */
 
@@ -37,17 +37,18 @@ export const OWN_TASK_TABS: readonly { readonly key: OwnTaskTab; readonly label:
 
 /** One side of the screen: the tab row, the toolbar under it and the list pad 20 dp each side. */
 export const SCREEN_SIDE = sys.space.lg;
-/** The least space between two tabs. `Segmented` asks 20 of its own; this row asks 12 and spreads whatever is left over. */
-export const TAB_GAP = sys.space.md;
+/** The pill track's 3 dp gap. Each capsule keeps its intrinsic width and grows into the remaining space. */
+export const TAB_GAP = 3;
 /** What the estimate keeps free of the row before it shows a count: text nodes are rounded up to whole pixels, and it is an estimate. */
 export const TAB_SLACK = 4;
 
 /**
- * `Segmented`'s own geometry for an underline tab, written once here and held to the render by `moji-zadaci-tabrow.test.tsx`:
- * 4 dp of padding each side of the label, a 6 dp gap to the count, and the count in a pill at least 22 dp wide with 6 dp each side.
+ * `Segmented`'s opt-in content-sized pill geometry, held to the render by `moji-zadaci-tabrow.test.tsx`:
+ * 8 dp of padding each side of the label, a 6 dp gap to the count, and the count in a pill at least 22 dp wide with 6 dp each side.
+ * The track also needs 4 dp of padding at each end. All three complete labels come before optional set counts.
  * The label is `sys.type.tab` and the count `sys.type.label`.
  */
-export const TAB_GEOMETRY = { padding: 8, countGap: 6, countMin: 22, countPadding: 12 } as const;
+export const TAB_GEOMETRY = { padding: 16, trackPadding: 8, countGap: 6, countMin: 22, countPadding: 12 } as const;
 const TAB_SIZE = sys.type.tab.fontSize as number, COUNT_SIZE = sys.type.label.fontSize as number;
 
 type Drawn = { readonly label: string; readonly badge?: number | string };
@@ -61,7 +62,7 @@ function tabWidth({ label, badge }: Drawn, scale: number): number {
 
 /** The width the tabs need, in dp, with the least space between them. */
 export function tabsWidth(tabs: readonly Drawn[], scale: number): number {
-  return tabs.reduce((sum, tab) => sum + tabWidth(tab, scale), 0) + Math.max(0, tabs.length - 1) * TAB_GAP;
+  return TAB_GEOMETRY.trackPadding + tabs.reduce((sum, tab) => sum + tabWidth(tab, scale), 0) + Math.max(0, tabs.length - 1) * TAB_GAP;
 }
 
 /** The width the tab row has: the window, less what the screen pads on each side. */
