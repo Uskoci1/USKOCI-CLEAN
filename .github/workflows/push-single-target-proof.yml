@@ -143,7 +143,7 @@ jobs:
           printf '26b-b24-fidelity exit=%s\n' "$fidelity_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
           test "$b24_exit" -eq 0
           exit "$fidelity_exit"
-      - name: The exact Voice B1 package on the disposable predecessor
+      - name: The exact Voice B1 and EX04c prerequisites on the disposable predecessor
         run: |
           set -euo pipefail
           umask 077
@@ -157,6 +157,13 @@ jobs:
             return 0
           }
           stage 27-voice-b1-application supabase/candidates/chat_voice_b1_dev_application.sql required
+          stage 28-ex04c-rating-state supabase/candidates/ex04c_rating_state.sql required
+      - name: Reconstruct the missing D12 closure predecessor with its existing pin gate
+        env:
+          PUSH_SINGLE_TARGET_DISPOSABLE: SINGLE_TARGET_V1
+        run: |
+          set -euo pipefail
+          node supabase/proofs/push_single_target/prepare-d12.mjs
       - name: Exact candidate syntax and offline Edge checks
         run: |
           set -euo pipefail
@@ -182,6 +189,7 @@ jobs:
           name: push-single-target-${{ github.sha }}-${{ github.run_id }}
           path: |
             /tmp/chat-p4-private/single-target-proof-report.json
+            /tmp/chat-p4-private/single-target-d12-predecessor.json
             /tmp/ex05-s01-artifacts/source-binding.txt
             /tmp/ex05-s01-artifacts/stages.txt
           if-no-files-found: error

@@ -102,7 +102,7 @@ export default function Profil() {
         place: identity?.grad?.trim() || capability?.grad?.trim() || null,
         photo: identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={PROFILE_AVATAR} fallback={avatar} /> : avatar,
         photoReady, openPhoto, reputation: accountId
-          ? <AccountReputation accountId={accountId} commentsProfileId={identity?.profileId ?? null} commentPhoto={commentPhoto} /> : null };
+          ? <AccountReputation accountId={accountId} centered commentsProfileId={identity?.profileId ?? null} commentPhoto={commentPhoto} /> : null };
 
   // A work profile without an area says so, as the worker screen does; without a work profile the row has nothing to say.
   const workArea = capability?.grad?.trim() || (capability ? 'Nije podešeno' : undefined);

@@ -65,6 +65,7 @@ function AttentionRow({ row, onOpen, last = false }: {
   const art: FactArtKind = row.target.kind === 'CANDIDATES' ? 'users'
     : row.target.kind === 'APPLICATION' ? 'offers' : row.target.kind === 'AGREEMENT' ? 'agreements' : 'tasks';
   const taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
+  const compactCandidates = !!taskTitle && row.target.kind === 'CANDIDATES';
   return <Press accessibilityRole="button" accessibilityLabel={[readableTitle(row.title), taskTitle, row.detail].filter(Boolean).join('. ')} haptic="select" scaleTo={0.99}
     onPress={() => onOpen(row.target)} style={[s.row, last && s.lastRow]}>
     <View style={[s.rowIcon, s.attentionIcon]}>
@@ -73,9 +74,10 @@ function AttentionRow({ row, onOpen, last = false }: {
       <View style={s.attentionDot} />
     </View>
     <View style={s.rowCopy}>
-      <T variant={taskTitle ? 'note' : 'bodyStrong'} style={taskTitle ? s.attentionAction : undefined}>{readableTitle(row.title)}</T>
-      {taskTitle ? <T variant="bodyStrong">{taskTitle}</T> : null}
-      <T variant="note" tone="muted">{row.detail}</T>
+      <T variant={compactCandidates ? 'meta' : taskTitle ? 'note' : 'bodyStrong'} style={taskTitle ? s.attentionAction : undefined}>
+        {compactCandidates ? `${readableTitle(row.title)} · ${row.detail}` : readableTitle(row.title)}</T>
+      {taskTitle ? <T variant={compactCandidates ? 'body' : 'bodyStrong'}>{taskTitle}</T> : null}
+      {!compactCandidates ? <T variant="note" tone="muted">{row.detail}</T> : null}
     </View>
     <View style={s.rowDirection}><CaretRight size={18} color={sys.color.ink} /></View>
   </Press>;

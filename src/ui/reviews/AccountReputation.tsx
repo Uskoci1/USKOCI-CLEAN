@@ -25,8 +25,10 @@ const isReputation = (value: unknown): value is Reputation => {
  * With the D12 build flag on and a profile to read, the written comments about the person follow the rating line ("Komentari",
  * `ReviewCommentsSection`). Without the flag, or without a profile id, this is the rating line alone, exactly as it always was.
  */
-export function AccountReputation({ accountId, commentsProfileId, commentPhoto }: {
+export function AccountReputation({ accountId, commentsProfileId, commentPhoto, centered = false }: {
   accountId: string;
+  /** Center only the rating summary in an identity passport; comments retain their full-width reading layout. */
+  centered?: boolean;
   /** The profile whose comments are listed under the rating (any profile of the account: the list is account-level). */
   commentsProfileId?: string | null;
   /** How a reviewer's photo is drawn; the route that owns the media code hands it in. */
@@ -38,8 +40,8 @@ export function AccountReputation({ accountId, commentsProfileId, commentPhoto }
     return result.podatak;
   }, [accountId]);
   const reputation = useFocusedResource(load);
-  const line = <ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
-    onRetry={() => { void reputation.refresh(); }} />;
+  const line = <View style={centered ? s.centered : undefined}><ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
+    onRetry={() => { void reputation.refresh(); }} /></View>;
   return commentsProfileId && reviewCommentBuilt() ? <>{line}<ReviewCommentsSection profileId={commentsProfileId} photo={commentPhoto} /></> : line;
 }
 
@@ -65,6 +67,7 @@ export function ReputationLine({ state, onRetry }: { state: 'loading' | 'error' 
 }
 
 const s = StyleSheet.create({
+  centered: { alignItems: 'center', maxWidth: '100%' },
   bar: { width: 112, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: 2 },
   retry: { minHeight: 48, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, alignSelf: 'flex-start' },
   shrink: { flexShrink: 1 },

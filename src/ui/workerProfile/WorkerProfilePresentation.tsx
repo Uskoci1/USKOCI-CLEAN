@@ -197,7 +197,7 @@ function CountStepper({ value, revision, saved, change, disabled, inputRef }: {
     </View>
     {/* A saved profile without a capacity revision is loaded, not saved, first: the note says what the primary does. */}
     <T variant="note" tone="muted">{revision === null ? saved ? 'Kapacitet profila još nije učitan.' : 'Sačuvaj profil da bi se broj ljudi potvrdio.'
-      : 'Ukupan broj ljudi, uključujući tebe. Od 1 do 50; nije kapacitet vozila.'}</T>
+      : 'Uključujući tebe · od 1 do 50 osoba.'}</T>
   </View>;
 }
 
@@ -273,6 +273,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Nije podešeno';
   return <View style={s.form}>
     <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
+    {openConversation ? <View style={s.rows}>
+      <SettingsRow label="Uredi profil kroz razgovor" icon={<FactArt kind="chat" size={24} cut="art" />} disabled={disabled} last onPress={openConversation} />
+    </View> : null}
     <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
     <TermsPicker label="Veštine i usluge" art="tasks" group="usluge" placeholder="Dodaj veštinu" quickLabel="Brzi izbor veština" quickOpen={skillsOpen}
       values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
@@ -284,7 +287,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={24} cut="art" />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<FactArt kind="clock" size={24} cut="art" />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
-        detail={`Status „Mogu odmah“ je ${draft.dostupanOdmah ? 'uključen' : 'isključen'}. Nije oznaka HITNO niti dozvola za push obaveštenja.`} />
+        detail={`Status „Mogu odmah“ je ${draft.dostupanOdmah ? 'uključen' : 'isključen'}.`} />
     </View>
     <TermsPicker label="Alat i oprema" art="tool" group="alat" placeholder="Dodaj alat" quickLabel="Brzi izbor alata" quickOpen={false}
       values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
@@ -298,9 +301,6 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     <Disclosure label="Kratko predstavljanje" hint="Opciono" defaultExpanded={!!draft.biografija}>
       <Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </Disclosure>
-    {openConversation ? <View style={s.rows}>
-      <SettingsRow label="Uredi profil kroz razgovor" icon={<FactArt kind="chat" size={24} cut="art" />} disabled={disabled} last onPress={openConversation} />
-    </View> : null}
     <T variant="note" tone="muted" style={s.center}>Veštine, alat i vozila navodiš ti. Izmena profila ne prepisuje već poslate Prijave.</T>
   </View>;
 }

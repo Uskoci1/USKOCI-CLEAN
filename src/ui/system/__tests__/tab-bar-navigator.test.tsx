@@ -89,7 +89,7 @@ describe('the three tabs as the navigator draws them', () => {
     for (const picture of pictures) expect(picture.props).toMatchObject({ size: TAB_ICON, cut: 'mark' });
     expect(pictures.filter(node => node.props.tone === 'quiet')).toHaveLength(6);
     expect(pictures.filter(node => node.props.tone === 'brand')).toHaveLength(6);
-    expect(['home', 'map', 'agreements'].map(kind => pictures.filter(node => node.props.kind === kind).length)).toEqual([4, 4, 4]);
+    expect(['home', 'map', 'document'].map(kind => pictures.filter(node => node.props.kind === kind).length)).toEqual([4, 4, 4]);
   });
 });
 

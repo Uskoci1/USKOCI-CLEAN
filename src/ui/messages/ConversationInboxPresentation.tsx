@@ -144,9 +144,9 @@ const ConversationRow = memo(function ConversationRow({ item, moment, stacked, d
         <T variant="bodyStrong" style={s.name}>{title}</T>
         {moment ? <T variant="meta" tone="muted" style={s.time}>{moment.sat}</T> : null}
       </View>
-      <T variant="note" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
+      <T variant="meta" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
       <View style={s.previewRow}>
-        <T variant="note" tone={unread === null ? 'muted' : 'ink'} numberOfLines={stacked ? undefined : 2} style={s.preview}>{preview}</T>
+        <T variant="note" tone="ink" numberOfLines={stacked ? undefined : 2} style={s.preview}>{preview}</T>
         {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
       </View>
       {status ? <T variant="note" tone="muted" accessibilityRole={failed ? 'alert' : undefined}>{status}</T> : null}

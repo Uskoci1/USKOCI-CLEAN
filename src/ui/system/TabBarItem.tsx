@@ -76,6 +76,8 @@ export function TabCapsule({ selected, radius }: { selected: boolean; radius: nu
  * A small selection response runs only on a rising selection, never on initial display or deselection.
  */
 export function TabGlyph({ kind, selected }: { kind: FactArtKind; selected: boolean }) {
+  // Agreements are the agreed terms; a document silhouette stays distinct from the new conversation tab.
+  const markKind = kind === 'agreements' ? 'document' : kind;
   const reduced = useReducedMotion();
   const sticker = useSelection(selected);
   const mark = useMemo(() => sticker.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), [sticker]);
@@ -95,10 +97,10 @@ export function TabGlyph({ kind, selected }: { kind: FactArtKind; selected: bool
   }, [selected, reduced, pop]);
   return <Animated.View testID="tab-glyph" style={[s.glyph, { transform: [{ scale: pop }] }]}>
     <Animated.View testID="tab-glyph-mark" style={[s.layer, { opacity: mark }]}>
-      <FactArt kind={kind} size={TAB_ICON} cut="mark" tone="quiet" />
+      <FactArt kind={markKind} size={TAB_ICON} cut="mark" tone="quiet" />
     </Animated.View>
     <Animated.View testID="tab-glyph-art" style={[s.layer, { opacity: sticker }]}>
-      <FactArt kind={kind} size={TAB_ICON} cut="mark" tone="brand" />
+      <FactArt kind={markKind} size={TAB_ICON} cut="mark" tone="brand" />
     </Animated.View>
   </Animated.View>;
 }

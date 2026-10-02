@@ -45,7 +45,8 @@ it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on
   expect(texts()).toContain('Status „Mogu odmah“ je uključen'); expect(texts()).toContain('Novi Sad · 20 km');
   expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
   expect(texts()).toContain('Prevoz, utovar');
-  expect(texts()).toContain('Nije oznaka HITNO niti dozvola za push obaveštenja.');
+  // Availability is a factual row; notification consent remains in its own settings flow.
+  expect(texts()).toContain('Uključujući tebe · od 1 do 50 osoba.');
   expect(tree.root.findByType('KeyboardAvoidingView' as any).props.behavior).toBe(platform === 'ios' ? 'padding' : 'height');
   // The tab bar is hidden on this flow since 2026-09-23, so the screen owns its bottom inset.
   expect(tree.root.findByType('SafeAreaView' as any).props.edges).toEqual(['top', 'bottom']);

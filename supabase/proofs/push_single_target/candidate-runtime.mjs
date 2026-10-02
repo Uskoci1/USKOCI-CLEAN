@@ -4,11 +4,15 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
 import vm from 'node:vm';
 const require = createRequire(resolve(process.cwd(),'package.json'));
 const ts = require('typescript');
-const {notificationPushCopy} = await import(pathToFileURL(resolve(process.cwd(),'supabase/functions/_shared/pushNotificationCopy.mjs')));
+const copyPath='supabase/functions/_shared/pushNotificationCopy.mjs';
+const bundledCopy=new URL('./'+copyPath,import.meta.url),copyBytes=readFileSync(bundledCopy);
+assert.deepEqual(copyBytes,readFileSync(resolve(process.cwd(),copyPath)),'PROOF_COPY_DIFFERS_FROM_CANONICAL');
+const manifest=JSON.parse(readFileSync(new URL('./MANIFEST.json',import.meta.url),'utf8'));
+assert.equal(createHash('sha256').update(copyBytes).digest('hex'),manifest.sourceFiles[copyPath],'PROOF_COPY_MANIFEST_MISMATCH');
+const {notificationPushCopy} = await import(bundledCopy);
 export function loadCandidate({env,fetch}) {
  assert.equal(typeof env,'function'); assert.equal(typeof fetch,'function'); let handler;
  const source=readFileSync(new URL('./supabase/functions/uskoci-push-transport/index.ts',import.meta.url));

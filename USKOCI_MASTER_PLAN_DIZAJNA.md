@@ -6,6 +6,10 @@ Foundation/Home/task/AI source7a41f34e now has a real emulator critique: [screen
 
 Current material correction: original task/map/conversation illustration family, enamel P6 pin family, raised/inset neutral controls (Figma93:18), identity-first Profile and broad chat composer. [Iteration3 scope](docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md). These remain source candidates until exact APK visual review; the owner reference quality is the target, not already achieved whole-app acceptance.
 
+## Native-confirmed direction — 3 October
+
+Source97926fef has exact phone/emulator installs and bounded native inspection: four-root quiet navigation, Poruke day-grouped direct conversation entry with retained task context, white/ink chat with keyboard-aware compact header and external media controls, notification event/time hierarchy. Original static robot belongs to both AI surfaces; no hand-wave or spoken reply is claimed. c551 Home art/raised publish action and profile hierarchy were also inspected. [Exact sources, hashes, limits and next refinements](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#exact-corrected-native-checkpoint-and-resulting-refinement). This confirmed local direction supersedes the historical three-root chrome; entire-app or final functional acceptance is not implied. Follow-up task/preview contrast, distinct Agreement tab, Home attention density and profile edits remain source candidates until their next native pass.
+
 ## Historical checkpoints (retained, no longer current)
 
 CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores runtime 10739a44; the exact emulator APK is restored and its installed hash matches. Candidate 2b2cf4d7 and its phone APK are rejected after repeated Android ANR. Read docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json and ROUND_32_ANR_DIAGNOSIS.md. The original FULL navigation-return bug remains open. DEV ledger 210 / push Edge v22 are unchanged; phone USB is absent and the hosted dashboard invalid_argument error is unresolved. Older checkpoints below are historical.
