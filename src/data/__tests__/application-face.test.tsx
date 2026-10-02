@@ -167,7 +167,7 @@ describe('my offer', () => {
       expect(texts()).toContain('Tvoja ponuda'); expect(texts()).not.toContain('ukupno');
       const word = style(textNode('Cena nije navedena'));
       expect(word.color).toBe(sys.color.muted); expect(word.color).not.toBe(sys.color.money); expect(word.fontWeight).not.toBe('700');
-      expect(tree.root.findAll(node => node.type === ('T' as React.ElementType) && style(node).color === sys.color.money)).toHaveLength(0);
+      expect(texts().some(text => /RSD|NaN/.test(text))).toBe(false);
     }
   });
 
@@ -199,19 +199,19 @@ describe('my offer', () => {
     }
   });
 
-  it('at large text the amount moves under its words as a whole line on the text column, and the title keeps three lines', async () => {
+  it('the offer stays on its text column, wraps a long amount and keeps the complete title at large text', async () => {
     mockScale = 1.3;
     await render(<ApplicationCard row={row()} {...handlers()} />);
     const amount = textNode('4.500 RSD');
     expect(style(amount).textAlign).toBe('left');
-    // The value's own line starts where the words of every fact line start (16 px drawing + 8 px).
-    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'row', marginLeft: 24 });
+    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(style(amount)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
     expect(style(amount.parent!.parent!).flexDirection).not.toBe('row');
-    expect(textNode('Unos ormara').props.numberOfLines).toBe(3);
+    expect(textNode('Unos ormara').props.numberOfLines).toBeUndefined();
     mockScale = 1;
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    expect(style(textNode('4.500 RSD')).textAlign).toBe('right');
-    expect(style(textNode('4.500 RSD').parent!.parent!).flexDirection).toBe('row');
+    expect(style(textNode('4.500 RSD')).textAlign).toBe('left');
+    expect(textNode('4.500 RSD').parent).toBe(textNode('ukupno').parent);
   });
 });
 

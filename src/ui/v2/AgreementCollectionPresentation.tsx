@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { FlatList, Platform, ScrollView, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight, CalendarBlank, Check } from 'phosphor-react-native';
@@ -54,7 +54,7 @@ const keyOf = (item: DogovorProjekcija) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 /** Recognize the person before opening their agreement; photos and fallback share the same footprint. */
-const AVATAR = 56;
+const AVATAR = 40;
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 type Attention = { kind: 'change' | 'confirm' | 'rate' | 'check-rating'; title: string; line: string };
@@ -89,7 +89,7 @@ function AttentionFoot({ attention }: { attention: Attention }) {
 }
 
 /**
- * An open accepted appointment: work beside the actual person, then full-width accepted time and place;
+ * An open accepted appointment: full-width work, then the actual person and accepted time and place;
  * people and accepted total share a wrapping final line. The body is one press that opens the
  * Dogovor, with no caret: the whole row is the target (B16). When the Dogovor waits for me, its foot says what for;
  * the rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2).
@@ -132,10 +132,10 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
       accessibilityHint={footInside ? `${footInside.title}. ${footInside.line}` : undefined} onPress={onOpen}
       onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} style={s.body}>
       <View style={s.main}>
+        <T style={s.title}>{title}</T>
         <View style={s.person}>
           {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
           <View style={s.personCopy}>
-            <T style={s.title}>{title}</T>
             <T variant="note" style={s.personName}>{name}</T>
             {role ? <T variant="meta" tone="muted">{role}</T> : null}
             {status ? <View style={s.statusRow}><View style={[s.dot, { backgroundColor: dot }]} />
@@ -145,18 +145,18 @@ function AgreementCard({ item, onOpen, onRate }: { item: DogovorProjekcija; onOp
         <View style={s.appointment}>
           {/* Accepted facts keep the full row width. Do not shorten, parse or invent the date. */}
           <View style={s.fact}>
-            <View style={s.art}><FactArt kind="calendar" size={20} /></View>
+            <View style={s.art}><FactArt kind="calendar" size={24} cut="art" tone="quiet" /></View>
             <View style={s.factCopy}>
               <T style={s.term}>{term.line}</T>
               {term.zone ? <T style={s.zone}>{term.zone}</T> : null}
             </View>
           </View>
           <View style={s.fact}>
-            <View style={s.art}><FactArt kind={remote ? 'remote' : 'pin'} size={20} /></View>
+            <View style={s.art}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" /></View>
             <T style={[s.factCopy, s.factText]}>{place}</T>
           </View>
           <View style={s.agreedSummary}>
-            {people ? <View style={s.peopleFact}><View style={s.art}><FactArt kind="users" size={20} /></View>
+            {people ? <View style={s.peopleFact}><View style={s.art}><FactArt kind="users" size={24} cut="art" tone="quiet" /></View>
               <T style={[s.factCopy, s.factText]}>{people}</T></View> : null}
             {/* An accepted total is a quiet receipt line, not an advertised price badge. */}
             {amount ? <T style={s.acceptedPrice}><T style={s.amount}>{amount}</T><T style={s.basis}> ukupno</T></T>
@@ -262,15 +262,11 @@ export function AgreementCollectionPresentation(props: Props) {
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* The root bar is the same on all three tabs: profile · mark · bell (round-1 critique A12). */}
     {props.header ?? <ScreenHeader title="Dogovori" onProfile={props.onProfile} />}
-    {/* An underlined tab bar that spans the screen, each tab with its quiet count. No line under it counts again what
-        the tab already counts (A11). The calendar is a view of these same Dogovori, so it ends the tab row as a quiet
-        icon, not a fourth control in the header; the one filter follows only when something waits for me. */}
+    {/* Capsule tabs carry their counts once. The calendar ends the same row; the filter follows only when needed. */}
     <View style={s.controls}>
       <View style={s.tabRow}>
         {/* Tabs scroll within their own space on narrow/large-text screens; their text keeps full contrast at the edge. */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabs}>
-          <Segmented options={sections} value={section} onChange={props.onSection} appearance="underline" style={s.tabTrack} />
-        </ScrollView>
+        <View style={s.tabs}><Segmented contentSized scroll options={sections} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton quiet label="Kalendar obaveza" icon={CalendarBlank} onPress={props.onCalendar} />
       </View>
       {chip ? <View style={s.toolbar}>{chip}</View> : null}
@@ -285,10 +281,8 @@ export function AgreementCollectionPresentation(props: Props) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   controls: { paddingHorizontal: 20, paddingTop: 4 },
-  // The hairline under the tabs runs on under the calendar, so the row stays one line.
-  tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tabs: { flex: 1, minWidth: 0 },
-  tabTrack: { borderBottomWidth: 0 },
   toolbar: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingTop: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.surface },
@@ -299,22 +293,22 @@ const s = StyleSheet.create({
   agreement: { backgroundColor: sys.color.surface },
   separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 20 },
   body: { borderRadius: 0 },
-  main: { paddingVertical: 4, gap: 16 },
+  main: { paddingVertical: 4, gap: 12 },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   personCopy: { flex: 1, minWidth: 0, gap: 4 },
   personName: { color: sys.color.ink, fontWeight: '500' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 3 }, dot: { width: 6, height: 6, borderRadius: sys.radius.pill }, status: { flexShrink: 1, letterSpacing: 0 },
-  title: { ...sys.type.cardTitle, color: sys.color.ink },
-  appointment: { gap: 10 },
+  title: { ...sys.type.cardTitle, fontSize: 18, lineHeight: 24, color: sys.color.ink },
+  appointment: { gap: 6 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  art: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  art: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   factCopy: { flex: 1, minWidth: 0 },
-  factText: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.ink },
+  factText: { fontSize: 14, lineHeight: 21, fontWeight: '400', color: sys.color.muted },
   agreedSummary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 20, rowGap: 8, paddingTop: 4 },
   peopleFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, flexGrow: 1, flexBasis: 104 },
   acceptedPrice: { flexGrow: 1, flexShrink: 1, flexBasis: 120 },
-  // The accepted term remains stronger than the other logistics, below the work and person.
-  term: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.green, fontVariant: ['tabular-nums'] },
+  // Exact and unconfirmed terms use the same quiet reading tone; the words carry the distinction.
+  term: { fontSize: 14, lineHeight: 21, fontWeight: '400', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   zone: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted },
   amount: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
   basis: { fontSize: 13, lineHeight: 19, fontWeight: '500', color: sys.color.muted },

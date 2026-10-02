@@ -124,25 +124,25 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
 /* ------------------------------------------------------------------------------------------------ the parts */
 
 /**
- * Lines 5 and 6: my offer. "Tvoja ponuda" is a fact line with the money drawing, so every line of the card starts on one
- * text column (the first web look had the offer's words out on the card's edge, under drawings). The value is the task
- * card's value slot: the amount at the right, never cut, with what it buys ("ukupno") small under it. One label "Tvoja
- * ponuda · ukupno" beside the amount broke at 320 dp after its "·" (seen in the web check); the basis under the amount is
- * how the task card already says it. A word instead of an amount is a quiet label, never the money colour or weight. At
- * large text the value moves under its words, as a whole line on that same column.
+ * My offer is one group: a quiet label over the amount and its total basis, with the people beside it when there is
+ * room. The people wrap below before squeezing a long amount. Large text gives each group its own full-width line.
+ * A missing amount remains a quiet word; no price or basis is invented.
  */
 export function OfferRow({ value, places, large, settled = false }: { value: ApplicationValue; places: number; large: boolean;
   /** The offer is settled (chosen, withdrawn or closed): the people are a count, not "Dolaze". */ settled?: boolean }) {
-  return <View style={s.offer}>
-    <View style={large ? s.valueStacked : s.valueRow}>
-      <View style={!large && s.offerWords}><CardFact art={<FactArt kind="money" size={16} />} text={OFFER_WORDS} lines={2} /></View>
-      {value.kind === 'amount' ? <View style={large ? s.amountStacked : valueStyles.amountSide}>
-        <T style={[valueStyles.amount, large && valueStyles.alignStart]}>{value.amount}</T>
-        <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T>
+  return <View style={[s.offer, large && s.offerStacked]}>
+    <View style={[s.offerValue, large && s.offerValueStacked]}>
+      <FactArt kind="money" size={24} cut="art" />
+      <View style={s.offerCopy}>
+        <T variant="meta" tone="muted">{OFFER_WORDS}</T>
+        {value.kind === 'amount' ? <View style={s.offerAmount}>
+          <T style={[valueStyles.amount, valueStyles.alignStart, s.amountWrap]}>{value.amount}</T>
+          <T style={[valueStyles.basis, valueStyles.alignStart]}>{value.basis}</T>
+        </View> : <T style={valueStyles.valueWord}>{VALUE_WORDS.unpriced}</T>}
       </View>
-        : <T style={[valueStyles.valueWord, large ? s.onTextColumn : s.valueWordSide]} numberOfLines={2}>{VALUE_WORDS.unpriced}</T>}
     </View>
-    <CardFact art={<FactArt kind="users" size={16} />} text={offerPeople(places, settled)} lines={large ? 2 : 1} />
+    <View style={s.offerPeople}><FactArt kind="users" size={20} cut="art" tone="quiet" />
+      <T variant="note" tone="muted" style={s.peopleText}>{offerPeople(places, settled)}</T></View>
   </View>;
 }
 
@@ -156,14 +156,14 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large 
   const note = row.napomena?.trim();
   return <>
     <CardStatusLine text={status.text} tone={status.tone} />
-    <CardTitle title={readableTitle(row.naslov)} lines={large ? 3 : 2} />
+    <CardTitle title={readableTitle(row.naslov)} lines={0} style={s.title} />
     <View style={s.facts}>
-      <CardFact art={<FactArt kind="pin" size={16} />} text={row.podrucjeTekst} />
-      <CardFact art={<FactArt kind="calendar" size={16} />} text={row.vremeTekst} lines={2} />
+      <CardFact art={<FactArt kind="pin" size={24} cut="art" />} text={row.podrucjeTekst} lines={0} />
+      <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={row.vremeTekst} lines={0} />
     </View>
     <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} settled={offerSettled(row.stanje)} />
     {/* The only place my message to the requester can be read again; my words, so in quotes. */}
-    {note ? <CardFact art={<FactArt kind="chat" size={16} />} text={`„${note}“`} lines={2} /> : null}
+    {note ? <CardFact art={<FactArt kind="chat" size={24} cut="art" tone="quiet" />} text={`„${note}“`} lines={2} /> : null}
   </>;
 });
 
@@ -218,15 +218,14 @@ const s = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
   facts: { gap: 4 },
   // My offer sits a step apart from the task's facts: it is the part of the card that is mine.
-  offer: { gap: 4, marginTop: 4 },
-  valueRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  valueStacked: { gap: 2 },
-  offerWords: { flex: 1, minWidth: 0 },
-  // The text column of a fact line: its 16 px drawing and the 8 px after it.
-  onTextColumn: { textAlign: 'left', marginLeft: 24 },
-  // The task card's value slot (`valueStyles`): the amount keeps its whole width, what it buys under it; at large text,
-  // beside it on the text column.
-  amountStacked: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginLeft: 24 },
-  // The task card's cap for a word in the value slot, so the two faces give the word the same room.
-  valueWordSide: { maxWidth: '42%' },
+  title: { fontSize: 18, lineHeight: 24 },
+  offer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.md, marginVertical: sys.space.xs },
+  offerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  offerValue: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  offerValueStacked: { flex: 0, width: '100%' },
+  offerCopy: { flex: 1, minWidth: 0, gap: 2 },
+  offerAmount: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: sys.space.xs },
+  amountWrap: { flexShrink: 1, maxWidth: '100%' },
+  offerPeople: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, flexShrink: 1, maxWidth: '100%' },
+  peopleText: { flexShrink: 1 },
 });

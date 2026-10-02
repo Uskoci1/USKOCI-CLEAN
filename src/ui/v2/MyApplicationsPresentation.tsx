@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
@@ -58,7 +58,7 @@ const deviceZone = (): string | undefined => {
 
 /**
  * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24). A detail screen: the
- * arrow back and the name, then the same underlined tab row the rest of the app uses (Sve · Čeka te · Aktivne · Završene,
+ * arrow back and the name, then readable capsule tabs (Sve · Čeka te · Aktivne · Završene,
  * with their counts; "Čeka te" keeps its orange count), then one card per application (`ApplicationFace`). No card edge
  * carries a state: the status line says it. Empty, loading and error go through the one StateView. Presentation only:
  * every callback is the route's existing guarded command.
@@ -133,15 +133,10 @@ export function MyApplicationsPresentation(props: Props) {
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
-    {/* The underlined tab row of Dogovori and the inbox: the tabs keep their spacing and slide sideways only where they do
-        not fit (320 dp, large text), fading at the edge; the hairline under them spans the content. With no application at
-        all there is nothing to switch between, so the first-run state stands alone under the bar. */}
+    {/* Four complete labels/counts stay in one scrollable capsule rail, without fading text at its edge. With no
+        application there is nothing to switch, so the first-run state stands alone under the bar. */}
     {!props.unavailable && !props.loading && hasAny ? <View style={s.controls}>
-      <View style={s.tabRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} fadingEdgeLength={24} style={s.grow}>
-          <Segmented appearance="underline" style={s.tabTrack} value={props.tab} onChange={props.onTab} options={tabs} />
-        </ScrollView>
-      </View>
+      <Segmented contentSized scroll value={props.tab} onChange={props.onTab} options={tabs} />
     </View> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={keyOf}
@@ -177,8 +172,6 @@ export function MyApplicationsPresentation(props: Props) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
   controls: { paddingHorizontal: 20, paddingTop: 4 },
-  tabRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  tabTrack: { borderBottomWidth: 0 },
   list: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28 },
   separator: { height: 12 },
   empty: { flex: 1, paddingVertical: 8 },

@@ -16,10 +16,10 @@ import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
 
 export type AgreementTab = 'pregled' | 'poruke';
-/** Kept for the historical local preview; the live workspace now opens chat from its header. */
+/** Named destinations keep the conversation discoverable without squeezing the person's header. */
 export function AgreementTabs({ tab, onChange }: { tab: AgreementTab; onChange: (tab: AgreementTab) => void }) {
   return <Segmented options={[{ key: 'pregled', label: 'Pregled' }, { key: 'poruke', label: 'Poruke' }]}
-    value={tab} onChange={onChange} appearance="underline" />;
+    value={tab} onChange={onChange} contentSized />;
 }
 
 const states: Record<DogovorProjekcija['stanje'], string> = {
@@ -92,7 +92,7 @@ export function AgreementFact({ art, label, value, note, basis, money = false, l
   labelVisible?: boolean; prominent?: boolean;
 }) {
   return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
-    <View style={[s.factArt, labelVisible && s.labeledArt]}><FactArt kind={art} size={24} /></View>
+    <View style={[s.factArt, labelVisible && s.labeledArt]}><FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} /></View>
     <View style={s.factCopy}>
       {labelVisible ? <T variant="meta" tone="muted">{label}</T> : null}
       <T style={[money ? s.factMoney : s.factValue, prominent && s.prominentValue]}>{value}{money && basis ? <T style={s.factBasis}>{` ${basis}`}</T> : null}</T>
@@ -119,9 +119,9 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
     </View>
     {onOpenTask ? <CaretRight size={22} color={sys.color.green} /> : null}
   </View> : <View style={s.taskOverview}>
-    <T accessibilityRole="header" variant="pageTitle" style={s.ink}>{title}</T>
+    <T accessibilityRole="header" variant="cardTitle" style={s.ink}>{title}</T>
     {/* These are source-task context, not a precise location granted by the accepted Agreement. */}
-    <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={20} />
+    <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
       <T variant="note" tone="muted" style={s.taskPlaceCopy}>{taskPlace}</T></View>
     <View style={s.taskDestination}>
       <T variant="note" tone={onOpenTask ? 'green' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>

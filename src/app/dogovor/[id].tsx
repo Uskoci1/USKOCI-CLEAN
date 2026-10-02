@@ -2,15 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, TextInput, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ChatCircle } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
 import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { ChromeIconButton } from '../../ui/system/ScreenChrome';
+import { AgreementTabs, AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { ProductHeader } from '../../ui/product/ProductDetails';
@@ -442,10 +440,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           onLoadOlder: loadOlderMessages, onLoadNewer: loadNewerMessages, onShowLatest: showLatestMessages, onDisplayedMessageIds,
           outbox, state: outboxState, photos,
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements}
-          right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />
-          : <ProductHeader back={backToAgreements} title="Dogovor"
-            right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />}
+        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
+          : <ProductHeader back={backToAgreements} title="Dogovor" />}
+        <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
           <AgreementTaskLink agreement={dogovor} disabled={!enabled}
             onOpenTask={me && dogovor.izvor?.zadatakId ? () => {
@@ -527,6 +524,7 @@ const s = StyleSheet.create({
   status: { padding: 24, gap: 16 }, center: { textAlign: 'center' },
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
+  tabs: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.md },
   stack: { gap: 8, marginTop: 4 }, change: { gap: 2 },
   input: { ...field, minHeight: 100, textAlignVertical: 'top' },
   event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },

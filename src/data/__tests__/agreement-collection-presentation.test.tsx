@@ -73,7 +73,7 @@ test('a person without a name gets the drawn person, never an empty disc, on the
   const people = () => tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'person');
   const emptyLetters = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.children.length === 0 || node.children.every(child => child === ''));
   rows = [nameless]; await render();
-  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 56]]);
+  expect(discs().map(node => [node.props.initials, node.props.size])).toEqual([['', 40]]);
   expect(people()).toHaveLength(1); expect(emptyLetters()).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<AgreementPersonBar person={nameless.ucesnici[1]} back={() => {}} />); });
@@ -94,18 +94,17 @@ test('reuses full accepted amount, precise interval and coverage, without exposi
   await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
 });
 
-test('leads with the full work title beside the person, then gives accepted facts the row width', async () => {
+test('leads with the full-width work title before the person, then gives accepted facts the row width', async () => {
   const title = 'Popravka police u dnevnoj sobi i postavljanje velikog ogledala';
   rows = [{ ...agreement('work', 'CONFIRMED'), naslov: title }];
   await render();
   const body = card(title);
   const words = body.findAllByType('T' as React.ElementType);
   const heading = words.find(node => node.props.children === title)!;
-  expect(heading.parent!.findAllByType('T' as React.ElementType).map(node => node.props.children))
-    .toEqual([title, 'Druga osoba', 'Uskače na tvoj zadatak']);
+  expect(heading.parent!.children[0]).toBe(heading);
   expect(heading.props.numberOfLines).toBeUndefined();
-  const personRow = heading.parent!.parent!;
-  expect(personRow.findAll(node => typeof node.type !== 'string' && node.props.initials === 'DO' && node.props.size === 56)).toHaveLength(1);
+  const personRow = heading.parent!;
+  expect(personRow.findAll(node => typeof node.type !== 'string' && node.props.initials === 'DO' && node.props.size === 40)).toHaveLength(1);
   const term = words.find(node => node.props.children === rows[0].vremeTekst)!;
   for (let ancestor = term.parent; ancestor && ancestor !== body; ancestor = ancestor.parent) {
     const style = StyleSheet.flatten(ancestor.props.style) ?? {};
@@ -175,7 +174,7 @@ const card = (title: string) => tree.root.findAllByType('Press' as React.Element
 const cardTexts = (title: string) => card(title).findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 test('each set carries its count once the read settles, an empty one none, and no line counts it again', async () => {
   await render();
-  expect(tree.root.findByType(Segmented).props.appearance).toBe('underline');
+  expect(tree.root.findByType(Segmented).props.contentSized).toBe(true);
   expect(tree.root.findByType(Segmented).props.options.map((option: { key: string; badge?: number }) => [option.key, option.badge]))
     .toEqual([['active', 3], ['history', 2]]);
   expect(texts()).not.toContain('3 Dogovora');
@@ -298,9 +297,8 @@ test('the header is profile, mark and bell only, and the calendar ends the tab r
   // The calendar stands in the same row as the underlined tabs, after them; the tabs may slide sideways beside it on a
   // narrow screen, so they sit in their own horizontal scroller.
   const scroller = tree.root.findByType(Segmented).parent!;
-  expect(scroller.type).toBe('ScrollView');
-  expect(scroller.props.horizontal).toBe(true);
-  expect(scroller.props.fadingEdgeLength).toBeUndefined();
+  expect(tree.root.findByType(Segmented).props.scroll).toBe(true);
+  expect(scroller.type).toBe('View');
   const tabRow = scroller.parent!;
   const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Kalendar obaveza');
   expect(entry).toHaveLength(1);

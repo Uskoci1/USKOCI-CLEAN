@@ -97,7 +97,7 @@ function AppointmentCard({ row, onOpen }: {
     </View>
     {appointment ? <>
       {appointment.timeText ? <View style={s.appointmentWhen}>
-        <FactArt kind="calendar" size={24} />
+        <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
         <T variant="note" style={s.appointmentTime}>{appointment.timeText}</T>
       </View> : null}
       {appointment.counterpartName || appointment.roleLabel ? <View style={s.appointmentPerson}>
@@ -289,7 +289,7 @@ const s = StyleSheet.create({
   // Attention is an open inbox: the action comes first, the exact subject/reason is never truncated.
   attention: { backgroundColor: sys.color.surface },
   attentionAction: { color: sys.color.attentionInk, fontWeight: '600' },
-  section: { marginTop: sys.space.xxl },
+  section: { marginTop: sys.space.lg },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
   sectionTitle: { ...sys.type.heading, color: sys.color.ink },
   counter: { minWidth: 28, minHeight: 28, paddingHorizontal: sys.space.xs,
@@ -310,7 +310,7 @@ const s = StyleSheet.create({
   appointmentTitle: { flex: 1, minWidth: 0, ...sys.type.cardTitle, color: sys.color.ink },
   appointmentDirection: { width: 24, height: 28, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   appointmentWhen: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
-  appointmentTime: { flex: 1, minWidth: 0, color: sys.color.green, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  appointmentTime: { flex: 1, minWidth: 0, color: sys.color.muted, fontWeight: '400', fontVariant: ['tabular-nums'] },
   appointmentPerson: { gap: 2 },
   appointmentName: { color: sys.color.ink, fontWeight: '600' },
   rowCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },

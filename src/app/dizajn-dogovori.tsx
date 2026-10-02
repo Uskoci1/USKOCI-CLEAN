@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bell, ChatCircle } from 'phosphor-react-native';
+import { Bell } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
@@ -16,7 +16,7 @@ import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../ui/v2/AgreementCollectionPresentation';
 import { V2Action } from '../ui/v2/V2Action';
-import { AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement,
+import { AgreementTabs, AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement,
   type AgreementTab } from '../ui/v2/AgreementPresentation';
 
 /**
@@ -166,10 +166,8 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan}
       thread={{ agreement: item, person: other, waiting, onOverview: () => setTab('pregled') }} /> : <>
-      {other ? <AgreementPersonBar person={other} back={noop}
-        right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />
-        : <ProductHeader back={noop} title="Dogovor"
-          right={<ChromeIconButton label="Poruke" icon={ChatCircle} tone="green" onPress={() => setTab('poruke')} />} />}
+      {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
+      <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
       <ScrollView contentContainerStyle={s.content}>
         <AgreementTaskLink agreement={item} onOpenTask={item.izvor?.zadatakId ? noop : undefined} disabled={recovery} />
         {/* The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
