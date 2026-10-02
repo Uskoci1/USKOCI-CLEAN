@@ -40,3 +40,10 @@ Svi kratki nazivi dokumenata iz ove tabele, osim izričito navedenog direktoriju
 ## Ne otvarati ponovo
 
 P6 je CLOSED WITH LIMITS; EX03 ima kasniji closure receipt; EX04 četiri serverska dela primenjena, pageri povezani; B24 oba dela primenjena; Voice B1 primenjen; ex06a primenjen; D12 serverski paket primenjen; push transport/raniji Android prijem i AI intake/worker servisi postoje. EX05-S01 harness popravljen i rerun14/14 nije novi poslovni blocker. Grupni V1 chat je prihvaćen kao tekst sa ručnim osvežavanjem. iOS, plaćanja i P05 nisu obavezni za prvo Android izdanje. `0 GOTOVO` telefonskih redova nije procenat neispravnih funkcija. Stare EX09 liste pitanja i UIUX odlomak o odloženom HITNO/push treba ažurirati prema najnovijoj vlasnikovoj poruci, bez brisanja istorijskih dokaza.
+
+
+## RC02 DEV application — 2026-10-02 17:25 UTC
+
+Owner explicitly approved PRIMENI RC02 DEV. Applied exact committed candidate7912806f as migration20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order. Postflight: new target body043f8cfb2cbe68e6f791e1be23ca14cc and six unchanged sibling pins PASS; all seven non-body catalog hashes/comments unchanged; live and both stored certificate digests remain0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431, retention_ready=true. Ledger222/74dev_alpha and stored SQL SHA256 match the committed candidate without final LF. Receipt: supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json.
+
+This supersedes earlier NOT APPLIED status for RC02 only. The candidate was not run through a new concurrency or device exercise; original EX05-S02 evidence reproduced the old defect. All valid cancellation branches now wait on the conversation lock; existing in-flight transactions can still use the old body. No business RPC/provider/Edge/production/data deletion/certificate rebind. Other packages and owner gates remain.

@@ -1,8 +1,9 @@
 {
-  "generated_at": "2026-10-02T04:55:00Z",
-  "ledger_total": 221,
-  "ledger_dev_alpha": 73,
-  "ledger_last": "dev_alpha_d12_review_comment_application",
+  "rc02_refresh": {"scope": "2026-10-02T17:25:57Z RC02 postflight: ledger and7function pins/catalog/comments plus live/certified digest/readiness only. Other RPC/cron/Edge inventory retains prior observation timestamps in how. Current DEV workflow voice/pager flags corrected from source7912806f.", "receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json", "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order", "concurrencyAcceptance": false},
+  "generated_at": "2026-10-02T17:25:57Z",
+  "ledger_total": 222,
+  "ledger_dev_alpha": 74,
+  "ledger_last": "dev_alpha_ex05_rc02_media_cancel_lock_order",
   "certificate_certified": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
   "cron": [
     {
@@ -447,7 +448,7 @@
   "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function).",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -521,7 +522,7 @@
       "rpc_agreement_voice_upload_service_v1 (service role)",
       "rpc_agreement_voice_read_service_v1 (service role)"
     ],
-    "client_flag": "EXPO_PUBLIC_VOICE_MESSAGES is off in every build"
+    "client_flag": "EXPO_PUBLIC_VOICE_MESSAGES=1 in current DEV APK workflow; no whole-device acceptance implied"
   },
   "ex04": {
     "migrations": [
@@ -554,7 +555,7 @@
       "private.own_application_rows(uuid)",
       "private.need_candidate_states_v5(uuid,uuid[])"
     ],
-    "client_flags": "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED, EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED and EXPO_PUBLIC_EX04_CANDIDATES_PAGED are OFF in every build profile"
+    "client_flags": "All three EX04 pagers enabled in current DEV APK workflow; other build profiles not inferred"
   },
   "ex06a": {
     "migration": {

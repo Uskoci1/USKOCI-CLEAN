@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T17:24:30Z",
-  "grana": "HEAD",
-  "head": "7912806f",
-  "head_poruka": "refactor(ui): simplify connected agreement and discovery screens",
+  "osvezeno": "2026-10-02T17:29:36Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "c93e0bf2",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
-   "snimljeno": "2026-10-02T04:55:00Z",
-   "migracije": 221,
-   "dev_alpha": 73,
-   "poslednja": "dev_alpha_d12_review_comment_application",
+   "snimljeno": "2026-10-02T17:25:57Z",
+   "migracije": 222,
+   "dev_alpha": 74,
+   "poslednja": "dev_alpha_ex05_rc02_media_cancel_lock_order",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -580,10 +580,10 @@
     },
     "EX05-S02": {
      "title": "RC-02 targeted concurrent proof for media cancellation",
-     "status": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED; run 36994974880 at 3ae018be. Review the 35-interleaving report; prepare lock-order correction with disposable proof and named approval before DEV.",
+     "status": "DEV APPLIED2026-10-02 after owner PRIMENI RC02 DEV, migration20261002172532 from7912806f; target new hash and six siblings, non-body catalog/comments, certificate and exact ledger payload verified. Original run36994974880 reproduced F1/F2 only; no new concurrency or native acceptance. Receipt supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json.",
      "autonomous": true,
      "depends_on": "none",
-     "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest",
+     "first_owner_boundary": "RC02 named approval received and used2026-10-02; certificate unchanged. Revert or any further server change needs separate named approval.",
      "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
     },
     "EX05-S03": {
@@ -682,7 +682,7 @@
     "G08 - Voice legal and store-declaration texts contradict shipped behaviour",
     "G09 - Photos in messages: no device proof, success path never run on hosted DEV",
     "G10 - Photo/group/text SQL proofs predate B24 and Voice B1",
-    "G11 - RC-02 media-cancel lock order: no concurrent proof",
+    "G11 - RC-02 lock-order fix DEV applied2026-10-02; no new concurrent proof of this correction",
     "G12 - Text chat: no current two-device native proof",
     "G13 - Reconnect completeness vs the B3 contract",
     "G14 - Full client regression is not bound to HEAD for the chat client",
@@ -1478,8 +1478,9 @@
      "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
     },
     "voiceAndComposerContinuation": {
+     "latestArtifactReceipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37037950035.json — source5110ed03 build/checksums/attestations PASS, not installed; excludes newer7912806f source.",
      "connectedFinishing": "SOURCE: next-decision-first Agreement changes, neutral actions and readable facts; shared profile layout; unreachable Discovery branches removed. TypeScript passed; no new tests/native acceptance.",
-     "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPROVAL.md — NOT APPLIED. 7/7 DEV function pins and live/certificate readiness matched2026-10-02T17:12:43Z; named owner approval pending.",
+     "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPLICATION.md — DEV APPLIED on owner PRIMENI RC02 DEV, migration20261002172532. Exact payload/body/catalog/certificate readback PASS; new concurrency/native acceptance not performed.",
      "emulatorLayoutReceipt": "docs/implementation/ui-ux-pass-20261002/VOICE_COMPOSER_APK_37034535430.json",
      "latestSourceRefinement": "Full-width quick-filter rail with measured folding; voice microphone emphasis over decoration. Source only after observed c64dc8bd APK.",
      "followUp": "SOURCE: truthful per-role completed Agreement counts in profile; optional reads do not block identity. No earnings claim. Bounded measured map-count wrapping/spacing; blue voice glow. No new native acceptance.",
@@ -8926,5 +8927,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37040460230,
+   "ime": "EX-06 ex06b alias registry proof",
+   "sha": "7912806f",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460204,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "7912806f",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460159,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "7912806f",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460119,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460102,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460056,
+   "ime": "Control tracker refresh",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37037950035,
+   "ime": "Build Android development APK",
+   "sha": "5110ed03",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:01:58Z"
+  },
+  {
+   "id": 37037926592,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "5110ed03",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T17:01:46Z"
+  },
+  {
+   "id": 37037926246,
+   "ime": "Control tracker refresh",
+   "sha": "5110ed03",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:01:46Z"
+  },
+  {
+   "id": 37035707806,
+   "ime": "Control tracker refresh",
+   "sha": "e6427075",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T16:42:09Z"
+  },
+  {
+   "id": 37035707773,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "e6427075",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T16:42:09Z"
+  },
+  {
+   "id": 37034535430,
+   "ime": "Build Android development APK",
+   "sha": "c64dc8bd",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T16:31:38Z"
+  }
+ ]
 }

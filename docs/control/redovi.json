@@ -4826,10 +4826,10 @@
         },
         "EX05-S02": {
           "title": "RC-02 targeted concurrent proof for media cancellation",
-          "status": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED; run 36994974880 at 3ae018be. Review the 35-interleaving report; prepare lock-order correction with disposable proof and named approval before DEV.",
+          "status": "DEV APPLIED2026-10-02 after owner PRIMENI RC02 DEV, migration20261002172532 from7912806f; target new hash and six siblings, non-body catalog/comments, certificate and exact ledger payload verified. Original run36994974880 reproduced F1/F2 only; no new concurrency or native acceptance. Receipt supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json.",
           "autonomous": true,
           "depends_on": "none",
-          "first_owner_boundary": "Applying any fix needs 'primeni' and a check of the certified digest",
+          "first_owner_boundary": "RC02 named approval received and used2026-10-02; certificate unchanged. Revert or any further server change needs separate named approval.",
           "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
         },
         "EX05-S03": {
@@ -4928,7 +4928,7 @@
         "G08 - Voice legal and store-declaration texts contradict shipped behaviour",
         "G09 - Photos in messages: no device proof, success path never run on hosted DEV",
         "G10 - Photo/group/text SQL proofs predate B24 and Voice B1",
-        "G11 - RC-02 media-cancel lock order: no concurrent proof",
+        "G11 - RC-02 lock-order fix DEV applied2026-10-02; no new concurrent proof of this correction",
         "G12 - Text chat: no current two-device native proof",
         "G13 - Reconnect completeness vs the B3 contract",
         "G14 - Full client regression is not bound to HEAD for the chat client",
@@ -5712,8 +5712,9 @@
           "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
         },
         "voiceAndComposerContinuation": {
+          "latestArtifactReceipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37037950035.json — source5110ed03 build/checksums/attestations PASS, not installed; excludes newer7912806f source.",
           "connectedFinishing": "SOURCE: next-decision-first Agreement changes, neutral actions and readable facts; shared profile layout; unreachable Discovery branches removed. TypeScript passed; no new tests/native acceptance.",
-          "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPROVAL.md — NOT APPLIED. 7/7 DEV function pins and live/certificate readiness matched2026-10-02T17:12:43Z; named owner approval pending.",
+          "rc02Prepared": "supabase/candidates/ex05-rc02-20261002/APPLICATION.md — DEV APPLIED on owner PRIMENI RC02 DEV, migration20261002172532. Exact payload/body/catalog/certificate readback PASS; new concurrency/native acceptance not performed.",
           "emulatorLayoutReceipt": "docs/implementation/ui-ux-pass-20261002/VOICE_COMPOSER_APK_37034535430.json",
           "latestSourceRefinement": "Full-width quick-filter rail with measured folding; voice microphone emphasis over decoration. Source only after observed c64dc8bd APK.",
           "followUp": "SOURCE: truthful per-role completed Agreement counts in profile; optional reads do not block identity. No earnings claim. Bounded measured map-count wrapping/spacing; blue voice glow. No new native acceptance.",

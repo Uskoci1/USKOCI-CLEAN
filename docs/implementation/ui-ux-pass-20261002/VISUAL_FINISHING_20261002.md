@@ -151,3 +151,10 @@ The compact source-task context inside Agreement history is now an open row with
 Build37037950035 succeeded at5110ed03. Downloaded APK SHA256 `b615960eaf26a7076d185beae98209e865a4029609e8ccd6c1f26cdaeb2d2047`, embedded bundle, source/tree bindings and signature match; recovery/icon/Reanimated attestations PASS. It is an x86_64 DEV emulator build, not a store artifact, and has not been installed. Receipt: FINISHING_APK_37037950035.json. The five newer source corrections above are outside that artifact.
 
 Owner subsequently answered **PRIMENI RC02 DEV** to the concrete package, explicitly informed that no new concurrency execution had been performed. This authorizes only that named DEV application; application/readback evidence will follow separately. No production or broader server permission is inferred.
+
+
+## RC02 DEV application — 2026-10-02 17:25 UTC
+
+Owner explicitly approved PRIMENI RC02 DEV. Applied exact committed candidate7912806f as migration20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order. Postflight: new target body043f8cfb2cbe68e6f791e1be23ca14cc and six unchanged sibling pins PASS; all seven non-body catalog hashes/comments unchanged; live and both stored certificate digests remain0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431, retention_ready=true. Ledger222/74dev_alpha and stored SQL SHA256 match the committed candidate without final LF. Receipt: supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json.
+
+This supersedes earlier NOT APPLIED status for RC02 only. The candidate was not run through a new concurrency or device exercise; original EX05-S02 evidence reproduced the old defect. All valid cancellation branches now wait on the conversation lock; existing in-flight transactions can still use the old body. No business RPC/provider/Edge/production/data deletion/certificate rebind. Other packages and owner gates remain.
