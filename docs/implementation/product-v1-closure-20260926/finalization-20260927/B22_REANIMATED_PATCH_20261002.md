@@ -154,7 +154,29 @@ Run on 2026-10-02, Windows 11, Node 24.18.0, in the checkout of the session (oth
 
 `npm install patch-package@8.0.1 --save-exact --ignore-scripts`: 20 packages added in `node_modules`, none removed, no version changed. patch-package 8.0.1 (MIT, Node >= 14, published 2025-09-29). Transitive: `@yarnpkg/lockfile@1.1.0`, `call-bind@1.0.9`, `call-bound@1.0.4`, `define-data-property@1.1.4`, `find-yarn-workspace-root@2.0.0`, `fs-extra@10.1.0` (nested `universalify@2.0.1`, `jsonfile@6.2.1` with nested `universalify@2.0.1`), `has-property-descriptors@1.0.2`, `isarray@2.0.5`, `json-stable-stringify@1.3.0`, `jsonify@0.0.1`, `klaw-sync@6.0.0`, `object-keys@1.1.1`, `set-function-length@1.2.2`, `tmp@0.2.7`, `patch-package/node_modules/ci-info@3.9.0`, `patch-package/node_modules/slash@2.0.0`. Nine packages already present lose `"dev": true` because they are now production dependencies (`call-bind-apply-helpers`, `dunder-proto`, `es-define-property`, `es-object-atoms`, `get-intrinsic`, `get-proto`, `gopd`, `has-symbols`, `math-intrinsics`). None of the new packages has an install script. patch-package is a build/install tool: never imported by the app and not part of the APK. The build reviewer independently re-ran `npm ci --ignore-scripts` from the lockfile (902 packages, exit 0), the real `postinstall` under `NODE_ENV=production` and `CI=1`, the licences (MIT, BSD-2, Apache-2.0, ISC; `jsonify` "Public Domain") and `npm audit` (identical before and after).
 
-## 9. Measurement protocol (BEFORE / AFTER on the HONOR) — NOT RUN
+## 9. Measurement protocol (BEFORE / AFTER on the HONOR) — WINDOW 1 (AFTER TOUR) RUN 2026-10-02; WINDOW 2 (ANIMATION PROBES) NOT RUN
+
+### 9.0 Result of window 1 (the owner's "sad", 2026-10-02 06:19-06:23 CEDT; evidence `b22/window5_after_patched_20261002.json`)
+
+The frozen `window5_tour.py` (and `ui.py`, `ex04_boundary.py`, byte-identical to `b22/scripts/` apart from line endings) ran UNCHANGED on the patched APK `1001e966...` (run 36953943157, attestation `verdict: pass`, `patchState: patched`, 2 dex marker lines), installed with `adb install -r` over the unpatched `81b8a833` (data kept). Two cycles, 207.1 s, 20 of 20 tour notes identical to the BEFORE list, no step False, nothing changed on the phone.
+
+| # | Quantity | BEFORE (unpatched) | AFTER (patched) | Verdict |
+| --- | --- | --- | --- | --- |
+| 1 | Arm validity | `81b8a833`, no patch | installed SHA-256 = the artifact's; attestation pass; the same 20 notes | PASS |
+| 2 | `reanimatedWarnLines` | most of 465,742 (about 170 lines per failure) | **33** (31 distinct dead tags named once each, 2 summaries); limit 500 | PASS |
+| 3 | App-process log lines | 465,742 (1,925 / s) | **1,100** (5.3 / s); 1,067 are non-Reanimated ordinary app and Android lines (ViewTreeObserver W 290, ReactNativeJS I 274, ...) that the patch does not touch | reported with breakdown (above "a few hundred" only because of non-Reanimated lines) |
+| 4 | Frames over 700 ms | not kept | **0**; the whole gfx histogram has nothing above 97 ms; 0 Davey lines | PASS |
+| 5 | Janky share | 1.93 % | **1.46 %** (59 of 4,041) | PASS |
+| 6 | p99 frame time | 22 ms | **19 ms** (p50 5, p90 8, p95 11) | PASS |
+| 7 | ANR / fatal | none | **none** (`anrLines` 0, `fatalOrAnrLogLines` empty; the newest exit-info entry is the install itself, reason PACKAGE UPDATED) | PASS |
+| 8 | Every screen still renders and animates | 20 notes, all ran | the same 20 notes; **motion itself was NOT captured** (no video, no probe) | PARTIAL: window 2 (probes P1-P5, section 9.5) is still required |
+
+Reported, not criteria: `failedLines` 0 (so no old-style failure remains, by construction), `skippedSum` at least 3,925 (the updates for unmounted tags are still retried and skipped silently: 3,028 in one 8.9 s window and 897 in a 19.3 s window; the patch removes the logging cost, not the retry), `viewlessSum` 0, `backedOffSum` 0, `untrackedSum` 0, `evictedSum` 0. PSS 423 MB (BEFORE 525 MB: a different process age, not claimed as an effect).
+
+**Honest limits.** (a) The comparison is the primary one of 9.1 (two builds of two commits that differ only by the patch and documentation, EX-06 server files, proofs and one test; no `src/` file), not a same-commit A/B. (b) One phone, one routine of two cycles. (c) PSS, janky and p99 also depend on process age and on what else ran on the phone. (d) Row 8 is not closed.
+
+**B22 is therefore NOT closed.** Rows 1-7 pass; row 8 needs window 2 (the five animation probes) and the owner's word ("effect without animation regression"). The patched APK stays installed on the HONOR until the UI wave-1 build replaces it.
+
 
 ### 9.1 What is compared, and which comparison is honest
 
