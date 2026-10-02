@@ -78,3 +78,6 @@ supabase/candidates/p6_discovery_rollout_v2_revert.sql text eol=lf
 supabase/proofs/discovery/p6_rollout_v2_revert_proof.mjs text eol=lf
 # patch-package patches must be LF: with core.autocrlf=true a Windows checkout would write CR bytes and the postinstall guard (scripts/verify-native-patches.cjs) would refuse the patch.
 patches/*.patch text eol=lf
+# EX-06 / EX-07 server candidates are applied from their exact bytes; keep LF on every OS (the guarded DO refuses CRLF).
+supabase/candidates/ex06b_*.sql text eol=lf
+supabase/candidates/ex07_*.sql text eol=lf
