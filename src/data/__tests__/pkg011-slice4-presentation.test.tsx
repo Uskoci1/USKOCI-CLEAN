@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { brandAction, sys } from '../../ui/system/tokens';
+import { brandAction } from '../../ui/system/tokens';
 // The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -111,7 +111,9 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
 test('an open price is a word, not an amount, and the owner is told who names it; a draft has no places to fill yet', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0, rezimCene: 'OFFERS', ponudjenaCena: undefined })} />); });
   const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
-  expect(JSON.stringify(price.props.style)).not.toContain(sys.color.money);
+  expect(price.props.children).toBe('Tražim ponude');
+  expect(texts()).not.toContain('RSD');
+  expect(texts()).not.toContain('NaN');
   expect(texts()).toContain('Svako u prijavi predlaže ukupan iznos.');
   expect(texts()).not.toContain('popunjeno');
 });

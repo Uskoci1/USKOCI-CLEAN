@@ -1334,11 +1334,11 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
   // Discovery V47: the search over the map is one pill that says the search in two lines and opens the panel; the words
   // searched there narrow the list, and the chip under the count takes them away again, keeping everything else.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Bilo kada · Dodaj uslove' });
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Bilo kada' });
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada · Dodaj uslove' });
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada' });
   await tap('Ukloni uslov: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
 });
 
@@ -1732,7 +1732,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     // "Uslovi pretrage" counts what is on, in green: the "+" beside it is the screen's one orange accent (review r3 item 6).
     expect(press('Uslovi pretrage, 2 aktivna')).toBeTruthy();
     const badge = press('Uslovi pretrage, 2 aktivna').findByProps({ testID: 'conditions-badge' });
-    expect(StyleSheet.flatten(badge.props.style).backgroundColor).toBe(sys.color.green);
+    expect(StyleSheet.flatten(badge.props.style).backgroundColor).toBe(sys.color.ink);
     expect(texts(badge)).toBe('2');
     // The pill says them, and each one that is on is a chosen quick chip that takes itself away.
     expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Sutra · Tražim ponude' });
@@ -1799,7 +1799,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await render(); await tap('Pretraži zadatke');
     await choose('Vračar, Beograd, 1 zadatak'); await act(async () => showAction().props.onPress());
     expect(snapshot.place).toBe('Vračar, Beograd'); expect(cards()).toEqual(['b']);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd, Bilo kada · Dodaj uslove' });
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd, Bilo kada' });
     await tap('Ukloni uslov: Vračar, Beograd'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
   });
 });
@@ -1875,7 +1875,7 @@ test('pull to refresh is the list\'s own; the list follows the area the map hand
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
 });
 
-// Review of V47, item 3: the "Oblast sa mape ×" chip under the count came and went with every move of the map, and the
+// Review of V47, item 3: the "Ova oblast ×" chip under the count came and went with every move of the map, and the
 // sheet's measured top line, and the sheet with it, jumped each time. The area is said by the search pill instead, whose
 // × at its right end takes it away; the × lies over the pill's end, so the pill is exactly as tall with it as without.
 test('a map area adds nothing under the count; the search pill says it, and its × (48 wide, over its end) takes it away', async () => {
@@ -1890,7 +1890,7 @@ test('a map area adds nothing under the count; the search pill says it, and its 
   const after = StyleSheet.flatten(press('Pretraži zadatke').props.style);
   expect([after.minHeight, after.paddingVertical, after.borderWidth]).toEqual([before.minHeight, before.paddingVertical, before.borderWidth]);
   expect(after.paddingRight).toBe(48);
-  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Oblast sa mape, /);
+  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Ova oblast, /);
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
 });
@@ -2019,8 +2019,8 @@ test('at the full height the quick chips fold only for a list longer than its wi
     // Back up a little: still folded. At the very top: back.
     await scroll(4); expect(chips()).toHaveLength(0);
     await scroll(0); expect(chips()).toHaveLength(1);
-    // The room is the chips' own, as the bar measures it (the row and the gap above it): taller chips need a longer list.
-    await act(async () => chips()[0].props.onLayout({ nativeEvent: { layout: { height: 60 } } }));
+    // The Filteri toolbar stays mounted: a116dp rail reclaims only68dp above its48dp floor. The8dp hysteresis remains.
+    await act(async () => chips()[0].props.onLayout({ nativeEvent: { layout: { height: 116 } } }));
     await act(async () => list().props.onContentSizeChange(400, window + 70)); await scroll(30);
     expect(chips()).toHaveLength(1);
     await scroll(0); await act(async () => list().props.onContentSizeChange(400, window + 76)); await scroll(30);
@@ -2296,9 +2296,9 @@ test('over the map: search and tools share one edge; a quick chip has no shadow 
   expect(free.boxShadow).toBeUndefined(); expect(free.elevation).toBeUndefined();
   await act(async () => quick('Navedena cena').props.onPress());
   const chosen = quick('Navedena cena'), style = StyleSheet.flatten(chosen.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green });
+  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.ink });
   expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.green);
-  expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.green);
+  expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
   // A condition under the count removes itself by name, and takes 48 to a finger.
   await act(async () => tree.unmount()); initial = { ...initial, query: 'Pomoć' }; await render();
   const remove = press('Ukloni uslov: „Pomoć“');

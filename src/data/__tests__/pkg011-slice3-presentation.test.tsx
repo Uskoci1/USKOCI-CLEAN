@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { brandAction, sys } from '../../ui/system/tokens';
+import { brandAction } from '../../ui/system/tokens';
 // The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -186,7 +186,9 @@ test('an open price is a word addressed to the person applying, never the amount
     missing={false} stale={false} busy={false} canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
     back={noop} retry={noop} apply={apply} />); });
   const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
-  expect(JSON.stringify(price.props.style)).not.toContain(sys.color.money);
+  expect(price.props.children).toBe('Tražim ponude');
+  expect(texts()).not.toContain('RSD');
+  expect(texts()).not.toContain('NaN');
   expect(texts()).toContain('Ukupan iznos predlažeš u prijavi.');
 });
 test('closed applications remove the brand action and say so; the requester profile sheet shows loading, then only server facts, and closes', async () => {

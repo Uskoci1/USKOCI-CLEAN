@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T12:15:30Z",
-  "grana": "HEAD",
-  "head": "b574e118",
-  "head_poruka": "feat(ui): recompose discovery and cards around neutral reading surfaces",
+  "osvezeno": "2026-10-02T14:03:25Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "8d22ce0e",
+  "head_poruka": "feat(ui): give AI openings a quieter compact composition",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -1448,9 +1448,10 @@
   "visual_finishing_20261002": {
    "document": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
    "ownerDirection": "Latest owner: black primary/gray supporting text, white surfaces, curated2.5D icons, composition over blanket green. Whole screens/flows, focused checks rather than expanding test infrastructure.",
-   "scope": "Existing W5-W7 first connected visual slice: task cards, Discovery search/filter surface, map preview and shared task-detail headings; no server or business writes.",
-   "level": "SOURCE / 184 EXISTING TARGETED CHECKS PASS / TSC / NATIVE PENDING",
-   "remaining": "Independent source review and one exact-source emulator APK, then UX/VISUAL actual-screen critique. Whole app and physical/release remain open."
+   "scope": "Existing W5-W7 discovery/cards/pin/detail plus bounded W4/W8-W10 Home/applications/Agreements and AI opening. Final source8d22ce0e, APK37012789559.",
+   "level": "SCOPED EMULATOR UX/VISUAL PASS WITH LIMITS: final8d22ce0e; actual loading-rail correction and AI entry verified. Not whole-app or phone acceptance.",
+   "remaining": "Discovery quick-control rail/count spacing; worker AI summary and natural responses; chat refresh and pending-term hierarchy; other candidate/account/error flows; motion/TalkBack/physical/iOS/release.",
+   "receipt": "docs/implementation/ui-ux-pass-20261002/VISUAL_NATIVE_20261002.json"
   },
   "ui_w2_w8_codex_20261002": {
    "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
@@ -8852,5 +8853,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37012789559,
+   "ime": "Build Android development APK",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T13:24:35Z"
+  },
+  {
+   "id": 37012789208,
+   "ime": "P5 ready task and matching contract",
+   "sha": "8d22ce0e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T13:24:35Z"
+  },
+  {
+   "id": 37012041861,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "0889c819",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T13:17:46Z"
+  },
+  {
+   "id": 37012040450,
+   "ime": "Build Android development APK",
+   "sha": "0889c819",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T13:17:45Z"
+  },
+  {
+   "id": 37009600771,
+   "ime": "Build Android development APK",
+   "sha": "c81722a2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:55:01Z"
+  },
+  {
+   "id": 37009528079,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T12:54:18Z"
+  },
+  {
+   "id": 37009527309,
+   "ime": "Build Android development APK",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T12:54:17Z"
+  },
+  {
+   "id": 37009526031,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "b19af3f3",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-02T12:54:17Z"
+  },
+  {
+   "id": 37008069654,
+   "ime": "Build Android development APK",
+   "sha": "5bdeef52",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:40:10Z"
+  },
+  {
+   "id": 37005585355,
+   "ime": "Build Android development APK",
+   "sha": "b574e118",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:15:12Z"
+  },
+  {
+   "id": 37005583686,
+   "ime": "Control tracker refresh",
+   "sha": "b574e118",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T12:15:12Z"
+  },
+  {
+   "id": 37003507530,
+   "ime": "Control tracker refresh",
+   "sha": "832f188e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T11:53:25Z"
+  }
+ ]
 }

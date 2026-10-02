@@ -5646,9 +5646,10 @@
     "visual_finishing_20261002": {
       "document": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
       "ownerDirection": "Latest owner: black primary/gray supporting text, white surfaces, curated2.5D icons, composition over blanket green. Whole screens/flows, focused checks rather than expanding test infrastructure.",
-      "scope": "Existing W5-W7 first connected visual slice: task cards, Discovery search/filter surface, map preview and shared task-detail headings; no server or business writes.",
-      "level": "SOURCE / 184 EXISTING TARGETED CHECKS PASS / TSC / NATIVE PENDING",
-      "remaining": "Independent source review and one exact-source emulator APK, then UX/VISUAL actual-screen critique. Whole app and physical/release remain open."
+      "scope": "Existing W5-W7 discovery/cards/pin/detail plus bounded W4/W8-W10 Home/applications/Agreements and AI opening. Final source8d22ce0e, APK37012789559.",
+      "level": "SCOPED EMULATOR UX/VISUAL PASS WITH LIMITS: final8d22ce0e; actual loading-rail correction and AI entry verified. Not whole-app or phone acceptance.",
+      "remaining": "Discovery quick-control rail/count spacing; worker AI summary and natural responses; chat refresh and pending-term hierarchy; other candidate/account/error flows; motion/TalkBack/physical/iOS/release.",
+      "receipt": "docs/implementation/ui-ux-pass-20261002/VISUAL_NATIVE_20261002.json"
     },
     "ui_w2_w8_codex_20261002": {
       "document": "docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",

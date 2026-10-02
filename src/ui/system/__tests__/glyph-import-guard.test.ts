@@ -33,7 +33,7 @@ const sourceFiles = (dir: string): string[] => readdirSync(join(repo, dir), { wi
   return /\.(?:ts|tsx)$/.test(entry.name) && !/\.test\.(?:ts|tsx)$/.test(entry.name) ? [path] : [];
 });
 
-/** TODAY'S importers (63 files at the end of wave 2). It only shrinks. */
+/** TODAY'S importers (62 files at the end of wave 2). It only shrinks. */
 const PHOSPHOR_IMPORTERS = new Set([
   'src/app/(app)/profil/izvoz.tsx',
   'src/app/auth.tsx',
@@ -42,7 +42,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/app/dizajn-kalendar.tsx',
   'src/app/dizajn-obavestenja.tsx',
   'src/app/dizajn-pocetna.tsx',
-  'src/app/dogovor/[id].tsx',
   'src/app/obavestenja.tsx',
   'src/app/oporavak.tsx',
   'src/ui/AgreementChat.tsx',
@@ -125,7 +124,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
   });
 
   it('the list has the size it says, never lists Glyph itself, and Glyph really is the importer', () => {
-    expect(PHOSPHOR_IMPORTERS.size).toBe(63);
+    expect(PHOSPHOR_IMPORTERS.size).toBe(62);
     expect(PHOSPHOR_IMPORTERS.has(THE_GLYPH_FILE)).toBe(false);
     expect(importsPhosphor(read(THE_GLYPH_FILE))).toBe(true);
   });

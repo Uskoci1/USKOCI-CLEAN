@@ -313,10 +313,10 @@ describe('Discovery V47: Gde', () => {
 describe('Discovery V47: the words of the search', () => {
   it('the pill says where, then when and the conditions, or invites to add them', () => {
     expect(whereWords(view())).toBe('Svi zadaci');
-    expect(whereWords(view({ area: [19, 45, 20, 46] }))).toBe('Oblast sa mape');
+    expect(whereWords(view({ area: [19, 45, 20, 46] }))).toBe('Ova oblast');
     expect(whereWords(view({ query: ' farbanje ' }))).toBe('„farbanje“');
     expect(whereWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('Liman, Novi Sad · „selidba“');
-    expect(conditionsWords(view(), NOW)).toBe('Bilo kada · Dodaj uslove');
+    expect(conditionsWords(view(), NOW)).toBe('Bilo kada');
     expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · 2+ mesta');
     expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Na daljinu · Tražim ponude');
     expect(conditionsWords(view({ where: 'onsite', price: 'MY_PRICE' }), NOW)).toBe('Bilo kada · Na licu mesta · Navedena cena');
