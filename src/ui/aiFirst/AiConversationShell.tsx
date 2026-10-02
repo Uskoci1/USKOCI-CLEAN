@@ -1,7 +1,7 @@
 import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowDown, ArrowUp, ArrowUpRight, DotsThree, Info, Plus, Waveform } from 'phosphor-react-native';
+import { ArrowDown, ArrowUpRight, DotsThree, Info, PaperPlaneTilt, Plus, Waveform } from 'phosphor-react-native';
 import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { T } from '../Text';
 import { withInter } from '../interFont';
@@ -76,6 +76,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const [holdHint, setHoldHint] = useState(false);
   const [readingEarlier, setReadingEarlier] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [composerWidth, setComposerWidth] = useState(0);
+  const [inputHeight, setInputHeight] = useState(48);
+  const [expandedDraft, setExpandedDraft] = useState(false);
   const [disclosure, setDisclosure] = useState({ key: p.conversationKey, expanded: false });
   const expanded = disclosure.key === p.conversationKey && disclosure.expanded;
   const input = useRef<TextInput>(null);
@@ -141,6 +144,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
   const hasText = p.value.trim().length > 0;
   const sendShown = hasText || p.pending;
+  const textRoom = composerWidth - 32 - (p.attach ? 48 : 0) - (p.voice ? 52 : 0) - (sendShown || p.voice ? 48 : 0);
+  const stackedComposer = textScale >= 1.3 || (composerWidth > 0 && textRoom < 128) || expandedDraft || p.value.includes('\n');
+  // Once a narrow field wraps, keep the full-width draft until it is short again.
+  // Measuring the wider result must not oscillate between two layouts while typing.
+  useEffect(() => {
+    if (p.value.length <= 8 && !p.value.includes('\n')) setExpandedDraft(false);
+    if (!p.value) setInputHeight(48);
+  }, [p.value]);
   const voiceIdle = phase === 'IDLE';
   const sendReason = p.canSend || !sendShown ? null
     : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.'
@@ -270,30 +281,34 @@ export function AiConversationShell(p: AiConversationShellProps) {
             button still says it to a screen reader. */}
         {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
-        <View testID="ai-composer" style={[s.pill, inputFocused && s.pillFocused]}>
+        <View testID="ai-composer" onLayout={event => setComposerWidth(event.nativeEvent.layout.width)}
+          style={[s.pill, stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
+          {p.attach ? <View style={[s.attachmentSlot, stackedComposer && s.attachmentBelow]}>
+            <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
+              accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
+              hitSlop={0} onPress={p.attach.onPress} style={s.target}>
+              <View style={s.toolCircle}><Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} /></View>
+            </Press>
+          </View> : null}
           <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} editable={p.canEdit}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { setHoldHint(false); p.onChange(text); }}
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
+            onContentSizeChange={event => {
+              const measured = Math.ceil(event.nativeEvent.contentSize.height);
+              setInputHeight(Math.max(48, Math.min(132, measured)));
+              const oneLine = sys.type.body.lineHeight * textScale + 20;
+              if (!stackedComposer && p.value.length > 8 && measured > oneLine + 8) setExpandedDraft(true);
+            }}
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
-            style={[s.input, !p.canEdit && s.inputOff]} />
-          <View testID="ai-composer-tools" style={s.composerTools}>
-          <View style={s.toolsStart}>
-            {p.attach ? <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
-              accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
-              hitSlop={0} onPress={p.attach.onPress} style={s.target}>
-              <View style={s.toolCircle}><Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} /></View>
-            </Press> : null}
-          </View>
-          <View style={s.toolsCenter}>
-            {p.voice ? <VoiceComposer {...p.voice} size={60} onTooShort={() => setHoldHint(true)} /> : null}
-          </View>
-          <View style={s.toolsEnd}>
+            style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />
+          <View testID="ai-composer-tools" style={[s.composerTools, stackedComposer && s.toolsBelow]}>
+            {p.voice ? <VoiceComposer {...p.voice} size={52} onTooShort={() => setHoldHint(true)} /> : null}
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
             <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
-              <ArrowUp size={22} weight="bold" color={p.canSend ? sys.color.onGreen : sys.color.muted} /></View>
+              <PaperPlaneTilt size={22} weight="fill" color={p.canSend ? sys.color.onGreen : sys.color.muted} /></View>
           </Press> : p.voice ? <Press testID="ai-voice-mode" accessibilityRole="button" accessibilityLabel="Razgovaraj glasom"
             accessibilityHint="Govoriš umesto da kucaš; odgovor stiže kao tekst."
             accessibilityState={{ disabled: p.voice.disabled || !voiceIdle }} disabled={p.voice.disabled || !voiceIdle}
@@ -301,7 +316,6 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
               <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.ink} /></View>
           </Press> : null}
-          </View>
           </View>
         </View>
       </SafeAreaView>
@@ -408,21 +422,22 @@ const s = StyleSheet.create({
   latestText: { flexShrink: 1, color: sys.color.ink, fontWeight: '600' },
   footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
-  // The draft uses the full width; controls never squeeze the sentence between three competing circles.
-  pill: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 8,
+  // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
+  pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,
     borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.conversation.surface,
     ...sys.elevation.soft },
   pillFocused: { borderColor: sys.color.ink },
+  pillExpanded: { paddingBottom: 64 },
   composerTools: { flexDirection: 'row', alignItems: 'center' },
-  // Equal outer slots keep hold-to-talk physically centered, even when this role has no attachment action.
-  toolsStart: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', minHeight: 48 },
-  toolsCenter: { width: 60, alignItems: 'center', justifyContent: 'center' },
-  toolsEnd: { flex: 1, alignItems: 'flex-end', justifyContent: 'center', minHeight: 48 },
+  attachmentSlot: { width: 48 },
+  attachmentBelow: { position: 'absolute', left: 8, bottom: 8 },
+  toolsBelow: { position: 'absolute', right: 8, bottom: 6, minHeight: 52 },
   toolCircle: { width: 40, height: 40, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     alignItems: 'center', justifyContent: 'center' },
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  input: withInter({ ...sys.type.body, color: sys.color.ink, minWidth: 0, minHeight: 48, maxHeight: 132,
-    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, textAlignVertical: 'top' }),
+  input: withInter({ ...sys.type.body, flex: 1, color: sys.color.ink, minWidth: 0, minHeight: 48, maxHeight: 132,
+    paddingHorizontal: 8, paddingTop: 10, paddingBottom: 10, textAlignVertical: 'top' }),
+  inputExpanded: { paddingHorizontal: 12 },
   inputOff: { color: sys.color.muted },
   round: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   send: { backgroundColor: sys.color.ink },

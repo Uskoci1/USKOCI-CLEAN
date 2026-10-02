@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T16:20:52Z",
+  "osvezeno": "2026-10-02T16:29:47Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "2adca787",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "9e7fe9b4",
+  "head_poruka": "feat(chat): connect Android voice messages and refine AI composer",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -1483,7 +1483,7 @@
      "scope": "Agreement Android voice B2 and scoped AI palette/composer; no server deployment.",
      "voiceMessages": "DEV workflow flag enabled against applied B1; native recorder/player and recovery connected.",
      "speechCapture": "Existing native AI capture remains default; Expo PCM opt-in candidate awaits physical parity.",
-     "composerReference": "Owner Gemini screenshot followed by explicit larger centered hold-to-talk microphone correction.",
+     "composerReference": "SUPERSEDED: owner rejected second-row centered mic. Latest Gemini reference asks compact horizontal pill, practical hold mic, paper-plane send and open voice-mode layout. Spoken AI reply is requested but not implemented.",
      "review": "Bounded independent source reviews; TypeScript compilation, no new manual tests.",
      "nativeAcceptance": false
     },

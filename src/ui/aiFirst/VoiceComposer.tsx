@@ -6,7 +6,6 @@ import { Check, Info, Microphone, StopCircle, Waveform, X } from 'phosphor-react
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
-import { FactArt } from '../system/FactArt';
 import { VOICE_ERROR_COPY, type HoldToTalkController, type VoicePhase, type VoiceSnapshot } from '../../features/voice/holdToTalk';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
@@ -64,8 +63,8 @@ function useScreenReader(): boolean {
 /** Whether the text of this capture goes to the field for review: from the running session, else from the screen reader. */
 const reviewing = (state: VoiceSnapshot, reader: boolean) => state.session ? state.session.mode === 'accessible' : reader;
 
-/** The microphone keeps its gesture; AI shells opt into the owner's centered 60 px target. */
-export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 60 }) {
+/** The microphone keeps its gesture; the ordinary AI pill uses a practical 52 px target. */
+export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60 }) {
   const reader = useScreenReader();
   const gesture = useRef<string | null>(null), startY = useRef(0);
   const explicit = reader;
@@ -75,7 +74,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const blocked = (p.disabled && !active) || occupied;
   const listening = phase === 'LISTENING';
   const targetSize = p.size ?? 48;
-  const glyphSize = targetSize === 60 ? 28 : 22;
+  const glyphSize = targetSize === 60 ? 28 : targetSize === 52 ? 26 : 22;
   const begin = () => {
     if (p.disabled || occupied || active) return;
     const id = noviUuidZahtevId(); gesture.current = id;
@@ -224,7 +223,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
       : disabled ? p.thinking ? null : 'Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.'
         : review ? 'Dodirni mikrofon i govori. Tekst stiže u polje za poruku da ga pregledaš.'
           : 'Dodirni mikrofon i govori. Kad ponovo dodirneš, poruka ide u razgovor.';
-  // While new words arrive they stand alone: the previous answer under them would read as a reply to them.
+  // The answer is above the person's latest words, so a previous answer never appears to answer a live capture.
   const live = active && !!words;
   const heard = live ? words : p.said;
   return <Modal visible transparent={false} animationType={reduced ? 'none' : 'fade'} statusBarTranslucent navigationBarTranslucent
@@ -236,19 +235,16 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
           style={s.target}><View style={s.quietCircle}><Info size={22} color={sys.color.muted} /></View></Press>
       </View>
       <ScrollView style={s.flex} contentContainerStyle={s.exchange} showsVerticalScrollIndicator={false}>
-        {heard ? <View accessibilityLabel={`Ti: ${heard}`} style={[s.said, live && s.saidLive]}>
-          <T selectable style={s.saidText}>{heard}</T></View> : null}
-        {live ? null : p.answer ? <View accessibilityLabel={`USKOČI: ${p.answer}`} style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
+        {p.answer ? <View accessibilityLabel={`USKOČI: ${p.answer}`} style={s.answerBlock}>
           <T selectable style={s.answer}>{p.answer}</T>
         </View> : p.thinking ? <View style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
           <T accessibilityLiveRegion="polite" variant="copy" tone="muted">Stiže odgovor…</T>
         </View> : !heard ? <View style={s.answerBlock}>
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="chat" size={24} cut="art" role="ai" /></View>
           <T accessibilityRole="header" style={s.prompt}>{p.prompt}</T>
           <T variant="copy" tone="muted">Odgovor stiže ovde, kao tekst.</T>
         </View> : null}
+        {heard ? <View accessibilityLabel={`Ti: ${heard}`} style={[s.said, live && s.saidLive]}>
+          <T selectable style={s.saidText}>{heard}</T></View> : null}
       </ScrollView>
       <View style={s.controls}>
         {state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[state.error]} />
@@ -257,13 +253,13 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
         {state.fallbackText && state.phase === 'IDLE' ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst"
           onPress={() => { if (controller.useFallback(onKeepText)) p.onClose('review'); }} /> : null}
         <View style={s.row}>
+          <GlowPill listening={listening} level={state.audioLevel} reduced={reduced} />
           <Press testID="voice-mode-mic" accessibilityRole="button" accessibilityLabel={micLabel}
             accessibilityState={{ disabled: blocked, busy: finishing }} disabled={blocked} haptic={blocked ? 'none' : 'light'} hitSlop={0}
             onPress={toggle} style={[s.big, listening && s.bigOn, blocked && s.bigOff]}>
             {listening && review ? <StopCircle size={28} weight="fill" color={sys.color.onGreen} />
               : <Microphone size={28} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
           </Press>
-          <GlowPill listening={listening} level={state.audioLevel} reduced={reduced} />
           <Press testID="voice-mode-close" accessibilityRole="button" accessibilityLabel="Zatvori govorni razgovor"
             accessibilityHint={active ? 'Ono što je izgovoreno, a nije poslato, se odbacuje.' : undefined}
             haptic="select" hitSlop={0} onPress={leave} style={s.big}>
@@ -306,7 +302,7 @@ function GlowPill({ listening, level, reduced }: { listening: boolean; level: nu
   </View>;
 }
 
-const BIG = 64;
+const BIG = 52;
 const s = StyleSheet.create({
   flex: { flex: 1 }, center: { textAlign: 'center' }, start: { alignSelf: 'flex-start' },
   // The composer's controls: a 48 px target, a 44 px circle inside it.
@@ -329,25 +325,25 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   top: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm },
   quietCircle: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  exchange: { flexGrow: 1, justifyContent: 'flex-end', gap: 24, paddingHorizontal: 24, paddingVertical: 16 },
-  said: { alignSelf: 'flex-end', maxWidth: '85%', paddingVertical: 10, paddingHorizontal: 16, borderRadius: sys.radius.card,
+  exchange: { flexGrow: 1, gap: 24, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 12 },
+  said: { alignSelf: 'stretch', marginTop: 'auto', paddingVertical: 16, paddingHorizontal: 20, borderRadius: sys.radius.card,
     backgroundColor: sys.color.wash },
   saidLive: { opacity: 0.7 },
   saidText: { ...sys.type.body, color: sys.color.ink },
   answerBlock: { gap: 10 },
   answer: { ...sys.type.speechLarge, color: sys.color.ink },
-  prompt: { ...sys.type.display, color: sys.color.ink },
+  prompt: { ...sys.type.title, color: sys.color.ink },
   controls: { gap: 12, paddingHorizontal: sys.space.lg, paddingTop: 8, paddingBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   big: { width: BIG, height: BIG, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
   bigOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
-  pillStage: { flex: 1, height: 88, justifyContent: 'center' },
+  pillStage: { flex: 1, minWidth: 0, height: 56, justifyContent: 'center' },
   // The glow is the AI purple, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
   glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },
-  pillCore: { height: BIG, marginHorizontal: 12, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
+  pillCore: { height: BIG, marginHorizontal: 4, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },
   pillCoreOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', paddingHorizontal: 8 },
