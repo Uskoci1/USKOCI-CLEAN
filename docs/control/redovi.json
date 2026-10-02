@@ -2824,6 +2824,7 @@
         "performance": "Nije ponovo mereno",
         "test": "Round36: reviews-authority + review-screen + oceni-dogovor-route PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Istorijske dve stvarne 5/5 ocene ostaju dokaz starijih buildova. Current exact APK nije ocenjen u ovoj sesiji.",
+        "d12_proof_20261002": "2.10.: D12 CI DOKAZ PROSAO (run 36957213904, izvor f36879ae, 46 provera, 0 pao, 47/47 pinova == DEV; prvi run 36949455489 je pao na 2 greske SAMOG DOKAZA, kandidat bajt-isti) + sveže read-only DEV pre-flight 04:12Z problems [] (ledger 220, sertifikat 58447d77 ready, 7 recenzija). NIJE primenjen. Approval block: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md. Traži izričito „PRIMENI D12 PISANI KOMENTAR“ koje IMENUJE re-bind sertifikata; primena ne daje ništa vidljivo (klijent ne postoji), prozor reverta se zatvara pri prvom komentaru; otvorene vlasnikove odluke unutar kandidata: 16 (senka-komentar uz blok), 17 (agregat uz pojedinačne ocene), 7 (jedna lista pod oba lica).",
         "status": "STAR RATING SOURCE/CI PASS / CURRENT NATIVE PENDING / WRITTEN COMMENT SERVER PACKAGE OPEN",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
       }
