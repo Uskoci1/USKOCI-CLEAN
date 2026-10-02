@@ -13,7 +13,7 @@ import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardBriefFoot, CardHead, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, scheduleConfirmed, taskPlace, taskSpoken,
+import { CardBriefFoot, CardDecision, CardTitle, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, scheduleConfirmed, taskPlace, taskSpoken,
   taskStatus, taskValue, type TaskCardRelation } from '../TaskFace';
 import { TaskPublisherPortrait } from '../TaskPublisherPortrait';
 import { V2Action } from '../V2Action';
@@ -41,9 +41,9 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
  * the task ("Otvori zadatak: …"), and its round × top right closes it. It says, bare (it is the card, never a card inside
- * one): HITNO or "Prijava poslata" when they apply, the shared title/value head, separate illustrated place/time rows,
- * the places still open, and who posted it with the honest rating when the read has them. The preview stacks its head
- * so a long title and the close control keep their room; the list uses the compact side-by-side head. No photo:
+ * one): HITNO or "Prijava poslata" when they apply, a full title, illustrated place/time rows, a shared value/capacity
+ * group, and who posted it with the honest rating when the read has them. The title clears the close control and the
+ * body follows the list card's reading order. No photo:
  * a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
 function PinTask({ item, relation, onOpen, onLayout }: {
@@ -70,13 +70,14 @@ function PinTask({ item, relation, onOpen, onLayout }: {
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: spoken }}
       haptic="select" scaleTo={0.99} onPress={onOpen} style={s.pinBody}>
       {head ? <View style={s.clearOfClose}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
-      <View style={!head ? s.clearOfClose : undefined}><CardHead title={title} value={value} large /></View>
+      <View style={!head ? s.clearOfClose : undefined}><CardTitle title={title} lines={0} /></View>
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={24} cut="art" />} text={place.text} lines={2} />
         <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={2} />
       </View>
-      <CardBriefFoot person={person} large={large} capacityAtEnd
-        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large /> : null} />
+      <CardDecision value={value} large={large}
+        places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large={large} /> : null} />
+      {person ? <CardBriefFoot person={person} large={large} places={null} /> : null}
     </Press>
   </View>;
 }
@@ -155,10 +156,10 @@ const s = StyleSheet.create({
   // The single card's face spans the whole card, its padding included, so every part of it opens the task. Its lines
   // are as far apart as a task card's.
   pin: { margin: -sys.space.base },
-  pinBody: { padding: 20, gap: 14, borderRadius: sys.radius.card },
+  pinBody: { padding: sys.space.base, gap: sys.space.md, borderRadius: sys.radius.card },
   // The first line keeps clear of the × in the corner (one chrome control wide).
   clearOfClose: { marginRight: chrome.control },
-  facts: { gap: 10 },
+  facts: { gap: sys.space.xs },
   close: { position: 'absolute', top: CLOSE_INSET, right: CLOSE_INSET },
   head: { flexDirection: 'row', alignItems: 'center', minHeight: chrome.control },
   title: { flex: 1, color: sys.color.ink },

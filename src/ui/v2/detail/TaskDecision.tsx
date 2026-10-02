@@ -24,7 +24,7 @@ export function TaskDecisionSection({ title, children }: { title: string; childr
 /** The same truthful price helper, with a different visual weight for amounts and statements about a price. */
 export function TaskDecisionPrice({ price, offers = false }: { price: ReturnType<typeof productPriceParts>; offers?: boolean }) {
   return <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
-    {price.isAmount || offers ? <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={24} /></View> : null}
+    {price.isAmount || offers ? <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={24} cut="art" /></View> : null}
     <View style={s.priceCopy}>
       <T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
       {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
@@ -41,15 +41,15 @@ export function TaskDecisionLogistics({ remote, place, time, people, filled, spo
 }) {
   return <View style={s.logistics}>
     <View accessible accessibilityLabel={`${remote ? 'Način rada' : 'Lokacija'}: ${remote ? 'Na daljinu' : place}`} style={s.place}>
-      <FactArt kind={remote ? 'remote' : 'pin'} size={24} />
+      <FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
       <View style={s.copy}><T style={s.factValue}>{remote ? 'Na daljinu' : place}</T></View>
     </View>
     <View accessible accessibilityLabel={`Termin: ${time}`} style={s.planningFact}>
-      <FactArt kind="calendar" size={24} />
+      <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
       <View style={s.copy}><T style={s.factValue}>{time}</T></View>
     </View>
     <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`} style={s.planningFact}>
-      <FactArt kind="users" size={24} />
+      <FactArt kind="users" size={24} cut="art" tone="quiet" />
       <View style={s.capacityCopy}><T style={[s.factValue, s.capacityValue]}>{filled ?? people}</T></View>
     </View>
   </View>;
@@ -83,7 +83,7 @@ export function TaskDecisionRequirements({ rows }: { rows: { label: string; valu
       const bullets = lines.length > 0 && lines.every(line => /^[•\-–]\s*/.test(line));
       const values = bullets ? lines.map(line => line.replace(/^[•\-–]\s*/, '')).filter(Boolean) : [row.value];
       return <View key={`${row.label}:${index}`} style={s.requirement}>
-        <View style={s.requirementArt}><FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={24} /></View>
+        <View style={s.requirementArt}><FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={24} cut="art" /></View>
         <View style={s.copy}><T variant="meta" tone="muted">{row.label}</T>
           {values.map((value, at) => <T key={`${at}:${value}`} selectable variant="body" style={s.ink}>{value}</T>)}
         </View>
