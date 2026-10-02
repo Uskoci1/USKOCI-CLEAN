@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T18:06:16Z",
+  "osvezeno": "2026-10-02T18:08:27Z",
   "grana": "HEAD",
-  "head": "4046bae3",
-  "head_poruka": "Finish AI location confirmation and task summary flow",
+  "head": "d9a51645",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T17:25:57Z",
    "migracije": 222,
@@ -1478,6 +1478,7 @@
      "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
     },
     "voiceAndComposerContinuation": {
+     "locationApkBuild": "IN_PROGRESS at2026-10-02T18:07Z: build37045193094 exact source4046bae3e4a3516e2eb11c3363919fad54c11052, emulator x86_64, Reanimated patch apply. Source pushed; TypeScript passed. No new APK/native acceptance yet.",
      "locationConversation20261002": "SOURCE REVIEWED: one proposed pin, address lookup after committed move, canonical confirmation, compact green-check saved item, three alternatives/page and one ready task card at thread end. Typed whole replies to je to/nije tu use existing guarded single-point actions; direct spoken confirmation remains open. Changed stationary point synchronizes private exactAddress/binding. No new provider/native execution; public coarse/private exact separation retained.",
      "profileSupport20261002": "SOURCE: worker form uses neutral selected controls, shared responsive layout, 48dp term chips and open sections; support rows lead with topic and keep DECIDED neutral. D12 load-more privacy-null clears all earlier comments; flag remains OFF pending D12a contract.",
      "automaticCi7912806f": "R20 run37040460119 SUCCESS on7912806f:159 focused,422 suites/9225 checks/6 snapshots. Existing automatic result only; does not validate newer location/profile/support source. Jest delayed-exit warning remains unattributed.",
@@ -8931,5 +8932,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37045193094,
+   "ime": "Build Android development APK",
+   "sha": "4046bae3",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T18:06:15Z"
+  },
+  {
+   "id": 37045159029,
+   "ime": "P5 ready task and matching contract",
+   "sha": "4046bae3",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T18:05:57Z"
+  },
+  {
+   "id": 37045158962,
+   "ime": "Control tracker refresh",
+   "sha": "4046bae3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T18:05:57Z"
+  },
+  {
+   "id": 37041163344,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "545dafa0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:25Z"
+  },
+  {
+   "id": 37041163284,
+   "ime": "D12 written review comment proof",
+   "sha": "545dafa0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:25Z"
+  },
+  {
+   "id": 37041118062,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:04Z"
+  },
+  {
+   "id": 37041117981,
+   "ime": "D12 written review comment proof",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:30:03Z"
+  },
+  {
+   "id": 37041117961,
+   "ime": "Control tracker refresh",
+   "sha": "cad94e20",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T17:30:03Z"
+  },
+  {
+   "id": 37040460230,
+   "ime": "EX-06 ex06b alias registry proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460204,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460159,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  },
+  {
+   "id": 37040460119,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "7912806f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T17:24:12Z"
+  }
+ ]
 }

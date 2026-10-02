@@ -5712,6 +5712,7 @@
           "receipt": "docs/implementation/ui-ux-pass-20261002/FINISHING_APK_37024029100.json"
         },
         "voiceAndComposerContinuation": {
+          "locationApkBuild": "IN_PROGRESS at2026-10-02T18:07Z: build37045193094 exact source4046bae3e4a3516e2eb11c3363919fad54c11052, emulator x86_64, Reanimated patch apply. Source pushed; TypeScript passed. No new APK/native acceptance yet.",
           "locationConversation20261002": "SOURCE REVIEWED: one proposed pin, address lookup after committed move, canonical confirmation, compact green-check saved item, three alternatives/page and one ready task card at thread end. Typed whole replies to je to/nije tu use existing guarded single-point actions; direct spoken confirmation remains open. Changed stationary point synchronizes private exactAddress/binding. No new provider/native execution; public coarse/private exact separation retained.",
           "profileSupport20261002": "SOURCE: worker form uses neutral selected controls, shared responsive layout, 48dp term chips and open sections; support rows lead with topic and keep DECIDED neutral. D12 load-more privacy-null clears all earlier comments; flag remains OFF pending D12a contract.",
           "automaticCi7912806f": "R20 run37040460119 SUCCESS on7912806f:159 focused,422 suites/9225 checks/6 snapshots. Existing automatic result only; does not validate newer location/profile/support source. Jest delayed-exit warning remains unattributed.",
