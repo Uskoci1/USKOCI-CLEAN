@@ -299,7 +299,7 @@ describe('ProductSheet', () => {
     const row = title.parent!;
     expect(close.parent).toBe(row);
     expect(flat(row.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center' });
-    expect(flat(title.props.style)).toMatchObject({ flex: 1, color: sys.color.green });
+    expect(flat(title.props.style)).toMatchObject({ flex: 1, color: sys.color.ink });
     expect(flat(close.props.style)).toMatchObject({ width: 48, height: 48 });
     // The sticky element carries only what its wrapper may take: the white and the padding under the row.
     const sticky = row.parent!;

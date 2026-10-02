@@ -126,7 +126,7 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
       <View style={s.day}>{content}</View>
       {/* Set once in a while, read every time: the quiet rows stand under the day, not before it. */}
       <View style={s.foot}>
-        {list.state === 'ready' && withoutTerm > 0 ? <LinkRow art="agreements" label="Bez tačnog termina" detail={dogovora(withoutTerm)}
+        {list.state === 'ready' && withoutTerm > 0 ? <LinkRow art="agreements" label="Svi Dogovori" detail={`${dogovora(withoutTerm)} bez tačnog termina`}
           onPress={onWithoutTerm} /> : null}
         <LinkRow art="clock" label="Moja dostupnost za rad" onPress={onAvailability} />
       </View>

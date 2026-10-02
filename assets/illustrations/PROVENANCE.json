@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-02",
+  "generator": "Built-in image_gen",
+  "background": "transparent",
+  "purpose": "Original USKOCI decorative art; not user photos or actual map content.",
+  "prompts": {
+    "task": "Original production illustration for USKOČI, a Serbian local-help marketplace. A single compact premium 3D miniature still life: two warm-white task sheets with softly rounded corners and visible layered paper thickness, a small glossy vivid emerald location pin standing beside them, and a short orange carpenter pencil resting diagonally across the sheets. Two short recessed dark-gray lines on the top sheet imply a task, no readable text and no checkmark implying completed work. Adult consumer-product art, tactile satin enamel and finely textured paper, carefully bevelled edges, coherent soft upper-left studio lighting, realistic ambient contact shadows, restrained perspective about 20 degrees above, frontal three-quarter view. Elegant crafted object, not toy, not clay blobs, not generic flat vector. White/emerald/warm orange with neutral charcoal detail. Isolated on truly transparent background, generous 12% transparent margins, no scenery, no UI, no logo, no text, no border or tile. Strong readable silhouette at 96 mobile pixels. Square composition. This will replace a flat launch illustration in the real mobile application.",
+    "additional": [
+      [
+        "discovery",
+        "Original production 3D illustration for USKOČI local-help marketplace. Compact folded warm-white paper street map, three dimensional thick softly rounded accordion folds, a simple blue water bend and thin light gray street lines printed on paper, one small glossy vivid emerald location pin and a short warm orange dotted route. The map has no actual city labels and no text. Premium adult consumer product art, tactile lightly textured paper, satin enamel pin, realistic chamfer and paper thickness, soft upper-left studio light, contact occlusion and softly feathered shadow. Frontal three-quarter view 20 degrees above. Strong legible compact silhouette at 96px. Original geometry not another brand's icon. Isolated on genuinely transparent background, square composition with 12 percent margin. No background tile, no UI, no logo, no writing, no neon, no toy clay blob."
+      ],
+      [
+        "messages",
+        "Original premium production 3D illustration for USKOČI local-help marketplace empty conversation. Two softly rounded overlapping communication panels with short speech tails: front warm porcelain-white panel with two tiny inset blue horizontal message marks, rear rich clear sky-blue satin enamel panel. Slight asymmetrical but balanced arrangement, visible generous edge thickness and curved side planes, subtle fine ceramic surface texture, realistic material shading and ambient contact occlusion, soft directional studio light upper left. Frontal three-quarter view 20 degrees above, mature crafted consumer app illustration, quiet elegance. Strong readable compact silhouette at 96px. Isolated on genuinely transparent background with 12% margin, square composition. Original art. No words, letters, people, logo, UI, background tile, fake checkmark, purple, neon, toy clay style or excessive shine."
+      ]
+    ]
+  },
+  "files": [
+    "uskoci-task-launch-v2.png",
+    "uskoci-discover-v2.png",
+    "uskoci-messages-v2.png"
+  ],
+  "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved."
+}

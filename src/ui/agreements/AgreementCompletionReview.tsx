@@ -55,7 +55,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   content: { padding: 20, gap: 24, paddingBottom: 28 },
-  intro: { gap: 12 }, title: { color: sys.color.green }, ink: { color: sys.color.ink },
+  intro: { gap: 12 }, title: { color: sys.color.ink }, ink: { color: sys.color.ink },
   terms: { gap: 8 },
   notice: { ...inset, padding: 16, gap: 8, backgroundColor: sys.color.warnSoft },
   footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line },

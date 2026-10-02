@@ -50,7 +50,7 @@ it('draws both sides, a finished Dogovor and the row of Dogovori without an exac
   await pressHost('Kalendar · dan sa Dogovorima');
   expect(text()).toContain('Uskačeš · Ana'); expect(text()).toContain('Tvoj zadatak · Marko');
   expect(text()).toContain('Završeno'); expect(text()).toContain('Čeka se potvrda završetka');
-  expect(text()).toContain('Bez tačnog termina');
+  expect(text()).toContain('Svi Dogovori'); expect(text()).toContain('bez tačnog termina');
   // My own work, marked done, waits for the other side's confirmation (review of step 10).
   expect(text()).toContain('Uskačeš · Nikola');
   // Round-5c: a finished row's dot is the muted grey, as in the week strip (the hairline grey was about 1.4:1).
@@ -64,7 +64,7 @@ it('draws what a list read without the exact window leaves: only my work, and a 
   await pressHost('Kalendar · lista ne kaže tačno vreme');
   expect(text()).toContain('Učitani su samo termini u kojima uskačeš.');
   expect(text()).not.toContain('Tvoj zadatak');
-  expect(text()).not.toContain('Bez tačnog termina');
+  expect(text()).not.toContain('Svi Dogovori'); expect(text()).not.toContain('bez tačnog termina');
 });
 
 it('goes home from the list when it was opened cold by its address', async () => {

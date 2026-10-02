@@ -80,7 +80,7 @@ export function TaskDecisionSummary({ need, price }: {
         <FactArt kind="users" size={24} cut="art" role="people" />
         <View style={s.copy}>
           <T style={s.capacityCount}>{capacity.text}</T>
-          <T variant="meta" tone="muted">Popunjeno</T>
+          <T variant="meta" tone="muted">mesta</T>
         </View>
       </View>
     </View>

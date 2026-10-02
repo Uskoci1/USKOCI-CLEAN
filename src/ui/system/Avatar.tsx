@@ -4,15 +4,16 @@ import { T } from '../Text';
 import { FactArt } from './FactArt';
 import { sys } from './tokens';
 
-/** Three sizes: a row inside a card (32), a list row or bar (40), a person's own header (56). */
-export type AvatarSize = 32 | 40 | 56;
+/** Row (32), list/bar (40), compact identity (56), and the profile passport (72). */
+export type AvatarSize = 32 | 40 | 56 | 72;
 
 const LETTERS: Record<AvatarSize, TextStyle> = {
   32: { fontSize: 12, lineHeight: 16 },
   40: { fontSize: 15, lineHeight: 20 },
   56: { fontSize: 20, lineHeight: 26 },
+  72: { fontSize: 26, lineHeight: 32 },
 };
-const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 56: 32 };
+const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 56: 32, 72: 40 };
 
 /**
  * The one stand-in for a person's photo (2026-09-24): a round green-soft disc with their initials, or a drawn person when

@@ -256,7 +256,7 @@ describe('real profile hub', () => {
   });
 
   it.each([
-    ['a phone of 390 dp', 390, 1, 'row'],
+    ['a phone of 390 dp', 390, 1, 'column'],
     ['a phone of 320 dp', 320, 1, 'column'],
     ['Android Large text (1.2999999523)', 390, 1.2999999523, 'column'],
   ])('lays the identity out for %s', async (_name, width, fontScale, direction) => {
@@ -308,13 +308,13 @@ describe('real profile hub', () => {
       && node.children.includes('Aleksandra Stefanović-Radosavljević'))[0].props.numberOfLines).toBeUndefined();
   });
 
-  // Round 5c: the length threshold is weighed by the text scale, so scales 1.1 to 1.29 stack a shorter name too.
-  it('weighs the name by the text scale: a 21-letter name sits beside the photo at 1.0 and stacks at 1.2', async () => {
+  // The identity always reserves full width for a name, including intermediate text scales.
+  it('keeps a 21-letter name beneath the photo at both 1.0 and 1.2', async () => {
     mockResource.data = { identity: { ime: 'Milica Jovanović-Ilić', grad: 'Novi Sad' }, capability: null };
     const { StyleSheet } = jest.requireActual('react-native');
     const direction = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection;
     await render();
-    expect(direction()).not.toBe('column');
+    expect(direction()).toBe('column');
     await act(async () => { tree.unmount(); });
     mockWindow = { ...mockWindow, fontScale: 1.2 };
     await render();

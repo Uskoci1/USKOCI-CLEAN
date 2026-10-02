@@ -174,7 +174,7 @@ describe('the zone line', () => {
     await press('Dodaj — Ponedeljak');
     expect(text()).not.toContain('Po vremenu u Srbiji');
     await press('Odustani od termina');
-    await press('Dodaj izuzetak');
+    await press('Dodaj datum');
     expect(text()).toContain('Redovni termini ostaju sačuvani.'); expect(text()).not.toContain('Po vremenu u Srbiji');
   });
   it('says Serbian time on a phone set elsewhere', async () => {
@@ -186,16 +186,16 @@ describe('the zone line', () => {
 describe('the Poseban datum sheet', () => {
   it('lets a new special date end on the day it starts, and never moves the end of a saved one', async () => {
     await form();
-    await press('Dodaj izuzetak');
-    await edit('Početni datum izuzetka', '2026-10-02');
-    expect(tree.root.findByProps({ accessibilityLabel: 'Završni datum izuzetka' }).props.value).toBe('2026-10-02');
+    await press('Dodaj datum');
+    await edit('Datum početka', '2026-10-02');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Datum kraja' }).props.value).toBe('2026-10-02');
     expect(text()).toContain('Poseban datum ima prednost nad redovnom nedeljom i ne otkazuje postojeće Dogovore. Potvrđen termin ostaje obaveza.');
-    await press('Odustani od izuzetka');
+    await press('Odustani od datuma');
     await act(async () => tree.unmount());
     await form(availability({ windows: [{ id: ids[1], startsAt: '2026-10-02T07:30:00Z', endsAt: '2026-10-03T10:00:00Z', state: 'UNAVAILABLE', label: '' }] }));
-    await press('Uredi izuzetak 2. okt');
-    await edit('Početni datum izuzetka', '2026-10-01');
-    expect(tree.root.findByProps({ accessibilityLabel: 'Završni datum izuzetka' }).props.value).toBe('2026-10-03');
+    await press('Uredi datum 2. okt');
+    await edit('Datum početka', '2026-10-01');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Datum kraja' }).props.value).toBe('2026-10-03');
   });
 
   it('lists a past special date quietly, after the coming ones, marked "Prošlo"', async () => {
@@ -204,14 +204,14 @@ describe('the Poseban datum sheet', () => {
       { id: ids[1], startsAt: '2099-01-10T08:00:00Z', endsAt: '2099-01-10T10:00:00Z', state: 'AVAILABLE', label: '' },
     ] }));
     expect(text()).toContain('Prošlo · Zauzeto · Staro'); expect(text()).toContain('Slobodno za rad');
-    const rows = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Uredi izuzetak /.test(String(node.props.accessibilityLabel)));
-    expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Uredi izuzetak 10. jan 2099', 'Uredi izuzetak 10. jan 2020']);
+    const rows = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Uredi datum /.test(String(node.props.accessibilityLabel)));
+    expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Uredi datum 10. jan 2099', 'Uredi datum 10. jan 2020']);
   });
 
   it('says there are none in one line, and still offers to add one', async () => {
     await form();
     expect(text()).toContain('Nema posebnih datuma.');
-    expect(all('Dodaj izuzetak')).not.toHaveLength(0);
+    expect(all('Dodaj datum')).not.toHaveLength(0);
     expect(all('Prikaži posebne datume')).toHaveLength(0);
   });
 });
@@ -448,7 +448,7 @@ describe('what a screen reader hears', () => {
     await openDay('Ponedeljak');
     expect(host('Uredi Ponedeljak 09:00').props.accessibilityValue.text)
       .toMatch(/^09:00–12:00, Jutro, Od 1\. sep( 2026)? · bez završnog datuma, Zajednički termin: ponedeljak, sreda, Pauzirano$/);
-    expect(host('Uredi izuzetak 10. jan 2099').props.accessibilityValue.text).toBe('10. jan 2099 · 09:00–11:00, Slobodno za rad · Sajam');
+    expect(host('Uredi datum 10. jan 2099').props.accessibilityValue.text).toBe('10. jan 2099 · 09:00–11:00, Slobodno za rad · Sajam');
   });
 
   // Round-5c: the explanation is read as its own line, not as the switch's hint, which goes unheard with hints off.
@@ -459,7 +459,7 @@ describe('what a screen reader hears', () => {
     const [label, explanation] = words.findAll(node => node.type === ('T' as React.ElementType));
     expect(label.props.children).toBe('Mogu odmah');
     expect(label.props.importantForAccessibility).toBe('no'); expect(label.props.accessibilityElementsHidden).toBe(true);
-    expect(explanation.props.children).toContain('čuva se čim ga promeniš');
+    expect(explanation.props.children).toContain('Čuva se odmah.');
     expect(explanation.props.importantForAccessibility).toBeUndefined(); expect(explanation.props.accessibilityElementsHidden).toBeUndefined();
     const toggle = tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' });
     expect(toggle.props.accessibilityHint).toBeUndefined();
@@ -489,7 +489,7 @@ describe('what a screen reader hears', () => {
 
   it('marks the chosen state of a special date as checked', async () => {
     await form();
-    await press('Dodaj izuzetak');
+    await press('Dodaj datum');
     expect(host('Zauzeto').props.accessibilityState).toEqual({ checked: true });
     expect(host('Slobodno za rad').props.accessibilityState).toEqual({ checked: false });
   });
@@ -499,7 +499,7 @@ describe('the profile conversation', () => {
   it('names the way forward that screen has when the outcome of a change is not confirmed', async () => {
     await form(availability(), { uncertain: true, candidateMode: true });
     expect(all('Primeni na pregled profila')[0].props.reason).toBe('Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.');
-    expect(text()).toContain('važi kada sačuvaš profil');
+    expect(text()).toContain('Važi kada sačuvaš profil');
   });
 });
 

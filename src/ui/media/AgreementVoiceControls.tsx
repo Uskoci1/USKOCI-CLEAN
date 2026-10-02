@@ -58,6 +58,22 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
   </Press>;
 }
 
+/** The same opt-in review mode stays explicit beside the microphone, including its off state. */
+export function AgreementVoicePreference({ voice, writable }: { voice: AgreementVoiceController; writable: boolean }) {
+  if (voice.recording.phase !== 'idle' || !writable || voice.screenReader) return null;
+  return <Press accessibilityRole="checkbox" accessibilityLabel="Pregledaj snimak pre slanja"
+    accessibilityState={{ checked: voice.reviewFirst }}
+    onPress={() => voice.setReviewFirst(!voice.reviewFirst)} style={s.preference}>
+    <View accessible={false} style={[s.preferenceMark, voice.reviewFirst && s.preferenceMarkChecked]}>
+      {voice.reviewFirst ? <Glyph name="check" size={16} tone="ink" /> : null}
+    </View>
+    <View style={s.preferenceText}>
+      <T variant="note" tone="ink">Pregled pre slanja</T>
+      <T variant="note" tone="muted">{voice.reviewFirst ? 'Uključen' : 'Isključen'}</T>
+    </View>
+  </Press>;
+}
+
 /** The recording is voice-only. It never consumes or silently replaces a text/photo draft. */
 export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoiceController; writable: boolean }) {
   const state = voice.recording;
@@ -83,12 +99,6 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
     </View> : null}
     {state.error ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{state.error.message}</T> : null}
     {voice.interactionError ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{voice.interactionError}</T> : null}
-    {state.phase === 'idle' && writable && !voice.screenReader ? <Press accessibilityRole="checkbox"
-      accessibilityLabel="Pregledaj snimak pre slanja" accessibilityState={{ checked: voice.reviewFirst }}
-      onPress={() => voice.setReviewFirst(!voice.reviewFirst)} style={s.preference}>
-      <Glyph name={voice.reviewFirst ? 'check' : 'mic'} size={16} tone="muted" />
-      <T variant="note" tone="muted">Pregled pre slanja{voice.reviewFirst ? ' · uključen' : ''}</T>
-    </Press> : null}
     {state.recovered.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
       <T variant="bodyStrong">Sačuvan snimak · {voiceTime(item.durationMs)}</T>
       <T variant="note" tone="muted">Ovaj snimak još nije vezan za poruku.</T>
@@ -109,7 +119,10 @@ const s = StyleSheet.create({
   preview: { gap: 8, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   message: { minWidth: 180, gap: 6, backgroundColor: sys.color.surface, borderRadius: 18, padding: 8 },
   play: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
-  preference: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  preference: { minHeight: 48, flexGrow: 1, flexShrink: 1, flexBasis: 148, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  preferenceText: { flex: 1, minWidth: 0 },
+  preferenceMark: { width: 20, height: 20, flexShrink: 0, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  preferenceMarkChecked: { backgroundColor: sys.color.control, borderColor: sys.color.ink },
   meter: { width: 40, height: 6, borderRadius: 3, backgroundColor: sys.color.control, overflow: 'hidden' },
   level: { height: 6, backgroundColor: sys.color.ink },
 });

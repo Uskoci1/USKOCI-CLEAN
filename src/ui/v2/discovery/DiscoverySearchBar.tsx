@@ -6,7 +6,7 @@ import { T } from '../../Text';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { plural } from '../../system/plural';
 import { layoutClassFor, roundTextScale, type WindowRoom } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, chipChosen, sys } from '../../system/tokens';
+import { materialControl, sys } from '../../system/tokens';
 
 /** A quick chip over the map: one existing filter, toggled at once, without opening the search. */
 export type QuickChip = { key: string; label: string; selected: boolean; onPress: () => void };
@@ -21,7 +21,7 @@ const AddGlyph: Icon = ({ size }) => <Plus size={size} weight="bold" color={sys.
 const BAR_TOP = sys.space.md;
 /** The search pill's own clear button: a full 48 wide, as high as the pill, at its right end. */
 const CLEAR_WIDTH = 48;
-/** The quick chip's side padding; a chosen chip's 2 px edge takes its extra pixel from it, so the words never move. */
+/** Same edge and padding across states keep the label still while the surface settles. */
 const CHIP_SIDE = sys.space.md;
 
 /**
@@ -160,8 +160,7 @@ const s = StyleSheet.create({
   // The words end where the clear button begins.
   pillClearable: { paddingRight: CLEAR_WIDTH },
   pillWide: { borderRadius: sys.radius.card },
-  fullRail: { flexGrow: 0, alignSelf: 'stretch', marginHorizontal: sys.space.base,
-    borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  fullRail: { flexGrow: 0, alignSelf: 'stretch' },
   lines: { flex: 1, minWidth: 0 },
   where: { lineHeight: 20, color: sys.color.ink },
   // Over the pill's right end, from its top edge to its bottom edge: never taller than the pill, never under 48 wide.
@@ -182,11 +181,11 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { letterSpacing: 0, color: sys.color.onGreen, fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
-  chipsFullWidth: { paddingHorizontal: sys.space.xs, paddingVertical: 0 },
-  // One rail surface gives every label contrast over the map. Only selected filters receive their own inset.
-  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
-    borderWidth: 1, borderColor: 'transparent', backgroundColor: 'transparent' },
-  chipOn: { ...chipChosen, borderColor: sys.color.ink, paddingHorizontal: CHIP_SIDE - CHIP_CHOSEN_INSET },
+  chipsFullWidth: { paddingHorizontal: sys.space.base, paddingTop: 2, paddingBottom: 8 },
+  // Each control remains readable over map tiles; selected state has both a check and a recessed well.
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48, paddingHorizontal: CHIP_SIDE, borderRadius: sys.radius.pill,
+    borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface, ...materialControl.raised },
+  chipOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.lineStrong, ...materialControl.inset },
   chipText: { fontWeight: '500', color: sys.color.ink },
   chipTextOn: { color: sys.color.ink, fontWeight: '600' },
   nearby: { minHeight: 48 },

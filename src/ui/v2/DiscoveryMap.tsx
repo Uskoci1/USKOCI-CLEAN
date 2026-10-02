@@ -27,7 +27,12 @@ type Owner = { key: string; active: boolean; epoch: number };
 type LoadTraceEvent = 'map-mounted' | 'deadline' | 'native-error' | 'map-loaded' | 'frame-fully' | 'retired';
 /** Rich labels are bounded; every other unclustered public point still has a native USKOČI logo marker. */
 export const PILL_LIMIT = 40;
-const PIN_IMAGES = { 'uskoci-task': require('../../../assets/entry-splash-mark.png') };
+const PIN_IMAGES = {
+  'uskoci-task': require('../../../assets/entry-splash-mark.png'),
+  'uskoci-task-material': require('../../../assets/discovery/uskoci-task-material.png'),
+  'uskoci-place-material': require('../../../assets/discovery/uskoci-place-material.png'),
+  'uskoci-cluster-material': require('../../../assets/discovery/uskoci-cluster-material.png'),
+};
 /** A changed list reaches the native source a moment later; the visible pins are read after it. */
 const PILL_SETTLE_MS = 300;
 /**

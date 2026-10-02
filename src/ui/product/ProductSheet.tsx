@@ -172,7 +172,7 @@ const s = StyleSheet.create({
   // Nothing about direction here: this style is moved onto RN's sticky wrapper (see the heading above).
   heading: { paddingBottom: sys.space.md, backgroundColor: sys.color.surface },
   // One row: the title takes the width and wraps in its column; the 48 × keeps its measure at the right end.
-  headingRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md }, title: { flex: 1, minWidth: 0, color: sys.color.green },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md }, title: { flex: 1, minWidth: 0, color: sys.color.ink },
   close: { width: SHEET_TOUCH, height: SHEET_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface },
   discard: { gap: sys.space.sm }, discardTitle: { color: sys.color.ink },

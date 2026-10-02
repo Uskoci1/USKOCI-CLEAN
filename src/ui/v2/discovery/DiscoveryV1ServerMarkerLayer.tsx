@@ -21,7 +21,8 @@ export const SERVER_MARKER_SOURCE_ID = 'p6-buckets';
  * no accessibility node of its own: the list beside the map stays the readable path to every task.
  *
  * TASK: a white disc with the USKOČI mark. PLACE (several tasks on one public point): a green disc with its count. CLUSTER (an area):
- * a white disc with a green ring and its count. The chosen bucket has an orange halo behind it.
+ * a white disc with a green ring and its count. Bundled enamel sprites refine the same centered shapes;
+ * their counts remain native text and the circles remain a fallback. The chosen bucket keeps its orange halo.
  */
 export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarkerLayer(props: DiscoveryV1ServerMarkerLayerProps) {
   // Validates the bound and the keys (a duplicate or an oversized set is refused, never truncated).
@@ -47,9 +48,11 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
         'circle-color': ['case', ['==', ['get', 'kind'], 'PLACE'], sys.color.green, sys.color.surface],
         'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
     <Layer id="p6-counts" type="symbol" filter={['!=', ['get', 'kind'], 'TASK']}
-      layout={{ 'text-field': ['to-string', ['get', 'count']], 'text-size': 14, 'text-font': ['literal', ['Noto Sans Regular']], 'text-allow-overlap': true }}
+      layout={{ 'text-field': ['to-string', ['get', 'count']], 'text-size': 14, 'text-font': ['literal', ['Noto Sans Regular']], 'text-allow-overlap': true,
+        'icon-image': ['case', ['==', ['get', 'kind'], 'PLACE'], 'uskoci-place-material', 'uskoci-cluster-material'],
+        'icon-size': 48 / 160, 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-optional': true }}
       paint={{ 'text-color': ['case', ['==', ['get', 'kind'], 'PLACE'], sys.color.surface, sys.color.green] }} />
     <Layer id="p6-marks" type="symbol" filter={['==', ['get', 'kind'], 'TASK']}
-      layout={{ 'icon-image': 'uskoci-task', 'icon-size': 30 / 640, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
+      layout={{ 'icon-image': 'uskoci-task-material', 'icon-size': 40 / 160, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
   </GeoJSONSource>;
 });

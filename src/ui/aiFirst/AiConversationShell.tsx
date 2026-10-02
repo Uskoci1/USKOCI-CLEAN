@@ -8,6 +8,7 @@ import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { ConversationArt } from '../system/ConversationArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
@@ -358,9 +359,7 @@ function Mark() {
  */
 function AssistantPresence() {
   return <View importantForAccessibility="no-hide-descendants" style={s.presence}>
-    <View style={s.presenceHalo} />
-    <View style={s.presenceDisc}><FactArt kind="chat" size={40} cut="art" role="ai" /></View>
-    <View style={s.presenceAccent} />
+    <ConversationArt size={88} />
   </View>;
 }
 
@@ -411,11 +410,7 @@ const s = StyleSheet.create({
   turns: { gap: 20 }, inlineContext: { paddingBottom: 20 },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
-  presence: { width: 76, height: 76, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
-  presenceHalo: { position: 'absolute', width: 76, height: 76, borderRadius: 38, backgroundColor: sys.color.artRole.ai.soft },
-  presenceDisc: { width: 62, height: 62, borderRadius: 22, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
-  presenceAccent: { position: 'absolute', right: 4, top: 6, width: 16, height: 16, borderRadius: 8,
-    backgroundColor: sys.color.artRole.ai.front, borderWidth: 3, borderColor: sys.conversation.ground },
+  presence: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
   welcomeTitle: { ...sys.type.title, fontWeight: '600', color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   openings: { gap: sys.space.sm, marginTop: sys.space.sm },

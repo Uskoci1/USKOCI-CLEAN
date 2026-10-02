@@ -116,13 +116,26 @@ it('disable uses displayed revision and preserves all other settings', async () 
  await act(async () => { button('Isključi za moje zadatke').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
 });
 const screenText = () => tree.root.findAllByType('Text' as never).map(x => x.props.children).flat().join(' ');
+const toggleDetails = async () => { await act(async () => { control('Detalji telefona i slanja').props.onPress(); }); };
 it('reads actual transport evidence independently and never turns a healthy tick into device delivery', async () => {
  mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
- await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1); expect(screenText()).toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1);
+ expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(false);
+ expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(true);
+ expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ await toggleDetails();
+ expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(true);
+ expect(screenText()).toContain('Sistem za slanje je radio pri poslednjoj proveri.');
  expect(screenText()).toContain('Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ await toggleDetails();
+ expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(false);
+ expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ expect(mockReadiness).toHaveBeenCalledTimes(1); expect(mockRead).toHaveBeenCalledTimes(1);
+ expect(mockNative).not.toHaveBeenCalledWith(true, expect.any(Function));
+ expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 it('transport failure preserves available device controls with honest missing evidence', async () => {
- mockReadiness.mockRejectedValue(Error('offline')); await mount(); expect(screenText()).toContain('Rad sistema za slanje još nije potvrđen.');
+ mockReadiness.mockRejectedValue(Error('offline')); await mount(); await toggleDetails(); expect(screenText()).toContain('Rad sistema za slanje još nije potvrđen.');
  expect(button('Uključi obaveštenja na telefonu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
 });
 it('late transport result cannot replace a new account snapshot', async () => {
@@ -130,6 +143,7 @@ it('late transport result cannot replace a new account snapshot', async () => {
  await mount(); mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
  await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
  await act(async () => { done({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } }); await flush(); });
+ await toggleDetails(); // Inspect the new account's evidence, rather than merely a closed disclosure.
  expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 
@@ -296,6 +310,7 @@ const on = { ...preferences, settings: { ...settings, push_enabled: true } };
 it('sending on for the set but this phone not connected says the phone first, and the step is to connect it', async () => {
  mockRead.mockResolvedValue(on); await mount();
  expect(screenText()).toContain('Ovaj telefon još nije povezan');
+ await toggleDetails();
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
  expect(screenText()).not.toContain('Ovaj telefon je povezan');
  expect(button('Uključi obaveštenja na telefonu')).toBeUndefined();
@@ -310,18 +325,21 @@ it('a connected phone names the set its choice belongs to', async () => {
  // A short headline without a period, like the others; the set is in the sentence under it.
  const titles = tree.root.findAllByType('Text' as never).map(node => node.props.children);
  expect(titles).toContain('Obaveštenja su uključena');
+ await toggleDetails();
  expect(screenText()).toContain('Važi za Moje prijave. Ovaj telefon je povezan sa tvojim nalogom.');
  expect(button('Isključi za moje prijave')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
 });
 it('on a device without notifications there is still nothing to press, and a set that sends elsewhere says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
+ await toggleDetails();
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
  for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi za moje zadatke', 'Osveži stanje']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications keeps the switch-off for a set that is on, under a headline that says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
  expect(screenText()).toContain('Telefon ne dozvoljava obaveštenja');
+ await toggleDetails();
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
  expect(button('Isključi za moje zadatke')).toBeDefined();
 });
@@ -405,6 +423,7 @@ it('the note about every category stands under the first category group, and the
  const copy = screenText();
  const note = copy.indexOf('Isključena kategorija ne stiže ni u aplikaciju ni na telefon.');
  expect(note).toBeGreaterThan(copy.indexOf('Prijave i odgovori')); expect(note).toBeLessThan(copy.indexOf('Dogovor i poruke'));
+ await toggleDetails();
  expect(tree.root.findAllByType('Text' as never).find(node => node.props.children === 'Poslednja provera slanja')!.props.accessibilityRole).toBe('header');
 });
 
@@ -456,4 +475,26 @@ it('the saved line is announced once on iOS and left to the live region on Andro
   await act(async () => { tree.update(view(true)); });
   expect(announce).toHaveBeenCalledTimes(1); expect(announce).toHaveBeenCalledWith('Podešavanja su sačuvana.');
  } finally { (Platform as { OS: string }).OS = os; announce.mockRestore(); }
+});
+
+
+it('open phone details follow capability changes without opting in or retaining a connected claim', async () => {
+ const onEdit = jest.fn(), onSave = jest.fn(), onEnable = jest.fn(), onDisable = jest.fn(), onRefresh = jest.fn();
+ const view = (native: 'READY' | 'UNSUPPORTED') => <PushPreferencesView role="REQUESTER" signedIn deviceZone="Europe/Belgrade"
+  data={{ settings, native, enabled: false, registered: false, readiness: null }}
+  busy={false} error={false} locked={false} dirty={false} validation={null} working={null} justSaved={false}
+  onEdit={onEdit} onSave={onSave} onEnable={onEnable} onDisable={onDisable} onRefresh={onRefresh} />;
+ await act(async () => { tree = Renderer.create(view('READY')); });
+ await toggleDetails();
+ expect(button('Uključi obaveštenja na telefonu')).toBeDefined();
+ await act(async () => { tree.update(view('UNSUPPORTED')); });
+ expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(true);
+ expect(screenText()).toContain('Nije dostupno na ovom uređaju');
+ expect(screenText()).not.toContain('Obaveštenja su uključena');
+ expect(button('Uključi obaveštenja na telefonu')).toBeUndefined();
+ expect(button('Isključi za moje zadatke')).toBeUndefined();
+ await act(async () => { tree.update(view('READY')); });
+ expect(button('Uključi obaveštenja na telefonu')).toBeDefined();
+ expect(button('Isključi za moje zadatke')).toBeUndefined();
+ for (const callback of [onEdit, onSave, onEnable, onDisable, onRefresh]) expect(callback).not.toHaveBeenCalled();
 });

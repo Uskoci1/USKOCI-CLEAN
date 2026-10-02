@@ -87,9 +87,9 @@ function SwitchRow({ label, hint, strong = false, value, change, disabled }: {
   </View>;
 }
 /** Two fields side by side where they fit, one under the other on a narrow screen or at a large text size. */
-function Pair({ children }: { children: [ReactNode, ReactNode] }) {
+function Pair({ children, minimumWidth = 360 }: { children: [ReactNode, ReactNode]; minimumWidth?: number }) {
   const { width } = useWindowDimensions(), scale = useTextScale();
-  const side = width >= 360 && scale < 1.3;
+  const side = width >= minimumWidth && scale < 1.3;
   return <View style={side ? s.pair : s.stack}>{children.map((child, index) => <View key={index} style={side ? s.grow : null}>{child}</View>)}</View>;
 }
 /**
@@ -180,8 +180,8 @@ export function RuleSheet({ rule, isNew, timezone, phoneZone, close, accept }: {
  * Poseban datum: busy or free for a stretch of time, which takes precedence over the regular week. Editing one end keeps
  * the other end's exact saved instant (fractional seconds, and which of two repeated clock times it was).
  */
-export function WindowSheet({ window, timezone, phoneZone, close, accept }: {
-  window: AvailabilityWindow | null; timezone: string; phoneZone: string | undefined;
+export function WindowSheet({ window, timezone, phoneZone, close, accept, candidateMode = false }: {
+  window: AvailabilityWindow | null; timezone: string; phoneZone: string | undefined; candidateMode?: boolean;
   close: () => void; accept: (value: AvailabilityWindow) => void;
 }) {
   const reduced = useReducedMotion();
@@ -214,23 +214,26 @@ export function WindowSheet({ window, timezone, phoneZone, close, accept }: {
     const chosen = state === value, text = value === 'AVAILABLE' ? 'Slobodno za rad' : 'Zauzeto';
     return <Press key={value} accessibilityRole="radio" accessibilityLabel={text} accessibilityState={{ checked: chosen }} haptic="select"
       onPress={() => { setError(null); setState(value); }} style={[calendarStyles.option, s.grow, chosen && s.optionOn]}>
-      <T variant={chosen ? 'bodyStrong' : 'body'} style={{ color: chosen ? sys.color.green : sys.color.ink }}>{text}</T>
+      <T variant={chosen ? 'bodyStrong' : 'body'} style={s.optionText}>{text}</T>
     </Press>;
   };
   return <ProductSheet title="Poseban datum" closeButton={false} reduced={reduced} dirty={dirty} onClose={close}
-    footer={dismiss => <SheetFooter error={error} primary="Primeni izuzetak" onPrimary={() => submit(dismiss)} cancel="Odustani od izuzetka" onCancel={dismiss} />}>
+    footer={dismiss => <>
+      <T variant="meta" tone="muted">{candidateMode ? 'Čuva se tek sa profilom.' : 'Čuva se tek uz „Sačuvaj dostupnost“.'}</T>
+      <SheetFooter error={error} primary="Primeni datum" onPrimary={() => submit(dismiss)} cancel="Odustani od datuma" onCancel={dismiss} />
+    </>}>
     {() => <>
-      <View style={s.options}>{option('UNAVAILABLE')}{option('AVAILABLE')}</View>
-      <Pair>{[<CivilField key="date" label="Početni datum izuzetka" mode="date" value={start.date} onChange={startDate} />,
-        <CivilField key="time" label="Početak izuzetka" mode="time" value={start.time}
-          onChange={value => { setError(null); setStart(current => ({ ...current, time: value })); setChangedStart(true); }} />]}</Pair>
-      <Pair>{[<CivilField key="date" label="Završni datum izuzetka" mode="date" value={end.date}
-        onChange={value => { setError(null); setEnd(current => ({ ...current, date: value })); setChangedEnd(true); }} />,
-        <CivilField key="time" label="Kraj izuzetka" mode="time" value={end.time}
-          onChange={value => { setError(null); setEnd(current => ({ ...current, time: value })); setChangedEnd(true); }} />]}</Pair>
-      <CalendarField label="Naziv izuzetka (opciono)" value={label} onChange={value => { setError(null); setLabel(value); }} />
-      <T variant="note" tone="muted">{`Redovni termini ostaju sačuvani.${showScheduleZone(timezone, phoneZone) ? ` ${scheduleZone(timezone)}.` : ''}`}</T>
       <T variant="note" tone="muted">Poseban datum ima prednost nad redovnom nedeljom i ne otkazuje postojeće Dogovore. Potvrđen termin ostaje obaveza.</T>
+      <T variant="note" tone="muted">{`Redovni termini ostaju sačuvani.${showScheduleZone(timezone, phoneZone) ? ` ${scheduleZone(timezone)}.` : ''}`}</T>
+      <View style={s.options}>{option('UNAVAILABLE')}{option('AVAILABLE')}</View>
+      <Pair minimumWidth={420}>{[<CivilField key="date" label="Datum početka" mode="date" value={start.date} onChange={startDate} />,
+        <CivilField key="time" label="Vreme početka" mode="time" value={start.time}
+          onChange={value => { setError(null); setStart(current => ({ ...current, time: value })); setChangedStart(true); }} />]}</Pair>
+      <Pair minimumWidth={420}>{[<CivilField key="date" label="Datum kraja" mode="date" value={end.date}
+        onChange={value => { setError(null); setEnd(current => ({ ...current, date: value })); setChangedEnd(true); }} />,
+        <CivilField key="time" label="Vreme kraja" mode="time" value={end.time}
+          onChange={value => { setError(null); setEnd(current => ({ ...current, time: value })); setChangedEnd(true); }} />]}</Pair>
+      <CalendarField label="Naziv (opciono)" value={label} onChange={value => { setError(null); setLabel(value); }} />
     </>}
   </ProductSheet>;
 }
@@ -430,10 +433,10 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // The hint says when the status starts to count: at once on its own, with the other edits while there are any, or with
   // the profile in the profile conversation.
   const hint = profileDraft
-    ? 'Radni profil je nacrt, pa ovaj status još nikome ništa ne govori. Aktiviraj profil da počne da važi.'
-    : candidateMode ? 'Ručni status: važi kada sačuvaš profil, dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.'
-    : otherDirty ? 'Ručni status: sačuvaće se zajedno sa ostalim izmenama. Ne uključuje HITNO i ne potvrđuje novi Dogovor.'
-    : 'Ručni status: čuva se čim ga promeniš i važi dok ga ne promeniš. Ne uključuje HITNO i ne potvrđuje novi Dogovor.';
+    ? 'Radni profil je nacrt. Aktiviraj ga da ovaj status počne da važi.'
+    : candidateMode ? 'Važi kada sačuvaš profil, dok ga ne promeniš.'
+    : otherDirty ? 'Sačuvaće se zajedno sa ostalim izmenama.'
+    : 'Čuva se odmah. Važi dok ga ne promeniš.';
   const now = BigInt(Date.now()) * 1000n;
   const past = (window: AvailabilityWindow) => (calendarInstant(window.endsAt) ?? 0n) <= now;
   const start = (window: AvailabilityWindow) => calendarInstant(window.startsAt) ?? 0n;
@@ -471,6 +474,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         {/* A flat row, not a box (B19): the status, what it means, and the switch. While its own save runs, the line
             under it says so; the footer's Save does not appear for it. */}
         <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={changeStatus} />
+        <T variant="meta" tone="muted">Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T>
         {statusSaving && busy ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Čuvamo status…</T> : null}
       </View>
       <View style={s.section}>
@@ -498,8 +502,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
               disabled={blocked} haptic="select" scaleTo={0.99} onPress={() => editRule(undefined, day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
                 <T variant="bodyStrong" style={s.dayName}>{day.name}</T>
-                <View style={[s.add, stacked && s.addStacked]}><Plus size={18} color={blocked ? sys.color.muted : sys.color.green} />
-                  <T variant="bodyStrong" style={{ color: blocked ? sys.color.muted : sys.color.green }}>Dodaj</T></View>
+                <View style={[s.add, stacked && s.addStacked]}><Plus size={18} color={blocked ? sys.color.muted : sys.color.ink} />
+                  <T variant="note" style={{ color: blocked ? sys.color.muted : sys.color.ink }}>Dodaj</T></View>
               </View>
             </Press>}
             {expanded ? <View style={s.expanded}>
@@ -540,18 +544,18 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
             .filter((part): part is string => !!part).join(' · ');
           const when = raspon(window.startsAt, window.endsAt, { zona: draft.timezone });
           return <View key={window.id} style={[s.windowRow, index ? s.divided : null]}>
-            <Press accessibilityRole="button" accessibilityLabel={`Uredi izuzetak ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
+            <Press accessibilityRole="button" accessibilityLabel={`Uredi datum ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
               accessibilityValue={{ text: `${when}, ${line}` }}
               haptic="select" scaleTo={0.99} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: window }); } }} style={s.windowBody}>
               <T variant="bodyStrong" tone={over ? 'muted' : 'ink'}>{when}</T>
               <T variant="note" tone="muted">{line}</T>
             </Press>
-            <Press accessibilityRole="button" accessibilityLabel={`Ukloni izuzetak ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
+            <Press accessibilityRole="button" accessibilityLabel={`Ukloni datum ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
               haptic="select" onPress={() => deleteItem('windows', window.id)} style={calendarStyles.icon}>
               <Trash size={20} color={blocked ? sys.color.muted : sys.color.danger} /></Press>
           </View>;
         })}</View> : <T variant="note" tone="muted">Nema posebnih datuma.</T>}
-        <V2Action label="Dodaj izuzetak" kind="secondary" disabled={blocked} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: null }); } }} />
+        <V2Action label="Dodaj datum" kind="secondary" disabled={blocked} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: null }); } }} />
       </View>
     </ScrollView>
     {footer}
@@ -564,7 +568,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         const open = editing.day !== null && first.includes(editing.day) ? editing.day : weekdays.find(day => first.includes(day.day))?.day;
         if (open !== undefined) setExpandedDay(open);
       }} /> : null}
-    {windowEditor && !blocked ? <WindowSheet window={windowEditor.value} timezone={draft.timezone} phoneZone={phoneZone}
+    {windowEditor && !blocked ? <WindowSheet window={windowEditor.value} timezone={draft.timezone} phoneZone={phoneZone} candidateMode={candidateMode}
       close={() => { if (alive.current && editScope.current.windowEditor === windowEditor) { retireEdit(); setWindowEditor(null); } }}
       accept={window => update({ windows: [...draft.windows.filter(item => item.id !== window.id), window] })} /> : null}
     {copySource && !blocked ? <CopySheet source={copySource} rules={draft.rules}
@@ -614,7 +618,8 @@ const s = StyleSheet.create({
   circleOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
   circleOff: { backgroundColor: sys.color.surface, borderColor: sys.color.lineStrong },
   options: { flexDirection: 'row', gap: sys.space.sm },
-  optionOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
+  optionOn: { borderColor: sys.color.ink, backgroundColor: sys.color.wash },
+  optionText: { color: sys.color.ink },
   check: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   box: { width: 24, height: 24, borderRadius: sys.radius.check, borderWidth: 1.5, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },

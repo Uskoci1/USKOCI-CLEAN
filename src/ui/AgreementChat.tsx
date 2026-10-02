@@ -5,7 +5,7 @@ import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, sameMessageVoice, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
 import { voiceMessagesBuilt } from '../data/voiceMessagesGate';
 import { useAgreementVoice, type AgreementVoiceScope, type AgreementVoiceController } from '../hooks/useAgreementVoice';
-import { AgreementVoiceMessage, AgreementVoiceMic, AgreementVoicePanel, voiceTime } from './media/AgreementVoiceControls';
+import { AgreementVoiceMessage, AgreementVoiceMic, AgreementVoicePanel, AgreementVoicePreference, voiceTime } from './media/AgreementVoiceControls';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
@@ -100,11 +100,11 @@ export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljal
 }
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
-function ChatAction({ label, text = label, onPress, tone = 'green', center = false, refresh = false, busy = false }: { label: string; text?: string; onPress: () => void;
-  tone?: 'green' | 'ink' | 'onMine'; center?: boolean; refresh?: boolean; busy?: boolean }) {
+function ChatAction({ label, text = label, onPress, tone = 'green', center = false, refresh = false, busy = false, quiet = false }: { label: string; text?: string; onPress: () => void;
+  tone?: 'green' | 'ink' | 'onMine'; center?: boolean; refresh?: boolean; busy?: boolean; quiet?: boolean }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress}
     disabled={busy} accessibilityState={{ busy, disabled: busy }}
-    style={[s.chatAction, refresh && s.refreshAction, center && s.center]}>
+    style={[s.chatAction, refresh && s.refreshAction, quiet && s.refreshQuiet, center && s.center]}>
     {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <ArrowClockwise size={16} color={sys.color.ink} /> : null}
     <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.ink : sys.color.ink }}>{text}</T>
   </Press>;
@@ -142,8 +142,8 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
 
 /**
  * The Dogovor keeps its human speakers distinct: nuanced white incoming messages and charcoal outgoing messages,
- * with readable clocks and a day named once. Writing uses the full composer width; photo and send controls have their
- * own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
+ * with readable clocks and a day named once. Writing shares a broad row with send; optional media controls have
+ * their own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
  */
 export function AgreementChat(props: Props) {
@@ -453,7 +453,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           {/* Measure the complete pre-message region: failure replaces this action with the notice,
               so compensating the notice alone would shift an older message by the removed button's height. */}
           {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}
+            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh quiet busy={refreshing} /> : null}
         </View>
         {!error && hasOlder && onLoadOlder ? <View>
           {historyError && historyErrorDirection === 'older' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Starije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
@@ -583,15 +583,24 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </Press>
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
-        <View style={[s.pill, textScale < 1.3 && s.pillInline, focused && s.pillFocused]}>
-          <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
-            accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
-            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-            // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
-            // line plus padding, which clipped the first line while the caret scrolled to the last one.
-            scrollEnabled style={[s.input, textScale < 1.3 && s.inputInline, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
-              compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
-          <View style={[s.toolbar, textScale < 1.3 && s.toolbarInline]}>
+        <View style={[s.pill, focused && s.pillFocused]}>
+          <View style={s.writingRow}>
+            <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
+              accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
+              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+              // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
+              // line plus padding, which clipped the first line while the caret scrolled to the last one.
+              scrollEnabled style={[s.input, s.writingInput, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
+                compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
+            <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
+              accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
+              <View style={[s.send, canSend && s.sendReady]}>
+                {state.capturing ? <ActivityIndicator color={sys.color.muted} />
+                  : <PaperPlaneTilt size={22} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
+              </View>
+            </Press>
+          </View>
+          {photos || voice ? <View style={s.toolbar}>
             {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
               accessibilityHint={forcedWhy}
               accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
@@ -601,14 +610,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
             </Press> : null}
             {voice ? <AgreementVoiceMic voice={voice} /> : null}
-            <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
-              accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
-              <View style={[s.send, canSend && s.sendReady]}>
-                {state.capturing ? <ActivityIndicator color={sys.color.muted} />
-                  : <PaperPlaneTilt size={22} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
-              </View>
-            </Press>
-          </View>
+            {voice ? <AgreementVoicePreference voice={voice} writable={writable && !terminal} /> : null}
+          </View> : null}
         </View>
       </View> : null}
     </View>
@@ -633,6 +636,7 @@ const s = StyleSheet.create({
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
     borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },
+  refreshQuiet: { borderWidth: 0 },
   day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
     borderRadius: sys.radius.control, backgroundColor: sys.conversation.surface, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
   bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
@@ -652,19 +656,18 @@ const s = StyleSheet.create({
   photoSummary: { minHeight: 48, minWidth: 48, alignSelf: 'flex-end', justifyContent: 'center' },
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
-  // A short draft and its two actions share one row. Enlarged text gets the full width above the same controls;
-  // changing layout does not replace the input, its selection, or the photo tray.
+  // Writing has its own broad row. Optional tools wrap below it without replacing the input,
+  // its selection, or the photo tray when the keyboard or text scale changes.
   composerArea: { flexShrink: 0, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
   composerCompact: { paddingTop: 4, paddingBottom: 8 },
   details: { gap: sys.space.sm, paddingTop: sys.space.sm },
   pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
-  pillInline: { flexDirection: 'row', alignItems: 'flex-end' },
-  inputInline: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
-  toolbarInline: { flexShrink: 0 },
+  writingRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  writingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
   toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
   pillFocused: { borderColor: sys.color.ink },
-  toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  toolbar: { minHeight: COMMAND, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
   toolLabel: { flexShrink: 1, color: sys.color.ink },

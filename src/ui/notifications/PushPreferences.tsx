@@ -13,6 +13,7 @@ import { V2Action } from '../v2/V2Action';
 import { CivilField } from '../calendar/CalendarControls';
 import { SettingsFooter, SettingsGroup, SettingsInfo, SettingsSwitchRow } from '../settings/SettingsPresentation';
 import { FactArt } from '../system/FactArt';
+import { Disclosure } from '../system/Disclosure';
 import { StateView } from '../system/StateView';
 import { SystemSettingsAction } from '../system/SystemSettingsAction';
 import { useTextScale } from '../system/textScale';
@@ -207,8 +208,9 @@ export type PushPreferencesViewProps = {
 
 /**
  * The notification settings of one set (step 11a, 2026-09-24), drawn from what the container read. Whether anything
- * can reach the phone comes first: its permission and connection, then the last check of sending. Categories and quiet
- * hours follow and remain editable even when phone delivery is unavailable. "Sačuvaj podešavanja" sits in the footer, so a change at
+ * can reach the phone remains visible with its permission/connection actions. Categories and quiet hours lead the
+ * editable content; phone explanation, privacy and the last sending check are in one disclosure below. They remain
+ * available even when phone delivery is unavailable. "Sačuvaj podešavanja" sits in the footer, so a change at
  * the top does not need a scroll to be saved; the phone's own actions are white and never compete with it.
  */
 export function PushPreferencesView({ role, signedIn, data, busy, error, locked, dirty, validation, working, justSaved,
@@ -233,6 +235,13 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  // "Nije dostupno na ovom uređaju" a switch-off button contradicted the headline.
  const deviceKnowsPush = native !== 'UNSUPPORTED' && native !== 'UNCONFIGURED';
  const deviceCanAsk = deviceKnowsPush && native !== 'DENIED';
+ // A saved ON preference or a connected phone is not proof that delivery is operational.
+ // Keep an adverse/unknown sending state visible where it affects this enabled set; the full last-check receipt stays below.
+ const deliveryNotice = enabled && deviceKnowsPush
+  ? readiness?.state === 'NOT_READY' ? 'Slanje na telefon trenutno nije uključeno.'
+   : readiness?.state === 'DEGRADED' ? 'Pri poslednjoj proveri slanja zabeležene su poteškoće.'
+    : readiness?.state === 'OPERATIONAL' ? null : 'Stanje slanja na telefon još nije potvrđeno.'
+  : null;
  // Sending is already on for this set and only this phone is missing: the step is to connect it, not to switch on.
  if (deviceCanAsk && (!registered || !enabled)) phoneActions.push({ label: enabled ? 'Poveži ovaj telefon' : 'Uključi obaveštenja na telefonu',
   kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
@@ -264,27 +273,16 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
    <View style={styles.block}>
     <T variant="meta" tone="muted">{error ? 'Poslednje potvrđeno stanje telefona' : 'Na ovom telefonu'}</T>
     <View style={styles.phoneStatus}>
-     <FactArt kind="phone" size={32} cut="art" tone="quiet" />
+     <FactArt kind="phone" size={24} cut="art" tone="quiet" />
      <View style={styles.phoneCopy}>
       <T accessibilityRole="header" style={styles.phoneTitle}>{phone.title}</T>
-      <T variant="note" tone="muted">{phone.body}</T>
+      {deliveryNotice ? <T variant="copy" tone="muted">{deliveryNotice}</T> : null}
      </View>
     </View>
     {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
      reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
-    <T variant="note" tone="muted" style={styles.aside}>{PRIVACY}</T>
-   </View>
-
-   <View style={styles.readiness}>
-    <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Poslednja provera slanja</T>
-    <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Sistem za slanje je radio pri poslednjoj proveri.'
-     : readiness?.state === 'DEGRADED' ? 'Zabeležene su poteškoće ili kašnjenje u slanju.'
-      : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
-       : 'Rad sistema za slanje još nije potvrđen.'}</T>
-    {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
-    <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
    </View>
 
    {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
@@ -334,6 +332,23 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       value={settings.urgent_overrides_quiet_hours} disabled={locked} onChange={value => onEdit('urgent_overrides_quiet_hours', value)} last /> : null}
     </SettingsGroup>
    </View>
+
+   <Disclosure label="Detalji telefona i slanja" hint="Dozvola, privatnost i poslednja provera slanja." divider>
+    <T variant="note" tone="muted">{phone.body}</T>
+    <View style={styles.block}>
+     <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Privatnost</T>
+     <T variant="note" tone="muted">{PRIVACY}</T>
+    </View>
+    <View style={styles.readiness}>
+     <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Poslednja provera slanja</T>
+     <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Sistem za slanje je radio pri poslednjoj proveri.'
+      : readiness?.state === 'DEGRADED' ? 'Zabeležene su poteškoće ili kašnjenje u slanju.'
+       : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
+        : 'Rad sistema za slanje još nije potvrđen.'}</T>
+     {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
+     <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
+    </View>
+   </Disclosure>
 
   </ScrollView>
   <SettingsFooter>
@@ -390,10 +405,9 @@ const styles = StyleSheet.create({
  ink: { color: sys.color.ink },
  phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
  phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
- phoneTitle: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: sys.color.ink },
+ phoneTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
  groups: { gap: 24 },
  checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },
- aside: { paddingHorizontal: 4 },
  times: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },
  timesStacked: { flexDirection: 'column' },
  time: { flex: 1, minWidth: 0 },

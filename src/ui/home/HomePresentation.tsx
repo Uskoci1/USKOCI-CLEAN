@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, MapTrifold } from 'phosphor-react-native';
+import { CaretRight } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -50,7 +50,7 @@ function StartActions({ compact, onPublish, onEarn }: {
     </Press>
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Nađi posao blizu."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={s.discoverEntry}>
-      <MapTrifold size={25} color={sys.color.artRole.location.edge} />
+      <HomeLaunchArt kind="discover" compact />
       <View style={s.rowCopy}><T variant="bodyStrong">Uskoči i zaradi</T>
         <T variant="note" tone="muted">Pronađi posao koji ti odgovara</T></View>
       <CaretRight size={18} color={sys.color.ink} />

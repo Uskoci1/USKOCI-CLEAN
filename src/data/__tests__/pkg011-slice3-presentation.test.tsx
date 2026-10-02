@@ -148,7 +148,7 @@ test('the public Task leads with its title and four facts, offers the requester 
   for (const fact of ['Lokacija: Beograd, Vračar', 'Termin: Sutra ujutru', 'Budžet: 9.000 RSD']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
-  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, popunjeno 0 od 2 mesta')).not.toHaveLength(0);
+  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, 0 od 2 mesta popunjeno')).not.toHaveLength(0);
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
   expect(copy).toContain('Traži pomoć');
   expect(brand()).toEqual(['Sastavi prijavu']);

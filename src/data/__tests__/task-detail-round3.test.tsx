@@ -96,7 +96,7 @@ describe('a stranger\'s task', () => {
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = ['Selidba stana', 'FOTOGRAFIJE', 'Beograd, Vračar', 'Sutra ujutru', '0/2', '9.000 RSD',
+    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', '0/2', 'Beograd, Vračar', 'Sutra ujutru',
       'Dva sprata bez lifta.', 'Kombi', 'Ana Anić', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
@@ -118,7 +118,9 @@ describe('a stranger\'s task', () => {
     await render(<Stranger need={{ ...task, ...patch }} />);
     const copy = texts();
     expect(copy.filter(text => text === value)).toHaveLength(1);
-    expect(copy.indexOf(value)).toBeGreaterThan(copy.indexOf('Beograd, Vračar'));
+    // The shared decision summary promotes price before capacity, place and time.
+    expect(copy.indexOf(value)).toBeGreaterThan(copy.indexOf('Selidba stana'));
+    expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Beograd, Vračar'));
     expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Ana Anić'));
     const label = `Budžet: ${value}${note ? `, ${note}` : ''}`;
     expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.accessibilityLabel === label)).toHaveLength(1);

@@ -1,0 +1,17 @@
+[
+  {
+    "file": "uskoci-cluster-material.png",
+    "sha256": "f92d81f0eca401b0fa9bebe651cc58346dc90cf302140958033329f721ce1f51",
+    "bytes": 10526
+  },
+  {
+    "file": "uskoci-place-material.png",
+    "sha256": "222b0c7691d8962566c102d626d17f7a7f8db3f2f1965b6a0bc9916dc4a715ac",
+    "bytes": 9730
+  },
+  {
+    "file": "uskoci-task-material.png",
+    "sha256": "9e9a74046e3e5ee4aae7ae7d5461f7b6e7409c7782d89e51e28d5ab87a482025",
+    "bytes": 14030
+  }
+]

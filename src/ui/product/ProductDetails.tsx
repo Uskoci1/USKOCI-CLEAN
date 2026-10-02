@@ -292,14 +292,14 @@ export function ProductPerson({ name, caption, photo, initials, onPress, disable
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  title: { ...sys.type.hero, color: sys.color.green, letterSpacing: -0.8 },
+  title: { ...sys.type.hero, color: sys.color.ink, letterSpacing: -0.8 },
   facts: { gap: 4 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },
   factCopy: { flex: 1, minWidth: 0, gap: 2 },
   factValue: { ...sys.type.bodyStrong, color: sys.color.ink },
   price: { marginTop: 8, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   priceValue: { ...sys.type.priceLarge, color: sys.color.money },
-  priceLabel: { ...sys.type.title, color: sys.color.green },
+  priceLabel: { ...sys.type.title, color: sys.color.ink },
   detailFacts: { gap: 18 },
   detailFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   // The art sits on the first line of the value, whatever size the reader has chosen for text.

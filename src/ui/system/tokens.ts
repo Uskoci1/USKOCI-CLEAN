@@ -290,6 +290,13 @@ const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version ===
 /** Neutral lift for floating layers; no green veil on the white canvas. Never on every card in a list. */
 export const floating: ViewStyle = NO_BOX_SHADOW ? { elevation: 1 }
   : { boxShadow: '0px 5px 18px rgba(0, 0, 0, 0.063), 0px 1px 2px rgba(0, 0, 0, 0.027)' };
+/** Tactile map controls. Figma MaterialFilterChip 93:18; inset shadows require Android 10+. */
+export const materialControl = {
+  raised: (NO_BOX_SHADOW ? { elevation: 2 }
+    : { boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.14), 0px 5px 12px rgba(0, 0, 0, 0.04)' }) as ViewStyle,
+  inset: (Platform?.OS === 'android' && Number(Platform.Version) < 29 ? { elevation: 0, boxShadow: [] }
+    : { boxShadow: 'inset 0px 2px 3px rgba(0, 0, 0, 0.17), inset 0px -1px 1px rgba(255, 255, 255, 0.9)' }) as ViewStyle,
+} as const;
 /**
  * The lift of a sheet over the map, in the system's shadow ink (review r3b: it was spelled in each sheet). A `docked`
  * sheet rises from the bottom edge (the Zadaci list), so its shadow falls upwards; a `detached` one floats free above

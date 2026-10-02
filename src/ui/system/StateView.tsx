@@ -4,6 +4,7 @@ import { V2Action } from '../v2/V2Action';
 import { FactArt, type FactArtKind } from './FactArt';
 import { SkeletonList, type SkeletonVariant } from './Skeleton';
 import { brandAction, sys } from './tokens';
+import { ConversationArt } from './ConversationArt';
 
 export type StateKind = 'empty' | 'loading' | 'error' | 'offline';
 type StateAction = { label: string; onPress: () => void; accessibilityLabel?: string;
@@ -43,7 +44,8 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
   </View>;
   const trouble = kind === 'error' || kind === 'offline';
   return <View style={s.state} accessibilityLiveRegion="polite">
-    <View style={s.art}><FactArt kind={art ?? DEFAULT_ART[kind]} size={56} muted={trouble} /></View>
+    {kind === 'empty' && art === 'chat' ? <ConversationArt />
+      : <View style={s.art}><FactArt kind={art ?? DEFAULT_ART[kind]} size={56} muted={trouble} /></View>}
     <T variant="title" accessibilityRole={trouble ? 'alert' : 'header'} style={s.title}>{title}</T>
     {body ? <T variant="copy" tone="muted" style={s.body}>{body}</T> : null}
     {primary ? <V2Action label={primary.label} accessibilityLabel={primary.accessibilityLabel} onPress={primary.onPress}

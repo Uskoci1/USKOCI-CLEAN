@@ -75,11 +75,11 @@ it('says that being available now means nothing while the work profile is still 
   await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false}
     onSave={jest.fn()} profileDraft />); });
   expect(text()).toContain('Radni profil je nacrt');
-  expect(text()).not.toContain('Ručni status');
+  expect(text()).not.toContain('Čuva se odmah.');
 
   await act(async () => tree.unmount());
   await render();
-  expect(text()).toContain('Ručni status');
+  expect(text()).toContain('Čuva se odmah.');
   expect(text()).not.toContain('Radni profil je nacrt');
 });
 
@@ -92,7 +92,7 @@ describe('actual availability editor interactions', () => {
     const onSave = await render(pending, loaded);
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
     expect(button('O statusu Mogu odmah')).toBeUndefined();
-    expect(text()).toContain('čuva se čim ga promeniš');
+    expect(text()).toContain('Čuva se odmah.');
     expect(text()).toContain('Ne uključuje HITNO');
     await toggleStatus(true);
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -107,7 +107,7 @@ describe('actual availability editor interactions', () => {
   it('lets the status join other unsaved edits, and saves them together with Save', async () => {
     const onSave = await render();
     await addMonday();
-    expect(text()).toContain('sačuvaće se zajedno sa ostalim izmenama');
+    expect(text()).toContain('Sačuvaće se zajedno sa ostalim izmenama');
     await toggleStatus(true);
     expect(onSave).not.toHaveBeenCalled();
     await press('Sačuvaj dostupnost');
@@ -121,7 +121,7 @@ describe('actual availability editor interactions', () => {
     await act(async () => { tree = create(<AvailabilityForm availability={availability()} busy={false} uncertain={false} onSave={onSave} candidateMode />); });
     await toggleStatus(true);
     expect(onSave).not.toHaveBeenCalled();
-    expect(text()).toContain('važi kada sačuvaš profil');
+    expect(text()).toContain('Važi kada sačuvaš profil');
     await press('Primeni na pregled profila');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ availableNow: true }));
   });
@@ -176,10 +176,10 @@ describe('actual availability editor interactions', () => {
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
     expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
     await press('Odustani od termina');
-    await press('Dodaj izuzetak');
-    expect(insideScroll(button('Primeni izuzetak'))).toBe(false);
+    await press('Dodaj datum');
+    expect(insideScroll(button('Primeni datum'))).toBe(false);
     expect(button('Sačuvaj dostupnost').props.disabled).toBe(true);
-    await press('Odustani od izuzetka');
+    await press('Odustani od datuma');
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -211,21 +211,21 @@ describe('actual availability editor interactions', () => {
   });
 
   it('saves a dated exception in the stored zone and leaves recurring rules intact', async () => {
-    const onSave = await render(); await press('Dodaj izuzetak');
-    await edit('Početni datum izuzetka', '2026-09-11'); await edit('Početak izuzetka', '09:30');
-    await edit('Završni datum izuzetka', '2026-09-11'); await edit('Kraj izuzetka', '12:00');
-    await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    const onSave = await render(); await press('Dodaj datum');
+    await edit('Datum početka', '2026-09-11'); await edit('Vreme početka', '09:30');
+    await edit('Datum kraja', '2026-09-11'); await edit('Vreme kraja', '12:00');
+    await press('Primeni datum'); await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0]).toMatchObject({ rules: [], windows: [expect.objectContaining({
       startsAt: '2026-09-11T07:30:00.000Z', endsAt: '2026-09-11T10:00:00.000Z', state: 'UNAVAILABLE',
     })] });
   });
 
   it.each([['2026-03-29', 'ne postoji'], ['2026-10-25', 'se ponavlja']])('rejects ambiguous/missing civil time on %s', async (date, message) => {
-    const onSave = await render(); await press('Dodaj izuzetak');
-    await edit('Početni datum izuzetka', date); await edit('Početak izuzetka', '02:30');
-    await edit('Završni datum izuzetka', date); await edit('Kraj izuzetka', '04:00');
-    await press('Primeni izuzetak'); expect(text()).toContain(message);
-    await press('Odustani od izuzetka');
+    const onSave = await render(); await press('Dodaj datum');
+    await edit('Datum početka', date); await edit('Vreme početka', '02:30');
+    await edit('Datum kraja', date); await edit('Vreme kraja', '04:00');
+    await press('Primeni datum'); expect(text()).toContain(message);
+    await press('Odustani od datuma');
     expect(button('Sačuvaj dostupnost')).toBeUndefined(); expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -233,26 +233,26 @@ describe('actual availability editor interactions', () => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: '2026-10-25T00:30:00.123456Z', endsAt: '2026-10-25T02:30:00.654321Z', state: 'UNAVAILABLE' as const, label: 'Staro' }] };
     const onSave = await render(jest.fn(), loaded);
     // The special dates are always listed since owner step 10; there is no toggle to open first.
-    await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', 'Novo'); await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    await press(`Uredi datum ${civilDay('2026-10-25')}`); await edit('Naziv (opciono)', 'Novo'); await press('Primeni datum'); await press('Sačuvaj dostupnost');
     expect(onSave.mock.calls[0][0].windows).toEqual([{ ...loaded.windows[0], label: 'Novo' }]);
   });
 
   it.each([
     { name: 'fractional start', date: '2026-09-11', startsAt: '2026-09-11T07:30:00.123456Z', endsAt: '2026-09-11T10:30:00.654321Z',
-      field: 'Kraj izuzetka', time: '13:00', expectedStart: '2026-09-11T07:30:00.123456Z', expectedEnd: '2026-09-11T11:00:00.000Z' },
+      field: 'Vreme kraja', time: '13:00', expectedStart: '2026-09-11T07:30:00.123456Z', expectedEnd: '2026-09-11T11:00:00.000Z' },
     { name: 'fractional end', date: '2026-09-11', startsAt: '2026-09-11T07:30:00.123456Z', endsAt: '2026-09-11T10:30:00.654321Z',
-      field: 'Početak izuzetka', time: '09:00', expectedStart: '2026-09-11T07:00:00.000Z', expectedEnd: '2026-09-11T10:30:00.654321Z' },
+      field: 'Vreme početka', time: '09:00', expectedStart: '2026-09-11T07:00:00.000Z', expectedEnd: '2026-09-11T10:30:00.654321Z' },
     { name: 'first DST-fold start', date: '2026-10-25', startsAt: '2026-10-25T00:30:00.123456Z', endsAt: '2026-10-25T02:30:00Z',
-      field: 'Kraj izuzetka', time: '04:00', expectedStart: '2026-10-25T00:30:00.123456Z', expectedEnd: '2026-10-25T03:00:00.000Z' },
+      field: 'Vreme kraja', time: '04:00', expectedStart: '2026-10-25T00:30:00.123456Z', expectedEnd: '2026-10-25T03:00:00.000Z' },
     { name: 'second DST-fold end', date: '2026-10-25', startsAt: '2026-10-24T22:00:00Z', endsAt: '2026-10-25T01:30:00.654321Z',
-      field: 'Početak izuzetka', time: '01:00', expectedStart: '2026-10-24T23:00:00.000Z', expectedEnd: '2026-10-25T01:30:00.654321Z' },
+      field: 'Vreme početka', time: '01:00', expectedStart: '2026-10-24T23:00:00.000Z', expectedEnd: '2026-10-25T01:30:00.654321Z' },
   ])('preserves the unchanged $name when only the opposite endpoint is edited', async item => {
     const loaded = { ...availability(), windows: [{ id: windowId, startsAt: item.startsAt, endsAt: item.endsAt,
       state: 'UNAVAILABLE' as const, label: 'Sačuvan izuzetak' }] };
     const onSave = await render(jest.fn(), loaded);
-    await press(`Uredi izuzetak ${civilDay(item.date)}`);
+    await press(`Uredi datum ${civilDay(item.date)}`);
     await edit(item.field, item.time);
-    await press('Primeni izuzetak'); await press('Sačuvaj dostupnost');
+    await press('Primeni datum'); await press('Sačuvaj dostupnost');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ windows: [{ ...loaded.windows[0],
       startsAt: item.expectedStart, endsAt: item.expectedEnd }] }));
   });
@@ -302,7 +302,7 @@ describe('actual availability editor interactions', () => {
     await render(jest.fn(), loaded);
     expect(button('Sačuvaj dostupnost')).toBeUndefined();
     const rename = async (label: string) => {
-      await press(`Uredi izuzetak ${civilDay('2026-10-25')}`); await edit('Naziv izuzetka (opciono)', label); await press('Primeni izuzetak');
+      await press(`Uredi datum ${civilDay('2026-10-25')}`); await edit('Naziv (opciono)', label); await press('Primeni datum');
     };
     await rename('Novo');
     expect(button('Sačuvaj dostupnost')).toBeTruthy(); expect(text()).toContain('Imaš nesačuvane izmene.');
@@ -504,7 +504,7 @@ describe('actual agenda screen', () => {
       endsAt: new Date(`${day}T10:45:00Z`).toISOString(), agreementStatus: 'CONFIRMED', source: 'AGREEMENT' }] } }));
     await act(async () => { tree = create(<Raspored />); });
     expect(text()).toContain('Učitani su samo termini u kojima uskačeš.'); expect(text()).toContain('Potvrđen Dogovor');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Bez tačnog termina' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Svi Dogovori' })).toHaveLength(0);
   });
 
   it('never calls a day empty before both reads have settled', async () => {
@@ -517,8 +517,8 @@ describe('actual agenda screen', () => {
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-6', { tacanTermin: null }),
       mine('agreement-7', { stanje: 'COMPLETED', tacanTermin: null })]);
     await act(async () => { tree = create(<Raspored />); });
-    const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Bez tačnog termina')[0];
-    expect(row.props.accessibilityValue).toEqual({ text: '1 Dogovor' });
+    const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Svi Dogovori')[0];
+    expect(row.props.accessibilityValue).toEqual({ text: '1 Dogovor bez tačnog termina' });
     await act(async () => row.props.onPress());
     expect(jest.requireMock('expo-router').router.navigate).toHaveBeenCalledWith('/dogovori');
   });
@@ -611,7 +611,7 @@ describe('availability reads the way the rest of the app writes time', () => {
     // Updated deliberately (owner step 10): the special dates are always listed, so their count line and toggle are gone.
     expect(text()).not.toContain('1 poseban datum');
     expect(text()).toMatch(/2\. okt( 2026)? · 09:30–12:00/); expect(text()).not.toContain('2026-10-02');
-    expect(button(`Uredi izuzetak ${civilDay('2026-10-02')}`)).toBeTruthy();
+    expect(button(`Uredi datum ${civilDay('2026-10-02')}`)).toBeTruthy();
   });
 
   it('asks in the app before removing a slot, and removing one only changes the unsaved draft', async () => {
@@ -634,7 +634,7 @@ describe('availability reads the way the rest of the app writes time', () => {
     await press('Dodaj — Ponedeljak');
     expect(text()).toContain('Po vremenu u Srbiji.'); expect(text()).not.toContain('Vremenska zona');
     await press('Odustani od termina');
-    await press('Dodaj izuzetak');
+    await press('Dodaj datum');
     expect(text()).not.toContain('Izuzetak od nedelje'); expect(text()).not.toContain('Promeni dostupnost za poseban termin.');
     expect(text()).toContain('Redovni termini ostaju sačuvani. Po vremenu u Srbiji.');
   });
