@@ -4,8 +4,11 @@ import { Tabs } from 'expo-router';
 import { readdirSync, readFileSync } from 'fs';
 import { join, relative, resolve } from 'path';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import TabLayout from '../src/app/(app)/_layout';
+import { TabLabel, tabBarHeight } from '../src/ui/system/TabBarItem';
+import { sys } from '../src/ui/system/tokens';
+import { textWidth } from '../src/ui/v2/cardHeadFit';
 let mockReducedMotion = false;
 jest.mock('../src/hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => mockReducedMotion }));
 
@@ -27,6 +30,10 @@ jest.mock('phosphor-react-native', () => ({
   User: () => null, PaperPlaneTilt: () => null, MapTrifold: () => null,
 }));
 
+/** The phones the bar is judged on, and the text sizes: the owner's is 361 dp at 1.15. */
+const WIDTHS = [320, 340, 361, 411];
+const SCALES = [1, 1.15, 1.3];
+
 type ScreenProps = { name: string; options: { href?: string | null; title?: string } };
 const detailRoutes = [
   'potrebe', 'moje-prijave', 'moje-aktivnosti', 'profil',
@@ -34,9 +41,9 @@ const detailRoutes = [
   'potrebe/[id]/pregled', 'prilike/[id]', 'prilike/[id]/prijava',
 ];
 
-function configuration(bottom = 0, fontScale = 1) {
+function configuration(bottom = 0, fontScale = 1, width = 390) {
   jest.mocked(useSafeAreaInsets).mockReturnValue({ top: 24, left: 0, right: 0, bottom });
-  jest.mocked(useWindowDimensions).mockReturnValue({ width: 390, height: 844, scale: 3, fontScale });
+  jest.mocked(useWindowDimensions).mockReturnValue({ width, height: 844, scale: 3, fontScale });
   // Layout now measures native label heights with hooks. Read its configuration through React,
   // rather than invoking a component as an ordinary function outside the hook lifecycle.
   let tree!: ReactTestRenderer;
@@ -48,8 +55,13 @@ function configuration(bottom = 0, fontScale = 1) {
   const options = layout.props.screenOptions({ route, navigation: {
     getState: () => ({ index: 0, routes: [route], history: [{ type: 'route', key: route.key }] }),
   } });
+  // The options of each of the three tabs, with Početna on show, read while the layout is mounted: the tabs side by side (their
+  // widths, their room for a label).
+  const tabs = ['index', 'zadaci', 'dogovori'].map(name => layout.props.screenOptions({ route: { name, key: name }, navigation: {
+    getState: () => ({ index: 0, routes: [route], history: [{ type: 'route', key: route.key }] }),
+  } }));
   act(() => tree.unmount());
-  return { screens, options };
+  return { screens, options, tabs };
 }
 
 function visible() {
@@ -133,6 +145,65 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     expect(large.height).toBeGreaterThan(normal.height);
     expect(large.marginBottom).toBeGreaterThanOrEqual(34);
     expect(configuration(34, 2).options.tabBarAllowFontScaling).toBe(true);
+  });
+
+  // UI/UX pass, wave 2, item 2.1 (2026-10-02): the next three checks pin the NEW bar. The old one was a 12/16 label with its own
+  // letter spacing, a height of `max(70, 30 + 3 + 10 + 8 + label)` with the icon's 30 spelled in the layout, and an active tab painted
+  // by `tabBarActiveBackgroundColor`. Nothing in this file pinned those values (they lived in the layout), so no old check had to be
+  // loosened: now the label is the `tab` type variant, the height is `tabBarHeight` (it follows the icon size and the measured label
+  // height), and the chosen tab's capsule is the button's own animated child, so the navigator no longer paints it. The values the
+  // old bar did pin are in `v5-tab-navigation.test.tsx` (the icon's `muted` prop) and in `screen-chrome.test.tsx` (glyph 22 regular).
+  it('makes the bar exactly as high as the icon and the label need: 71 at ordinary text, 74 on the owner\'s phone at 1.15, 77 at 1.3', () => {
+    const height = (fontScale: number, width = 390) => configuration(0, fontScale, width).options.tabBarStyle;
+    expect(height(1).height).toBe(tabBarHeight(sys.type.tab.lineHeight, height(1).padding));
+    expect(height(1).height).toBe(71);
+    expect(height(1.15, 361).height).toBe(74); // the owner's phone: 361 dp at font scale 1.15
+    expect(height(1.3, 361).height).toBe(77);
+    expect(height(1.15, 361).height - 2 * height(1.15, 361).padding).toBeGreaterThanOrEqual(48);
+  });
+
+  it('draws the tab label in the `tab` variant, and leaves the chosen tab\'s fill to the button\'s own capsule', () => {
+    const { options } = configuration();
+    expect(options.tabBarActiveBackgroundColor).toBeUndefined();
+    const label = options.tabBarLabel({ children: 'Početna' });
+    expect(label.type).toBe(TabLabel);
+    expect(label.props).toMatchObject({ children: 'Početna', selected: true });
+    expect(label.props.variant).toBeUndefined(); // the variant lives in TabLabel, not at the call site
+  });
+
+  it('keeps the bar a floating, rounded surface with a hairline: the look of the bar did not change, only its content', () => {
+    const style = configuration().options.tabBarStyle;
+    expect(style).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: 4, marginTop: 8 });
+    expect(style.marginHorizontal).toBe(16);
+  });
+
+  // The bar holds on every phone it is judged on: 320 dp (narrow), 340 (the edge of narrow), 361 (the owner's HONOR) and 411 (a large
+  // phone), each at text 1.0, 1.15 (what the owner chose) and 1.3 ("Large", where the labels get more room and the bar more height).
+  // The height is one function of the text size at every width, the 48 px control stays whole inside it, and each of the three Serbian
+  // labels fits on one line in the room its tab gives it. The fit is ARITHMETIC from the advance widths of Inter (`textWidth`, Bold, which
+  // is wider than the SemiBold the label is drawn in, so on the safe side; kerning and Android's non-linear font scale are ignored, both
+  // on the wide side): an estimate, not a render. Only a phone shows a pixel.
+  describe.each(WIDTHS.flatMap(width => SCALES.map(scale => [width, scale] as const)))('at %i dp and text %f', (width, scale) => {
+    it('is as high as the icon and one line of the label need, whatever the width, and the 48 px control stays whole', () => {
+      const { options } = configuration(0, scale, width);
+      expect(options.tabBarStyle.height).toBe(tabBarHeight(sys.type.tab.lineHeight * scale, options.tabBarStyle.padding));
+      expect(options.tabBarStyle.height - 2 * options.tabBarStyle.padding).toBeGreaterThanOrEqual(48);
+      // The Zadaci sheet and every screen above the bar are sized by what is left: the bar never takes more than the 3 tabs need.
+      expect(options.tabBarStyle.height).toBeLessThanOrEqual(80);
+    });
+
+    it('gives Početna, Zadaci and Dogovori one line each: no word is wider than the room its tab leaves it', () => {
+      const { tabs } = configuration(0, scale, width);
+      const bar = tabs[0].tabBarStyle;
+      const inner = width - 2 * bar.marginHorizontal - 2 * bar.borderWidth - 2 * bar.padding;
+      const flexes: number[] = tabs.map(options => options.tabBarItemStyle.flex);
+      const side: number = StyleSheet.flatten(tabs[0].tabBarButton({ children: null }).props.style).paddingHorizontal;
+      const rooms = flexes.map(flex => inner * flex / flexes.reduce((sum, value) => sum + value, 0) - 2 * side);
+      // Room to spare, not a hair: the estimate is of one font on one machine.
+      const tooTight = ['Početna', 'Zadaci', 'Dogovori'].map((title, index) => ({ title, spare: Math.floor(rooms[index] - textWidth(title, sys.type.tab.fontSize * scale)) }))
+        .filter(({ spare }) => spare < 12);
+      expect(tooTight).toEqual([]);
+    });
   });
 
   it('has no mode to switch: the shell reads no role store and keys nothing on one', () => {

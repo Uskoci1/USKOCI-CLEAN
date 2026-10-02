@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { ArrowLeft, User, X, type Icon } from 'phosphor-react-native';
 import { BrandLockup } from '../entry/BrandAssets';
-import { Press } from '../Press';
+import { Press, type HapticKind } from '../Press';
 import { T } from '../Text';
+import { GLYPH_COLOUR, Glyph, type GlyphIcon, type GlyphName } from './Glyph';
 import { useReducedMotion } from './motion';
 import { sys } from './tokens';
 
@@ -33,38 +33,78 @@ export const chrome = {
   control: 48,
   /** The circle drawn inside that area. */
   circle: 44,
-  icon: 22,
+  /** The glyph in a bare circle: the chrome size of the Glyph registry, bold (wave 2, item 2.3: was 22 regular). */
+  icon: 24,
+  /** The glyph beside a word, in a captioned pill: the row size of the Glyph registry. */
+  captionIcon: 20,
 } as const;
 
 /**
+ * What a chrome control draws: a name from the Glyph registry (`glyph`, the way forward) or a Phosphor component (`icon`, which
+ * stays accepted so no existing screen had to change). Exactly one of the two.
+ */
+type ChromeArt = { icon: GlyphIcon; glyph?: never } | { glyph: GlyphName; icon?: never };
+
+/**
+ * Leaving a screen is not a result (rule R5: a tick is an outcome, not a touch), so the arrow back and the close X make no sound unless
+ * a caller asks for one. The rule is read from the NAME in the Glyph registry, so a screen that draws `glyph="back"` itself is silent
+ * without knowing it. A Phosphor component handed in as `icon` is a component, not a name: nothing is guessed from which one it is
+ * (a week arrow is an ArrowLeft too, and it is a change of state), so it keeps the tick it had.
+ */
+const SILENT_GLYPHS: ReadonlySet<GlyphName> = new Set<GlyphName>(['back', 'close']);
+
+type ChromeIconButtonProps = ChromeArt & {
+  label: string; hint?: string;
+  /** Set for a toggle (search, filters): shown by weight and colour together, and spoken as selected. */ active?: boolean;
+  disabled?: boolean; onPress: () => void;
+  /** Green for the root bar's profile and bell; ink everywhere else. */ tone?: 'ink' | 'green';
+  /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
+  /**
+   * A word beside the glyph, for a command nobody can guess from a drawing (Filteri, Raspored). It is the NAME OF THE CONTROL, never a line
+   * that says where you are. The pill is 44 px high inside the same 48 px touch height and grows with its word; the glyph is 20 and
+   * the word is the `meta` variant on one line, capped at the chrome title's large-text step so a large font cannot crush the row
+   * beside it. The spoken label is still `label`: the caption is not a second name, and `label` should contain it (WCAG 2.5.3, label
+   * in name: "Filteri zadataka" for the caption "Filteri").
+   */
+  caption?: string;
+  /**
+   * The tick. `select` by default; the glyph names `back` and `close` are silent by default (`none`, see `SILENT_GLYPHS`). A caller can
+   * ask for either. A disabled control ticks nothing whatever this says.
+   */
+  haptic?: HapticKind;
+  /** A moving style for the glyph alone (the bell's swing). */ glyphStyle?: Animated.WithAnimatedValue<StyleProp<ViewStyle>>;
+  /** Drawn over the circle, as the bell's count. */ children?: ReactNode;
+};
+
+/**
  * The one icon button of the chrome (round-1 critique B2: five icon-button shapes became one). A 44 px white circle with
- * the hairline inside a 48 px touch area, and a 22 px Phosphor regular glyph in ink. The arrow back, the X, "···", the
- * profile, the bell, search, filters, the Dogovori calendar and the week arrows all draw it.
+ * the hairline inside a 48 px touch area, and a 24 px bold glyph in ink (wave 2, item 2.3: it was a 22 px regular line that stood
+ * thin beside the 700-weight title). The arrow back, the X, "···", the profile, the bell, search, filters, the Dogovori calendar
+ * and the week arrows all draw it.
  * - `active` (a toggle: search, filters) is weight and colour together, a neutral well and the filled green glyph,
  *   and is spoken as selected.
  * - `disabled` draws the glyph muted. The control is never faded: a faded ghost reads as broken, not as "not now".
  * - `tone="green"` is for the root bar's own two, the profile and the bell (critique B1: orange is the screen's one
  *   accent, so the bell's glyph is green and only its unread count keeps the orange badge).
  * - `quiet` drops the circle for a control that ends a row of its own content (the calendar at the end of a tab row).
+ * - `caption` turns the circle into a pill with a word beside the glyph (see the prop).
  */
-export function ChromeIconButton({ label, hint, icon: IconComponent, active, disabled = false, onPress, tone = 'ink', quiet = false,
-  glyphStyle, children }: {
-  label: string; hint?: string; icon: Icon;
-  /** Set for a toggle (search, filters): shown by weight and colour together, and spoken as selected. */ active?: boolean;
-  disabled?: boolean; onPress: () => void;
-  /** Green for the root bar's profile and bell; ink everywhere else. */ tone?: 'ink' | 'green';
-  /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
-  /** A moving style for the glyph alone (the bell's swing). */ glyphStyle?: Animated.WithAnimatedValue<StyleProp<ViewStyle>>;
-  /** Drawn over the circle, as the bell's count. */ children?: ReactNode;
-}) {
-  const color = disabled ? sys.color.muted : active || tone === 'green' ? sys.color.green : sys.color.ink;
+export function ChromeIconButton(props: ChromeIconButtonProps) {
+  const { label, hint, active, disabled = false, onPress, tone = 'ink', quiet = false, caption, glyphStyle, children } = props;
+  const haptic = props.haptic ?? (props.glyph !== undefined && SILENT_GLYPHS.has(props.glyph) ? 'none' : 'select');
+  const glyphTone = disabled ? 'muted' : active || tone === 'green' ? 'green' : 'ink';
+  const size = caption ? chrome.captionIcon : chrome.icon;
+  const drawing = props.glyph !== undefined
+    ? <Glyph name={props.glyph} size={size} tone={glyphTone} on={active} strong />
+    : <props.icon size={size} color={GLYPH_COLOUR[glyphTone]} weight={active ? 'fill' : 'bold'} />;
   // The Press is the 48 px touch area itself, so the hit is exactly that; neighbours 8 px apart do not overlap.
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
     // A toggle speaks whether it is on; a plain control speaks only whether it can be pressed.
     accessibilityState={active === undefined ? { disabled } : disabled ? { selected: active, disabled } : { selected: active }} disabled={disabled}
-    onPress={onPress} haptic={disabled ? 'none' : 'select'} hitSlop={0} style={s.control}>
-    <View testID="chrome-circle" style={[s.circle, quiet && s.quiet, active && s.active]}>
-      <Animated.View style={glyphStyle}><IconComponent size={chrome.icon} color={color} weight={active ? 'fill' : 'regular'} /></Animated.View>
+    onPress={onPress} haptic={disabled ? 'none' : haptic} hitSlop={0} style={caption ? s.controlWide : s.control}>
+    <View testID="chrome-circle" style={[caption ? s.pill : s.circle, quiet && s.quiet, active && s.active]}>
+      <Animated.View style={glyphStyle}>{drawing}</Animated.View>
+      {caption ? <T variant="meta" tone={glyphTone} numberOfLines={1} maxFontSizeMultiplier={SCROLL_TITLE_MAX_SCALE}>{caption}</T> : null}
     </View>
     {children}
   </Press>;
@@ -108,7 +148,7 @@ export type ScreenChromeProps = RootChrome | DetailChrome | FlowChrome;
 
 export function ScreenChrome(props: ScreenChromeProps) {
   if (props.variant === 'root') return <View style={s.bar}>
-    <ChromeIconButton label="Moj profil" icon={User} tone="green" onPress={props.onProfile} />
+    <ChromeIconButton label="Moj profil" glyph="profile" tone="green" onPress={props.onProfile} />
     {/* Centred on the screen, not between the two sides, so it never shifts when the right side holds two controls. */}
     <View pointerEvents="none" style={s.brand}>
       <View accessible accessibilityRole="header" accessibilityLabel={`USKOČI, ${props.title}`}><BrandLockup width={112} /></View>
@@ -120,7 +160,7 @@ export function ScreenChrome(props: ScreenChromeProps) {
   </View>;
 
   if (props.variant === 'flow') return <View style={s.bar}>
-    <ChromeIconButton label={props.closeLabel ?? 'Zatvori'} icon={X} disabled={props.disabled} onPress={props.onClose} />
+    <ChromeIconButton label={props.closeLabel ?? 'Zatvori'} glyph="close" disabled={props.disabled} onPress={props.onClose} />
     <View style={s.copy}>
       {props.title ? <T accessibilityRole="header" variant="title" numberOfLines={2} style={s.title}>{props.title}</T> : null}
     </View>
@@ -131,7 +171,7 @@ export function ScreenChrome(props: ScreenChromeProps) {
   const { title, subtitle, titleVisible } = props;
   const scrolled = titleVisible !== undefined;
   return <View style={[s.bar, props.tone === 'conversation' && {backgroundColor:sys.conversation.ground}]}>
-    <ChromeIconButton label={props.backLabel ?? 'Nazad'} icon={ArrowLeft} disabled={props.disabled} onPress={props.onBack} />
+    <ChromeIconButton label={props.backLabel ?? 'Nazad'} glyph="back" disabled={props.disabled} onPress={props.onBack} />
     {props.lead}
     <View style={[s.copy, scrolled && s.scrolledCopy]}>
       {title && !scrolled ? <ChromeTitle title={title} subtitle={subtitle} />
@@ -207,8 +247,13 @@ const s = StyleSheet.create({
   brand: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingVertical: chrome.paddingVertical },
   side: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   control: { width: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },
+  // A captioned control keeps the touch HEIGHT and grows in width with its word.
+  controlWide: { minWidth: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },
   circle: { width: chrome.circle, height: chrome.circle, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center' },
+  pill: { height: chrome.circle, minWidth: chrome.circle, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: sys.space.sm, paddingHorizontal: sys.space.md },
   quiet: { backgroundColor: 'transparent', borderColor: 'transparent' },
   active: { backgroundColor: sys.color.greenSoft },
 });

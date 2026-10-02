@@ -20,6 +20,7 @@ import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
 import { StyleSheet } from 'react-native';
 import { nested, sys } from '../../ui/system/tokens';
+import { TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel } from '../../ui/system/TabBarItem';
 let tree: ReactTestRenderer;
 const routes = ['index', 'zadaci', 'dogovori', 'profil', 'profil/obavestenja', 'moje-aktivnosti', 'prilike', 'mapa', 'prilike/[id]', 'oceni-dogovor']
   .map(name => ({ name, key: name }));
@@ -103,12 +104,49 @@ it('the new tab surface preserves navigator press/long-press handlers and expose
   expect(tabButton('index', ['index', 'zadaci']).props.accessibilityState).toEqual({ selected: false });
 });
 
+// UI/UX pass, wave 2, item 2.1 (ON PURPOSE; audits HP-03, ICO-06, MO-M11): the selected tab was a background colour on the Press, which
+// swapped in one frame and scaled with the Press's own 0.97. Now the capsule is the button's own, always-mounted child (React Native
+// Animated, opacity only), the Press does not scale (no second motion on top of the capsule, and one Reanimated view fewer per tab,
+// B22), and the tick is the change itself, so it fires the instant the finger lands (`hapticOn="in"`; a tab bar is never scrolled).
+it('draws the chosen tab as an always-mounted capsule inside the button, ticks on touch-down and does not scale the tab', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  const capsuleOf = (button: React.ReactElement<{ children: React.ReactNode }>) =>
+    React.Children.toArray(button.props.children).find(child => React.isValidElement(child) && child.type === TabCapsule) as React.ReactElement<{ selected: boolean; radius: number }>;
+  const { borderRadius: bar, padding } = optionsFor('zadaci', ['index', 'zadaci']).tabBarStyle;
+  for (const [name, selected] of [['zadaci', true], ['index', false], ['dogovori', false]] as const) {
+    const button = tabButton(name, ['index', 'zadaci']);
+    expect(button.props).toMatchObject({ haptic: 'select', hapticOn: 'in', scaleTo: 1, hitSlop: 0, accessibilityRole: 'tab' });
+    // The capsule is there for EVERY tab, chosen or not (so it can fade), and says whether it is chosen.
+    expect(capsuleOf(button)).toBeDefined();
+    expect(capsuleOf(button).props).toMatchObject({ selected, radius: nested(bar, padding) });
+    // `selected` for a screen reader is immediate: it never waits for the 180 ms fade.
+    expect(button.props.accessibilityState).toEqual({ selected });
+    // 7 above the picture and 3 under the word (they add up to the navigator's 5 and 5): the pill has air over the picture.
+    expect(StyleSheet.flatten(button.props.style)).toMatchObject({ paddingHorizontal: TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM });
+  }
+  // The navigator no longer paints the chosen tab itself, and the Press carries no background of its own.
+  expect(StyleSheet.flatten(tabButton('zadaci', ['index', 'zadaci']).props.style).backgroundColor).toBeUndefined();
+  expect(optionsFor('zadaci', ['index', 'zadaci']).tabBarActiveBackgroundColor).toBeUndefined();
+});
+
+it('draws every tab label in the `tab` variant through TabLabel, chosen in green and the rest muted', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  for (const [name, title, selected] of [['index', 'Početna', false], ['zadaci', 'Zadaci', true], ['dogovori', 'Dogovori', false]] as const) {
+    const label = optionsFor(name, ['index', 'zadaci']).tabBarLabel({ children: title });
+    expect(label.type).toBe(TabLabel);
+    expect(label.props).toMatchObject({ children: title, selected });
+  }
+});
+
 it.each(['index', 'zadaci', 'dogovori'])('profile settings preserve the originating %s tab across two inner screens', async origin => {
   await act(async () => { tree = create(<Tabs />); });
   const history = [origin, 'profil', 'profil/obavestenja'];
   const selected = ['index', 'zadaci', 'dogovori'].filter(name => tabButton(name, history).props.accessibilityState.selected);
   expect(selected).toEqual([origin]);
-  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).props.muted).toBe(false);
+  // UI/UX pass, wave 2, item 2.1 (ON PURPOSE): the icon used to be a FactArt whose `muted` prop said "not chosen"; it is now a
+  // TabGlyph that cross-fades the flat mark and the sticker, and it says `selected`.
+  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).props.selected).toBe(true);
+  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).type).toBe(TabGlyph);
 });
 
 it('returning through history updates the section and never hijacks the actual tab action', async () => {

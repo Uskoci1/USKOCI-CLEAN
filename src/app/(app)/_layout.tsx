@@ -2,12 +2,11 @@ import { useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FactArt } from '../../ui/system/FactArt';
+import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../../ui/system/TabBarItem';
 import { useTextScale } from '../../ui/system/textScale';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
-import { nested, sys } from '../../ui/system/tokens';
+import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
-import { T } from '../../ui/Text';
 
 /**
  * One shell for one account: Početna | Zadaci | Dogovori (owner decision 1, 2026-09-19, which
@@ -29,13 +28,11 @@ import { T } from '../../ui/Text';
 const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.push } } };
 
-/**
- * The selected tab's capsule sits inside the bar, `TAB_BAR_PADDING` in from its edge, so its corner is the bar's corner
- * minus that padding: a nested corner follows the outer line. The same 24 inside a 24 bar did not (round 2c).
- */
-const TAB_BAR_PADDING = 4;
-const TAB_CAPSULE = nested(sys.radius.card, TAB_BAR_PADDING);
-
+// The bar's own parts (the always-mounted selected capsule with its 20 by 3 pill, the flat-mark and sticker icon that cross-fade
+// and pop once, the `tab` label, the height that follows them) live in `ui/system/TabBarItem` with the reasons, and the motion
+// is React Native Animated on the native driver, never Reanimated (UI/UX pass, wave 2, item 2.1). The scene change between the
+// three tabs is still the navigator's `animation: 'none'` below: item 2.2 (one transition language) waits for the owner's recordings.
+//
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements' } as const;
 // At enlarged text, longer Serbian names earn more width instead of breaking in the middle of a word.
@@ -143,7 +140,7 @@ export default function TabLayout() {
   const measureKey = `${width}:${fontScale}`;
   const currentMeasureKey = useRef(measureKey); currentMeasureKey.current = measureKey;
   const [labelMetrics, setLabelMetrics] = useState<{ key: string; heights: Partial<Record<Primary, number>> }>({ key: '', heights: {} });
-  const labelHeight = Math.max(sys.type.label.lineHeight * fontScale,
+  const labelHeight = Math.max(sys.type.tab.lineHeight * fontScale,
     ...(labelMetrics.key === measureKey ? Object.values(labelMetrics.heights) : []));
   const rememberLabelHeight = (name: string, height: number) => {
     if (!isPrimary(name) || currentMeasureKey.current !== measureKey || !Number.isFinite(height) || height <= 0) return;
@@ -178,25 +175,29 @@ export default function TabLayout() {
     screenOptions={({ route, navigation }) => {
       const selected = sectionOf(navigation.getState()) === route.name;
       return { headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
-      tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted,
-      tabBarActiveBackgroundColor: sys.color.greenSoft, tabBarAllowFontScaling: true,
+      tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children }) => <T key={measureKey} variant="label"
+      tabBarLabel: ({ children }) => <TabLabel key={measureKey} selected={selected}
         onTextLayout={({ nativeEvent }) => rememberLabelHeight(route.name,
-          Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}
-        style={{ color: selected ? sys.color.green : sys.color.muted, letterSpacing: 0, textAlign: 'center', marginTop: 3 }}>{children}</T>,
-      tabBarIcon: () => isPrimary(route.name) ? <FactArt kind={PRIMARY[route.name]} size={30} muted={!selected} /> : null,
+          Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}>{children}</TabLabel>,
+      // The navigator draws this icon twice, one over the other, and fades between the two by FOCUS; the chosen tab here is the
+      // SECTION (a screen opened from Zadaci keeps Zadaci chosen), so both copies say the same and both keep their own animation state.
+      tabBarIcon: () => isPrimary(route.name) ? <TabGlyph kind={PRIMARY[route.name]} selected={selected} /> : null,
+      // The capsule is the button's own, always-mounted child (it fades; a background colour could not). The tick is the change
+      // itself, so it fires when the finger lands (a tab bar is never scrolled), and the button does not scale: the capsule is the
+      // one motion, and a plain Pressable keeps one Reanimated view fewer per tab (B22).
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
         <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
-          onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hitSlop={0}
-          style={[style, { paddingHorizontal: roomyLabels ? 0 : 5, borderRadius: TAB_CAPSULE,
-            backgroundColor: selected ? sys.color.greenSoft : 'transparent' }]}>{children}</Press>,
+          onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="select" hapticOn="in" scaleTo={1} hitSlop={0}
+          style={[style, { paddingHorizontal: roomyLabels ? 0 : TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM,
+            borderRadius: TAB_CAPSULE }]}>
+          <TabCapsule selected={selected} radius={TAB_CAPSULE} />
+          {children}
+        </Press>,
       tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
-      tabBarStyle: { ...sys.elevation.soft, backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 1,
-        borderRadius: sys.radius.card,
-        // Icon + gap + native button padding + bar padding + actual label height; no font shrinking or truncation.
-        height: Math.max(70, Math.ceil(30 + 3 + 10 + TAB_BAR_PADDING * 2 + labelHeight)), padding: TAB_BAR_PADDING,
+      // The height follows the icon and the actual label height (`tabBarHeight`); no font shrinking or truncation.
+      tabBarStyle: { ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING),
         marginHorizontal: roomyLabels ? 8 : 16, marginTop: 8, marginBottom: Math.max(12, insets.bottom) } }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />

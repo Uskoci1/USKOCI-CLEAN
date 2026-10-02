@@ -4,9 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import type { MarketplaceItem } from '../data/marketplaceView';
 import { FACT_KINDS, FACT_SIZES, FactArt, type FactTone } from '../ui/system/FactArt';
+import { Glyph, GLYPH_NAMES, GLYPH_SIZES, GLYPH_TONES } from '../ui/system/Glyph';
 import { Pictogram, pictogramCatalog, type PictogramGroup } from '../ui/system/Pictogram';
 import { PickerGrid, PickerTile } from '../ui/system/PickerTile';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
+import { ChromeIconButton } from '../ui/system/ScreenChrome';
+import { TabBarPreview } from '../ui/system/TabBarItem';
 import { TaskCard } from '../ui/v2/TaskCard';
 import { T } from '../ui/Text';
 import { sys } from '../ui/system/tokens';
@@ -20,6 +23,11 @@ import { router } from 'expo-router';
  * 2026-10-02, item 1.3), the two oranges of the accent tone, the four tones, every pictogram, the picker states on a real
  * selector, and the icons inside a real task card, on white and on ivory. The icons come from `FACT_KINDS`, so a new kind
  * appears here by being added. Nothing here reads or writes data.
+ *
+ * UI/UX pass, wave 2 (2026-10-02, items 2.1 and 2.3): the three sections at the top draw the new bottom tab bar from the parts the
+ * real bar is made of (tap it: the capsule, the green pill, the cross-fade of the icon and its one pop), every control glyph of the
+ * closed Glyph registry at its three sizes and in its tones, and a bare control beside the same control with a word, so the owner can
+ * hold them in his hand and judge the bold 24 glyph and the caption on the real screen.
  *
  * It is NOT a before and after. Both cuts are drawn in the new single-tone colours: the old two-tone sticker (orange per
  * kind, the lighter emerald) cannot be put back without redrawing it, so the owner compares with the build already on his
@@ -38,6 +46,7 @@ const TONES: [FactTone, string][] = [['brand', 'brand · zelena'], ['accent', 'a
 const TONE_KINDS = ['calendar', 'users', 'pin', 'money', 'tasks', 'offers', 'alert', 'bell', 'star', 'check', 'publish', 'send'] as const;
 const GROUPS: [PictogramGroup, string][] = [['vozila', 'Vozila'], ['alat', 'Oprema i alat'], ['usluge', 'Usluge'], ['ljudi', 'Ljudi i kapacitet']];
 const IVORY = '#FBF7EF';
+const noop = () => {};
 
 /**
  * The card reads its one requirement line from the task's own conditions, then its vehicles, then its tools
@@ -74,6 +83,43 @@ export default function DizajnTabla() {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Tabla ikonica i piktograma" onBack={() => router.back()} />
     <ScrollView contentContainerStyle={s.content}>
+      {/* Wave 2, item 2.1: the new bar, built from the real parts. Not a navigation: nothing here goes anywhere. */}
+      <Section title="Donja traka · dodirni da probaš">
+        <T variant="meta" tone="muted">Isti delovi kao u pravoj traci: kapsula koja se pojavi iza izabrane stavke, zelena crtica na njenoj gornjoj ivici, ikonica koja se preliva iz oznake u nalepnicu i jedan mali poskok. Ako je u sistemu isključen pokret, promena je trenutna.</T>
+        <TabBarPreview />
+        <T variant="meta" tone="muted">Ovo nije pre i posle: staru traku poredi sa gradnjom koja je već na telefonu.</T>
+      </Section>
+      {/* Wave 2, item 2.3: every control glyph of the registry, at the three sizes, in the tones, and as an on-state. */}
+      <Section title={`Glyph ikone kontrola · ${GLYPH_SIZES.join(' · ')}`}>
+        <T variant="meta" tone="muted">Redom: 16 u tekstu, 20 u redu, 24 u traci; pa tonovi na 24; pa na zelenoj podlozi; pa uključeno (puna ikona). Debljina se bira sama: debela do 16 i za kvačicu, X, plus i minus, tanka od 20.</T>
+        {GLYPH_NAMES.map(name => <View key={name} style={s.iconRow}>
+          <T variant="meta" tone="muted" style={s.name}>{name}</T>
+          <View style={s.pair}>{GLYPH_SIZES.map(size => <Glyph key={size} name={name} size={size} />)}</View>
+          <View style={s.pair}>{GLYPH_TONES.filter(tone => tone !== 'onGreen').map(tone => <Glyph key={tone} name={name} size={24} tone={tone} />)}</View>
+          <View style={s.onGreen}><Glyph name={name} size={24} tone="onGreen" /></View>
+          <Glyph name={name} size={24} on />
+        </View>)}
+      </Section>
+      {/* Wave 2, item 2.3: a bare control and the same control with its name, side by side. */}
+      <Section title="Komande u traci · ikona i ikona sa rečju">
+        <T variant="meta" tone="muted">Gore samo ikona (krug 44, debela ikona 24). Dole ista komanda sa rečju: samo za komande koje se ne pogađaju po slici. Reč je ime komande, ne uputstvo gde si.</T>
+        <View style={s.commands}>
+          <ChromeIconButton label="Filteri" glyph="filters" onPress={noop} />
+          <ChromeIconButton label="Raspored obaveza" glyph="calendar" onPress={noop} />
+          <ChromeIconButton label="Pretraga" glyph="search" onPress={noop} />
+          <ChromeIconButton label="Više radnji" glyph="more" onPress={noop} />
+        </View>
+        <View style={s.commands}>
+          <ChromeIconButton label="Filteri zadataka" glyph="filters" caption="Filteri" onPress={noop} />
+          <ChromeIconButton label="Raspored obaveza" glyph="calendar" caption="Raspored" onPress={noop} />
+          <ChromeIconButton label="Pretraga zadataka" glyph="search" caption="Pretraga" onPress={noop} />
+        </View>
+        <View style={s.commands}>
+          <ChromeIconButton label="Filteri uključeni" glyph="filters" caption="Filteri" active onPress={noop} />
+          <ChromeIconButton label="Filteri nisu dostupni" glyph="filters" caption="Filteri" disabled onPress={noop} />
+          <ChromeIconButton label="Raspored bez kruga" glyph="calendar" caption="Raspored" quiet onPress={noop} />
+        </View>
+      </Section>
       <Section title={`Sistemske ikonice · ${FACT_SIZES.join(' · ')}`}>
         {SYSTEM.map(kind => <View key={kind} style={s.iconRow}>
           <T variant="meta" tone="muted" style={s.name}>{kind}</T>
@@ -145,4 +191,7 @@ const s = StyleSheet.create({
   name: { width: 88 },
   pair: { flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  commands: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+  // The one place a glyph is drawn white: on the green of the primary action.
+  onGreen: { backgroundColor: sys.color.green, borderRadius: sys.radius.control, padding: 6 },
 });
