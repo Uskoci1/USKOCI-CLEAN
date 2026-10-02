@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-02T02:28:00Z",
-  "ledger_total": 220,
-  "ledger_dev_alpha": 72,
-  "ledger_last": "dev_alpha_ex06a_flexible_window_application",
-  "certificate_certified": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
+  "generated_at": "2026-10-02T04:55:00Z",
+  "ledger_total": 221,
+  "ledger_dev_alpha": 73,
+  "ledger_last": "dev_alpha_d12_review_comment_application",
+  "certificate_certified": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -112,6 +112,7 @@
     "rpc_get_data_export_status",
     "rpc_get_legal_bundle",
     "rpc_get_my_agreement_review",
+    "rpc_get_my_agreement_review_v2",
     "rpc_get_my_safety_report",
     "rpc_get_my_task_relations",
     "rpc_get_need_lifecycle_receipt",
@@ -146,6 +147,7 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
     "rpc_mark_displayed_agreement_messages_v1",
@@ -153,6 +155,7 @@
     "rpc_mark_inbox_read",
     "rpc_mark_response_viewed",
     "rpc_mark_work_done",
+    "rpc_moderate_review_comment_service_v1",
     "rpc_open_worker_ai",
     "rpc_patch_worker_ai",
     "rpc_prepare_account_closure",
@@ -243,6 +246,7 @@
     "rpc_start_account_closure_execution",
     "rpc_storage_account_open",
     "rpc_submit_agreement_review",
+    "rpc_submit_agreement_review_v2",
     "rpc_submit_classified_preselection_qa",
     "rpc_submit_response",
     "rpc_submit_safety_report",
@@ -308,6 +312,7 @@
     "rpc_get_data_export_status",
     "rpc_get_legal_bundle",
     "rpc_get_my_agreement_review",
+    "rpc_get_my_agreement_review_v2",
     "rpc_get_my_safety_report",
     "rpc_get_my_task_relations",
     "rpc_get_need_lifecycle_receipt",
@@ -341,6 +346,7 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
     "rpc_mark_displayed_agreement_messages_v1",
@@ -418,6 +424,7 @@
     "rpc_start_account_closure_execution",
     "rpc_storage_account_open",
     "rpc_submit_agreement_review",
+    "rpc_submit_agreement_review_v2",
     "rpc_submit_classified_preselection_qa",
     "rpc_submit_response",
     "rpc_submit_safety_report",
@@ -435,12 +442,12 @@
     "rpc_write_agreement_current_location"
   ],
   "project": "leqcwgzvjsxugfgzdmth",
-  "certificate_live": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
+  "certificate_live": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
   "retention_ai_ready": true,
-  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change).",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function).",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
-  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ex06a_flexible_window_application.receipt.json",
+  "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json",
   "edge": [
     {
       "slug": "uskoci-ai-interview",
@@ -562,5 +569,27 @@
     "postflight_problems": [],
     "certificate_unchanged": true,
     "revert_applied": false
+  },
+  "d12": {
+    "migration": {
+      "name": "dev_alpha_d12_review_comment_application",
+      "version": "20261002044950",
+      "ledger_after": 221
+    },
+    "certificate": {
+      "before": "58447d7730e909a0c0e60dd92ef77416af927471bd6f645988448e32c6e3cb46",
+      "after": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431"
+    },
+    "table": "private.agreement_review_comments_v1 (0 rows)",
+    "new_rpc": [
+      "rpc_submit_agreement_review_v2",
+      "rpc_get_my_agreement_review_v2",
+      "rpc_list_review_comments_v1",
+      "rpc_moderate_review_comment_service_v1"
+    ],
+    "postflight_problems": [],
+    "verifiers": "79 of 79 checks PASS",
+    "revert_applied": false,
+    "client": "none"
   }
 }

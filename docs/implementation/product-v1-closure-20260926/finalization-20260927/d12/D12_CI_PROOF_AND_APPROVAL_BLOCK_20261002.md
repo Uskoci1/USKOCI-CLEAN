@@ -1,7 +1,7 @@
 # D12 written comment with the star rating - CI proof PASSED, and the approval block for the owner (2026-10-02)
 
-**Status: SOURCE + CI-PROVEN on a disposable chain. NOT applied to DEV. Nothing is applied without the owner's exact words "PRIMENI D12 PISANI KOMENTAR", and that block must NAME the certificate re-bind (below).**
-Levels (LIVE plan 4.2): SOURCE yes | CI-PROVEN yes (disposable chain, real Auth and PostgREST) | DEV-APPLIED no | APP WIRED no (no client exists) | DEVICE no | RELEASE no.
+**Status: APPLIED TO DEV 2026-10-02 04:49:50 UTC on the owner's exact words "PRIMENI D12 PISANI KOMENTAR", given after this block (migration 20261002044950, ledger 221, postflight `problems: []`, certificate RE-BOUND 58447d77 -> 0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431, three independent verifiers 79 of 79). Receipt: `supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json`. Before that it was SOURCE + CI-PROVEN on a disposable chain.**
+Levels (LIVE plan 4.2): SOURCE yes | CI-PROVEN yes (disposable chain, real Auth and PostgREST) | DEV-APPLIED yes (2026-10-02) | APP WIRED no (no client exists) | DEVICE no | RELEASE no.
 
 ## The proof (run `36957213904`, source `f36879aedb5e0a2299928bd1a4d4a93ec7a30187`, workflow `d12-review-comment-proof.yml`)
 Result **PASS**: 46 named checks, 0 failures, 0 skipped, 32 refusals exercised, 21 residuals recorded (what a deterministic contact floor still lets through), 20 accounts created, 0 provider calls, no DEV access. The pin gate compared **47 of 47** pinned functions to the 2026-10-01 DEV readback (body and metadata): all equal. The chain is not DEV (it lacks pkg051a, PKG-045b P0, P6 rollout v3 and B24 Part 1) and its certificate is chain-internal, so the report says exactly that and claims nothing more.
@@ -48,3 +48,6 @@ The Postgres server log; Storage object contents of an export artifact; author c
 
 ## Not done
 Nothing was applied to DEV or PROD, no flag, no APK, no Edge change, no phone. The revert is not applied. B09, ex06a and every other package are untouched by this block.
+
+## What happened at the application (added after it)
+The stock integrity guard of `build_d12.py --wrap` was REFUSED by the database on the first attempt (`D12_APPLY_TEXT_INTEGRITY`, nothing applied): it was written for a plain one-statement transport, but the connector's apply_migration wraps the text and holds it twice (see the receipt). A marker-based guard for that transport (`supabase/proofs/d12/wrap_apply_migration.py`, self-tested offline) was used on the second attempt; the candidate bytes were not changed and the stored ledger text hashes equal the committed files. The "sent behind the guard" wording of the README applies to a plain transport only.
