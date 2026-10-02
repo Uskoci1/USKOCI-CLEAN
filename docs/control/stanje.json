@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T22:48:11Z",
+  "osvezeno": "2026-10-02T23:00:47Z",
   "grana": "HEAD",
-  "head": "c551d219",
-  "head_poruka": "Connect direct conversation inbox and refine native navigation and AI identity",
+  "head": "c9025496",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
-   "migracije": 224,
-   "dev_alpha": 75,
-   "poslednja": "messages_inbox_01_authorized_reader",
+   "migracije": 225,
+   "dev_alpha": 76,
+   "poslednja": "dev_alpha_ex06b_alias_registry",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -137,7 +137,12 @@
      "commit": "6c979c12",
      "level": "SOURCE + OFFLINE",
      "independent_review": "none",
-     "next": "CI run of ex06b-alias-proof.yml; owner questions A15 etc.; approval block only after green"
+     "next": "CI run of ex06b-alias-proof.yml; owner questions A15 etc.; approval block only after green",
+     "application_20261003": {
+      "status": "DEV_APPLIED_POSTFLIGHT_VERIFIED",
+      "receipt": "supabase/operations/dev-alpha/ledger/20261003_ex06b_application.receipt.json",
+      "scope": "Alias normalization/F2 only; not whole matching or push delivery completion."
+     }
     },
     {
      "id": "D12-CLIENT",
@@ -237,7 +242,12 @@
     "next": "Read detailed proof and independent candidate review before promoting approval block; no DEV application.",
     "ci_run": 36994974872,
     "ci_source": "3ae018beb209f0666513cfcc5f4537540a56e22c",
-    "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
+    "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
+    "application_20261003": {
+     "status": "DEV_APPLIED_POSTFLIGHT_VERIFIED",
+     "receipt": "supabase/operations/dev-alpha/ledger/20261003_ex06b_application.receipt.json",
+     "scope": "Alias normalization/F2 only; not whole matching or push delivery completion."
+    }
    },
    {
     "id": "D12-CLIENT",
@@ -1604,7 +1614,12 @@
      "run": 36994974872,
      "sha": "3ae018beb209f0666513cfcc5f4537540a56e22c",
      "conclusion": "success",
-     "scope": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / NOT APPLIED"
+     "scope": "CI WORKFLOW SUCCESS OBSERVED / REPORT REVIEW PENDING / NOT APPLIED",
+     "application_20261003": {
+      "status": "DEV_APPLIED_POSTFLIGHT_VERIFIED",
+      "receipt": "supabase/operations/dev-alpha/ledger/20261003_ex06b_application.receipt.json",
+      "scope": "Alias normalization/F2 only; not whole matching or push delivery completion."
+     }
     },
     {
      "unit": "EX07-S06",
@@ -5087,7 +5102,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "12 test fajl(ova)"
+    "test": "13 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md",
    "problem": "Text/history/B3 source je sada široko regresiono zelen, ali trenutni exact APK nema novi two-device realtime/reconnect/ACK dokaz. Glasovne poruke korisniku još nisu isporučene: serverski paket B1 je PRIMENJEN na DEV (1.10., ledger 215; Edge closure worker v4 i uskoci-media v14), ali nema klijentskog UI-ja, klijentski Voice flag je isključen u svakom buildu, nema expo-audio ni native/telefon dokaza.",
@@ -6865,7 +6880,7 @@
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Postojeći JPEG avatar se prikazuje na emulatoru. Potvrda odustajanja od avatara sada mora da odgovara očekivanom profilu, nalogu i slici; nepoznat ishod čuva zahtev. Novi upload, nepotvrđen upload posle izlaska i fizički telefon nisu zatvoreni. 28.09: uređivanje ličnih podataka podržava samo prikazno ime. Grad unet na registraciji nema uređivanje; radno područje je odvojeno i nije zamena za lično mesto.",
-   "sledece": "R19 emulator 3cdb3005 / 36193917101 prikazuje postojeću sliku koju isti profil na R18 nije prikazivao. Provereno je čitanje, bez novog slanja, primene ili brisanja slike. Nepotvrđeno slanje posle izlaska ostaje zaseban rizik. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.md 26.09: klijentska provera očekivanog profila dodata i početnom odustajanju i ponavljanju; RPC nije promenjen. READY uslov i sačuvani zahtev ostaju. CLIENT_GUARDS_AND_VIEWPORT.md. Završni krug 03 / 27.09: Stari klik ne preuzima ovlašćenje nove posete/naloga za odjavu ili otvaranje slike. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim.",
+   "sledece": "R19 emulator 3cdb3005 / 36193917101 prikazuje postojeću sliku koju isti profil na R18 nije prikazivao. Provereno je čitanje, bez novog slanja, primene ili brisanja slike. Nepotvrđeno slanje posle izlaska ostaje zaseban rizik. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.md 26.09: klijentska provera očekivanog profila dodata i početnom odustajanju i ponavljanju; RPC nije promenjen. READY uslov i sačuvani zahtev ostaju. CLIENT_GUARDS_AND_VIEWPORT.md. Završni krug 03 / 27.09: Stari klik ne preuzima ovlašćenje nove posete/naloga za odjavu ili otvaranje slike. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim. EX06b je primenjen03.10, ćirilica/IKEA oblici/F2; supabase/operations/dev-alpha/ledger/20261003_ex06b_application.receipt.json. S04 lifecycle i single-target push dokaz ostaju otvoreni.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -8979,5 +8994,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37074409449,
+   "ime": "Build Android development APK",
+   "sha": "c551d219",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:48:11Z"
+  },
+  {
+   "id": 37074404501,
+   "ime": "Build Android development APK",
+   "sha": "c551d219",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:48:08Z"
+  },
+  {
+   "id": 37074389106,
+   "ime": "Build Android push-proof APK",
+   "sha": "c551d219",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-02T22:47:57Z"
+  },
+  {
+   "id": 37074389102,
+   "ime": "D12 written review comment proof",
+   "sha": "c551d219",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:47:57Z"
+  },
+  {
+   "id": 37074389095,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "c551d219",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:47:57Z"
+  },
+  {
+   "id": 37074389064,
+   "ime": "Control tracker refresh",
+   "sha": "c551d219",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:47:57Z"
+  },
+  {
+   "id": 37073045950,
+   "ime": "Messages inbox focused SQL proof",
+   "sha": "a4af277f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:32:36Z"
+  },
+  {
+   "id": 37070100309,
+   "ime": "Build Android development APK",
+   "sha": "7c7a34c3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:00:25Z"
+  },
+  {
+   "id": 37070094274,
+   "ime": "Build Android development APK",
+   "sha": "9cdbe3b0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:00:22Z"
+  },
+  {
+   "id": 37070069598,
+   "ime": "Control tracker refresh",
+   "sha": "9cdbe3b0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T22:00:07Z"
+  },
+  {
+   "id": 37065317713,
+   "ime": "Build Android development APK",
+   "sha": "688d2c78",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T21:11:19Z"
+  },
+  {
+   "id": 37065287243,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "688d2c78",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T21:11:02Z"
+  }
+ ]
 }

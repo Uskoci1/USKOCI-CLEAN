@@ -641,7 +641,7 @@ describe('D03 actual message component', () => {
       const writingRow = send.parent!;
       const pill = writingRow.parent!;
       expect(flat(writingRow.props.style)).toMatchObject({ flexDirection: 'row' });
-      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.sheet });
+      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.control });
       const input = pill.findByProps({ accessibilityLabel: 'Napiši poruku' });
       expect(input.props.multiline).toBe(true);
       expect(input.parent).toBe(writingRow);

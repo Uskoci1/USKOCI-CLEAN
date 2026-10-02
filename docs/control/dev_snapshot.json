@@ -6,9 +6,9 @@
     "concurrencyAcceptance": false
   },
   "generated_at": "2026-10-02T18:58:41.775Z",
-  "ledger_total": 224,
-  "ledger_dev_alpha": 75,
-  "ledger_last": "messages_inbox_01_authorized_reader",
+  "ledger_total": 225,
+  "ledger_dev_alpha": 76,
+  "ledger_last": "dev_alpha_ex06b_alias_registry",
   "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
@@ -618,5 +618,11 @@
     "receipt": "supabase/operations/dev-alpha/ledger/20261003_messages_inbox_01_application.receipt.json",
     "checksPassed": 6,
     "nativeAcceptance": false
+  },
+  "ex06b_refresh": {
+    "scope": "Bounded EX06b nine pins,12 registry rows,14 smoke probes,certificate readiness and ledger; all other observations retain earlier scope.",
+    "capturedAt": "2026-10-02T22:53:54Z",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261003_ex06b_application.receipt.json",
+    "problems": []
   }
 }

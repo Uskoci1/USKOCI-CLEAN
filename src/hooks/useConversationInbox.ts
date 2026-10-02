@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { createConversationInboxModel } from '../data/conversationInboxModel';
@@ -16,6 +16,14 @@ export function useConversationInbox() {
     return createConversationInboxModel(createConversationInboxClientService({ accountId, accountRevision }, { isCurrent: current }), current);
   }, [accountId, accountRevision]);
   const state = useSyncExternalStore(model.subscribe, model.snapshot, model.snapshot);
+  // Tabs remain mounted while another route owns focus. Clear private previews on background
+  // even when the inbox is blurred; this observer never starts reads or notification listeners.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', value => {
+      if (value !== 'active') model.forget();
+    });
+    return () => subscription.remove();
+  }, [model]);
   useFocusEffect(useCallback(() => {
     let alive = true, foreground = !AppState.currentState || AppState.currentState === 'active';
     let stopIncoming: (() => void) | undefined;

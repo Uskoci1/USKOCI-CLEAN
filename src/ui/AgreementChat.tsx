@@ -12,7 +12,7 @@ import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
 import { plural } from './system/plural';
-import { floating, sys } from './system/tokens';
+import { sys } from './system/tokens';
 import { useTextScale } from './system/textScale';
 import { T } from './Text';
 import { withInter } from './interFont';
@@ -105,8 +105,8 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
   return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress}
     disabled={busy} accessibilityState={{ busy, disabled: busy }}
     style={[s.chatAction, refresh && s.refreshAction, quiet && s.refreshQuiet, center && s.center]}>
-    {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <ArrowClockwise size={16} color={sys.color.ink} /> : null}
-    <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.ink : sys.color.ink }}>{text}</T>
+    {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <ArrowClockwise size={16} color={quiet ? sys.color.muted : sys.color.ink} /> : null}
+    <T variant={quiet ? 'meta' : refresh ? 'note' : 'action'} style={{ color: quiet ? sys.color.muted : tone === 'onMine' ? sys.conversation.onUser : sys.color.ink }}>{text}</T>
   </Press>;
 }
 
@@ -453,7 +453,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           {/* Measure the complete pre-message region: failure replaces this action with the notice,
               so compensating the notice alone would shift an older message by the removed button's height. */}
           {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh quiet busy={refreshing} /> : null}
+            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} refresh quiet busy={refreshing} /> : null}
         </View>
         {!error && hasOlder && onLoadOlder ? <View>
           {historyError && historyErrorDirection === 'older' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Starije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
@@ -600,19 +600,19 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               </View>
             </Press>
           </View>
-          {photos || voice ? <View style={s.toolbar}>
-            {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
-              accessibilityHint={forcedWhy}
-              accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
-              onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
-              style={[s.tool, textScale < 1.3 && s.toolInline]}>
-              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
-              {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
-            </Press> : null}
-            {voice ? <AgreementVoiceMic voice={voice} /> : null}
-            {voice ? <AgreementVoicePreference voice={voice} writable={writable && !terminal} /> : null}
-          </View> : null}
         </View>
+        {photos || voice ? <View style={s.toolbar}>
+          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
+            accessibilityHint={forcedWhy}
+            accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
+            onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
+            style={[s.tool, textScale < 1.3 && s.toolInline]}>
+            {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
+            {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
+          </Press> : null}
+          {voice ? <AgreementVoiceMic voice={voice} /> : null}
+          {voice ? <AgreementVoicePreference voice={voice} writable={writable && !terminal} /> : null}
+        </View> : null}
       </View> : null}
     </View>
   );
@@ -636,7 +636,7 @@ const s = StyleSheet.create({
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
     borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },
-  refreshQuiet: { borderWidth: 0 },
+  refreshQuiet: { borderWidth: 0, alignSelf: 'flex-end', paddingHorizontal: 8 },
   day: { alignSelf: 'center', marginTop: 16, marginBottom: 4, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
     borderRadius: sys.radius.control, backgroundColor: sys.conversation.surface, fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted },
   bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 4 },
@@ -658,16 +658,16 @@ const s = StyleSheet.create({
   timeFailed: { color: sys.color.danger },
   // Writing has its own broad row. Optional tools wrap below it without replacing the input,
   // its selection, or the photo tray when the keyboard or text scale changes.
-  composerArea: { flexShrink: 0, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
+  composerArea: { flexShrink: 0, gap: 4, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
   composerCompact: { paddingTop: 4, paddingBottom: 8 },
   details: { gap: sys.space.sm, paddingTop: sys.space.sm },
-  pill: { ...floating, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.sheet,
+  pill: { paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.control,
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
   writingRow: { flexDirection: 'row', alignItems: 'flex-end' },
   writingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
   toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
   pillFocused: { borderColor: sys.color.ink },
-  toolbar: { minHeight: COMMAND, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  toolbar: { minHeight: COMMAND, paddingHorizontal: sys.space.sm, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
   toolLabel: { flexShrink: 1, color: sys.color.ink },

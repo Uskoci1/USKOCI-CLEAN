@@ -4,6 +4,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { trenutak } from '../../lib/trenutak';
 import { inboxEventArt } from '../../ui/notifications/InboxPresentation';
 import { Appear } from '../../ui/system/Appear';
+import { ConversationArt } from '../../ui/system/ConversationArt';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
@@ -47,8 +48,8 @@ const openItem=async()=>act(async()=>unreadRow().props.onPress());
 beforeEach(()=>{jest.clearAllMocks();mockIntent='narucilac';mockModel.canNavigate.mockReturnValue(true);mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
   mockState={page:{items:[],unreadCount:0,hasMore:false,asOf:at},loading:false,paging:false,acting:null,error:null,unavailable:false};});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
-test('successful empty is the shared empty state with the bell, and one owned settings destination',async()=>{
-  await render();expect(text()).toContain('Još nema obaveštenja');expect(drawn('bell')).toBe(1);
+test('successful empty has original communication art and one owned settings destination',async()=>{
+  await render();expect(text()).toContain('Još nema obaveštenja');expect(tree.root.findAllByType(ConversationArt.type)).toHaveLength(1);
   // The SPOJ V2 vector and its eyebrow ("Na jednom mestu") are gone: an empty list says so the way every list does.
   expect(tree.root.findAllByType('NativeSvgXml' as React.ElementType)).toHaveLength(0);expect(text()).not.toContain('Na jednom mestu');
   const settings=press('Podesi obaveštenja');await act(async()=>{settings.props.onPress();settings.props.onPress();});

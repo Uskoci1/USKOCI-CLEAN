@@ -9,6 +9,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { ConversationArt } from '../system/ConversationArt';
 import { neprocitanih } from '../system/plural';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
@@ -16,20 +17,10 @@ import { useTextScale } from '../system/textScale';
 import { inset, sys } from '../system/tokens';
 
 /**
- * The inbox as a list of events, newest first, grouped under a day ("Danas", "Juče", "22. sep"). Step 11a, 2026-09-24:
- * every event used to be its own bordered card, an unread one a green-tinted card with an orange icon well, and each
- * card repeated the full date. Now an event is a row on a hairline: an unread one carries a green dot and a heavier
- * title, the clock stands on the title's line, and the day is said once above its rows. No card, no tint, no chevron:
- * the whole row is the button.
- *
- * Presentation only. What opening a row does (mark read, resolve, land exactly where the event points) stays with the
- * route, `app/obavestenja.tsx`, and the model; this file draws whatever state it is handed, so the internal gallery
- * can draw it from fixtures.
- *
- * A row is event-first because an event carries only the server's title and body (no actor name, no task title); a
- * person-first row waits for the server package "obaveštenja sa imenom". The one exception the data allows is a new
- * task for you (OPPORTUNITY_AVAILABLE), whose body is the task's own title as the server writes it: that row leads
- * with the task.
+ * Chronological events, grouped by the server moment. Each event keeps its actual semantic illustration,
+ * full-width title, supporting body and quiet clock. The unread dot shares the illustration footprint instead
+ * of consuming a separate text gutter. An event has no actor/avatar contract: none is invented here.
+ * The route/model still own read acknowledgment, target resolution and exact navigation.
  */
 export type InboxView = Pick<InboxState, 'page' | 'loading' | 'paging' | 'acting' | 'error' | 'unavailable'>;
 
@@ -102,22 +93,19 @@ function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen }: R
   const unread = !item.readAt;
   const { primary, secondary } = rowCopy(item);
   const when = moment ? `. ${moment.dan}, ${moment.sat}` : '';
-  const time = moment ? <T variant="meta" tone="muted" numberOfLines={1} style={large ? s.clock : [s.clock, s.clockBeside]}>{moment.sat}</T> : null;
+  const time = moment ? <T variant="meta" tone="muted" numberOfLines={1} style={s.clock}>{moment.sat}</T> : null;
   return <Press accessibilityRole="button" accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${item.title}. ${item.body}${when}`}
     accessibilityState={{ disabled, busy: acting }} disabled={disabled} haptic="select" scaleTo={1}
     onPress={() => onOpen(item)} style={[s.row, last && s.rowLast]}>
-    <View style={s.dotColumn} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+    <View style={s.art} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      {acting ? <ActivityIndicator size="small" color={sys.color.green} />
+        : <FactArt kind={inboxEventArt(item.eventType, item.family)} size={32} />}
       {unread ? <View testID="inbox-unread-dot" style={s.dot} /> : null}
     </View>
-    <View style={s.art}>{acting ? <ActivityIndicator size="small" color={sys.color.green} />
-      : <FactArt kind={inboxEventArt(item.eventType, item.family)} size={28} />}</View>
     <View style={s.copy}>
-      <View style={s.firstLine}>
-        <T variant={unread ? 'bodyStrong' : 'body'} numberOfLines={large ? 3 : 2} style={s.primary}>{primary}</T>
-        {large ? null : time}
-      </View>
+      <T variant={unread ? 'bodyStrong' : 'body'} numberOfLines={large ? 3 : 2} style={s.primary}>{primary}</T>
       {secondary ? <T variant="note" tone="muted" numberOfLines={2}>{secondary}</T> : null}
-      {large ? time : null}
+      {time}
     </View>
   </Press>;
 }
@@ -211,9 +199,16 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
         primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
       // The last loaded list always stays: an error with an empty page is the banner above, never "nothing here".
       : error ? null
-        : <StateView kind="empty" art="bell" title={EMPTY_TITLE[role ?? 'ALL']}
-            body={role ? undefined : 'Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.'}
-            quiet={role ? undefined : { label: 'Podesi obaveštenja', onPress: onSettings }} />;
+        : <View style={s.empty} accessibilityLiveRegion="polite">
+            <ConversationArt size={large ? 112 : 136} />
+            <View style={s.emptyCopy}>
+              <T variant="title" accessibilityRole="header" style={s.emptyText}>{EMPTY_TITLE[role ?? 'ALL']}</T>
+              {!role ? <T variant="copy" tone="muted" style={s.emptyText}>
+                Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.
+              </T> : null}
+            </View>
+            {!role ? <V2Action kind="quiet" tone="neutral" compact label="Podesi obaveštenja" onPress={onSettings} /> : null}
+          </View>;
 
   const footer = error === 'page' || page?.hasMore ? <View style={s.footer}>
     {error === 'page' ? <>
@@ -264,15 +259,14 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 64, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: sys.color.line },
   rowLast: { borderBottomWidth: 0 },
-  dotColumn: { width: 8, marginTop: 8 },
-  dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  // No top padding: the icon's centre then sits 2 dp from the unread dot's, which stands on the title's first line
-  // (with `space.xs` it hung 6 dp below it).
-  art: { width: 32, alignItems: 'center', paddingTop: 0 },
+  dot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  // One footprint for the event illustration, working indicator and actual unread marker.
+  art: { width: 44, minHeight: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  firstLine: { flexDirection: 'row', alignItems: 'flex-start' },
-  primary: { flex: 1, minWidth: 0, color: sys.color.ink },
-  clock: { ...tabular },
-  clockBeside: { marginLeft: sys.space.sm, marginTop: sys.space.xs },
+  primary: { minWidth: 0, color: sys.color.ink },
+  clock: { ...tabular, marginTop: 2 },
+  empty: { alignItems: 'center', gap: 16, paddingTop: 32, paddingBottom: 24 },
+  emptyCopy: { width: '100%', maxWidth: 360, gap: 8 },
+  emptyText: { textAlign: 'center' },
   footer: { paddingTop: 16, gap: 8 },
 });

@@ -67,10 +67,9 @@ export function AgreementVoicePreference({ voice, writable }: { voice: Agreement
     <View accessible={false} style={[s.preferenceMark, voice.reviewFirst && s.preferenceMarkChecked]}>
       {voice.reviewFirst ? <Glyph name="check" size={16} tone="ink" /> : null}
     </View>
-    <View style={s.preferenceText}>
-      <T variant="note" tone="ink">Pregled pre slanja</T>
-      <T variant="note" tone="muted">{voice.reviewFirst ? 'Uključen' : 'Isključen'}</T>
-    </View>
+    <T variant="meta" tone="muted" style={s.preferenceText}>
+      Pregled snimka · {voice.reviewFirst ? 'Uključen' : 'Isključen'}
+    </T>
   </Press>;
 }
 
