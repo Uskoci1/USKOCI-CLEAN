@@ -1,15 +1,17 @@
 import { memo, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 import { CaretDown, CaretRight } from 'phosphor-react-native';
-import type { NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
+import type { NeedScheduleProjection, NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceView';
 import { inicijali } from '../../lib/inicijali';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { osobuAkuz, plural } from '../system/plural';
+import type { WindowRoom } from '../system/textScale';
 import { nested, sys } from '../system/tokens';
 import { T } from '../Text';
+import { HEAD_GAP, TITLE_SIZE, headBeside } from './cardHeadFit';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /**
@@ -148,6 +150,16 @@ export function ownerNext(item: PotrebaProjekcija): OwnerNext {
 }
 
 /**
+ * Whether a task's term is a confirmed instant: a fixed window that names a start or an end. A flexible range (today,
+ * tomorrow, this week, any time on a remote task) and a term the read did not carry are not, and the calendar mark beside
+ * them is drawn quiet: green means a fact that IS confirmed, grey a term that is not set (the colour-meaning table in
+ * `tokens.ts`, wave-1 review).
+ */
+export function scheduleConfirmed(schedule: NeedScheduleProjection | undefined): boolean {
+  return schedule?.kind === 'FIXED_WINDOW' && (schedule.startsAt != null || schedule.endsAt != null);
+}
+
+/**
  * Everything the card shows, as one sentence after its command name, in this order: HITNO, status, the value, where,
  * when, the requirement, the places, the person and what comes next. It is the order the card is drawn in, except that
  * HITNO, drawn after the status on the first line, is said before it. Empty parts are left out.
@@ -170,9 +182,15 @@ export function CardStatus({ status, urgency, now }: { status: { text: string; q
   </View>;
 }
 
-/** The title and its terms form one brief. Long titles, larger text and verbal prices keep a full-width heading. */
-export function CardHead({ title, value, large }: { title: string; value: TaskValue; large: boolean }) {
-  const stacked = large || value.kind !== 'amount' || title.length > 42 || value.amount.length > 12;
+/**
+ * The title and its terms form one brief. The price stands beside the title when the title fits the column it leaves
+ * (`headBeside`: measured below 380 dp, the old length gate from there up); larger text, a word instead of an amount and a
+ * title that would break or tower keep a full-width heading with the price under it.
+ */
+export function CardHead({ title, value, large, room }: { title: string; value: TaskValue; large: boolean;
+  /** The window the card is drawn in. Without it the head keeps the fixed gate it had before the room was measured. */
+  room?: WindowRoom }) {
+  const stacked = large || value.kind !== 'amount' || !headBeside(title, value.amount, value.basis, room);
   return <View style={stacked ? s.headStacked : s.head}>
     <T style={[s.title, s.briefTitle, !stacked && s.titleSide]}>{title}</T>
     <View style={s.briefTerms}>
@@ -394,12 +412,12 @@ const s = StyleSheet.create({
   status: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: HEAD_GAP },
   headStacked: { gap: 8 },
   briefTitle: { color: sys.color.green },
   briefTerms: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, flexShrink: 0 },
   briefValue: { flexShrink: 1, minWidth: 0 },
-  title: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
+  title: { fontSize: TITLE_SIZE, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   valueWrap: { flexShrink: 1, maxWidth: '100%' },

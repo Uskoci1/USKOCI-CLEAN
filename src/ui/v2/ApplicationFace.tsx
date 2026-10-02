@@ -6,7 +6,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { FactArt } from '../system/FactArt';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba } from '../system/plural';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -180,8 +180,9 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
   /** The internal gallery shows the large-text layout without changing the phone's setting. */ large?: boolean;
   children?: ReactNode;
 }) {
-  const scaled = useTextScale() >= 1.3;
-  const large = forced ?? scaled;
+  // The same rule as the task card: stacked only for a window under 340 dp or text scale 1.3 and up (`useLayoutClass`).
+  const stacked = useLayoutClass().stacked;
+  const large = forced ?? stacked;
   const reduced = useReducedMotion();
   const title = readableTitle(row.naslov);
   const action = applicationFoot(row, expanded);

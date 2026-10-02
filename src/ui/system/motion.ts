@@ -17,6 +17,14 @@ import { AccessibilityInfo, AppState } from 'react-native';
  * reader without a mounted root never touches a native API; it reads "not reduced" until a root follows the platform,
  * except a reader that outlives a root, which keeps the last answer that root knew (see `forgetWhenUnused`).
  * The motion values themselves are `sys.motion`, with its rule: nothing that states a fact animates.
+ *
+ * Rule R7 (the eight rules are written on `sys.motion`, in `tokens.ts`): this is the ONE reduced-motion source, and
+ * "reduced" means the same thing everywhere. Movement is off and a state change is instant: a press does not scale, a row
+ * does not arrive, a sheet settles with `{ duration: 0 }`, a loop (skeleton breath, typing dots, glow) does not start,
+ * Lottie shows its first frame, and a screen change uses the navigation animation 'none'. A haptic is not movement: it
+ * stays, because a tick is an outcome (rule R5), and a person who asked for less motion has not asked for less feedback.
+ * A component that moves on its own reads `useReducedMotion` from here, never Reanimated's launch-time value and never
+ * `AccessibilityInfo` itself.
  */
 
 type Subscription = { remove?: () => void } | null | undefined | void;

@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem } from '../../data/marketplaceView';
@@ -8,12 +8,12 @@ import { needScheduleText, readableTitle } from '../../data/needDetailPresentati
 import { displaysUrgent } from '../../lib/needUrgency';
 import { FactArt } from '../system/FactArt';
 import { useReducedMotion } from '../system/motion';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass, useWindowRoom } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardBriefFoot, CardHead, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
-  faceStyles, ownerNext, personSpoken, placesText, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue, type TaskCardRelation } from './TaskFace';
+  faceStyles, ownerNext, personSpoken, placesText, scheduleConfirmed, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue, type TaskCardRelation } from './TaskFace';
 
 /** How far the whole card gives under the finger: a large surface gives less than a button (`sys.motion.pressScale`). */
 export const CARD_PRESS_SCALE = 0.986;
@@ -52,8 +52,11 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   portrait?: ReactNode;
   /** The state the list's own section is named for (Nacrti, Istorija), which the card then does not repeat. */
   sectionSays?: StanjePotrebe }) {
-  const { width } = useWindowDimensions();
-  const large = useTextScale() >= 1.3 || width < 380;
+  // The designed layout is the default: the head and the foot stack only when the room is short (a window under
+  // 340 dp, or text scale 1.3 and up), never on an ordinary phone (the owner's is 361 dp at 1.15). One rule, `useLayoutClass`.
+  const large = useLayoutClass().stacked;
+  // How much room the head has: below 380 dp the price stands beside the title only if the measured title fits what it leaves.
+  const room = useWindowRoom();
   const reduced = useReducedMotion();
   const own = isOwnedNeed(item);
   const title = readableTitle(item.naslov);
@@ -92,11 +95,12 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}
-      <CardHead title={title} value={value} large={large || compact} />
+      <CardHead title={title} value={value} large={large || compact} room={room} />
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={0} />
         {/* The complete range remains readable, including its end date on narrow or enlarged-text cards. */}
-        <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={0} />
+        {/* Green says a fact that IS confirmed: a flexible or absent term is drawn quiet, never in the green of a fixed one. */}
+        <CardFact art={<FactArt kind="calendar" size={20} tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={0} />
         {requirement ? <CardRequirement requirement={requirement} /> : null}
       </View>
       {briefLead || next?.kind !== 'draft' ? <CardBriefFoot person={briefLead} large={large} capacityAtEnd

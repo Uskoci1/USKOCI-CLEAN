@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 /**
@@ -13,4 +14,62 @@ export function roundTextScale(fontScale: number): number {
 /** The rounded text scale of the current window. */
 export function useTextScale(): number {
   return roundTextScale(useWindowDimensions().fontScale);
+}
+
+/** From this text scale up a layout has no room for its designed shape ("Large" in Android's font settings). */
+export const LARGE_TEXT_SCALE = 1.3;
+/** Below this window width, in dp, a layout has no room for its designed shape. The owner's phone is 361 dp. */
+export const NARROW_WIDTH = 340;
+
+/**
+ * What kind of room a layout has (UI/UX pass, 2026-10-02; audit Z11). Until now 26 components each decided for
+ * themselves, at 340, 360, 375, 380 and 390 dp, so on the owner's 361 dp phone neighbouring components made different
+ * choices on one screen and nothing was ever in the state it was designed for.
+ *
+ * - `compact`: the designed layout. Every phone from 340 dp up at ordinary text sizes, the owner's included.
+ * - `narrow`: a window under 340 dp.
+ * - `large`: text scale 1.3 or more. Wins over `narrow` when both are true, because large text needs more room than a
+ *   narrow window does.
+ *
+ * `stacked` is the one answer a component acts on: it is true for `narrow` and for `large`, and a component stacks its
+ * head, foot or actions in that case and in no other. Design the default for `compact` at scale 1.0 to 1.15; stacking is
+ * the resilience fallback, not the look.
+ */
+export type LayoutClass = 'compact' | 'narrow' | 'large';
+export type LayoutClassResult = { readonly cls: LayoutClass; readonly stacked: boolean };
+
+// One shared, frozen answer per class: a component can use the result as a dependency without it changing on every render.
+const COMPACT: LayoutClassResult = Object.freeze({ cls: 'compact', stacked: false });
+const NARROW: LayoutClassResult = Object.freeze({ cls: 'narrow', stacked: true });
+const LARGE: LayoutClassResult = Object.freeze({ cls: 'large', stacked: true });
+
+/** The class of a window `width` dp wide at `textScale`; a value that is not a measurement never stacks a layout. */
+export function layoutClassFor(width: number, textScale: number): LayoutClassResult {
+  if (roundTextScale(textScale) >= LARGE_TEXT_SCALE) return LARGE;
+  return Number.isFinite(width) && width < NARROW_WIDTH ? NARROW : COMPACT;
+}
+
+/**
+ * The layout class of the current window. THE one place the window width is read: a component asks this, never
+ * `useWindowDimensions().width`, and `__tests__/one-token-source.test.ts` fails when a file that is not on its shrinking
+ * list reads the width itself.
+ */
+export function useLayoutClass(): LayoutClassResult {
+  const { width, fontScale } = useWindowDimensions();
+  return layoutClassFor(width, fontScale);
+}
+
+/** The room itself: the window width in dp and the rounded text scale it was measured at. */
+export type WindowRoom = { readonly width: number; readonly scale: number };
+
+/**
+ * The window's width and text scale, for the rare rule that has to know HOW MUCH room there is and not only whether there
+ * is enough (the task card's head decides from the measured width of the title beside the price, `v2/cardHeadFit.ts`). It
+ * sits beside `useLayoutClass` so the width is still read in this one file; a component that only needs to stack asks
+ * `useLayoutClass`. The object is stable while the window and the text size are.
+ */
+export function useWindowRoom(): WindowRoom {
+  const { width, fontScale } = useWindowDimensions();
+  const scale = roundTextScale(fontScale);
+  return useMemo(() => ({ width, scale }), [width, scale]);
 }

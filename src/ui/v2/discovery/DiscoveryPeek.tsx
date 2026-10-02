@@ -13,8 +13,8 @@ import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardBriefFoot, CardHead, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, taskPlace, taskSpoken, taskStatus,
-  taskValue, type TaskCardRelation } from '../TaskFace';
+import { CardBriefFoot, CardHead, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, scheduleConfirmed, taskPlace, taskSpoken,
+  taskStatus, taskValue, type TaskCardRelation } from '../TaskFace';
 import { TaskPublisherPortrait } from '../TaskPublisherPortrait';
 import { V2Action } from '../V2Action';
 
@@ -73,7 +73,7 @@ function PinTask({ item, relation, onOpen, onLayout }: {
       <View style={!head ? s.clearOfClose : undefined}><CardHead title={title} value={value} large /></View>
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={20} />} text={place.text} lines={2} />
-        <CardFact art={<FactArt kind="calendar" size={20} />} text={schedule} lines={2} />
+        <CardFact art={<FactArt kind="calendar" size={20} tone={scheduleConfirmed(item.schedule) ? 'brand' : 'quiet'} />} text={schedule} lines={2} />
       </View>
       <CardBriefFoot person={person} large={large} capacityAtEnd
         places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large /> : null} />

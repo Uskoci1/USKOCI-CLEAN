@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import { Press } from '../Press';
+import { PRESS_DELAY, Press } from '../Press';
 import { T } from '../Text';
 import { useReducedMotion } from './motion';
 import { nested, sys } from './tokens';
@@ -60,7 +60,11 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
     return <Press key={option.key} accessibilityRole="tab" accessibilityLabel={option.label} accessibilityState={{ selected }}
       // Android must receive an explicit empty text to retire a previously spoken count.
       accessibilityValue={{ text: option.badge != null && option.badgeLabel ? option.badgeLabel : '' }}
-      haptic="select" scaleTo={0.98} onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
+      // The tick follows the change, so it comes on release with it, in a fixed control and in a rail alike: a finger that lands
+      // on a segment and turns into a page scroll commits nothing and so ticks nothing. The chosen segment changes nothing and
+      // says nothing. In a rail that scrolls the segment also waits out the press delay before it gives, as a row does.
+      haptic={selected ? 'none' : 'select'} scaleTo={sys.motion.scale.button} unstable_pressDelay={scroll ? PRESS_DELAY : undefined}
+      onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
       style={[s.segment, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>
       {option.badge !== undefined && option.badge !== null ? <View style={[s.badge, option.badgeTone === 'attention' ? s.badgeAttention : selected ? s.badgeSelected : null]}>

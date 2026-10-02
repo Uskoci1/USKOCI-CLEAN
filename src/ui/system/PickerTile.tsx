@@ -39,7 +39,7 @@ export function PickerTile({ kind, label, selected, disabled = false, reason, mo
   return <Press accessibilityRole={mode === 'single' ? 'radio' : 'checkbox'}
     accessibilityLabel={why ? `${label}. ${why}` : label}
     accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={onPress}
-    haptic={disabled ? 'none' : 'select'} scaleTo={list ? 0.99 : 0.97}
+    haptic={disabled ? 'none' : 'select'} scaleTo={list ? sys.motion.scale.row : sys.motion.scale.button}
     style={[list ? s.row : [s.tile, medium && s.tileMedium], selected && s.selected, disabled && s.disabled]}>
     {list ? <>
       <Pictogram kind={kind} size={40} disabled={disabled} />

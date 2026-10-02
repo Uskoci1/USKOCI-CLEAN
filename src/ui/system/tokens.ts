@@ -11,6 +11,25 @@ import { withInter } from '../interFont';
  */
 export { nested } from '../../theme/tokens';
 
+const WHITE = '#FFFFFF', BLACK = '#000000';
+/** The four colours the fact-picture tones in `sys.color.art` are derived from; `sys.color` spells the same values by name. */
+const GREEN = '#076E4E', ORANGE = '#FA8229', MUTED = '#525252', DANGER = '#963F34';
+const hexChannels = (hex: string) => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16));
+/** `from` moved `amount` (0 to 1) of the way towards `toward`, as upper-case #RRGGBB: the only way an art tone is made. */
+function mix(from: string, toward: string, amount: number): string {
+  const a = hexChannels(from), b = hexChannels(toward);
+  return `#${a.map((value, at) => Math.round(value + (b[at] - value) * amount).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+/** One tone of a fact picture: the face, the darker edge it stands on, a light detail and a soft fill. */
+function artTone(front: string, edge = mix(front, BLACK, 0.3)) {
+  return { front, edge, light: mix(front, WHITE, 0.5), soft: mix(front, WHITE, 0.9) };
+}
+/**
+ * How far a pressed surface gives (rule R8): a button gives the most, a row or a card less, a big surface not at all.
+ * `sys.motion.scale` is this ladder; `sys.motion.pressScale` stays as its button rung for the one component that reads it.
+ */
+const PRESS_LADDER = { button: 0.97, row: 0.985, none: 1 } as const;
+
 /**
  * One light system for every screen (PKG-011, redesigned 2026-09-16 against the V5 AI-FIRST reference: white
  * background, deep green as trust, orientation and the primary action, orange as a controlled accent). Since
@@ -28,6 +47,24 @@ export { nested } from '../../theme/tokens';
  * A colour that was written by hand beside this list and sat a hair off one of its values (CIEDE2000 ≤ 2.5, below what
  * reads as a different colour) now uses that value: two colours that nearly agree are worse than one. The ones that are
  * clearly their own colour got a name here instead, so nothing outside the token files spells a colour.
+ *
+ * COLOUR MEANING (UI/UX pass, 2026-10-02; audit HP-06 and ICO-03). A colour that means two things means nothing, and
+ * green used to mean the action, the selection, the price AND a term nobody had confirmed. One table, and a new use of a
+ * colour has to fit a row of it:
+ *
+ *   green  = do / selected / money    the one primary action, the chosen tab or chip, a title that opens something, a price,
+ *                                     a fact that IS confirmed. Never a thing that is not true yet.
+ *   ink    = content                  what a person wrote and what a thing is called: names, sentences, numbers read as text.
+ *   muted  = unknown / meta           a term that is not set ("Termin nije potvrđen"), a flexible or absent value, a caption,
+ *                                     something inactive or historic. It is 7.9:1 on white, so "unknown" is still readable.
+ *   warn   = waits for you            `warn` on `warnSoft`: a thing that needs your answer or your move.
+ *   orange = attention counts only    the unread dot, the count of what waits, the urgent badge, the rating star, and the
+ *                                     surfaces AGENTS 3.6.4 fixes as the accent (the Home publish tile, the map "+"). Never
+ *                                     decoration, never a row's default.
+ *
+ * `danger` says something went wrong or cannot be undone (an error line, a destructive confirmation) and always sits beside
+ * a word or an icon. A fact picture follows the same table through `sys.color.art`: `brand` (green) is the one default,
+ * `accent` (orange) only where orange means attention, `quiet` where the thing is inactive, `danger` where it went wrong.
  */
 export const sys = {
   color: {
@@ -39,11 +76,11 @@ export const sys = {
     control: '#E8E8E8',
     iconWell: '#F5F5F5',
     ink: '#202020',
-    muted: '#525252',
-    green: '#076E4E',
+    muted: MUTED,
+    green: GREEN,
     /** Legacy name: a neutral selection well; the icon, edge or label carries green. */
     greenSoft: '#F3F3F3',
-    orange: '#FA8229',
+    orange: ORANGE,
     orangeSoft: '#FFF5E9',
     onOrange: '#30200F',
     /** The label on the one primary action, which is green. */
@@ -51,7 +88,7 @@ export const sys = {
     line: '#EBEBEB',
     lineStrong: '#CDCDCD',
     cardLine: '#DEDEDE',
-    danger: '#963F34',
+    danger: DANGER,
     dangerSoft: '#FBECE9',
     warn: '#8A5100',
     warnSoft: '#FFF4DF',
@@ -80,6 +117,28 @@ export const sys = {
      * `onDarkMuted` read 2.4:1 on green (it passed only on the retired forest ground), so nothing may say it.
      */
     onDark: palette.onDark,
+    /**
+     * The tones of a fact picture (FactArt), derived from the tokens above so no picture TONE is a hex of its own: the
+     * `brand` face IS `sys.color.green`, the same green as the titles, the primary action and the active tab. Before this
+     * the pictures used a lighter emerald (#079C77) beside the deep green, and alternated orange and green by kind. (What
+     * is still written by hand is the sticker's neutral paper, ink and shadow greys: FactArt.tsx lists them and
+     * `fact-art.test.tsx` holds that list tight.)
+     *
+     * NOT `sys.art` (further down): that group is the Home drawing's own colours. This one, `sys.color.art`, is the tone
+     * set of a FACT picture (FactArt). They are two things with one word; do not rename either, other files import them.
+     *
+     * Each tone is `front` (the face), `edge` (the darker edge the 25 dp and larger sticker stands on; the 24 dp and
+     * smaller mark draws no edge), `light` (a detail on the face) and `soft` (a fill). `accent` is the action orange,
+     * 2.5:1 on white, so a small accent mark is drawn with its `edge` (3.8:1) or beside ink words, never alone: that is
+     * why the bell is #FA8229 at 26 dp and the darker #C86821 at 24 dp (WCAG 1.4.11, 3:1 for a small graphic). `quiet`
+     * (3.2:1) replaces the old `muted` look; its edge is `sys.color.muted`.
+     */
+    art: {
+      brand: artTone(GREEN),
+      accent: artTone(ORANGE, mix(ORANGE, BLACK, 0.2)),
+      quiet: artTone(mix(MUTED, WHITE, 0.35), MUTED),
+      danger: artTone(DANGER),
+    },
   },
   /** White conversations; speaker alignment, a quiet edge and the solid own-message fill establish hierarchy. */
   conversation: {
@@ -112,6 +171,8 @@ export const sys = {
   },
   /**
    * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
+   * NOT `sys.color.art` (above): that is the tone set of a fact picture (FactArt). Two things with one word; do not
+   * rename this one, `HomeIllustration` imports `sys.art`.
    * Where the drawing used a colour a hair off the palette it now uses the palette colour (its ground shadow is iconWell,
    * the back sheet greenSoft, the pin orange); these are the tones that are deliberately its own.
    */
@@ -164,6 +225,29 @@ export const sys = {
    * button label appears in its final form — never counted up, cross-faded between values or slid in on its own. What
    * moves is the container that carries it (a row arriving, a sheet opening), and under reduced motion nothing moves
    * at all: read `useReducedMotion` from `ui/system/motion`, the one source for that preference.
+   *
+   * THE EIGHT RULES (UI/UX pass, 2026-10-02; audit MO-M9). Every motion value is a token below, and
+   * `__tests__/one-token-source.test.ts` fails on a `duration:`, a spring or a `scaleTo={0.9x}` spelled anywhere else:
+   *
+   *   R1 Only transform and opacity move: never height, width, top or an SVG prop (the locked V4.9 entry scene is the one
+   *      exception). An SVG draw pass is what the B22 Reanimated flood replays.
+   *   R2 Enter decelerates and is longer than exit: `easeOut` is passed explicitly to every React Navigation or
+   *      Animated.timing spec. enter 240, exit 160, push 240 (the token is still 280 until the screen-transition item moves
+   *      it), tab 150, toggle 180, press 120 in and the `spring` out.
+   *   R3 Sheets and anything the finger carries settle on ONE critically damped spring, `sheetSpring`. Nothing that carries
+   *      text overshoots.
+   *   R4 B22 (a flood of dead Reanimated native views): mounted-forever views; no `exiting` or layout animation anywhere; a
+   *      row's animated wrapper is decided at mount and never switches; at most two Reanimated views per list row; an
+   *      `entering` only for a genuinely new id, capped at six rows (`stagger`); loops (`loop`: the skeleton breath, the
+   *      typing dots, the glow) run only on the focused screen, stop in the background and under reduced motion, and never
+   *      more than four at once. New motion is RN Animated on the native driver, not Reanimated.
+   *   R5 Haptics are outcomes, not touches: a tick belongs to a toggle or a confirmed result, never to a finger that has
+   *      only gone down on navigation (which may be the start of a scroll).
+   *   R6 Warm is still; cold after a skeleton arrives once (`arrive`); photos cross-dissolve (`toggle`, 180 ms); a spinner
+   *      lives only inside a button.
+   *   R7 One reduced-motion source, `ui/system/motion`: movement off, state changes instant, Lottie on its first frame,
+   *      navigation 'none'.
+   *   R8 The press-scale ladder `scale`: 0.97 a button, 0.985 a row or card, none for a big surface.
    */
   motion: {
     /** Response to a finger. */
@@ -173,20 +257,46 @@ export const sys = {
     /** Something arriving: a row, a panel, a confirmation. */
     enter: 240,
     exit: 160,
-    /** A screen pushed onto the stack. */
+    /**
+     * A screen pushed onto the stack. Rule R2 targets 240; it stays 280 here because the stack's transition (the layout
+     * that reads it, and the test that pins it) is the screen-transition item's, and nothing existing is restyled by the
+     * item that added the other tiers.
+     */
     push: 280,
     /** The map camera flying to a place. */
     camera: 360,
     /** The step between rows arriving together; stops after six rows. */
     stagger: 40,
+    /** The scene change when a tab is switched: quicker than a push, because a tab is not a place you went to. */
+    tab: 150,
+    /** A content cross-fade that is not a state change: a skeleton giving way to what it stood for. */
+    fade: 160,
     easeOut: [0.23, 1, 0.32, 1] as const,
     easeInOut: [0.77, 0, 0.175, 1] as const,
     sheet: [0.32, 0.72, 0, 1] as const,
-    /** How far a pressed surface gives under the finger. */
-    pressScale: 0.97,
+    /** How far a pressed surface gives under the finger. Legacy name: the button rung of `scale`, read by Press. */
+    pressScale: PRESS_LADDER.button,
+    /** The press-scale ladder (rule R8): `button`, `row` (a row or a card), `none` (a big surface). */
+    scale: PRESS_LADDER,
     /** Everything under a finger settles on a spring, not a timing curve. */
     spring: { duration: 400, dampingRatio: 0.85 },
+    /** Legacy: the map's cover reads it, in Reanimated's duration form. Moves onto `sheetSpring` with that file (rule R3). */
     springSheet: { duration: 300, dampingRatio: 0.8 },
+    /**
+     * The one settle for every sheet (rule R3): critically damped, no bounce, in the form Gorhom's `animationConfigs` takes.
+     * Reduced motion replaces it with `{ duration: 0 }`.
+     */
+    sheetSpring: { stiffness: 300, damping: 30, mass: 1, overshootClamping: true },
+    /**
+     * Loops, in milliseconds per half-turn (rule R4: focused screen only, never more than four at once, stopped in the
+     * background and under reduced motion): the skeleton breath, the typing dots, the glow while listening.
+     */
+    loop: { breath: 700, typing: 520, glow: 1600 },
+    /**
+     * A moment, not a response: the picture of an empty state settling in once (rule R6). Long on purpose, so it is
+     * never used for a control, a fact or anything the finger waits on.
+     */
+    arrive: { duration: 800, easing: [0.22, 0.8, 0.25, 1] as const },
   },
   touch,
   elevation,

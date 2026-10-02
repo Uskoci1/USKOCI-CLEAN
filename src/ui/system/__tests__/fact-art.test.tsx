@@ -1,36 +1,574 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import React from 'react';
-import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { FactArt, type FactArtKind } from '../FactArt';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { Circle, Ellipse, Path, Rect } from 'react-native-svg';
+import {
+  FACT_KINDS, FACT_MEANING, FACT_SIZES, FACT_TICK_KINDS, FactArt, MARK_MAX_SIZE, MARK_MIN_STROKE, factCutFor, factMarkFace,
+  type FactArtKind, type FactCut, type FactDrawnCut, type FactTone,
+} from '../FactArt';
+import { sys } from '../tokens';
 
 /**
- * The fact drawings a task card's requirement line uses (card review r3 item 5, 2026-09-24). A vehicle and a tool are
- * FactArt kinds like the rest: the same 32-unit drawing on a ground shadow, green-led with no orange in them, decorative
- * (the words beside them carry the meaning), and drawn at the size asked for, the card's 16 px included.
+ * The fact pictures (UI/UX pass 2026-10-02, item 1.3; audits ICO-01 to ICO-04, Z8, I1, F01). The pictures cannot be seen
+ * from a test, so what a person would see is turned into things a test can measure: which cut a size gets, which colours
+ * a drawing may use, how much of the canvas each shape covers (a clipped mark or a hairline stroke fails here, not on the
+ * phone), how many SVG shapes a picture costs, and whether two kinds could be mistaken for one another.
  */
-const ORANGE = ['#F78028', '#CF5B12', '#FFBE85', '#FFF0E2'];
-const GREEN = ['#079C77', '#077958'];
-const colours = (root: ReactTestInstance) => root.findAll(node => typeof node.props?.fill === 'string' || typeof node.props?.stroke === 'string', { deep: true })
-  .flatMap(node => [node.props.fill, node.props.stroke]).filter((value): value is string => typeof value === 'string');
+const WHITE = '#FFFFFF';
+const TONES: FactTone[] = ['brand', 'accent', 'quiet', 'danger'];
+/** The ladder sizes where the flat mark is drawn: the sizes a card, a chip or a tab uses. */
+const SMALL_SIZES = FACT_SIZES.filter(size => size <= MARK_MAX_SIZE);
+const colourOf = (value: unknown): string | null => (typeof value === 'string' && value !== 'none' ? value.toUpperCase() : null);
 
-describe('the vehicle and the tool', () => {
-  let tree: ReactTestRenderer;
-  afterEach(async () => { await act(async () => tree?.unmount()); });
+/* -------------------------------------------------------------------------------------------------------------------- */
+/* Reading a drawing back: the SVG shapes of a rendered picture, and the box each one covers on the 32-unit canvas.     */
+/* -------------------------------------------------------------------------------------------------------------------- */
+type Pt = { x: number; y: number };
+type Sub = { pts: Pt[]; verts: Pt[]; lines: boolean; closed: boolean };
+type Box = { x0: number; y0: number; x1: number; y1: number };
 
-  it.each(['vehicle', 'tool'] as FactArtKind[])('%s draws green-led, with no orange, hidden from screen readers, at 16 px', async kind => {
-    await act(async () => { tree = create(<FactArt kind={kind} size={16} />); });
-    const box = tree.root.findAll(node => node.props?.['aria-hidden'] === true)[0];
-    expect(box.props.style).toMatchObject({ width: 16, height: 16 });
-    const used = colours(tree.root);
-    expect(used.some(colour => GREEN.includes(colour))).toBe(true);
-    expect(used.filter(colour => ORANGE.includes(colour))).toEqual([]);
-    // The same construction as the other kinds: the 32-unit drawing on its ground shadow.
-    expect(tree.root.findAll(node => node.props?.viewBox === '0 0 32 32').length).toBeGreaterThan(0);
-    expect(tree.root.findAll(node => node.props?.ry === 1.6 && node.props?.cy === 29.4).length).toBeGreaterThan(0);
+/** The points on an elliptical arc, from the endpoint form SVG uses (the standard conversion to a centre and an angle). */
+function arcPoints(p0: Pt, rxIn: number, ryIn: number, rotation: number, large: number, sweep: number, p1: Pt): Pt[] {
+  let rx = Math.abs(rxIn), ry = Math.abs(ryIn);
+  if (rx === 0 || ry === 0) return [p1];
+  const phi = (rotation * Math.PI) / 180, cos = Math.cos(phi), sin = Math.sin(phi);
+  const dx = (p0.x - p1.x) / 2, dy = (p0.y - p1.y) / 2;
+  const x1 = cos * dx + sin * dy, y1 = -sin * dx + cos * dy;
+  const scale = (x1 * x1) / (rx * rx) + (y1 * y1) / (ry * ry);
+  if (scale > 1) { rx *= Math.sqrt(scale); ry *= Math.sqrt(scale); }
+  const numerator = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1;
+  const denominator = rx * rx * y1 * y1 + ry * ry * x1 * x1;
+  const coefficient = (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, numerator / denominator));
+  const cxp = (coefficient * rx * y1) / ry, cyp = (-coefficient * ry * x1) / rx;
+  const cx = cos * cxp - sin * cyp + (p0.x + p1.x) / 2, cy = sin * cxp + cos * cyp + (p0.y + p1.y) / 2;
+  const angle = (ux: number, uy: number, vx: number, vy: number) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+  const start = angle(1, 0, (x1 - cxp) / rx, (y1 - cyp) / ry);
+  let sweepAngle = angle((x1 - cxp) / rx, (y1 - cyp) / ry, (-x1 - cxp) / rx, (-y1 - cyp) / ry);
+  if (!sweep && sweepAngle > 0) sweepAngle -= 2 * Math.PI;
+  else if (sweep && sweepAngle < 0) sweepAngle += 2 * Math.PI;
+  const steps = 48;
+  return Array.from({ length: steps }, (_, at) => {
+    const t = start + (sweepAngle * (at + 1)) / steps;
+    return { x: cx + cos * rx * Math.cos(t) - sin * ry * Math.sin(t), y: cy + sin * rx * Math.cos(t) + cos * ry * Math.sin(t) };
+  });
+}
+
+/** Every sub-path of a path string, as sampled points (curves and arcs) and as the vertices a person would call corners. */
+function parsePath(d: string): Sub[] {
+  const tokens = d.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) ?? [];
+  const subs: Sub[] = [];
+  let at = 0, command = '', current: Pt = { x: 0, y: 0 }, start: Pt = current, sub: Sub | null = null, lastControl: Pt | null = null;
+  const next = () => parseFloat(tokens[at++]);
+  const add = (point: Pt, sampled: Pt[] = [point], straight = true) => {
+    sub!.pts.push(...sampled); sub!.verts.push(point); if (!straight) sub!.lines = false; current = point;
+  };
+  while (at < tokens.length) {
+    if (/[a-zA-Z]/.test(tokens[at])) command = tokens[at++];
+    else if (command === 'M') command = 'L';
+    else if (command === 'm') command = 'l';
+    const relative = command === command.toLowerCase();
+    const base = relative ? current : { x: 0, y: 0 };
+    const point = (): Pt => { const x = next(), y = next(); return { x: base.x + x, y: base.y + y }; };
+    switch (command.toUpperCase()) {
+      case 'M': { const p = point(); sub = { pts: [p], verts: [p], lines: true, closed: false }; subs.push(sub); current = start = p; lastControl = null; break; }
+      case 'L': add(point()); lastControl = null; break;
+      case 'H': add({ x: (relative ? current.x : 0) + next(), y: current.y }); lastControl = null; break;
+      case 'V': add({ x: current.x, y: (relative ? current.y : 0) + next() }); lastControl = null; break;
+      case 'C': case 'S': {
+        const from = current;
+        const c1 = command.toUpperCase() === 'S' ? (lastControl ? { x: 2 * from.x - lastControl.x, y: 2 * from.y - lastControl.y } : from) : point();
+        const c2 = point(), end = point();
+        add(end, Array.from({ length: 16 }, (_, k) => {
+          const t = (k + 1) / 16, u = 1 - t;
+          return { x: u ** 3 * from.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t ** 3 * end.x, y: u ** 3 * from.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t ** 3 * end.y };
+        }), false);
+        lastControl = c2; break;
+      }
+      case 'A': {
+        const rx = next(), ry = next(), rotation = next(), large = next(), sweep = next();
+        const end = point();
+        add(end, arcPoints(current, rx, ry, rotation, large, sweep, end), false); lastControl = null; break;
+      }
+      case 'Z': sub!.closed = true; current = start; lastControl = null; break;
+      default: throw new Error(`path command ${command} is not read by this test: ${d}`);
+    }
+  }
+  return subs;
+}
+
+type Shape = { kind: 'Path' | 'Circle' | 'Ellipse' | 'Rect'; props: Record<string, any> };
+const SHAPE_TYPES: [unknown, Shape['kind']][] = [[Path, 'Path'], [Circle, 'Circle'], [Ellipse, 'Ellipse'], [Rect, 'Rect']];
+const half = (shape: Shape) => (colourOf(shape.props.stroke) && Number(shape.props.strokeWidth) > 0 ? Number(shape.props.strokeWidth) / 2 : 0);
+const toBox = (points: Pt[], grow: number): Box => ({
+  x0: Math.min(...points.map(p => p.x)) - grow, y0: Math.min(...points.map(p => p.y)) - grow,
+  x1: Math.max(...points.map(p => p.x)) + grow, y1: Math.max(...points.map(p => p.y)) + grow,
+});
+/** The box one shape paints, its stroke included (a round cap or join reaches exactly half a stroke past its point). */
+function boxOf(shape: Shape): Box {
+  const p = shape.props, grow = half(shape);
+  switch (shape.kind) {
+    case 'Circle': return { x0: p.cx - p.r - grow, y0: p.cy - p.r - grow, x1: p.cx + p.r + grow, y1: p.cy + p.r + grow };
+    case 'Ellipse': return { x0: p.cx - p.rx - grow, y0: p.cy - p.ry - grow, x1: p.cx + p.rx + grow, y1: p.cy + p.ry + grow };
+    case 'Rect': return { x0: p.x - grow, y0: p.y - grow, x1: p.x + p.width + grow, y1: p.y + p.height + grow };
+    default: {
+      const points = parsePath(p.d).flatMap(sub => sub.pts);
+      const box = toBox(points, 0);
+      // A butt end stops at its end point, so a straight band that runs along one axis grows only sideways. Any other path
+      // (round caps, joins, a diagonal band) grows by half a stroke in both directions, which can only over-estimate.
+      const butt = p.strokeLinecap === 'butt';
+      const along = butt && box.y1 - box.y0 === 0 ? 'x' : butt && box.x1 - box.x0 === 0 ? 'y' : null;
+      const [gx, gy] = along === 'x' ? [0, grow] : along === 'y' ? [grow, 0] : [grow, grow];
+      return { x0: box.x0 - gx, y0: box.y0 - gy, x1: box.x1 + gx, y1: box.y1 + gy };
+    }
+  }
+}
+
+/**
+ * The SVG shapes of one picture in drawing order, read from the element tree `FactArt` returns. The component has no hooks,
+ * so its function (`memo(...).type`) is called directly: a render through react-test-renderer costs about 30 ms, and the
+ * suites below look at every kind, in both cuts, in every tone. One test at the end renders through the real renderer.
+ */
+type FactProps = React.ComponentProps<typeof FactArt>;
+const factArtFunction = (FactArt as unknown as { type: (props: FactProps) => React.ReactElement<any> }).type;
+function collect(node: React.ReactNode, out: Shape[]): void {
+  if (Array.isArray(node)) { node.forEach(child => collect(child, out)); return; }
+  if (!React.isValidElement(node)) return;
+  const element = node as React.ReactElement<Record<string, any>>;
+  const known = SHAPE_TYPES.find(([type]) => element.type === type);
+  if (known) out.push({ kind: known[1], props: element.props });
+  collect(element.props.children, out);
+}
+function shapesOf(props: FactProps): { shapes: Shape[]; svgSize: number; boxSize: number; hidden: boolean; viewBox: string } {
+  const box = factArtFunction(props);
+  const svg = box.props.children as React.ReactElement<any>;
+  const shapes: Shape[] = [];
+  collect(svg.props.children, shapes);
+  return { shapes, svgSize: Number(svg.props.width), boxSize: Number(box.props.style.width), hidden: box.props['aria-hidden'] === true, viewBox: svg.props.viewBox };
+}
+const colours = (shapes: Shape[]) => [...new Set(shapes.flatMap(shape => [colourOf(shape.props.fill), colourOf(shape.props.stroke)]).filter((c): c is string => c !== null))];
+const isGround = (shape: Shape) => shape.kind === 'Ellipse' && shape.props.ry === 1.6 && shape.props.cy === 29.4;
+
+/** WCAG contrast of one #RRGGBB against another. */
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a: string, b: string) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+
+/** A tick is a short stroke down and then a longer one up and to the right: the shape a person reads as "confirmed". */
+function hasTick(shapes: Shape[]): boolean {
+  return shapes.some(shape => shape.kind === 'Path' && parsePath(shape.props.d).some(sub => {
+    if (!sub.lines || sub.closed || sub.verts.length !== 3) return false;
+    const [a, b, c] = sub.verts;
+    const first = Math.hypot(b.x - a.x, b.y - a.y), second = Math.hypot(c.x - b.x, c.y - b.y);
+    return b.y > a.y && b.y > c.y && b.x > a.x && c.x > b.x && first / second > 0.3 && first / second < 0.75;
+  }));
+}
+
+const signature = (shapes: Shape[]) => shapes.map(shape => `${shape.kind}:${['d', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height'].map(k => shape.props[k] ?? '').join(',')}`).join('|');
+
+/** Every picture in both cuts, drawn once, for the suites that look at all of them. */
+const MARK: Record<string, Shape[]> = {}, ART: Record<string, Shape[]> = {};
+beforeAll(() => {
+  for (const kind of FACT_KINDS) {
+    MARK[kind] = shapesOf({ kind, size: 24, cut: 'mark', tone: 'brand' }).shapes;
+    ART[kind] = shapesOf({ kind, size: 32, cut: 'art', tone: 'brand' }).shapes;
+  }
+});
+
+describe('which cut a size gets', () => {
+  it('draws the flat mark at 24 px and below and the sticker above, so no call site needs an edit', () => {
+    for (const size of [14, 16, 18, 20, 22, 24]) expect(factCutFor(size)).toBe('mark');
+    for (const size of [25, 26, 28, 30, 32, 36, 40, 48, 56, 64, 72]) expect(factCutFor(size)).toBe('art');
+    expect(MARK_MAX_SIZE).toBe(24);
+    expect(FACT_SIZES).toEqual([16, 20, 24, 32, 48, 64]);
+    expect(FACT_SIZES.map(size => factCutFor(size))).toEqual(['mark', 'mark', 'mark', 'art', 'art', 'art']);
   });
 
-  it.each(['vehicle', 'tool'] as FactArtKind[])('%s turns grey when it is not active', async kind => {
-    await act(async () => { tree = create(<FactArt kind={kind} size={20} muted />); });
-    const used = colours(tree.root);
-    expect(used.filter(colour => [...GREEN, ...ORANGE].includes(colour))).toEqual([]);
+  it('lets the board force a cut, and a size between the two cuts (a Profil row, 26 px) keeps the sticker', () => {
+    expect(factCutFor(16, 'art')).toBe('art');
+    expect(factCutFor(64, 'mark')).toBe('mark');
+    expect(factCutFor(26, 'auto')).toBe('art');
+  });
+
+  it.each([16, 20, 24, 32, 48, 64])('draws what the cut says at %i px: no ground shadow in the mark, one in the sticker', size => {
+    const expected = size <= 24 ? 'mark' : 'art';
+    for (const kind of ['pin', 'users', 'calendar', 'vehicle'] as FactArtKind[]) {
+      const { shapes, svgSize, boxSize } = shapesOf({ kind, size });
+      expect(shapes.some(isGround)).toBe(expected === 'art');
+      expect(svgSize).toBe(size);
+      expect(boxSize).toBe(size);
+    }
+  });
+
+  it('draws the cut it is asked for whatever the size', () => {
+    expect((shapesOf({ kind: 'pin', size: 16, cut: 'art' })).shapes.some(isGround)).toBe(true);
+    expect((shapesOf({ kind: 'pin', size: 64, cut: 'mark' })).shapes.some(isGround)).toBe(false);
+  });
+});
+
+describe('the existing call sites keep working', () => {
+  // The sizes the ~140 call sites pass today (read from the source on 2026-10-02), the dynamic ones included.
+  const USED_SIZES = [14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40, 48, 56, 72];
+  it('draws every kind at every size in use, hidden from screen readers, on the 32-unit canvas', () => {
+    for (const kind of FACT_KINDS) for (const size of USED_SIZES) {
+      const { shapes, svgSize, boxSize, hidden, viewBox } = shapesOf({ kind, size });
+      expect(shapes.length).toBeGreaterThan(0);
+      expect(svgSize).toBe(size);
+      expect(boxSize).toBe(size);
+      expect(hidden).toBe(true);
+      expect(viewBox).toBe('0 0 32 32');
+    }
+  });
+
+  describe('through the real renderer', () => {
+    let tree: ReactTestRenderer | undefined;
+    afterEach(async () => { await act(async () => tree?.unmount()); });
+
+    it('renders a picture of each cut, hidden from screen readers, at the size asked for', async () => {
+      for (const [size, cut] of [[16, 'mark'], [30, 'art']] as [number, FactDrawnCut][]) {
+        await act(async () => { tree = create(<FactArt kind="vehicle" size={size} />); });
+        const box = tree!.root.findAll(node => node.props?.['aria-hidden'] === true)[0];
+        expect(box.props.style).toMatchObject({ width: size, height: size });
+        expect(tree!.root.findAll(node => node.props?.viewBox === '0 0 32 32').length).toBeGreaterThan(0);
+        expect(tree!.root.findAll(node => node.props?.ry === 1.6 && node.props?.cy === 29.4).length > 0).toBe(cut === 'art');
+        await act(async () => tree!.unmount());
+      }
+    });
+
+    // The card review r3 item 5 (2026-09-24): a vehicle and a tool are fact drawings like the rest, green-led, hidden from
+    // screen readers, and drawn at the 16 px of a task card's requirement line.
+    it.each(['vehicle', 'tool'] as FactArtKind[])('%s draws green, with no orange, at 16 px, and turns grey when it is not active', async kind => {
+      await act(async () => { tree = create(<FactArt kind={kind} size={16} />); });
+      const used = (root: ReactTestRenderer['root']) => root.findAll(node => typeof node.props?.fill === 'string' || typeof node.props?.stroke === 'string', { deep: true })
+        .flatMap(node => [node.props.fill, node.props.stroke]).filter((value): value is string => typeof value === 'string').map(value => value.toUpperCase());
+      expect(used(tree!.root)).toContain(sys.color.green.toUpperCase());
+      expect(used(tree!.root).filter(c => Object.values(sys.color.art.accent).map(v => v.toUpperCase()).includes(c))).toEqual([]);
+      await act(async () => tree!.unmount());
+      await act(async () => { tree = create(<FactArt kind={kind} size={20} muted />); });
+      expect(used(tree!.root)).not.toContain(sys.color.green.toUpperCase());
+    });
+  });
+
+  it('keeps the default size at 20 and accepts `muted` as before, drawing the same shapes in the quiet tone', () => {
+    expect((shapesOf({ kind: 'pin' })).boxSize).toBe(20);
+    for (const kind of FACT_KINDS) for (const size of [16, 24, 26, 30, 56]) {
+      const muted = shapesOf({ kind, size, muted: true });
+      const quiet = shapesOf({ kind, size, tone: 'quiet' });
+      expect(signature(muted.shapes)).toBe(signature(quiet.shapes));
+      expect(colours(muted.shapes)).toEqual(colours(quiet.shapes));
+      // `muted` wins over a tone, as it did when it was the only switch.
+      expect(colours((shapesOf({ kind, size, muted: true, tone: 'accent' })).shapes)).toEqual(colours(quiet.shapes));
+    }
+  });
+});
+
+describe('the flat mark cut (24 px and below)', () => {
+  it.each(FACT_KINDS as readonly FactArtKind[])('%s lies inside the canvas, with no hairline stroke or sliver of fill', kind => {
+    for (const shape of MARK[kind]) {
+      const box = boxOf(shape);
+      // Nothing may touch the edge of the canvas: a shape that does is clipped by it, and a mark that is clipped on one
+      // side at 16 px reads as a different picture.
+      expect(box.x0).toBeGreaterThanOrEqual(0.5);
+      expect(box.y0).toBeGreaterThanOrEqual(0.5);
+      expect(box.x1).toBeLessThanOrEqual(31.5);
+      expect(box.y1).toBeLessThanOrEqual(31.5);
+      if (colourOf(shape.props.stroke)) expect(Number(shape.props.strokeWidth)).toBeGreaterThanOrEqual(MARK_MIN_STROKE);
+      if (!colourOf(shape.props.fill)) continue;
+      // A filled shape (or each part of a filled path) is at least as thick as the thinnest stroke.
+      const parts = shape.kind === 'Path' ? parsePath(shape.props.d).map(sub => toBox(sub.pts, 0)) : [boxOf({ ...shape, props: { ...shape.props, stroke: 'none' } })];
+      for (const part of parts) expect(Math.min(part.x1 - part.x0, part.y1 - part.y0)).toBeGreaterThanOrEqual(MARK_MIN_STROKE);
+    }
+  });
+
+  it.each(FACT_KINDS as readonly FactArtKind[])('%s draws no ground shadow, no edge and no shine: one fill tone and white, nothing else', kind => {
+    expect(MARK[kind].some(isGround)).toBe(false);
+    expect(MARK[kind].some(shape => shape.kind === 'Ellipse')).toBe(false);
+    // Brand here; the next test draws every kind in every tone. The only colours are the face and white.
+    expect(colours(MARK[kind]).filter(c => c !== WHITE)).toEqual([factMarkFace('brand')]);
+  });
+
+  it.each(FACT_KINDS as readonly FactArtKind[])('%s keeps every white detail on the tone: a white detail that falls off its shape vanishes on a white card', kind => {
+    const face = factMarkFace('brand').toUpperCase();
+    const paintsFace = (shape: Shape) => colourOf(shape.props.fill) === face || colourOf(shape.props.stroke) === face;
+    // The box of what is drawn in the tone (a white rim around a tone shape is not part of it).
+    const toneBoxes = MARK[kind].filter(paintsFace).map(shape => boxOf(colourOf(shape.props.stroke) === face ? shape : { ...shape, props: { ...shape.props, stroke: 'none' } }));
+    const union = { x0: Math.min(...toneBoxes.map(b => b.x0)), y0: Math.min(...toneBoxes.map(b => b.y0)), x1: Math.max(...toneBoxes.map(b => b.x1)), y1: Math.max(...toneBoxes.map(b => b.y1)) };
+    for (const shape of MARK[kind].filter(s => !paintsFace(s))) {
+      const box = boxOf(shape);
+      expect(box.x0).toBeGreaterThanOrEqual(union.x0 - 0.01);
+      expect(box.y0).toBeGreaterThanOrEqual(union.y0 - 0.01);
+      expect(box.x1).toBeLessThanOrEqual(union.x1 + 0.01);
+      expect(box.y1).toBeLessThanOrEqual(union.y1 + 0.01);
+    }
+  });
+
+  it('draws every kind in the tone it is given, and nothing but that tone and white', () => {
+    for (const kind of FACT_KINDS) for (const tone of TONES) {
+      const used = colours((shapesOf({ kind, size: 20, tone })).shapes);
+      expect(used.filter(c => c !== WHITE)).toEqual([factMarkFace(tone)]);
+    }
+  });
+
+  it('keeps every tone at 3:1 or more against white, and the white detail at 3:1 or more against the tone', () => {
+    for (const tone of TONES) {
+      expect(contrast(factMarkFace(tone), WHITE)).toBeGreaterThanOrEqual(3);
+    }
+    // The orange accent is 2.5:1 on white as a face, so the mark wears its darker edge instead.
+    expect(contrast(sys.color.art.accent.front, WHITE)).toBeLessThan(3);
+    expect(factMarkFace('accent')).toBe(sys.color.art.accent.edge);
+    expect(factMarkFace('brand')).toBe(sys.color.green);
+  });
+
+  it('draws both people of the pair in the full tone, side by side, the second one smaller', () => {
+    const shapes = MARK.users;
+    expect(shapes).toHaveLength(1);
+    const parts = parsePath(shapes[0].props.d);
+    expect(parts).toHaveLength(4);
+    expect(colours(shapes)).toEqual([factMarkFace('brand')]);
+    const [frontHead, frontBody, backHead, backBody] = parts.map(sub => toBox(sub.pts, 0));
+    expect(backHead.x1 - backHead.x0).toBeLessThan(frontHead.x1 - frontHead.x0);
+    expect(backBody.x1 - backBody.x0).toBeLessThan(frontBody.x1 - frontBody.x0);
+    // They do not overlap: the gap between the two bodies is at least 3 units.
+    expect(backBody.x0 - frontBody.x1).toBeGreaterThanOrEqual(3);
+  });
+
+  it('draws the calendar as a body, a header band, two rings and two lines, and the clipboard as a board, a clip and two lines', () => {
+    expect(MARK.calendar.map(shape => shape.kind)).toEqual(['Rect', 'Path', 'Path', 'Path']);
+    expect(parsePath(MARK.calendar[2].props.d)).toHaveLength(2);
+    expect(parsePath(MARK.calendar[3].props.d)).toHaveLength(2);
+    expect(MARK.tasks.map(shape => shape.kind)).toEqual(['Rect', 'Rect', 'Path']);
+    expect(parsePath(MARK.tasks[2].props.d)).toHaveLength(2);
+    expect(MARK.money.map(shape => shape.kind)).toEqual(['Rect', 'Circle']);
+  });
+});
+
+describe('what a picture costs (B22: every SVG draw is a native view that can be replayed)', () => {
+  it('draws the mark with at most four shapes, and always fewer than the sticker', () => {
+    for (const kind of FACT_KINDS) {
+      expect(MARK[kind].length).toBeLessThanOrEqual(4);
+      expect(MARK[kind].length).toBeLessThan(ART[kind].length);
+    }
+    const total = (shapes: Record<string, Shape[]>) => Object.values(shapes).reduce((sum, list) => sum + list.length, 0);
+    expect(total(MARK) * 2).toBeLessThan(total(ART));
+  });
+});
+
+describe('the sticker (25 px and above)', () => {
+  it.each(FACT_KINDS as readonly FactArtKind[])('%s keeps the approved construction: a ground shadow first, every shape inside the canvas', kind => {
+    expect(isGround(ART[kind][0])).toBe(true);
+    for (const shape of ART[kind]) {
+      const box = boxOf(shape);
+      expect(box.x0).toBeGreaterThanOrEqual(-0.001);
+      expect(box.y0).toBeGreaterThanOrEqual(-0.001);
+      expect(box.x1).toBeLessThanOrEqual(32.001);
+      expect(box.y1).toBeLessThanOrEqual(32.001);
+    }
+  });
+});
+
+describe('one tone rule', () => {
+  const ORANGE = [sys.color.art.accent.front, sys.color.art.accent.edge, sys.color.art.accent.light, sys.color.art.accent.soft].map(c => c.toUpperCase());
+  const OLD_PALETTE = ['#F78028', '#CF5B12', '#FFBE85', '#FFF0E2', '#079C77', '#077958', '#6FD0AB', '#E1F4EC', '#8A938E', '#5C6860'];
+  const ATTENTION: FactArtKind[] = ['bell', 'star', 'alert'];
+
+  it('draws every kind in the brand green by default, orange only for the bell, the star and the alert', () => {
+    for (const kind of FACT_KINDS) for (const size of [16, 24, 32, 56]) {
+      const used = colours((shapesOf({ kind, size })).shapes);
+      const orange = used.filter(c => ORANGE.includes(c));
+      if (ATTENTION.includes(kind)) expect(orange.length).toBeGreaterThan(0);
+      else expect(orange).toEqual([]);
+    }
+  });
+
+  it('draws the picture and the primary action in one green: the art tone IS sys.color.green', () => {
+    expect(sys.color.art.brand.front).toBe(sys.color.green);
+    expect(colours((shapesOf({ kind: 'pin', size: 20 })).shapes)).toContain(sys.color.green);
+    expect(colours((shapesOf({ kind: 'pin', size: 32 })).shapes)).toContain(sys.color.green);
+  });
+
+  it('has none of the old hand-written tones left, in either cut, for any tone', () => {
+    for (const kind of FACT_KINDS) for (const tone of TONES) for (const cut of ['mark', 'art'] as FactCut[]) {
+      expect(colours((shapesOf({ kind, size: 24, tone, cut })).shapes).filter(c => OLD_PALETTE.includes(c))).toEqual([]);
+    }
+  });
+
+  it('turns grey when it is not active and orange or red only on request', () => {
+    const quiet = Object.values(sys.color.art.quiet).map(c => c.toUpperCase());
+    for (const cut of ['mark', 'art'] as FactCut[]) {
+      const used = colours((shapesOf({ kind: 'calendar', size: 24, muted: true, cut })).shapes);
+      expect(used.filter(c => ORANGE.includes(c) || c === sys.color.green.toUpperCase())).toEqual([]);
+      expect(used.some(c => quiet.includes(c))).toBe(true);
+    }
+    expect(colours((shapesOf({ kind: 'pin', size: 20, tone: 'accent' })).shapes)).toContain(factMarkFace('accent'));
+    expect(colours((shapesOf({ kind: 'pin', size: 20, tone: 'danger' })).shapes)).toContain(sys.color.danger.toUpperCase());
+  });
+});
+
+describe('every picture means one thing, and no two kinds are one silhouette', () => {
+  it('has one phrase for every kind and no two kinds share it', () => {
+    expect(Object.keys(FACT_MEANING).sort()).toEqual([...FACT_KINDS].sort());
+    const phrases = FACT_KINDS.map(kind => FACT_MEANING[kind].trim().toLowerCase());
+    for (const phrase of phrases) expect(phrase.length).toBeGreaterThan(3);
+    expect(new Set(phrases).size).toBe(phrases.length);
+  });
+
+  it('draws no two kinds the same, in either cut', () => {
+    for (const drawn of [MARK, ART]) {
+      const seen = new Map<string, string>();
+      for (const kind of FACT_KINDS) {
+        const sig = signature(drawn[kind]);
+        expect([kind, seen.get(sig)]).toEqual([kind, undefined]);
+        seen.set(sig, kind);
+      }
+    }
+  });
+
+  it('draws the price tag, the agreement and the conversation as three different shapes', () => {
+    const pathsOf = (drawn: Record<string, Shape[]>, kind: string) => drawn[kind].filter(s => s.kind === 'Path').map(s => s.props.d as string);
+    for (const drawn of [MARK, ART]) {
+      const bubbles = [...pathsOf(drawn, 'chat'), ...pathsOf(drawn, 'agreements')];
+      // The tag is not a bubble: it shares no path with either, and its outline is a polygon (no tail), not a rounded box.
+      for (const d of pathsOf(drawn, 'offers')) expect(bubbles).not.toContain(d);
+      for (const d of pathsOf(drawn, 'agreements')) expect(pathsOf(drawn, 'chat')).not.toContain(d);
+    }
+    // Their cost is the same, but their drawings are not: the tag is drawn from its own corners, with a punched hole.
+    expect(MARK.offers.some(shape => shape.kind === 'Circle' && colourOf(shape.props.fill) === WHITE)).toBe(true);
+    expect(MARK.offers.every(shape => !(shape.kind === 'Path' && /a5\.4 5\.4/.test(shape.props.d)))).toBe(true);
+  });
+
+  it('draws the new task and the clipboard of your own list apart: a badge with a plus, and a clip', () => {
+    expect(MARK.publish.some(shape => shape.kind === 'Circle')).toBe(true);
+    expect(MARK.tasks.some(shape => shape.kind === 'Circle')).toBe(false);
+    expect(signature(MARK.publish)).not.toBe(signature(MARK.tasks));
+    expect(signature(ART.publish)).not.toBe(signature(ART.tasks));
+  });
+});
+
+describe('no false ticks', () => {
+  it('finds a tick by its shape: a short stroke down and a longer one up, not an arrow head', () => {
+    const tick = (d: string): Shape[] => [{ kind: 'Path', props: { d } }];
+    expect(hasTick(tick('m10.6 12.9 3.2 3.2 7-7'))).toBe(true);
+    expect(hasTick(tick('m9.5 18.5 1.4 1.5 2.3-3'))).toBe(true);
+    expect(hasTick(tick('M10.9 10l5.1 5.1 5.1-5.1'))).toBe(false);
+    expect(hasTick(tick('M16 8.1v7.4l4.6 3.3'))).toBe(false);
+  });
+
+  it('draws a tick on the check, the agreement and the shield only, in both cuts', () => {
+    for (const drawn of [MARK, ART]) {
+      const withTick = FACT_KINDS.filter(kind => hasTick(drawn[kind]));
+      expect([...withTick].sort()).toEqual([...FACT_TICK_KINDS].sort());
+    }
+  });
+
+  it('draws no tick on the calendar, the task list or the remote screen: an unconfirmed term does not wear a confirmation', () => {
+    for (const drawn of [MARK, ART]) for (const kind of ['calendar', 'tasks', 'remote', 'publish', 'offers'] as FactArtKind[]) {
+      expect(hasTick(drawn[kind])).toBe(false);
+    }
+  });
+});
+
+describe('the design board on the phone (uskociapp://dizajn-tabla)', () => {
+  // The board is where the owner looks at the new system on the phone, so it must show every kind on the ladder, the two cuts
+  // side by side at the sizes a card draws, the two oranges of the accent tone, and the four tones. Read from the source: the
+  // screen needs a router and a task card.
+  const board = readFileSync(join(__dirname, '../../../app/dizajn-tabla.tsx'), 'utf8').replace(/\r\n/g, '\n');
+
+  it('draws every kind from FACT_KINDS on the ladder, and the sticker beside the mark at 16, 20 and 24', () => {
+    expect(board).toContain('const SYSTEM = FACT_KINDS;');
+    expect(board).toContain('FACT_SIZES.map(size => <FactArt key={size} kind={kind} size={size} />)');
+    expect(board).toContain('const SMALL = [16, 20, 24];');
+    expect(SMALL_SIZES).toEqual([16, 20, 24]);
+    expect(board).toContain('cut="art"');
+    expect(board).toContain('cut="mark"');
+  });
+
+  it('draws the four tones', () => {
+    for (const tone of TONES) expect(board).toContain(`['${tone}', '${tone} ·`);
+    expect(board).toContain('tone={tone}');
+  });
+
+  // Wave-1 review, MAJOR 2: the left column was captioned "how the card looked", but it draws the sticker in the NEW tones, so
+  // it was not a before. The old two-tone sticker cannot be restored without redrawing it; the board must not claim it.
+  it('says what it shows: the two cuts of the new system, never a before and after, and never "how the card looked"', () => {
+    expect(board).toContain('Dva reza: nalepnica (levo) i oznaka (desno)');
+    for (const claim of [/Pre \(levo\)/, /posle \(desno\)/i, /how the card looked/i, /how it looks now/i, /the sticker it replaced/i, /before on the left/i]) {
+      expect([String(claim), claim.test(board)]).toEqual([String(claim), false]);
+    }
+    expect(board).toMatch(/NOT a before and after/);
+    expect(board.replace(/\s*\n\s*\*?\s*/g, ' ')).toMatch(/already on his phone/);
+  });
+
+  // Wave-1 review, minor (e): the accent sticker (#FA8229) and the accent mark (#C86821) are two oranges; the board shows both.
+  it('shows the two oranges side by side: the accent kinds as the sticker at 26 and as the mark at 24', () => {
+    expect(board).toContain('Dva narandžasta: nalepnica 26 (levo) · oznaka 24 (desno)');
+    expect(board).toContain('ACCENT_KINDS.map(kind =>');
+    expect(board).toContain('<FactArt kind={kind} size={26} tone="accent" />');
+    expect(board).toContain('<FactArt kind={kind} size={24} tone="accent" />');
+    expect(factCutFor(26)).toBe('art');
+    expect(factCutFor(24)).toBe('mark');
+    // They really are two oranges, and the reason is the 3:1 floor.
+    expect(sys.color.art.accent.front).not.toBe(factMarkFace('accent'));
+    expect(contrast(sys.color.art.accent.front, WHITE)).toBeLessThan(3);
+    expect(contrast(factMarkFace('accent'), WHITE)).toBeGreaterThanOrEqual(3);
+    expect(board).toMatch(/3:1/);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Wave-1 review, minor (d): the header said every colour came from sys.color.art, while the sticker spells about twenty
+// hand-written greys and one green that was a hair off the token. What is a token and what is not is now exact, and held tight.
+// ---------------------------------------------------------------------------------------------------------------------
+describe('what FactArt owns as a hex, and what it does not', () => {
+  const source = readFileSync(join(__dirname, '../FactArt.tsx'), 'utf8');
+  /** Code without its comments, so a colour mentioned in a header is not a colour drawn. */
+  const code = source.replace(/\/\*[^]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-z_])/gi;
+  /** The sticker's neutral paper, ink and shadow greys: the one known remainder that is not a token. Tight both ways. */
+  const NEUTRALS = ['#163D2B', '#35463D', '#D6DAD6', '#D5DAD5', '#6A736C', '#CFD6D0', '#FAFCFA', '#B8C4BB', '#33463B', '#9AA59D', '#576A5D', '#364D40',
+    '#6E8576', '#C3CFC6', '#F7FBF7', '#C5CDC7', '#CCD4CE', '#7B887E', '#5C6B61'];
+  const spelled = [...new Set((code.match(HEX) ?? []).map(hex => hex.toUpperCase()))];
+
+  it('spells white and exactly the listed neutral greys, no more and no fewer', () => {
+    expect(spelled.filter(hex => hex !== WHITE).sort()).toEqual([...NEUTRALS].sort());
+    expect(spelled).toContain(WHITE);
+    expect(NEUTRALS).toHaveLength(19);
+  });
+
+  it('spells no tone: no hex of any tone of sys.color.art, and not the near-green that was a hair off the token', () => {
+    const tones = Object.values(sys.color.art).flatMap(tone => Object.values(tone)).map(hex => hex.toUpperCase());
+    expect(spelled.filter(hex => tones.includes(hex))).toEqual([]);
+    expect(spelled).not.toContain('#056B4D');
+  });
+
+  it('draws the pin\'s hole shade in the tone it is in, so an orange, grey or red pin has no stray green in it', () => {
+    const brandEdge = sys.color.art.brand.edge.toUpperCase();
+    for (const tone of TONES) {
+      const used = colours(shapesOf({ kind: 'pin', size: 32, tone, cut: 'art' }).shapes);
+      expect(used).toContain(sys.color.art[tone].edge.toUpperCase());
+      if (tone !== 'brand') expect([tone, used.includes(brandEdge), used.includes('#056B4D')]).toEqual([tone, false, false]);
+    }
+  });
+
+  it('says in its header what is and is not a token, and no longer claims that every colour is one', () => {
+    expect(source).not.toMatch(/every colour here comes from `sys\.color\.art`/);
+    expect(source.replace(/\s*\n\s*\*\s*/g, ' ')).toMatch(/Every TONE colour here comes from `sys\.color\.art`/);
+    expect(source).toMatch(/NEUTRALS/);
+    expect(source).toMatch(/TWO ORANGES, ON PURPOSE/);
+    expect(source).toMatch(/WCAG 1\.4\.11/);
+  });
+
+  // Minor (i): "0.5 to 1 pixel of noise at 16 and 20 px" mixed dp with device pixels. On the owner's 560 dpi phone a 16 dp
+  // picture is 56 device pixels, and the sticker's finish is readable there. The reasons for the flat mark are a design
+  // decision (one hue, one weight, fewer details, fewer SVG shapes), stated as such.
+  it('gives the real reasons for the flat mark and no false pixel claim, in the code and in ICON_SYSTEM.md', () => {
+    const doc = readFileSync(join(__dirname, '../../../../docs/implementation/design-system/ICON_SYSTEM.md'), 'utf8').replace(/\r\n/g, '\n');
+    const flat = (text: string) => text.replace(/\s*\n\s*\*?\s*/g, ' ');
+    for (const [name, text] of [['FactArt.tsx', flat(source)], ['ICON_SYSTEM.md', flat(doc)]] as const) {
+      expect([name, /0\.5 to 1 pixel/.test(text), /smudge/i.test(text), /noise at (?:the )?16/i.test(text)]).toEqual([name, false, false, false]);
+      expect([name, /56 device pixels/.test(text)]).toEqual([name, true]);
+      expect([name, /design decision/i.test(text)]).toEqual([name, true]);
+    }
   });
 });

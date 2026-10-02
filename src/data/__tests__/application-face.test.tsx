@@ -19,7 +19,9 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
-jest.mock('../../ui/system/textScale', () => ({ useTextScale: () => mockScale }));
+// The face asks the one layout class (`useLayoutClass`); this suite varies the text scale on a roomy 411 dp window, so only the scale decides.
+jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual('../../ui/system/textScale');
+  return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(411, mockScale) }; });
 import { ApplicationCard, applicationFoot, applicationStatus, applicationValue, offerPeople, offerSettled } from '../../ui/v2/ApplicationFace';
 import { faceStyles } from '../../ui/v2/TaskFace';
 

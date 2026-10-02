@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -37,10 +39,12 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
-jest.mock('../../ui/system/textScale', () => ({ useTextScale: () => mockScale }));
+// The card asks the one layout class (`useLayoutClass`), from the same window this suite stands in for the phone.
+jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual('../../ui/system/textScale');
+  return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(mockWidth, mockScale) }; });
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', Lightning: 'Lightning' }));
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
-import { CardPlaces, ownerNext, placesText, taskStatus } from '../../ui/v2/TaskFace';
+import { CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -456,5 +460,47 @@ describe('review r3', () => {
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={task()} onOpen={jest.fn()} />));
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
+  });
+});
+
+// Wave-1 review, minor (h): the colour-meaning table says green = a fact that IS confirmed and muted = a term that is not set. The
+// calendar mark was always green, so a flexible or absent term wore the green of a fixed one.
+describe('the calendar mark follows the colour meaning', () => {
+  const FIXED = { kind: 'FIXED_WINDOW', startsAt: '2026-09-24T15:00:00Z', endsAt: '2026-09-24T17:00:00Z' } as const;
+  const calendar = () => tree.root.find(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'calendar');
+
+  it('is green for a fixed window that names its time', async () => {
+    await render(<TaskCard item={task({ schedule: FIXED })} onOpen={jest.fn()} />);
+    expect(calendar().props.tone).toBe('brand');
+    await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: '2026-09-24T17:00:00Z' } })} onOpen={jest.fn()} />));
+    expect(calendar().props.tone).toBe('brand');
+  });
+
+  it.each(['FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'] as const)('is quiet for a %s term: it is a range, not a confirmed time', async kind => {
+    await render(<TaskCard item={task({ schedule: { kind, startsAt: '2026-09-24T00:00:00Z', endsAt: '2026-09-30T22:00:00Z' } })} onOpen={jest.fn()} />);
+    expect(calendar().props.tone).toBe('quiet');
+  });
+
+  it('is quiet when the read carried no schedule and the card falls back on its words, or a fixed window names no instant at all', async () => {
+    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
+    expect(calendar().props.tone).toBe('quiet');
+    expect(textNode('24. sep · 17:00')).toBeTruthy();
+    await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: null } })} onOpen={jest.fn()} />));
+    expect(calendar().props.tone).toBe('quiet');
+    // My own task has the same rule.
+    await act(async () => tree.update(<TaskCard item={mine({ schedule: FIXED })} onOpen={jest.fn()} />));
+    expect(calendar().props.tone).toBe('brand');
+    await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
+    expect(calendar().props.tone).toBe('quiet');
+  });
+
+  it("is the same rule on the pin's card, so one task never has a green calendar on the map and a grey one in the list", () => {
+    const peek = readFileSync(join(__dirname, '../../ui/v2/discovery/DiscoveryPeek.tsx'), 'utf8');
+    expect(peek).toMatch(/kind="calendar" size=\{20\} tone=\{scheduleConfirmed\(item\.schedule\) \? 'brand' : 'quiet'\}/);
+  });
+
+  it('says only the colour: the words beside it are the same, and the pure rule agrees', async () => {
+    expect([scheduleConfirmed(undefined), scheduleConfirmed(FIXED), scheduleConfirmed({ kind: 'FLEXIBLE', startsAt: FIXED.startsAt, endsAt: FIXED.endsAt }),
+      scheduleConfirmed({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: null })]).toEqual([false, true, false, false]);
   });
 });

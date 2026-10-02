@@ -16,8 +16,12 @@ const SheetHandle = () => <View accessible={false} importantForAccessibility="no
 
 /** Every command in a sheet is an important one: a full 48 even where the shared minimum is smaller. */
 export const SHEET_TOUCH = Math.max(48, sys.touch.min);
-/** The one settle for every sheet: critically damped, no bounce. Reduced motion replaces it with no motion at all. */
-export const SHEET_SPRING = { stiffness: 300, damping: 30, mass: 1, overshootClamping: true } as const;
+/**
+ * The one settle for every sheet: critically damped, no bounce. Reduced motion replaces it with no motion at all. The
+ * value is `sys.motion.sheetSpring` (rule R3); this name stays only so the two other sheets that import it keep working
+ * until they read the token directly.
+ */
+export const SHEET_SPRING = sys.motion.sheetSpring;
 /** What the tap-outside area says it does on a sheet that simply closes. */
 export const SHEET_BACKDROP_HINT = 'Zatvara pregled bez primene izbora.';
 /** What the tap-outside area says on a sheet with unsaved input: a tap there asks first, it does not close. */
