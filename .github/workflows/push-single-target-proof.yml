@@ -1,6 +1,9 @@
 name: Push single-target disposable proof
 on:
   workflow_dispatch:
+  push:
+    branches: [work/uskoci-ui-unification-20260924]
+    paths: ['.github/workflows/push-single-target-proof.yml']
 permissions:
   contents: read
 concurrency:
