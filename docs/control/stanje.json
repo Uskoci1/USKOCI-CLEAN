@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T04:59:17Z",
-  "grana": "HEAD",
-  "head": "a2c613aa",
-  "head_poruka": "ops(dev): D12 written review comment APPLIED to canonical DEV on the owner's exact \"PRIMENI D12 PISANI KOMENTAR\" - ledger 221, certificate re-bound 58447d77 -> 0579191d, postflight problems [], 79 of 79 independent read-only checks",
+  "osvezeno": "2026-10-02T05:04:43Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "284e6101",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
@@ -8572,5 +8572,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 36966866978,
+   "ime": "D12 written review comment proof",
+   "sha": "a2c613aa",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:58:20Z"
+  },
+  {
+   "id": 36966866915,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "a2c613aa",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:58:20Z"
+  },
+  {
+   "id": 36966866914,
+   "ime": "Control tracker refresh",
+   "sha": "a2c613aa",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:58:20Z"
+  },
+  {
+   "id": 36964794784,
+   "ime": "Control tracker refresh",
+   "sha": "7258147a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:29:46Z"
+  },
+  {
+   "id": 36963866229,
+   "ime": "Control tracker refresh",
+   "sha": "76816db9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:16:54Z"
+  },
+  {
+   "id": 36963044604,
+   "ime": "Build Android development APK",
+   "sha": "72d64fc4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T04:05:53Z"
+  },
+  {
+   "id": 36957213904,
+   "ime": "D12 written review comment proof",
+   "sha": "f36879ae",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T02:46:59Z"
+  },
+  {
+   "id": 36956153579,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "e9f2ad10",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T02:33:08Z"
+  },
+  {
+   "id": 36956153576,
+   "ime": "D12 written review comment proof",
+   "sha": "e9f2ad10",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T02:33:08Z"
+  },
+  {
+   "id": 36956153556,
+   "ime": "Control tracker refresh",
+   "sha": "e9f2ad10",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T02:33:08Z"
+  },
+  {
+   "id": 36953943157,
+   "ime": "Build Android development APK",
+   "sha": "221e882e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T02:04:44Z"
+  },
+  {
+   "id": 36949883106,
+   "ime": "Control tracker refresh",
+   "sha": "a5973c3a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T01:13:20Z"
+  }
+ ]
 }
