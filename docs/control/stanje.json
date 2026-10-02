@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T20:32:26Z",
+  "osvezeno": "2026-10-02T20:32:56Z",
   "grana": "HEAD",
-  "head": "02c8a29a",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "7a41f34e",
+  "head_poruka": "Unify product foundation and Home with guarded task and profile recovery",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 223,
@@ -8972,102 +8972,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37053689793,
-   "ime": "P5 ready task and matching contract",
-   "sha": "632eb46f",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T19:22:28Z"
-  },
-  {
-   "id": 37053689770,
-   "ime": "Control tracker refresh",
-   "sha": "632eb46f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:22:28Z"
-  },
-  {
-   "id": 37051296452,
-   "ime": "Build Android development APK",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:52Z"
-  },
-  {
-   "id": 37051283329,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:46Z"
-  },
-  {
-   "id": 37051282564,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37051282439,
-   "ime": "D12 written review comment proof",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37051282377,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37051282366,
-   "ime": "Control tracker refresh",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37051282360,
-   "ime": "EX-06 S04 dispatch lifecycle proof",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37051282358,
-   "ime": "EX-06 ex06b alias registry proof",
-   "sha": "6fb39b30",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T19:00:45Z"
-  },
-  {
-   "id": 37050131389,
-   "ime": "EX-06 ex06a flexible window proof",
-   "sha": "de1356b7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-02T18:50:18Z"
-  },
-  {
-   "id": 37050131381,
-   "ime": "P5 ready task and matching contract",
-   "sha": "de1356b7",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-02T18:50:18Z"
-  }
- ]
+ "ci": null
 }
