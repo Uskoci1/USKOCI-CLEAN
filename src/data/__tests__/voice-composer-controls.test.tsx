@@ -1,9 +1,13 @@
 import React from 'react';
+import { Animated } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { HoldToTalkController, VoiceSnapshot } from '../../features/voice/holdToTalk';
 const mockAlert=jest.fn();let mockReader=false,mockReduced=false;
+let mockAppState = 'active';
+const mockAppStateListeners = new Set<(state: string) => void>();
 jest.mock('react-native',()=>{const actual=jest.requireActual('react-native');return new Proxy(actual,{get(target,key){
   if(key==='AccessibilityInfo')return{isScreenReaderEnabled:async()=>mockReader,addEventListener:()=>({remove:jest.fn()})};
+  if(key==='AppState')return{get currentState(){return mockAppState;},addEventListener:(_event:string,listener:(state:string)=>void)=>{mockAppStateListeners.add(listener);return{remove:()=>mockAppStateListeners.delete(listener)};}};
   if(key==='Alert')return{alert:(...args:unknown[])=>mockAlert(...args)};
   return ['View','Pressable'].includes(String(key))?key:Reflect.get(target,key);
 }});});
@@ -20,7 +24,7 @@ let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
 const controller=()=>({begin:jest.fn(()=>true),release:jest.fn(),cancel:jest.fn(),useFallback:jest.fn()});
 const text=()=>JSON.stringify(tree.toJSON());
-afterEach(async()=>{await act(async()=>tree?.unmount());});beforeEach(()=>{mockReader=false;mockReduced=false;jest.clearAllMocks();});
+afterEach(async()=>{await act(async()=>tree?.unmount());jest.restoreAllMocks();});beforeEach(()=>{mockReader=false;mockReduced=false;mockAppState='active';mockAppStateListeners.clear();jest.clearAllMocks();});
 it('hold release finalizes once while edit/send remain the parent controller responsibility',async()=>{
   const c=controller(),keep=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={keep}/>);});
@@ -230,18 +234,52 @@ describe('voice mode', () => {
     await act(async () => mic().props.onPress());
     expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
   });
-  it('the glow follows nothing and the screen does not fade under reduced motion', async () => {
-    mockReduced = true; const c = controller();
-    await act(async () => { tree = create(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'hold' }, audioLevel: 0.9 })); });
+  it('the glow follows only a measured foreground recording and resets under reduced motion or inactive states', async () => {
+    // Advance the native timing target deterministically. No assertion depends on Animated.View's displayName.
+    const timing = jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
+      start: jest.fn(() => { (value as Animated.Value).setValue(config.toValue as number); }),
+      stop: jest.fn(), reset: jest.fn(),
+    }));
+    const c = controller();
+    const listening = { ...idle, phase: 'LISTENING' as const, session: { ...session, mode: 'hold' as const } };
+    await act(async () => { tree = create(mode(c, { ...listening, audioLevel: 0.9 })); });
+    expect(timing).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ toValue: 0.9, useNativeDriver: true, isInteraction: false }));
+    const pulse = timing.mock.calls[timing.mock.calls.length - 1][0] as Animated.Value;
+    const value = () => (pulse as Animated.Value & { __getValue(): number }).__getValue();
+    expect(value()).toBeCloseTo(0.9);
     const glow = tree.root.findByProps({ testID: 'voice-glow' });
-    expect(glow.findAll(node => typeof node.type !== 'string' && String((node.type as { displayName?: string }).displayName).startsWith('Animated.'))).toHaveLength(0);
-    expect(tree.root.findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('none');
-    await act(async () => tree.unmount());
-    mockReduced = false;
-    await act(async () => { tree = create(mode(c, idle)); });
-    expect(tree.root.findByProps({ testID: 'voice-glow' }).findAll(node => typeof node.type !== 'string'
-      && String((node.type as { displayName?: string }).displayName).startsWith('Animated.')).length).toBeGreaterThan(0);
     expect(tree.root.findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('fade');
+    for (const [audioLevel, expected] of [[0.25, 0.25], [2, 1], [-1, 0]] as const) {
+      await act(async () => tree.update(mode(c, { ...listening, audioLevel })));
+      expect(value()).toBe(expected);
+    }
+    for (const audioLevel of [null, Number.NaN, Number.POSITIVE_INFINITY]) {
+      timing.mockClear();
+      await act(async () => tree.update(mode(c, { ...listening, audioLevel })));
+      expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
+    }
+    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
+    await act(async () => {
+      mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener(mockAppState));
+    });
+    expect(value()).toBe(0);
+    await act(async () => {
+      mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener(mockAppState));
+    });
+    expect(value()).toBeCloseTo(0.9);
+    timing.mockClear(); mockReduced = true;
+    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
+    expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
+    expect(tree.root.findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('none');
+    expect(tree.root.findByProps({ testID: 'voice-glow' })).toBe(glow);
+    mockReduced = false;
+    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
+    for (const state of [idle, { ...idle, error: 'CAPTURE_FAILED' as const }]) {
+      timing.mockClear();
+      await act(async () => tree.update(mode(c, state)));
+      expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
+    }
+    expect(c.begin).not.toHaveBeenCalled(); expect(c.release).not.toHaveBeenCalled();
   });
   it('a screen reader always reviews: there is no switch to turn it off', async () => {
     mockReader = true; const c = controller();

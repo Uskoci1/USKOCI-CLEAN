@@ -206,6 +206,13 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
             onPress={() => setSorting(value => !value)} style={s.sortButton}>
             <T variant="note" style={s.sortText}>{SORT_LABEL[sort]}</T><CaretDown size={18} color={sys.color.ink} />
           </Press> : null}</View> : null}
+        {!known && (sort === 'PRICE' || compare) ? <View accessibilityLiveRegion="polite" style={{ gap: sys.space.xs }}>
+          <T variant="note" tone="muted">{sort === 'PRICE'
+            ? 'Redosled po ceni važi samo za učitane prijave.'
+            : 'Porediš učitane prijave. Još nisu prikazane sve ponude.'}</T>
+          {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
+            : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
+        </View> : null}
         {sorting && candidates.length > 1 ? <View accessibilityRole="radiogroup" style={s.sortMenu}>{SORTS.map((option, at) =>
           <Press key={option} accessibilityRole="radio" accessibilityLabel={SORT_LABEL[option]} accessibilityState={{ checked: sort === option }}
             haptic="select" scaleTo={0.99} onPress={() => choose(option)} style={[s.sortOption, at > 0 && s.sortDivider]}>

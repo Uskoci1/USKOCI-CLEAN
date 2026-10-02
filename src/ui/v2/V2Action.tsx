@@ -15,10 +15,9 @@ export const ACTION_MIN_HEIGHT = 48;
  * The one action of the app (master design plan, 2026-09-24: `V2Action` keeps its name, the old `Button` is gone).
  * Reuses existing UI-thread press feedback, system reduced motion and haptics.
  *
- * Kinds: primary = strong ink surface; secondary = white with a line; quiet = green text (a link-like action);
- * destructive = danger text. The one brand action on a screen is a secondary with `brandAction` style: the green
- * surface with a white label. Every other action is white with a green label (the forensic analysis's one rule for
- * buttons).
+ * Primary is the green next action; neutral primary is reserved for contextual controls.
+ * Secondary is white with a line; quiet is a link; destructive uses danger ink.
+ * Existing `brandAction` callers share the same green surface and white label.
  *
  * States, each said to the eye and to a screen reader:
  * - disabled: a quiet wash with the label AND its icon in muted ink, readable (5.0:1), never a faded ghost of the live
@@ -76,7 +75,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
     style={[{ minHeight: kind === 'primary' ? 54 : ACTION_MIN_HEIGHT, borderRadius: sys.radius.control,
       paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: kind === 'primary' ? sys.color.ink : kind === 'secondary' ? sys.color.surface : 'transparent',
+      backgroundColor: kind === 'primary' ? (tone === 'neutral' ? sys.color.ink : sys.color.green) : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong }, inner,
       tone === 'neutral' && onBrand ? s.neutralBrand : null,
       resting && filled ? s.restingFilled : null, error ? s.errorEdge : null]}>

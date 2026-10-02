@@ -107,28 +107,28 @@ export const nested = (outer: number, pad: number) => Math.max(0, outer - pad);
  */
 export const type = {
   /** AI intro and other one-line statements that carry a whole screen. */
-  display: { fontSize: 32, lineHeight: 37, fontWeight: '700' as const, letterSpacing: -1.15 },
+  display: { fontSize: 32, lineHeight: 37, fontWeight: '600' as const, letterSpacing: -1.15 },
   /** The real title of a detail screen (Task, Dogovor, profile name). */
-  hero: { fontSize: 30, lineHeight: 35, fontWeight: '700' as const, letterSpacing: -1 },
+  hero: { fontSize: 30, lineHeight: 35, fontWeight: '600' as const, letterSpacing: -1 },
   /** Screen title in the top bar. */
-  title: { fontSize: 21, lineHeight: 26, fontWeight: '700' as const, letterSpacing: -0.55 },
+  title: { fontSize: 21, lineHeight: 26, fontWeight: '600' as const, letterSpacing: -0.55 },
   /** Section title inside a screen. */
-  heading: { fontSize: 18, lineHeight: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
-  // Medium keeps ordinary reading text clear without increasing its size (owner, 2026-09-25).
-  body: { fontSize: 16, lineHeight: 24, fontWeight: '500' as const },
+  heading: { fontSize: 18, lineHeight: 24, fontWeight: '600' as const, letterSpacing: -0.3 },
+  // Regular reading text; semibold actions/headings and tabular amounts carry hierarchy (owner takeover, 2026-10-02).
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const },
   bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const },
   /** A sentence of quiet copy under a title. */
-  copy: { fontSize: 15, lineHeight: 22, fontWeight: '500' as const },
+  copy: { fontSize: 15, lineHeight: 22, fontWeight: '400' as const },
   /** Facts inside cards and rows: where, when, a hint. Never below this for a sentence. */
   note: { fontSize: 14, lineHeight: 20, fontWeight: '500' as const },
   /** One- or two-word labels only. */
   meta: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const },
-  label: { fontSize: 12, lineHeight: 16, fontWeight: '700' as const, letterSpacing: 0.6 },
-  action: { fontSize: 16, lineHeight: 22, fontWeight: '700' as const, letterSpacing: -0.1 },
+  label: { fontSize: 12, lineHeight: 16, fontWeight: '600' as const, letterSpacing: 0.6 },
+  action: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const, letterSpacing: -0.1 },
   /** The name of what a screen is about: a person, an agreement, a profile. */
-  pageTitle: { fontSize: 28, lineHeight: 33, fontWeight: '700' as const, letterSpacing: -0.8 },
+  pageTitle: { fontSize: 28, lineHeight: 33, fontWeight: '600' as const, letterSpacing: -0.8 },
   /** A sentence said in the conversation. Same size as body, looser leading, because it is read as speech. */
-  speech: { fontSize: 16, lineHeight: 26, fontWeight: '500' as const },
+  speech: { fontSize: 16, lineHeight: 26, fontWeight: '400' as const },
   /** A tab or segment label. */
   tab: { fontSize: 14, lineHeight: 20, fontWeight: '600' as const },
 } as const;

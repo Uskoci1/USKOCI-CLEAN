@@ -104,6 +104,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
+    // Recovery retires the unsaved proposal. Allow its normal guarded lookup again
+    // when editing resumes; a confirmed point still always wins below.
+    located.current = false;
     setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
     setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });
     if (conversation) setAddress(saved?.address ?? '');

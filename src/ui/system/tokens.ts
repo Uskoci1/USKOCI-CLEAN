@@ -13,7 +13,7 @@ export { nested } from '../../theme/tokens';
 
 const WHITE = '#FFFFFF', BLACK = '#000000';
 /** The four colours the fact-picture tones in `sys.color.art` are derived from; `sys.color` spells the same values by name. */
-const GREEN = '#076E4E', ORANGE = '#FA8229', MUTED = '#525252', DANGER = '#963F34';
+const GREEN = '#00845A', ORANGE = '#FF7A1A', MUTED = '#525252', DANGER = '#963F34';
 const hexChannels = (hex: string) => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16));
 /** `from` moved `amount` (0 to 1) of the way towards `toward`, as upper-case #RRGGBB: the only way an art tone is made. */
 function mix(from: string, toward: string, amount: number): string {
@@ -31,40 +31,13 @@ function artTone(front: string, edge = mix(front, BLACK, 0.3)) {
 const PRESS_LADDER = { button: 0.97, row: 0.985, none: 1 } as const;
 
 /**
- * One light system for every screen (PKG-011, redesigned 2026-09-16 against the V5 AI-FIRST reference: white
- * background, deep green as trust, orientation and the primary action, orange as a controlled accent). Since
- * 2026-09-24 the Home drawing's colours live here too (`sys.art`, master design plan: hand-written hex goes into tokens),
- * so this file does restyle it; only the entry sequence (the V4.9 brand intro, `ui/entry`, with its own locked
- * `ENTRY_V49` values) and the mascot keep colours of their own. The Home pin is now the palette orange, no longer the
- * entry orange #FF800A it once copied.
- *
- * Owner correction, 2026-09-25 (R12): clean white canvas and reading surfaces. No mint wash behind conversations,
- * summaries or groups. Icons, photos, strong action colors and readable type supply the color. Neutral wells are
- * limited to controls and selected states; separation comes from space, neutral hairlines and restrained shadows.
- * V28's green/orange accents remain. Error and warning colors still carry meaning beside a label or icon.
- * Text/background contrast is recorded in the R12 report; orange buttons always use dark text, never white.
- *
- * A colour that was written by hand beside this list and sat a hair off one of its values (CIEDE2000 ≤ 2.5, below what
- * reads as a different colour) now uses that value: two colours that nearly agree are worse than one. The ones that are
- * clearly their own colour got a name here instead, so nothing outside the token files spells a colour.
- *
- * COLOUR MEANING (UI/UX pass, 2026-10-02; audit HP-06 and ICO-03). A colour that means two things means nothing, and
- * green used to mean the action, the selection, the price AND a term nobody had confirmed. One table, and a new use of a
- * colour has to fit a row of it:
- *
- *   green  = do / selected / money    the one primary action, the chosen tab or chip, a title that opens something, a price,
- *                                     a fact that IS confirmed. Never a thing that is not true yet.
- *   ink    = content                  what a person wrote and what a thing is called: names, sentences, numbers read as text.
- *   muted  = unknown / meta           a term that is not set ("Termin nije potvrđen"), a flexible or absent value, a caption,
- *                                     something inactive or historic. It is 7.9:1 on white, so "unknown" is still readable.
- *   warn   = waits for you            `warn` on `warnSoft`: a thing that needs your answer or your move.
- *   orange = attention counts only    the unread dot, the count of what waits, the urgent badge, the rating star, and the
- *                                     surfaces AGENTS 3.6.4 fixes as the accent (the Home publish tile, the map "+"). Never
- *                                     decoration, never a row's default.
- *
- * `danger` says something went wrong or cannot be undone (an error line, a destructive confirmation) and always sits beside
- * a word or an icon. A fact picture follows the same table through `sys.color.art`: `brand` (green) is the one default,
- * `accent` (orange) only where orange means attention, `quiet` where the thing is inactive, `danger` where it went wrong.
+ * Shared consumer UI system, owner takeover 2026-10-02. White reading surfaces;
+ * ink for content and money, green for the primary action/confirmed success,
+ * warm orange for attention. Blue communication/location, coral people and gold
+ * time belong to selective artwork, not invented status. Small orange labels use
+ * the contrast-safe orangeInk; orange surfaces use dark labels. Neutral wells are
+ * controls, not a requirement to wrap every fact in another card. Entry artwork's
+ * own palette remains scoped. Historical design decisions live in Design Master.
  */
 export const sys = {
   color: {
@@ -118,32 +91,18 @@ export const sys = {
      * `onDarkMuted` read 2.4:1 on green (it passed only on the retired forest ground), so nothing may say it.
      */
     onDark: palette.onDark,
-    /**
-     * The tones of a fact picture (FactArt), derived from the tokens above so no picture TONE is a hex of its own: the
-     * `brand` face IS `sys.color.green`, the same green as the titles, the primary action and the active tab. Before this
-     * the pictures used a lighter emerald (#079C77) beside the deep green, and alternated orange and green by kind. (What
-     * is still written by hand is the sticker's neutral paper, ink and shadow greys: FactArt.tsx lists them and
-     * `fact-art.test.tsx` holds that list tight.)
-     *
-     * NOT `sys.art` (further down): that group is the Home drawing's own colours. This one, `sys.color.art`, is the tone
-     * set of a FACT picture (FactArt). They are two things with one word; do not rename either, other files import them.
-     *
-     * Each tone is `front` (the face), `edge` (the darker edge the 25 dp and larger sticker stands on; the 24 dp and
-     * smaller mark draws no edge), `light` (a detail on the face) and `soft` (a fill). `accent` is the action orange,
-     * 2.5:1 on white, so a small accent mark is drawn with its `edge` (3.8:1) or beside ink words, never alone: that is
-     * why the bell is #FA8229 at 26 dp and the darker #C86821 at 24 dp (WCAG 1.4.11, 3:1 for a small graphic). `quiet`
-     * (3.2:1) replaces the old `muted` look; its edge is `sys.color.muted`.
-     */
+    /** Material tones derive from the actual brand tokens. FactArt caches each static drawing;
+     * small functional marks remain flat, with contrast-safe state colors. */
     art: {
       brand: artTone(GREEN),
       accent: artTone(ORANGE, mix(ORANGE, BLACK, 0.2)),
       quiet: artTone(mix(MUTED, WHITE, 0.35), MUTED),
       danger: artTone(DANGER),
     },
-    /** Scoped AI palette proposal, 2026-10-02: opt-in artwork roles; existing defaults and Home stay unchanged. */
+    /** Semantic artwork roles: restrained color for place, communication, people and time; never a status inferred from art. */
     artRole: {
       location: artTone('#3979C4'),
-      ai: artTone('#7551B8'),
+      ai: artTone('#3979C4'),
       skills: artTone('#168579'),
       people: artTone('#D76B5C'),
       time: artTone('#DBAC35', '#8D6B12'),
@@ -157,7 +116,7 @@ export const sys = {
     surface: '#FFFFFF',
     summary: '#FFFFFF',
     edge: '#DEDEDE',
-    user: '#07543F',
+    user: '#292929',
     onUser: '#FFFFFF',
     iconWell: '#F5F5F5',
   },
@@ -189,8 +148,8 @@ export const sys = {
    */
   art: {
     /** The two ends of the green disc's gradient. */
-    leafLight: '#24866A',
-    leafDeep: '#0D5141',
+    leafLight: '#21A879',
+    leafDeep: GREEN,
     paperEdge: '#D8E7DF',
     /** The title line on the paper, and the two quieter lines under it. */
     paperTitle: '#327960',

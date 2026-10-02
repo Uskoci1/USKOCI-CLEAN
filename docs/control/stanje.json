@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T19:22:42Z",
+  "osvezeno": "2026-10-02T20:32:26Z",
   "grana": "HEAD",
-  "head": "632eb46f",
-  "head_poruka": "Record exact phone APK installation and reconcile existing UI expectations",
+  "head": "02c8a29a",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 223,
@@ -1499,7 +1499,7 @@
      "nativeAcceptance": false,
      "naturalLocationDialogue": {
       "package": "supabase/candidates/ai-location-01-20261002/APPROVAL.md",
-      "status": "DEV_APPLIED_PHONE_APK_VERIFIED_INSTALLED_OWNER_TRY_PENDING",
+      "status": "DEV_APPLIED_OWNER_REJECTED_CLIENT_RECOVERY_AND_VISUAL_FIXES_SOURCE",
       "contract": "Existing AI interview plus locationReply mode; same budget/dispatch/idempotency/recovery. No coordinates from model, fixed phrase dictionary, extra provider or new raw-content table. Natural confirmation requires actual proposal, ALLOW and zero fact proposals.",
       "client": "Question/proposal/account/focus/revision lease; guarded same save awaits receipt; typed and held speech share existing journal. Lost/stale response never confirms a new pin. Contextual held speech retained after terminal failure/cancel. Saved summary remains editable.",
       "limits": "No paid AI/geocoder calls or new/manual tests. Exact ARM64 APK installed by owner request on HONOR with install -r; no UI/session inspection or whole-flow acceptance. True live spoken AI remains unfinished.",
@@ -1514,7 +1514,24 @@
        "receipt": "docs/implementation/ui-ux-pass-20261002/AI_LOCATION_PHONE_APK_37051296452.json",
        "installed": true,
        "nativeAcceptance": false
-      }
+      },
+      "ownerFeedback": "Owner reports credit paid and rejects loading, mic/composition and map behavior. Earlier402 is historical, not current availability proof. Fixed source: opening layout jump and lost unsaved pin after recovery. Live speech cause and end-to-end acceptance remain open."
+     },
+     "postPhoneVisualPolish": {
+      "status": "WHOLE_APP_AUDIT_FOUNDATION_IMPLEMENTED_AWAITING_EMULATOR",
+      "file": "src/ui/aiFirst/VoiceComposer.tsx",
+      "change": "Latest owner full UI/UX takeover: 45 production routes / 78 overlapping surface records; Home command composition, vivid AA primary palette, typography, semantic art, task/AI hierarchy; warm task refresh, partial offer-order disclosure and profile Back protection.",
+      "checks": "Types/whitespace PASS; targeted existing checks PASS after reviewed expectation reconciliation. Home/FactArt/voice/layout257; profile Back8; Agreement context87. Source only, exact APK native review next.",
+      "installedSource": "6fb39b301888527350701741c659bb32cbe617bd",
+      "limits": "Server diagnostic remains UNAPPLIED. True spoken AI, provider/STT runtime, complete whole-app visual and connected scenario acceptance remain open.",
+      "files": [
+       "src/ui/aiFirst/VoiceComposer.tsx",
+       "src/features/voice/holdToTalk.ts",
+       "src/features/voice/nativeSpeechAdapter.ts",
+       "src/ui/v2/NeedPresentation.tsx"
+      ],
+      "evidence": "docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json",
+      "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json"
      }
     },
     "ciReconciliation": {
@@ -1920,7 +1937,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -3275,7 +3292,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Početna kamera povezana sa postojećim owned radnim područjem. Lično mesto je zaseban ugovor; current APK nije potvrđen.",
@@ -6837,7 +6854,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Postojeći JPEG avatar se prikazuje na emulatoru. Potvrda odustajanja od avatara sada mora da odgovara očekivanom profilu, nalogu i slici; nepoznat ishod čuva zahtev. Novi upload, nepotvrđen upload posle izlaska i fizički telefon nisu zatvoreni. 28.09: uređivanje ličnih podataka podržava samo prikazno ime. Grad unet na registraciji nema uređivanje; radno područje je odvojeno i nije zamena za lično mesto.",
@@ -8955,5 +8972,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37053689793,
+   "ime": "P5 ready task and matching contract",
+   "sha": "632eb46f",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T19:22:28Z"
+  },
+  {
+   "id": 37053689770,
+   "ime": "Control tracker refresh",
+   "sha": "632eb46f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:22:28Z"
+  },
+  {
+   "id": 37051296452,
+   "ime": "Build Android development APK",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:52Z"
+  },
+  {
+   "id": 37051283329,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:46Z"
+  },
+  {
+   "id": 37051282564,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282439,
+   "ime": "D12 written review comment proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282377,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282366,
+   "ime": "Control tracker refresh",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282360,
+   "ime": "EX-06 S04 dispatch lifecycle proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37051282358,
+   "ime": "EX-06 ex06b alias registry proof",
+   "sha": "6fb39b30",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T19:00:45Z"
+  },
+  {
+   "id": 37050131389,
+   "ime": "EX-06 ex06a flexible window proof",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-02T18:50:18Z"
+  },
+  {
+   "id": 37050131381,
+   "ime": "P5 ready task and matching contract",
+   "sha": "de1356b7",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-02T18:50:18Z"
+  }
+ ]
 }

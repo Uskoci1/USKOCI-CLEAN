@@ -211,3 +211,52 @@ Owner approved application and requested a phone APK. Migration20261002185306 ap
 Build37051296452 succeeded on exact source6fb39b301888527350701741c659bb32cbe617bd. ARM64 rs.uskoci.dev APK SHA-256 712b157892777b8131745ddf3cf0b88c556d3b6e5139bf8ab68f3f23c1fa0863; recovery/icon/Reanimated attestations PASS. Owner explicitly requested installation; HONOR returned Success for adb install -r and installed SHA matches. Existing UID and firstInstallTime unchanged. No data clear, uninstall, app UI navigation, paid provider probe or whole-flow/native acceptance. [Receipt](AI_LOCATION_PHONE_APK_37051296452.json), [owner guide](PHONE_TRY_AI_LOCATION_20261002.md).
 
 Three existing CI test expectations were reconciled after source review: missing voice-controller subscribe mock, ambiguity-first map presentation, and privacy-null comment withdrawal. No runtime changes in that reconciliation, no new tests or manual rerun; passing suites are not claimed. This documentation/test-only follow-up does not replace the APK source.
+
+
+## Voice visual follow-up after phone delivery — source only
+
+The person must be able to distinguish speaking, waiting and idle without a decorative loop implying capture. Existing Gemini capsule, hold gesture, separate voice-input mode, 52dp targets, compact 120dp glow and all sending/recovery handlers stay unchanged.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Voice glow breathes whenever no level is supplied, including idle and permission failures | Only real listening levels drive native transform/opacity timing; idle, missing/non-finite level, background and reduced motion stop it | Show actual capture activity; remove needless continuing animation |
+| Review checkbox label cannot shrink alongside its box | Label can shrink and wrap within the existing 48dp target | Keep the option readable on narrow and larger-text screens |
+
+TypeScript `--noEmit` PASS; `git diff --check` PASS. No new tests or manual test runs, no server/provider/controller/gesture change. The phone still has verified source6fb39b30/build37051296452: this follow-up is NOT in that installed APK and has no native acceptance yet. Source review confirms 2.5D FactArt is already used by AI marks/openings, task/application/Agreement facts; the Lottie wrapper has no screen consumer, so an animated robot is not active. The previously rejected robot is not integrated. Real spoken AI remains open.
+
+
+## Owner screenshot response — own task and speech errors
+
+Owner phone screenshot rejects the installed source's own-task hierarchy and shows real AI/speech failures; read [the incident record](OWNER_PHONE_FAILURE_20261002.md). Keep this distinct from prior scoped visual receipts.
+
+| Before | After in source | Why |
+| --- | --- | --- |
+| Applications appear as another ruled fact | Separate white rounded action surface with32dp artwork and exact count | Distinguish the next action from reading |
+| Small green/gray pictures compete with equally strong full-width facts | One white logistics/price summary, full wrapping text,28–32dp blue/gold/coral artwork | Give facts an intentional grouping and recognizable illustrations |
+| Status/section headings compete with the title and price | Quieter status and section typography, same title/price authority | Establish reading order without hiding information |
+| Service failures say generic capture failure; transport errors blame microphone | Trusted service refusal and lost connection have different local error messages | Explain known cause without inventing a billing diagnosis or changing retry permissions |
+
+Scope is one own-task presentation plus existing voice presentation/error handling. No shared public-detail redesign, new illustration asset set, robot, spoken AI replies or full-app visual completion. No existing data, callback, price/basis, privacy/map rule, gesture or recovery authority is removed. New source is not the already installed6fb APK until a separate exact build/install receipt says so.
+
+
+## Continued marketplace review after owner rejection
+
+Latest owner requests whole-app composition, selective material/colorful artwork, cleanup and iterative emulator inspection. This supersedes the prior no-manual-check restriction for the requested emulator review. Existing 62-row registry remains authoritative; this is not a new master. Owner reports provider credit was paid; earlier 402 evidence must not be represented as proof of current unpaid credit or as the cause of every client defect.
+
+Implemented source batch:
+
+- Removed production opening suggestions in both AI interviews: they disappeared during microphone preparation and returned on cancel, causing a visible composition jump. No evidence of a microphone-triggered network reload was found.
+- Deduplicated unchanged conversation geometry callbacks and rejected non-finite measurements. This reduces redundant scroll commands; no measured performance improvement is claimed.
+- Reset the retired unsaved-pin lookup marker when recovery disables its editor. Existing account/focus/outcome fences still govern the next lookup; saved points are never replaced automatically.
+- Public task detail uses account incarnation rather than every auth-token event as its identity. Same-account refresh no longer deliberately remounts the detail/map/profile surface; account changes still retire it.
+- Application journal read failures block a new command and offer a reread. Retained-command conflicts no longer falsely instruct users to free disk space; the original durable command remains authoritative.
+- Own-task applications are a distinct action card; logistics and amount form one clear group. Discovery list and pin lead with full title and truthful price/capacity, followed by larger blue/gold/teal facts. No fabricated prices, cropped full-list titles or changed callbacks.
+- FactArt larger illustrations use cached static light/face/edge gradients with semantic subject colors. Explicit muted/danger/brand tones and small solid-mark contrast remain. Ordinary chat uses people color; AI explicitly uses purple. No raster downloads, new packages, SVG animation or continuous art loops.
+- Shared own-message surface is charcoal; agreement-chat controls are ink. Welcome typography is quieter. Recording glow follows measured audio only through native-driver opacity/scale and stops in background/reduced motion.
+- Speech service/transport/capture failures now have distinct copy. AI availability diagnostic client remains compatible with live old Edge. The two modified Edge sources are UNAPPLIED; no deployment, billing or budget changes were made.
+
+Research: [Airbnb's official redesigned app](https://news.airbnb.com/product-releases/airbnb-2025-summer-release), [Apple design foundations](https://developer.apple.com/videos/play/wwdc2025/359/), [Apple UI typography](https://developer.apple.com/videos/play/wwdc2020/10175/). Used for hierarchy, reading order and restrained material details, not copied logos/assets.
+
+Explicit remainders: live speech failure root cause not yet proven; true spoken AI replies absent; no animated robot added. Saved map natural correction still requires Izmeni: a scratch lease was rejected because it would re-ask confirmation after a completed save and misuse pending-PROPOSAL semantics. Multi-stop corrections must never guess a slot. Candidate price sorting of partial pages needs separate correction. Account/privacy/operator/review/store work remains as recorded. No complete-app, native, phone or store acceptance is claimed by source edits.
+
+Verification plan: one consolidated exact-source emulator APK, inspect actual AI entry/list/pin/detail and recovery surfaces, then fix observed defects. Baseline emulator image is older source (APK SHA256 1fd629b08bdec7e9e7e02a6a58afba6a157ef5df2fd60430e7359e2506c897d6); it is not new-batch evidence. Owner phone still carries 6fb39b30 / run37051296452 until a new installation receipt exists. No new provider inference, business mutation, new test case or manual regression suite is implied.

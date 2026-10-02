@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
 // GEMINI_API_KEY / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
@@ -15,7 +16,7 @@ import {
 import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { GeminiCreditsUnavailableError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,7 +91,8 @@ function serverTimeContext(now: Date): ServerTimeContext {
 function response(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+      ...(status === 503 && body.code === AI_CREDITS_UNAVAILABLE ? { [AI_AVAILABILITY_HEADER]: AI_CREDITS_UNAVAILABLE, 'Access-Control-Expose-Headers': AI_AVAILABILITY_HEADER } : {}) },
   });
 }
 
@@ -103,7 +105,7 @@ const sameUuid = (value: unknown, expected: string) => isUuid(value) && value.to
 // list. Never the thrown text. A JSON parse error quotes the provider output it choked on, a runtime
 // network error quotes its request, and a text that is merely shaped like one of our names proves
 // nothing about where it came from. A name that is not listed is logged as UNKNOWN.
-const OWN_FAILURE_NAMES = new Set(['AI_CLAIM_INVALID', 'AI_CONTEXT_INVALID', 'AI_CONTEXT_TOO_LARGE', 'AI_LEGACY_PERSIST_FAILED',
+const OWN_FAILURE_NAMES = new Set([AI_CREDITS_UNAVAILABLE, 'AI_CLAIM_INVALID', 'AI_CONTEXT_INVALID', 'AI_CONTEXT_TOO_LARGE', 'AI_LEGACY_PERSIST_FAILED',
   'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
   'AI_STREAM_INVALID', 'AI_STREAM_REJECTED', 'AI_STREAM_STOPPED', 'AI_STREAM_TOO_LARGE', 'AI_STREAM_UNAVAILABLE',
   'AI_TEST_BUDGET_UNAVAILABLE', 'AI_TRANSPORT_STOPPED', 'AI_TURN_RECEIPT_INVALID', 'AI_V2_FACT_INVALID', 'AI_V2_OUTPUT_INVALID',
@@ -548,6 +550,7 @@ async function callGemini(
   );
   if (!providerResponse.ok) {
     console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
+    if (providerResponse.status === 402) throw new GeminiCreditsUnavailableError();
     throw new Error('PROVIDER_HTTP_FAILED');
   }
   const payload = providerResponse.data;
@@ -699,6 +702,7 @@ Deno.serve(async (req: Request) => {
   } catch { return response(401, { code: 'AUTH_REQUIRED', message: 'Nalog nije mogao da se proveri.' }); }
   const release = admitUser(accountId);
   if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
+  const availabilityDiagnostics = req.headers.get(AI_DIAGNOSTICS_HEADER) === AI_DIAGNOSTICS_VERSION;
   const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
@@ -827,6 +831,7 @@ Deno.serve(async (req: Request) => {
       // says which class of failure it was, from a closed list, and nothing of what was thrown.
       console.error('AI_PROVIDER_FAILED', providerFailureClass(providerError));
       await retireAttempt();
+      if (availabilityDiagnostics && providerError instanceof GeminiCreditsUnavailableError) return response(503, { code: AI_CREDITS_UNAVAILABLE });
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
@@ -881,7 +886,7 @@ Deno.serve(async (req: Request) => {
           const result = await execute(text => emit({ kind: 'text_delta', text }), abort.signal);
           const data = await result.json();
           if (result.ok && validTurn(data, conversationId, requestId) && data.state === 'SUCCEEDED') emit({ kind: 'final', turn: data });
-          else emit({ kind: 'safe_error', code: 'AI_TURN_NOT_CONFIRMED' });
+          else emit({ kind: 'safe_error', code: availabilityDiagnostics && result.status === 503 && data?.code === AI_CREDITS_UNAVAILABLE ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED' });
         } catch {
           await retireAttempt();
           emit({ kind: 'safe_error', code: 'AI_TURN_NOT_CONFIRMED' });

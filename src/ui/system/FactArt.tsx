@@ -1,57 +1,25 @@
 import { memo, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { sys } from './tokens';
 
 /**
- * The USKOČI fact pictures, the ONE icon API for what a thing IS (owner, 2026-09-23: "every fact a screen names is drawn
- * here"). Decorative: the words beside it carry the meaning, so it is hidden from screen readers. Line icons (Phosphor)
- * stay for controls only. The register rules, every drawing in words and coordinates, and the test that guards them are
- * in `docs/implementation/design-system/ICON_SYSTEM.md`.
- *
- * TWO CUTS OF ONE DRAWING (UI/UX pass, 2026-10-02; audit ICO-02). The same 32-unit canvas is drawn two ways and the size
- * picks the way, so none of the ~140 call sites needs an edit:
- *
- *   `mark` (size <= 24, a card row, a chip, a tab at rest) is FLAT: one fill tone and one white detail, nothing else. No
- *   ground shadow, no darker edge, no shine, no tone lighter than 3:1 on white, no stroke under 2.4 units (1.2 dp at 16),
- *   at most four SVG shapes. The reason is a design decision, not a legibility emergency: one hue, one weight and fewer
- *   details make one consistent family at the sizes a card row draws, and each picture costs fewer native views (B22). On
- *   the owner's 560 dpi phone a 16 dp picture is 56 device pixels and the sticker's finish is still readable there (it only
- *   turns fine on a 2x phone, 32 pixels); whether the flat mark is better is for the owner's eye on the phone, where the
- *   board (`uskociapp://dizajn-tabla`) draws both cuts at 16, 20 and 24.
- *   `art` (size >= 25) is the sticker the owner approved on 2026-09-22: a ground shadow, a darker edge 1.5 units under the
- *   face, a light shine and white details. Home rows (32), Profil rows (26), StateView (56) and the tab bar (30) keep it.
- *   Its look is the one single-tone sticker; the old two-tone one cannot be restored without redrawing it.
- *
- * ONE TONE RULE (audit ICO-03). A picture is one hue. `brand` (the UI green, `sys.color.art.brand`) is the default for
- * every kind; `accent` (orange) only where something needs you or is rated (the bell and the star by default, an unread or
- * urgent mark by the caller's `tone`); `quiet` where the thing is inactive or historic; `danger` where it went wrong.
- * The old per-kind orange list and the lighter emerald that sat beside the deep green are gone. Every TONE colour here
- * comes from `sys.color.art`, so the picture, the title and the primary action agree. What is not a token is the sticker's
- * neutral paper, ink and shadow greys: 19 hexes (the `INK` constant and the greys written in `art()`), listed as `NEUTRALS`
- * in `fact-art.test.tsx`, which holds the list tight (a new hex or a stale one fails there). The flat mark spells only its
- * tone face and white. `muted` still works and means `quiet`.
- *
- * TWO ORANGES, ON PURPOSE. The accent sticker (25 dp and up) is the action orange #FA8229 on its darker edge; the accent
- * mark (24 dp and down) is that tone's edge, #C86821. A small graphical object must be 3:1 against white (WCAG 1.4.11) and
- * #FA8229 is 2.5:1 with no edge under it, so a bell, a star or an alert at 24 dp is the darker orange, which reads a
- * little brown beside the vivid one. The board draws the same kind in both cuts side by side so the owner can judge it; it
- * is not changed here.
- *
- * NO FALSE TICKS (audit ICO-04). Only `check`, `agreements` and `shield` carry a tick, because only they say "confirmed".
- * A calendar, a task list and a remote screen do not: an unconfirmed term must not wear a confirmation tick.
- *
- * `vehicle` and `tool` (2026-09-24, card review r3 item 5) draw the one requirement line of a task card; they were drawn
- * as their own facts because the picker's Pictogram turned to mush at the card's 16 px.
+ * Decorative fact illustrations; adjacent text carries their meaning. Phosphor
+ * line icons remain the controls. Small marks retain their contrast-controlled
+ * solid silhouettes. Larger art uses a cached, static material gradient, an
+ * extruded edge and a ground shadow; normal subjects use distinct semantic colors.
+ * Explicit tone/muted states override subject color. Only check, agreements and
+ * shield may draw a tick: no illustration invents a confirmed business state.
+ * Owner direction 2026-10-02 supersedes the historical all-green art treatment.
  */
 export const FACT_KINDS = ['home', 'pin', 'calendar', 'clock', 'users', 'person', 'money', 'remote', 'map', 'tasks', 'agreements',
   'offers', 'chat', 'bell', 'phone', 'star', 'check', 'info', 'shield', 'lock', 'eye', 'document', 'download', 'photo', 'support',
   'vehicle', 'tool', 'alert', 'publish', 'send'] as const;
 export type FactArtKind = (typeof FACT_KINDS)[number];
 
-/** `brand` is the one default; see the tone rule above. */
+/** Explicit state treatment takes precedence over subject color. */
 export type FactTone = 'brand' | 'accent' | 'quiet' | 'danger';
-/** Opt-in semantic color for the scoped AI palette; existing art remains unchanged. */
+/** Semantic illustration colors; AI callers explicitly select the AI role. */
 export type FactArtRole = keyof typeof sys.color.artRole;
 /** `auto` picks the cut from the size; `mark` or `art` forces one (the design board does, to show both side by side). */
 export type FactCut = 'auto' | 'mark' | 'art';
@@ -83,6 +51,14 @@ export const factMarkFace = (tone: FactTone): string => MARK_FACE[tone];
 
 /** A kind that is orange without being asked: the bell and the rating star mean attention or a score everywhere. */
 const DEFAULT_TONE: Partial<Record<FactArtKind, FactTone>> = { bell: 'accent', star: 'accent', alert: 'accent' };
+
+// Normal illustrations have distinct material colors. Explicit state tones and
+// the small contrast-controlled mark cut retain their existing meaning.
+const ART_ROLE: Partial<Record<FactArtKind, FactArtRole>> = {
+  home: 'location', pin: 'location', map: 'location', remote: 'location',
+  calendar: 'time', clock: 'time', users: 'people', person: 'people',
+  chat: 'people', support: 'people', tool: 'skills', vehicle: 'skills', tasks: 'location',
+};
 
 /**
  * What each picture MEANS, one phrase per kind (audit ICO-04). The test keeps the table honest: no two kinds may share a
@@ -315,7 +291,15 @@ function drawingFor(kind: FactArtKind, tone: FactTone, cut: FactDrawnCut, role?:
   let drawn = drawings.get(key);
   if (drawn === undefined) {
     const colors = role ? sys.color.artRole[role] : sys.color.art[tone];
-    drawn = cut === 'mark' ? mark(kind, role ? colors.edge : MARK_FACE[tone]) : art(kind, colors);
+    if (cut === 'mark') drawn = mark(kind, role ? colors.edge : MARK_FACE[tone]);
+    else {
+      const material = `fact-${kind}-${tone}-${role ?? 'base'}`;
+      drawn = <><Defs><LinearGradient id={material} x1="0%" y1="0%" x2="80%" y2="100%">
+        <Stop offset="0%" stopColor={colors.light} />
+        <Stop offset="34%" stopColor={colors.front} />
+        <Stop offset="100%" stopColor={colors.edge} />
+      </LinearGradient></Defs>{art(kind, { ...colors, front: `url(#${material})` })}</>;
+    }
     drawings.set(key, drawn);
   }
   return drawn;
@@ -325,7 +309,7 @@ type FactArtProps = {
   kind: FactArtKind;
   /** Any size; the ladder is `FACT_SIZES`. At 24 and below the flat `mark` cut is drawn, above it the `art` sticker. */
   size?: number;
-  /** `brand` by default; see the tone rule in the header. */
+  /** Explicit tone overrides the normal semantic illustration color. */
   tone?: FactTone;
   /** Semantic art color; explicit state tone or muted state takes precedence. */
   role?: FactArtRole;
@@ -337,8 +321,10 @@ type FactArtProps = {
 
 function FactArtBase({ kind, size = 20, tone, role, cut = 'auto', muted = false }: FactArtProps) {
   const resolved: FactTone = muted ? 'quiet' : tone ?? DEFAULT_TONE[kind] ?? 'brand';
+  const drawnCut = factCutFor(size, cut);
+  const artRole = muted || tone ? undefined : role ?? (drawnCut === 'art' ? ART_ROLE[kind] : undefined);
   return <View aria-hidden style={{ width: size, height: size }}>
-    <Svg width={size} height={size} viewBox="0 0 32 32">{drawingFor(kind, resolved, factCutFor(size, cut), muted || tone ? undefined : role)}</Svg>
+    <Svg width={size} height={size} viewBox="0 0 32 32">{drawingFor(kind, resolved, drawnCut, artRole)}</Svg>
   </View>;
 }
 

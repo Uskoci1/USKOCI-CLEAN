@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight } from 'phosphor-react-native';
+import { ArrowUpRight, CaretRight, MapTrifold } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -15,22 +15,11 @@ import { V2Action } from '../v2/V2Action';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
-import { HomeIllustration } from './HomeIllustration';
 import { HomeLaunchArt } from './HomeLaunchArt';
 
-/**
- * Početna, the overview (owner's information architecture, 2026-09-23): the two big start tiles, what waits for me,
- * the next Dogovor when there is one, and two front doors — "Moji zadaci" and "Moje prijave" — each counted by the
- * rule of the list it opens. The display headline greets only a first run. The HTML is visual evidence only: no
- * example people, dates, counts or commands enter the app. Both start actions remain available before any read
- * completes and when a read fails.
- *
- * R13 composition: two illustrated white start doors, an open attention list, one distinct appointment and quiet
- * personal-list navigation. The artwork carries the brand; reading surfaces stay white. No decorative stats,
- * inferred greeting or made-up task state enters this presentation.
- *
- * A row only ever navigates. Nothing here confirms, withdraws, selects or completes.
- */
+/** Home presents two intentions and the account's real next actions. It never infers
+ * earnings, creates another user role, or makes failed reads look like empty lists.
+ * Start actions remain available before the overview has loaded. */
 export type HomePresentationProps = {
   home: HomeSnapshot | null; loading: boolean; refreshing: boolean; error: boolean;
   /** Internal galleries supply the same chrome with an inert bell; the live header remains the default. */
@@ -44,21 +33,33 @@ export type HomePresentationProps = {
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
 };
 
-/**
- * Two equally useful front doors share a white launch area. Large purpose-made illustrations sit directly on white,
- * above the action and its short explanation. Narrow/large-text layouts become rows without a fixed height.
- */
-function StartTile({ label, title, hint, publish = false, stacked, onPress }: {
-  label: string; title: string; hint: string; publish?: boolean; stacked: boolean; onPress: () => void;
+/** Creation leads; discovery remains one tap away without a second competing hero. */
+function StartActions({ compact, onPublish, onEarn }: {
+  compact: boolean; onPublish: () => void; onEarn: () => void;
 }) {
-  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
-    haptic="select" onPress={onPress} style={[s.action, stacked && s.actionStacked]}>
-    <HomeLaunchArt kind={publish ? 'publish' : 'discover'} compact={stacked} />
-    <View style={[s.actionCopy, stacked && s.actionCopyStacked]}>
-      <T variant="heading" style={s.actionTitle}>{title}</T>
-      <T variant="note" style={[s.actionHint, s.muted]}>{hint}</T>
-    </View>
-  </Press>;
+  return <View style={s.actions}>
+    <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
+      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={s.createEntry}>
+      <View style={s.createMain}>
+        <View style={s.actionCopy}>
+          <T accessibilityRole="header" style={s.actionTitle}>Objavi zadatak</T>
+          <T variant="copy" tone="muted">Opiši šta ti treba. Zajedno ćemo složiti detalje.</T>
+        </View>
+        <HomeLaunchArt kind="publish" compact={compact} />
+      </View>
+      <View style={s.createFoot}>
+        <T variant="note" style={s.createLabel}>Počni razgovor</T>
+        <View style={s.createArrow}><ArrowUpRight size={20} color={sys.color.onGreen} /></View>
+      </View>
+    </Press>
+    <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Nađi posao blizu."
+      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={s.discoverEntry}>
+      <MapTrifold size={25} color={sys.color.artRole.location.edge} />
+      <View style={s.rowCopy}><T variant="bodyStrong">Uskoči i zaradi</T>
+        <T variant="note" tone="muted">Pronađi posao koji ti odgovara</T></View>
+      <CaretRight size={18} color={sys.color.ink} />
+    </Press>
+  </View>;
 }
 
 function AttentionRow({ row, onOpen, last = false }: {
@@ -97,7 +98,7 @@ function AppointmentCard({ row, onOpen }: {
     </View>
     {appointment ? <>
       {appointment.timeText ? <View style={s.appointmentWhen}>
-        <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
+        <FactArt kind="calendar" size={28} cut="art" role="time" />
         <T variant="note" style={s.appointmentTime}>{appointment.timeText}</T>
       </View> : null}
       {appointment.counterpartName || appointment.roleLabel ? <View style={s.appointmentPerson}>
@@ -191,26 +192,13 @@ export function HomePresentation(p: HomePresentationProps) {
     {p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-      {/* The tiles are the first thing on screen and never move: nothing above them waits for a read. */}
-      <View style={[s.actions, stacked && s.actionsStacked]}>
-        <StartTile label="Objavi zadatak" title="Objavi zadatak" hint="Opiši šta ti treba" publish stacked={stacked} onPress={p.onPublish} />
-        <View style={stacked ? s.actionDividerStacked : s.actionDivider} />
-        {/* A no-break space keeps "i" with "zaradi": the tile wrapped as "Uskoči i / zaradi", a lone "i" (B3). */}
-        <StartTile label="Uskoči i zaradi" title={'Uskoči i zaradi'} hint="Nađi posao blizu" stacked={stacked} onPress={p.onEarn} />
-      </View>
+      <StartActions compact={stacked} onPublish={p.onPublish} onEarn={p.onEarn} />
 
       {p.loading && !home ? <Skeleton /> : null}
       {recoveryNeeded ? <View style={s.recovery}>
         <T accessibilityRole="alert" variant="note" tone="muted">{home ? 'Deo pregleda trenutno nije učitan.' : 'Pregled trenutno nije učitan.'}</T>
         <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
       </View> : null}
-      {/* The greeting belongs to a first visit, and a first visit is known only once every read has answered. Above
-          the tiles it pushed them down under the finger at the first impression; here it takes the loading's place. */}
-      {home?.firstRun ? <View style={s.hero}>
-        <T accessibilityRole="header" variant="display" style={s.heroCopy}>{'Šta rešavamo\ndanas?'}</T>
-        {!stacked ? <HomeIllustration size={width < 375 ? 88 : 109} /> : null}
-      </View> : null}
-
       {home && waitingShown ? <Section title="Čeka te"
         count={home.attention.length > 0 && (home.attentionState === 'known' || !home.partial) ? home.attention.length + home.attentionMore : undefined}>
         {attentionUnavailable ? <Unavailable what="Podaci o obavezama" /> : null}
@@ -227,14 +215,14 @@ export function HomePresentation(p: HomePresentationProps) {
           <FactArt kind="star" size={24} />
           <View style={{ flex: 1 }}><T variant="note" style={s.ratingsDueText}>Proveri ocene</T>
             <T variant="meta" tone="muted">Nisu svi podaci o ocenama učitani.</T></View>
-          <CaretRight size={18} color={sys.color.warn} />
+          <CaretRight size={18} color={sys.color.muted} />
         </Press> : home.ratingsDue > 0 ? <Press accessibilityRole="button" haptic="select" style={s.ratingsDue}
           onPress={() => p.onRatings(home.ratingDueAgreementId)}
           accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'}>
           <FactArt kind="star" size={24} />
           <T variant="note" style={s.ratingsDueText}>{oceniDogovore(home.ratingsDue)}</T>
-          <CaretRight size={18} color={sys.color.warn} />
+          <CaretRight size={18} color={sys.color.muted} />
         </Press> : null}
       </Section> : null}
 
@@ -264,37 +252,33 @@ const s = StyleSheet.create({
   // A rating is still a real pending action, but its illustration and words carry the accent, not a tinted band.
   ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 52, marginTop: sys.space.sm,
     paddingVertical: sys.space.md, backgroundColor: sys.color.surface },
-  ratingsDueText: { flex: 1, color: sys.color.warn, fontWeight: '600' },
+  ratingsDueText: { flex: 1, color: sys.color.ink, fontWeight: '600' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   // The bottom padding leaves air between the last row and the inset tab bar below the list when it is scrolled to its end.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 108, marginTop: sys.space.xxl },
-  heroCopy: { flex: 1, minWidth: 0 },
-  // One open launch area, not another pair of boxed content cards. The large illustrations are the primary targets.
-  actions: { flexDirection: 'row', alignItems: 'stretch', paddingTop: sys.space.sm, paddingBottom: sys.space.base,
-    borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  actionsStacked: { flexDirection: 'column', paddingTop: 0, paddingBottom: sys.space.sm },
-  action: { flex: 1, minWidth: 0, minHeight: 152, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
-    gap: sys.space.sm, borderRadius: sys.radius.control, backgroundColor: sys.color.surface, justifyContent: 'flex-start' },
-  actionStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', flexDirection: 'row', alignItems: 'center', minHeight: 84,
-    paddingHorizontal: sys.space.xs, paddingVertical: sys.space.md, gap: sys.space.base },
-  actionDivider: { width: 1, alignSelf: 'stretch', marginVertical: sys.space.base, marginHorizontal: sys.space.xs,
-    backgroundColor: sys.color.line },
-  actionDividerStacked: { height: StyleSheet.hairlineWidth, marginLeft: 72, backgroundColor: sys.color.line },
-  actionCopy: { gap: sys.space.xs },
-  actionCopyStacked: { flex: 1, minWidth: 0 },
-  actionTitle: { fontSize: 20, lineHeight: 25, letterSpacing: -0.6, color: sys.color.ink },
-  actionHint: { fontSize: 14, lineHeight: 20 },
+  actions: { gap: sys.space.sm, paddingTop: sys.space.sm },
+  createEntry: { padding: sys.space.lg, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
+    gap: sys.space.md },
+  createMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
+  actionCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
+  actionTitle: { fontSize: 24, lineHeight: 29, fontWeight: '600', letterSpacing: -0.7, color: sys.color.ink },
+  createFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
+  createLabel: { color: sys.color.green, fontWeight: '600' },
+  createArrow: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.green,
+    alignItems: 'center', justifyContent: 'center' },
+  discoverEntry: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
+    paddingVertical: sys.space.md, paddingHorizontal: sys.space.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   // Attention is an open inbox: the action comes first, the exact subject/reason is never truncated.
   attention: { backgroundColor: sys.color.surface },
-  attentionAction: { color: sys.color.attentionInk, fontWeight: '600' },
+  attentionAction: { color: sys.color.green, fontWeight: '600' },
   section: { marginTop: sys.space.lg },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
   sectionTitle: { ...sys.type.heading, color: sys.color.ink },
   counter: { minWidth: 28, minHeight: 28, paddingHorizontal: sys.space.xs,
     backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
-  link: { color: sys.color.attentionInk, fontSize: 18, lineHeight: 24, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  link: { color: sys.color.ink, fontSize: 18, lineHeight: 24, fontWeight: '600', fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingVertical: sys.space.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   lastRow: { borderBottomWidth: 0 },

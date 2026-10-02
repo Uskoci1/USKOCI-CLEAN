@@ -14,6 +14,7 @@ import { ApplicationComposerPresentation, ComposerUnavailable, type ApplicationD
 /** The phone could not keep the request: a fresh read of the task cannot fix that, so no refresh is offered beside it. */
 const NOT_SAVED_ON_DEVICE = 'Zahtev nije sačuvan na uređaju. Oslobodi prostor i pokušaj ponovo.';
 const NOT_RETIRED_ON_DEVICE = 'Stari zahtev nije uklonjen sa uređaja. Pokušaj ponovo; nova ponuda još nije otvorena.';
+const JOURNAL_RECOVERY_REQUIRED = 'Sačuvani zahtev prijave mora prvo da se proveri. Izaberi Proveri ishod.';
 type Receipt = { prijavaId: string; verzija: number; hash: string };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -34,7 +35,7 @@ export default function Prijava() {
   // PKG-006: the same intent also survives remount/cold restore through the durable
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
-    journaling: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
+    journaling: false, journalRecovery: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
@@ -75,7 +76,17 @@ export default function Prijava() {
             session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
               start: command.predlozeniPocetak, end: command.predlozeniKraj };
           }
-        } catch { session.notice = 'Sačuvani zahtev nije bilo moguće proveriti. Osveži prikaz.'; }
+          session.journalRecovery = false;
+          if (session.focused && sesijaSada().user?.id === user.id &&
+            sesijaSada().accountRevision === accountRevision) {
+            setValidation(value => value === JOURNAL_RECOVERY_REQUIRED ? null : value);
+          }
+        } catch {
+          // An unread journal may hold an earlier sent command. Do not offer a fresh identity until it is read.
+          session.journalRecovery = true;
+          return { ok: false, kod: 'APPLICATION_JOURNAL_READ_FAILED',
+            poruka: 'Sačuvani zahtev prijave nije bilo moguće proveriti. Pokušaj ponovo da učitaš prijavu.' };
+        }
       }
       // Displayed terms and command revision come from the same Need read.
       const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
@@ -103,7 +114,7 @@ export default function Prijava() {
   };
   const submit = async () => {
     const accountId = user?.id;
-    if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || session.resetting || session.reading || editor.busy || editor.uncertain || !accountId) return;
+    if (!current() || !data || !session.draft || session.pending?.inFlight || session.journaling || session.journalRecovery || session.resetting || session.reading || editor.busy || editor.uncertain || !accountId) return;
     if (session.pending?.result && conclusiveApplicationRefusal(session.pending.result)) return;
     // The price and people sent are derived from the same Need read as the revision, never from a stale draft.
     const draft = withTaskPrice(session.draft, data.need);
@@ -122,7 +133,16 @@ export default function Prijava() {
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
       try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command }, current); }
-      catch { if (current()) setValidation(NOT_SAVED_ON_DEVICE); return; }
+      catch (error) {
+        if (current()) {
+          // Another retained composer or an unread/corrupt journal is a recovery case, not proof of a full disk.
+          const needsRecovery = error instanceof Error && ['APPLICATION_COMMAND_UNRESOLVED',
+            'APPLICATION_COMMAND_PAYLOAD_CHANGED', 'APPLICATION_COMMAND_JOURNAL_INVALID'].includes(error.message);
+          if (needsRecovery) session.journalRecovery = true;
+          setValidation(needsRecovery ? JOURNAL_RECOVERY_REQUIRED : NOT_SAVED_ON_DEVICE);
+        }
+        return;
+      }
       finally { session.journaling = false; }
       if (!current() || session.pending) return;
       session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
@@ -180,8 +200,8 @@ export default function Prijava() {
     ],
   } : null;
   return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
-    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
-    busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
+    draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
+    busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
     // Other failures keep their error and exact-command retry; a collection read never proves refusal.
     error={validation ?? session.notice ?? (refusal && !editor.uncertain
@@ -190,7 +210,7 @@ export default function Prijava() {
         ? 'Ne znamo da li je prijava stigla. Pošalji istu ponudu još jednom — ako je već stigla, neće se udvostručiti.'
         : null))}
     refreshHelps={validation !== NOT_SAVED_ON_DEVICE && validation !== NOT_RETIRED_ON_DEVICE}
-    canSubmit={data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
+    canSubmit={!session.journalRecovery && data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
     blocked={data.profile.stanje !== 'ACTIVE'
       ? { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil',

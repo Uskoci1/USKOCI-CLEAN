@@ -1,6 +1,6 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
-import type { FinalTranscript, NativeSpeechAdapter, NativeSpeechCapture, VoiceSession } from './holdToTalk';
+import type { FinalTranscript, NativeSpeechAdapter, NativeSpeechCapture, SpeechEvent, VoiceSession } from './holdToTalk';
 import { decodeSpeechEvent, pcmBase64Bytes, SPEECH_LIMITS } from './speechProtocol';
 import { sharedAudioArbiter } from '../voiceMessages/audioArbiter';
 import type { AudioArbiter, AudioLease } from '../voiceMessages/ports';
@@ -88,7 +88,7 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
           try { previous.close(1000, 'session ended'); } catch { }
         }
       };
-      const fail = (code: 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'AUDIO_INTERRUPTED' = 'CAPTURE_FAILED') => {
+      const fail = (code: Extract<SpeechEvent, { kind: 'error' }>['code'] = 'CAPTURE_FAILED') => {
         if (disposed) return;
         readyReject(new Error(code)); finalResolve({ kind: 'incomplete' });
         input.onEvent({ kind: 'error', code }); dispose();
@@ -127,13 +127,16 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
             expectedSequence++;
             if (message.kind === 'ready') { readyResolve(); return; }
             if (message.kind === 'segment') { input.onEvent({ kind: 'segment', index: message.index, final: message.final, text: message.text }); return; }
-            if (message.kind === 'error') { fail(); return; }
+            if (message.kind === 'error') {
+              // Only a validated service refusal gets this message; it does not establish a billing cause.
+              fail(message.code === 'SPEECH_UNAVAILABLE' ? 'SPEECH_UNAVAILABLE' : 'CAPTURE_FAILED'); return;
+            }
             if (!released || terminalReceived) { fail(); return; }
             terminalReceived = true;
             finalResolve(message.text.trim() ? { kind: 'final', text: message.text } : { kind: 'incomplete' });
           };
-          socket.onerror = () => fail('MIC_UNAVAILABLE');
-          socket.onclose = () => { if (!terminalReceived && !disposed) fail(); };
+          socket.onerror = () => fail('SPEECH_CONNECTION_FAILED');
+          socket.onclose = () => { if (!terminalReceived && !disposed) fail('SPEECH_CONNECTION_FAILED'); };
           await ready;
           if (disposed || !input.canCapture()) { dispose(); return; }
           subscriptions.push(module.addListener('pcm', event => {

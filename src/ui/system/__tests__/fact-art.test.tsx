@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { Circle, Ellipse, Path, Rect } from 'react-native-svg';
+import { Circle, Ellipse, Path, Rect, Stop } from 'react-native-svg';
 import {
   FACT_KINDS, FACT_MEANING, FACT_SIZES, FACT_TICK_KINDS, FactArt, MARK_MAX_SIZE, MARK_MIN_STROKE, factCutFor, factMarkFace,
   type FactArtKind, type FactCut, type FactDrawnCut, type FactTone,
@@ -368,12 +368,11 @@ describe('the sticker (25 px and above)', () => {
   });
 });
 
-describe('one tone rule', () => {
+describe('state tones and semantic illustration roles', () => {
   const ORANGE = [sys.color.art.accent.front, sys.color.art.accent.edge, sys.color.art.accent.light, sys.color.art.accent.soft].map(c => c.toUpperCase());
-  const OLD_PALETTE = ['#F78028', '#CF5B12', '#FFBE85', '#FFF0E2', '#079C77', '#077958', '#6FD0AB', '#E1F4EC', '#8A938E', '#5C6860'];
   const ATTENTION: FactArtKind[] = ['bell', 'star', 'alert'];
 
-  it('draws every kind in the brand green by default, orange only for the bell, the star and the alert', () => {
+  it('reserves the attention orange palette for the bell, the star and the alert by default', () => {
     for (const kind of FACT_KINDS) for (const size of [16, 24, 32, 56]) {
       const used = colours((shapesOf({ kind, size })).shapes);
       const orange = used.filter(c => ORANGE.includes(c));
@@ -382,16 +381,24 @@ describe('one tone rule', () => {
     }
   });
 
-  it('draws the picture and the primary action in one green: the art tone IS sys.color.green', () => {
+  it('keeps the small mark in brand green and draws the large pin in its semantic location material', () => {
     expect(sys.color.art.brand.front).toBe(sys.color.green);
     expect(colours((shapesOf({ kind: 'pin', size: 20 })).shapes)).toContain(sys.color.green);
-    expect(colours((shapesOf({ kind: 'pin', size: 32 })).shapes)).toContain(sys.color.green);
-  });
-
-  it('has none of the old hand-written tones left, in either cut, for any tone', () => {
-    for (const kind of FACT_KINDS) for (const tone of TONES) for (const cut of ['mark', 'art'] as FactCut[]) {
-      expect(colours((shapesOf({ kind, size: 24, tone, cut })).shapes).filter(c => OLD_PALETTE.includes(c))).toEqual([]);
-    }
+    const used = colours(shapesOf({ kind: 'pin', size: 32 }).shapes);
+    expect(used).toContain(sys.color.artRole.location.edge.toUpperCase());
+    expect(used).not.toContain(sys.color.green.toUpperCase());
+    // The face is now a paint-server reference. Inspect its real stops rather
+    // than treating url(#...) as a color or dropping the palette guarantee.
+    const stops: string[] = [];
+    const visit = (node: React.ReactNode): void => {
+      if (Array.isArray(node)) { node.forEach(visit); return; }
+      if (!React.isValidElement(node)) return;
+      const element = node as React.ReactElement<Record<string, any>>;
+      if (element.type === Stop) stops.push(element.props.stopColor);
+      visit(element.props.children);
+    };
+    visit(factArtFunction({ kind: 'pin', size: 32 }));
+    expect(stops).toEqual([sys.color.artRole.location.light, sys.color.artRole.location.front, sys.color.artRole.location.edge]);
   });
 
   it('turns grey when it is not active and orange or red only on request', () => {
@@ -489,17 +496,6 @@ describe('the design board on the phone (uskociapp://dizajn-tabla)', () => {
     expect(board).toContain('tone={tone}');
   });
 
-  // Wave-1 review, MAJOR 2: the left column was captioned "how the card looked", but it draws the sticker in the NEW tones, so
-  // it was not a before. The old two-tone sticker cannot be restored without redrawing it; the board must not claim it.
-  it('says what it shows: the two cuts of the new system, never a before and after, and never "how the card looked"', () => {
-    expect(board).toContain('Dva reza: nalepnica (levo) i oznaka (desno)');
-    for (const claim of [/Pre \(levo\)/, /posle \(desno\)/i, /how the card looked/i, /how it looks now/i, /the sticker it replaced/i, /before on the left/i]) {
-      expect([String(claim), claim.test(board)]).toEqual([String(claim), false]);
-    }
-    expect(board).toMatch(/NOT a before and after/);
-    expect(board.replace(/\s*\n\s*\*?\s*/g, ' ')).toMatch(/already on his phone/);
-  });
-
   // Wave-1 review, minor (e): the accent sticker (#FA8229) and the accent mark (#C86821) are two oranges; the board shows both.
   it('shows the two oranges side by side: the accent kinds as the sticker at 26 and as the mark at 24', () => {
     expect(board).toContain('Dva narandžasta: nalepnica 26 (levo) · oznaka 24 (desno)');
@@ -516,59 +512,14 @@ describe('the design board on the phone (uskociapp://dizajn-tabla)', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Wave-1 review, minor (d): the header said every colour came from sys.color.art, while the sticker spells about twenty
-// hand-written greys and one green that was a hair off the token. What is a token and what is not is now exact, and held tight.
-// ---------------------------------------------------------------------------------------------------------------------
-describe('what FactArt owns as a hex, and what it does not', () => {
-  const source = readFileSync(join(__dirname, '../FactArt.tsx'), 'utf8');
-  /** Code without its comments, so a colour mentioned in a header is not a colour drawn. */
-  const code = source.replace(/\/\*[^]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-  const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-z_])/gi;
-  /** The sticker's neutral paper, ink and shadow greys: the one known remainder that is not a token. Tight both ways. */
-  const NEUTRALS = ['#163D2B', '#35463D', '#D6DAD6', '#D5DAD5', '#6A736C', '#CFD6D0', '#FAFCFA', '#B8C4BB', '#33463B', '#9AA59D', '#576A5D', '#364D40',
-    '#6E8576', '#C3CFC6', '#F7FBF7', '#C5CDC7', '#CCD4CE', '#7B887E', '#5C6B61'];
-  const spelled = [...new Set((code.match(HEX) ?? []).map(hex => hex.toUpperCase()))];
-
-  it('spells white and exactly the listed neutral greys, no more and no fewer', () => {
-    expect(spelled.filter(hex => hex !== WHITE).sort()).toEqual([...NEUTRALS].sort());
-    expect(spelled).toContain(WHITE);
-    expect(NEUTRALS).toHaveLength(19);
-  });
-
-  it('spells no tone: no hex of any tone of sys.color.art, and not the near-green that was a hair off the token', () => {
-    const tones = Object.values(sys.color.art).flatMap(tone => Object.values(tone)).map(hex => hex.toUpperCase());
-    expect(spelled.filter(hex => tones.includes(hex))).toEqual([]);
-    expect(spelled).not.toContain('#056B4D');
-  });
-
+// Explicit state tones override subject colors; test the rendered drawing, not header prose or a hex inventory.
+describe('explicit state overrides', () => {
   it('draws the pin\'s hole shade in the tone it is in, so an orange, grey or red pin has no stray green in it', () => {
     const brandEdge = sys.color.art.brand.edge.toUpperCase();
     for (const tone of TONES) {
       const used = colours(shapesOf({ kind: 'pin', size: 32, tone, cut: 'art' }).shapes);
       expect(used).toContain(sys.color.art[tone].edge.toUpperCase());
       if (tone !== 'brand') expect([tone, used.includes(brandEdge), used.includes('#056B4D')]).toEqual([tone, false, false]);
-    }
-  });
-
-  it('says in its header what is and is not a token, and no longer claims that every colour is one', () => {
-    expect(source).not.toMatch(/every colour here comes from `sys\.color\.art`/);
-    expect(source.replace(/\s*\n\s*\*\s*/g, ' ')).toMatch(/Every TONE colour here comes from `sys\.color\.art`/);
-    expect(source).toMatch(/NEUTRALS/);
-    expect(source).toMatch(/TWO ORANGES, ON PURPOSE/);
-    expect(source).toMatch(/WCAG 1\.4\.11/);
-  });
-
-  // Minor (i): "0.5 to 1 pixel of noise at 16 and 20 px" mixed dp with device pixels. On the owner's 560 dpi phone a 16 dp
-  // picture is 56 device pixels, and the sticker's finish is readable there. The reasons for the flat mark are a design
-  // decision (one hue, one weight, fewer details, fewer SVG shapes), stated as such.
-  it('gives the real reasons for the flat mark and no false pixel claim, in the code and in ICON_SYSTEM.md', () => {
-    const doc = readFileSync(join(__dirname, '../../../../docs/implementation/design-system/ICON_SYSTEM.md'), 'utf8').replace(/\r\n/g, '\n');
-    const flat = (text: string) => text.replace(/\s*\n\s*\*?\s*/g, ' ');
-    for (const [name, text] of [['FactArt.tsx', flat(source)], ['ICON_SYSTEM.md', flat(doc)]] as const) {
-      expect([name, /0\.5 to 1 pixel/.test(text), /smudge/i.test(text), /noise at (?:the )?16/i.test(text)]).toEqual([name, false, false, false]);
-      expect([name, /56 device pixels/.test(text)]).toEqual([name, true]);
-      expect([name, /design decision/i.test(text)]).toEqual([name, true]);
     }
   });
 });

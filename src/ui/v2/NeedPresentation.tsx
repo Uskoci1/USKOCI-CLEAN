@@ -1,21 +1,23 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CaretRight } from 'phosphor-react-native';
 import type { PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
-import { DetailDescription, DetailLink, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
+import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
-import { FactArt } from '../system/FactArt';
+import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, inset, sys } from '../system/tokens';
 import { T } from '../Text';
+import { Press } from '../Press';
 import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
 import { countryName } from '../location/CountryField';
-import { TaskDecisionLogistics, TaskDecisionPrice, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
+import { TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
 
 const STATUS: Record<StanjePotrebe, string> = { NACRT: 'Privatan nacrt', OBJAVLJENA: 'Objavljen', CEKA_PRIJAVE: 'Čeka prijave',
   DELIMICNO_POPUNJENA: 'Objavljen', POPUNJENA: 'Popunjen', ZATVORENA: 'Zatvoren' };
@@ -76,6 +78,30 @@ function applicationsDetail(need: PotrebaProjekcija): { text: string; attention:
   return { attention: false, text: need.brojPrijava ? `Trenutno nema prijava za izbor. Ukupno ${prijave(need.brojPrijava)}` : 'Još nema prijava' };
 }
 
+/** The owner's next step is one distinct white surface; the facts below remain a reading group. */
+function OwnTaskLink({ art, role, label, detail, accessibilityLabel, onPress, disabled, trailing }: {
+  art: FactArtKind; role: FactArtRole; label: string; detail: string; accessibilityLabel?: string;
+  onPress: () => void; disabled: boolean; trailing?: ReactNode;
+}) {
+  return <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label}
+    accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select"
+    scaleTo={sys.motion.scale.row} style={[s.actionRow, disabled && s.disabled]}>
+    <View style={s.actionArt}><FactArt kind={art} size={32} cut="art" role={role} /></View>
+    <View style={s.actionCopy}><T style={s.sectionTitle}>{label}</T><T variant="note" tone="muted">{detail}</T></View>
+    {trailing}<CaretRight size={18} color={sys.color.muted} />
+  </Press>;
+}
+
+/** Full supplied strings wrap; the smaller reading scale leaves room for the actual dimensional illustration. */
+function OwnTaskFact({ art, role, spoken, children }: {
+  art: FactArtKind; role: FactArtRole; spoken: string; children: ReactNode;
+}) {
+  return <View accessible accessibilityLabel={spoken} style={s.factRow}>
+    <View style={s.factArt}><FactArt kind={art} size={28} cut="art" role={role} /></View>
+    <T variant="copy" style={s.factText}>{children}</T>
+  </View>;
+}
+
 /**
  * The owner's own Task, recomposed from zero (owner, 2026-09-23). The owner comes here to see whether the
  * task is live and who applied, so the screen reads: the name and its state, what happened to a command
@@ -132,14 +158,14 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const menu = useDetailMenu(rare, { disabled: busy });
   const scrollTitle = useDetailScrollTitle();
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader back={props.onBack} title={need && !loading ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
+    <ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
       right={menu.button} />
     {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
         outcome shown, even while the task loads or cannot be read. */}
-    {loading ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
+    {loading && !need ? <View style={s.state} accessibilityLiveRegion="polite"><SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo Zadatak…</T>
         {props.lifecycleActions}
       </View>
-      : error || !need ? <View style={s.state}>
+      : !need ? <View style={s.state}>
         <View style={card}>
           <T accessibilityRole="header" variant="title" style={s.ink}>Zadatak nije dostupan</T><T variant="copy" tone="muted" style={s.gapTop}>{error ?? 'Pokušaj ponovo.'}</T>
           <V2Action label="Pokušaj ponovo" onPress={props.onRefresh} style={[brandAction, s.gapTop]} />
@@ -153,11 +179,15 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {state ? <View style={s.stateCopy} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
             <View style={s.stateRow}>
               <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
-              <T variant="bodyStrong" style={s.ink}>{state.title}</T>
+              <T variant="copy" tone="muted">{state.title}</T>
             </View>
             {state.detail ? <T variant="note" tone="muted">{state.detail}</T> : null}
           </View> : null}
         </View>
+        {loading || error ? <View accessibilityLiveRegion="polite" style={s.refreshNotice}>
+          <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Prikazan je prethodni pregled. Osveži podatke pre sledeće radnje.'}</T>
+          {error && !loading ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={props.onRefresh} /> : null}
+        </View> : null}
         {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
         {blocked ? <View style={[inset, s.blocked]} accessibilityLiveRegion="polite">
           <T variant="bodyStrong" style={s.warnTitle}>{blocked.title}</T>
@@ -168,39 +198,57 @@ export function NeedPresentation(props: NeedPresentationProps) {
             while there is nothing to say. */}
         {props.lifecycleActions}
         {!draft && counted ? <View style={s.applications}>
-          <DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates} disabled={busy}
+          <OwnTaskLink art="offers" role="people" label="Prijave" detail={counted.text} onPress={props.onCandidates} disabled={busy || !usable}
             accessibilityLabel={`Otvori prijave. ${counted.text}`}
             trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} />
-          {hasAgreements ? <View style={s.agreementsRow}><DetailLink art="agreements" label="Moji dogovori"
-            detail="Razgovor, uslovi i završetak posla." onPress={props.onAgreements!} disabled={busy} /></View> : null}
+          {hasAgreements ? <View style={s.agreementsRow}><OwnTaskLink art="agreements" role="confirmed" label="Moji dogovori"
+            detail="Razgovor, uslovi i završetak posla." onPress={props.onAgreements!} disabled={busy || !usable} /></View> : null}
         </View> : null}
         <View style={s.brief}>
-          {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
-          <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
-            filled={draft ? undefined : `${need.pokrivenost.popunjeno}/${need.pokrivenost.ukupno}`}
-            spokenFilled={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
-          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
+          <View style={s.logistics}>
+            <OwnTaskFact art={remote ? 'remote' : 'pin'} role="location"
+              spoken={`${remote ? 'Način rada' : 'Lokacija'}: ${remote ? 'Na daljinu' : need.podrucjeTekst}`}>
+              {remote ? 'Na daljinu' : need.podrucjeTekst}
+            </OwnTaskFact>
+            <OwnTaskFact art="calendar" role="time" spoken={`Termin: ${need.vremeTekst}`}>{need.vremeTekst}</OwnTaskFact>
+            {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
+            <OwnTaskFact art="users" role="people"
+              spoken={`Potrebno: ${osoba(need.pokrivenost.ukupno)}${draft ? '' : `, popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`}`}>
+              {draft ? osoba(need.pokrivenost.ukupno) : <><T variant="copy" tone="muted">Dogovoreno </T>{`${need.pokrivenost.popunjeno}/${need.pokrivenost.ukupno}`}</>}
+            </OwnTaskFact>
+          </View>
+          {price ? <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
+            {price.isAmount || need.rezimCene === 'OFFERS' ? <View style={s.priceArt}>
+              <FactArt kind={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} size={32} cut="art"
+                role={need.rezimCene === 'OFFERS' ? 'people' : 'confirmed'} />
+            </View> : null}
+            <View style={s.priceCopy}><T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
+              {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
+            </View>
+          </View> : null}
         </View>
         {props.photos}
-        {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
+        {need.opis ? <View style={s.section}><T accessibilityRole="header" style={s.sectionTitle}>O zadatku</T>
+          <DetailDescription text={need.opis} /></View> : null}
         <TaskDecisionRequirements rows={requirements} />
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the
             point and the owner's own read never asked for it. Same coarse pair, same map, one section. */}
-        {!remote && (props.map || route.length) ? <DetailSection title="Mesto zadatka">
+        {!remote && (props.map || route.length) ? <View style={s.section}>
+          <T accessibilityRole="header" style={s.sectionTitle}>Mesto zadatka</T>
           {props.map}
           <View style={s.privacy}><FactArt kind="lock" size={18} />
             <T variant="note" tone="muted" style={s.grow}>Ovako drugi vide mesto. Tačnu adresu i privatne napomene vide samo izabrani, u Dogovoru.</T></View>
           {route.length ? <DetailRoute rows={route} country={country} /> : null}
-        </DetailSection> : null}
+        </View> : null}
         {props.qaAction ? <DetailSection>{props.qaAction}</DetailSection> : null}
         {/* The "Upravljanje zadatkom" section that ended the screen is gone: its actions are behind "···", a closed
             remaining search is said in the state line, and the lifecycle's outcomes are shown under the title. */}
       </ScrollView>}
     {/* Once there is nobody left to choose, the existing Agreements list becomes the next step.
         The applications row remains available for the full application history. */}
-    {usable && (draft || blocked || busy || agreementsNext || need!.brojPrijava > 0) ? <View style={s.footer}>
+    {need && (draft || blocked || working || agreementsNext || need.brojPrijava > 0) ? <View style={s.footer}>
       <ProductFooterAction label={primaryLabel} count={applications?.count} accessibilityLabel={applications?.spoken}
-        disabled={busy} arrow={!working} onPress={primaryAction} />
+        disabled={busy || !usable} arrow={!working} onPress={primaryAction} />
     </View> : null}
     {menu.sheet}
   </SafeAreaView>;
@@ -209,18 +257,38 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
   state: { padding: 20, gap: 16 },
+  refreshNotice: { gap: sys.space.xs, alignItems: 'flex-start' },
   content: { paddingHorizontal: sys.space.xl, paddingTop: sys.space.sm, paddingBottom: 40, gap: sys.space.xl },
-  hero: { gap: 12 },
+  hero: { gap: sys.space.sm, paddingBottom: sys.space.xs },
   stateCopy: { gap: 4 },
-  brief: { gap: sys.space.base },
+  brief: { gap: sys.space.base, paddingVertical: sys.space.base,
+    borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  logistics: { gap: sys.space.sm },
+  factRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  factArt: { width: 32, alignItems: 'center', flexShrink: 0 },
+  factText: { flex: 1, minWidth: 0, color: sys.color.ink },
+  price: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingTop: sys.space.base,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line },
+  priceArt: { width: 32, flexShrink: 0 },
+  priceCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  amount: { ...sys.type.priceLarge, color: sys.color.ink },
+  priceWords: { ...sys.type.copy, fontWeight: '600', color: sys.color.ink },
+  section: { gap: sys.space.md },
+  sectionTitle: { ...sys.type.copy, fontWeight: '600', color: sys.color.ink },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   stateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   blocked: { backgroundColor: sys.color.warnSoft, gap: 4 },
   warnTitle: { color: sys.color.warn },
   privacy: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  applications: { paddingVertical: sys.space.xs, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
-  agreementsRow: { borderTopWidth: 1, borderTopColor: sys.color.line },
+  applications: { paddingHorizontal: sys.space.base, borderWidth: StyleSheet.hairlineWidth, borderColor: sys.color.cardLine,
+    borderRadius: sys.radius.card, backgroundColor: sys.color.surface },
+  actionRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.md },
+  actionArt: { width: 36, flexShrink: 0, alignItems: 'center' },
+  actionCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  disabled: { opacity: 0.5 },
+  agreementsRow: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line },
   countPill: { minWidth: 26, height: 26, borderRadius: sys.radius.pill, paddingHorizontal: 8, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   countText: { color: sys.color.onOrange, letterSpacing: 0, lineHeight: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },

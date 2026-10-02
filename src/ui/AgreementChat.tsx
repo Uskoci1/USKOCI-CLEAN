@@ -105,8 +105,8 @@ function ChatAction({ label, text = label, onPress, tone = 'green', center = fal
   return <Press accessibilityRole="button" accessibilityLabel={label} haptic="select" onPress={onPress}
     disabled={busy} accessibilityState={{ busy, disabled: busy }}
     style={[s.chatAction, refresh && s.refreshAction, center && s.center]}>
-    {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.green} /> : <ArrowClockwise size={16} color={sys.color.green} /> : null}
-    <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.green : sys.color.ink }}>{text}</T>
+    {refresh ? busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <ArrowClockwise size={16} color={sys.color.ink} /> : null}
+    <T variant={refresh ? 'note' : 'action'} style={{ color: tone === 'onMine' ? sys.conversation.onUser : tone === 'green' ? sys.color.ink : sys.color.ink }}>{text}</T>
   </Press>;
 }
 
@@ -141,7 +141,7 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
 }
 
 /**
- * The Dogovor keeps its human speakers distinct: nuanced white incoming messages and forest-green outgoing messages,
+ * The Dogovor keeps its human speakers distinct: nuanced white incoming messages and charcoal outgoing messages,
  * with readable clocks and a day named once. Writing uses the full composer width; photo and send controls have their
  * own 48 dp toolbar below it. Pending sends retain their real outbox state (never a text-match guess), and no delivery
  * or read state is drawn that the read does not carry. The composer stays above the keyboard.
@@ -425,7 +425,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         onScrollEndDrag={event => { readUserPosition(event); userScrolling.current = false; }}
         onMomentumScrollBegin={() => { cancelFollow(); cancelRestore(); userScrolling.current = true; }}
         onMomentumScrollEnd={event => { readUserPosition(event); userScrolling.current = false; }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={sys.color.green} colors={[sys.color.green]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={sys.color.ink} colors={[sys.color.ink]} />}
         contentContainerStyle={[s.list, centred ? s.listCentred : s.listBottom]}>
         <View testID="agreement-chat-context" onLayout={({ nativeEvent }) => {
           if (!mounted.current) return;
@@ -460,7 +460,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           <ChatAction label="Učitaj starije poruke" text={historyError && historyErrorDirection === 'older' ? 'Pokušaj ponovo · starije poruke' : 'Starije poruke'}
             onPress={() => loadHistory('older')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
         </View> : null}
-        {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.green} style={s.loading} /> : null}
+        {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.ink} style={s.loading} /> : null}
         {/* Incoming push hints also refresh the visible conversation. Manual refresh remains available without push
             permission/delivery, including as a quiet action accessible without a pull gesture at the head of the
             thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
@@ -578,8 +578,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
       {showLatest || hasNewer ? <View style={s.latestRow}>
         <Press accessibilityRole="button" accessibilityLabel="Najnovije poruke" onPress={chooseLatest}
           haptic="select" hitSlop={0} style={s.latest}>
-          <ArrowDown size={18} color={sys.color.green} />
-          <T variant="note" tone="green">Najnovije poruke</T>
+          <ArrowDown size={18} color={sys.color.ink} />
+          <T variant="note" tone="ink">Najnovije poruke</T>
         </Press>
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
@@ -597,7 +597,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
               onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
               style={[s.tool, textScale < 1.3 && s.toolInline]}>
-              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.green} /> : <ImageSquare size={24} color={sys.color.green} />}
+              {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
               {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
             </Press> : null}
             {voice ? <AgreementVoiceMic voice={voice} /> : null}
@@ -663,17 +663,17 @@ const s = StyleSheet.create({
   inputInline: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
   toolbarInline: { flexShrink: 0 },
   toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
-  pillFocused: { borderColor: sys.color.green },
+  pillFocused: { borderColor: sys.color.ink },
   toolbar: { minHeight: COMMAND, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
-  toolLabel: { flexShrink: 1, color: sys.color.green },
+  toolLabel: { flexShrink: 1, color: sys.color.ink },
   toolLabelDisabled: { color: sys.color.muted },
   input: withInter({ ...sys.type.body, minWidth: 0, minHeight: COMMAND, maxHeight: 140, color: sys.color.ink,
     paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md, textAlignVertical: 'top' }),
-  // The send is a 48 px target around a 40 px circle: green with a white glyph when a message can go, a grey well
+  // The send is a 48 px target around a 40 px circle: ink with a white glyph when a message can go, a grey well
   // with a muted glyph when it cannot (never faded), a quiet spinner while photos are being captured.
   sendArea: { width: COMMAND, height: COMMAND, marginLeft: 'auto', alignItems: 'center', justifyContent: 'center' },
   send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.control },
-  sendReady: { backgroundColor: sys.color.green },
+  sendReady: { backgroundColor: sys.color.ink },
 });

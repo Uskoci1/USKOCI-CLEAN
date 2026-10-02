@@ -30,7 +30,6 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { StyleSheet } from 'react-native';
-import { sys } from '../../ui/system/tokens';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { composeHome } from '../homeSnapshot';
 import Pocetna from '../../app/(app)/index';
@@ -43,7 +42,9 @@ const application = (id: string) => ({ prijavaId: id, potrebaId: `n-${id}`, stan
 const agreement = (id: string, mine: 'narucilac' | 'uskocer') => ({ id, naslov: `Dogovor ${id}`, stanje: 'CONFIRMED', vremeTekst: 'danas', problemOtvoren: false,
   ucesnici: [{ id: A, ime: 'Ja', uloga: mine, viSte: true }, { id: B, ime: 'Jelena', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', viSte: false }] });
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-const action = (label: string) => tree.root.findByProps({ label }).props;
+const action = (label: string) => ['Objavi zadatak', 'Uskoči i zaradi'].includes(label)
+  ? tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props
+  : tree.root.findByProps({ label }).props;
 const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith(start))[0].props;
 const render = async () => { await act(async () => { tree = create(<Pocetna />); }); };
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
@@ -117,7 +118,6 @@ it.each([[390, 1], [320, 2]])('keeps the appointment time, role, task and person
     for (let ancestor: ReactTestInstance | null = fact; ancestor && ancestor !== card.parent; ancestor = ancestor.parent) {
       const style = StyleSheet.flatten(ancestor.props.style) ?? {};
       expect(style.height).toBeUndefined(); expect(style.maxHeight).toBeUndefined();
-      expect(style.borderLeftWidth ?? 0).toBe(0);
     }
   }
   expect(text()).not.toContain('2026-09-25');
@@ -170,7 +170,6 @@ it.each([[390, 1], [320, 2]])('separates the real attention task from its action
   const attention = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Zadatak je izmenjen'))[0];
   const facts = attention.findAll(node => String(node.type) === 'T');
   expect(facts.map(node => node.props.children)).toEqual(['Zadatak je izmenjen', taskTitle, 'Pregledaj izmene pre odluke o prijavi.']);
-  expect(facts[1].props.variant).toBe('bodyStrong');
   expect(attention.props.accessibilityLabel).toBe(`Zadatak je izmenjen. ${taskTitle}. Pregledaj izmene pre odluke o prijavi.`);
   expect(text().split(taskTitle)).toHaveLength(2);
   for (const fact of facts) {
@@ -195,50 +194,36 @@ it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads ther
   expect(mockRouter.navigate).not.toHaveBeenCalledWith('/moje-aktivnosti');
 });
 
-it('the start tiles carry no arrow and the screen no tagline', async () => {
+// Owner takeover: creation leads and discovery is a compact action, not two equal tiles.
+// Keep actionable names, untruncated text and usable personal-list targets without pinning a layout recipe.
+it.each([[390, 1], [390, 1.2], [390, 1.2999999523], [320, 1], [320, 2]])(
+  'keeps both launch actions readable and available at %idp / font %s', async (width, fontScale) => {
+    mockWindow = { width, height: 844, scale: 3, fontScale };
+    await render();
+    for (const label of ['Objavi zadatak', 'Uskoči i zaradi']) {
+      const entry = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label);
+      expect(entry).toHaveLength(1);
+      expect(entry[0].props.accessibilityRole).toBe('button');
+      expect(entry[0].props.onPress).toEqual(expect.any(Function));
+      expect(entry[0].props.disabled).not.toBe(true);
+      for (const fact of entry[0].findAll(node => String(node.type) === 'T')) {
+        expect(fact.props.numberOfLines).toBeUndefined();
+        expect(fact.props.allowFontScaling).not.toBe(false);
+        for (let ancestor: ReactTestInstance | null = fact; ancestor && ancestor !== entry[0].parent; ancestor = ancestor.parent) {
+          const style = StyleSheet.flatten(ancestor.props.style) ?? {};
+          expect(style.height).toBeUndefined(); expect(style.maxHeight).toBeUndefined();
+        }
+      }
+    }
+  },
+);
+
+it('keeps personal-list targets generous while their counts remain independently named', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
-  expect(tree.root.findAll(node => String(node.type) === 'ArrowRight')).toHaveLength(0);
-  expect(text()).not.toContain('Manje obaveza');
-});
-
-const tile = (label: string) => StyleSheet.flatten(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props.style);
-it('the earn tile never leaves "i" alone at a line end, and says what it does in three words', async () => {
-  await render();
-  // A no-break space binds "i" to "zaradi"; the spoken name stays plain.
-  expect(text()).toContain('Uskoči i\u00A0zaradi'); expect(text()).not.toContain('Uskoči i zaradi');
-  expect(tile('Uskoči i zaradi')).toBeDefined(); expect(text()).toContain('Nađi posao blizu');
-  expect(text()).not.toContain('Pronađi posao blizu');
-});
-
-it.each([
-  ['side by side on a 390 px phone at normal text', 390, 1, false],
-  ['side by side at text scale 1.2', 390, 1.2, false],
-  // Android reports its "Large" setting as 1.2999999523: the rounded scale must still stack (emulator, 2026-09-24).
-  ['stacked at Android\'s Large text (1.2999999523)', 390, 1.2999999523, true],
-  ['stacked on a 320 px phone', 320, 1, true],
-])('the start tiles are %s', async (_name, width, fontScale, stacked) => {
-  mockWindow = { width, height: 844, scale: 3, fontScale };
-  await render();
-  for (const label of ['Objavi zadatak', 'Uskoči i zaradi']) {
-    const style = tile(label);
-    expect([label, style.flexDirection ?? 'column']).toEqual([label, stacked ? 'row' : 'column']);
-    if (stacked) expect(style.minHeight).toBeGreaterThanOrEqual(72);
-    expect(style.justifyContent ?? 'flex-start').toBe('flex-start');
+  for (const label of ['Moji zadaci. 1 aktivan', 'Moje prijave. Još nemaš prijavu']) {
+    expect(StyleSheet.flatten(row(label).style).minHeight).toBeGreaterThanOrEqual(64);
   }
-});
-
-// R13: white launch surfaces and reading rows; the artwork and the action words carry color. Targets stay generous.
-it('keeps the launch actions and rating row white with at least 64dp personal-list targets', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
-  mockSource.mojiDogovori.mockResolvedValue([completed('d1'), completed('d2')]);
-  await render();
-  expect(tile('Moji zadaci. 1 aktivan').minHeight).toBeGreaterThanOrEqual(64);
-  expect(tile('Moje prijave. Još nemaš prijavu').minHeight).toBeGreaterThanOrEqual(64);
-  expect(tile('Objavi zadatak').backgroundColor).toBe(sys.color.surface);
-  expect(tile('Uskoči i zaradi').backgroundColor).toBe(sys.color.surface);
-  const strip = tile('Oceni 2 završena Dogovora');
-  expect(strip.backgroundColor).toBe(sys.color.surface); expect(strip.borderWidth ?? 0).toBe(0);
 });
 
 const completed = (id: string) => ({ ...agreement(id, 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: true });
@@ -365,7 +350,7 @@ it('a failed foreground read can be retried while an abandoned older retry still
 it('four failed reads are a failed screen, not an empty account, and the two doors never say zero', async () => {
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   await render();
-  expect(text()).toContain('Pregled trenutno nije učitan.'); expect(text()).not.toContain('Šta rešavamo');
+  expect(text()).toContain('Pregled trenutno nije učitan.');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Trenutno nisu učitani');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
   expect(text()).not.toMatch(/\b0\b/); expect(text()).not.toContain('Još nemaš');
@@ -407,7 +392,7 @@ it('PKG-042: server attention remains visible with its full total when all three
   expect(text()).toContain('Zadatak je izmenjen'); expect(text()).toMatch(/I još\s+12/);
   expect(tree.root.findAll(node => String(node.type) === 'T').some(node => node.props.children === 13)).toBe(true);
   expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te: 13 stavki' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
-  expect(text()).not.toContain('Šta rešavamo');
+
   await act(async () => row('Zadatak je izmenjen').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });
 });
@@ -445,32 +430,34 @@ it('PKG-042: a late private attention result from the previous account cannot ap
   await act(async () => tree.update(<Pocetna />));
   await act(async () => late.resolve({ rows: [{ id: 'private-a', title: 'PRIVATE_A_TASK', detail: '',
     target: { kind: 'NEED', needId: A } }], more: 0, asOf: '2026-09-22T10:00:00Z' }));
-  expect(text()).not.toContain('PRIVATE_A_TASK'); expect(text()).toContain('Šta rešavamo');
+  expect(text()).not.toContain('PRIVATE_A_TASK');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
 });
 
-it('an empty account is greeted once, and its two doors say there is nothing yet, without zero statistics', async () => {
+it('a known empty account names both empty lists without invented zero statistics', async () => {
   await render();
-  expect(text()).toContain('Šta rešavamo'); expect(text()).not.toContain('0');
-  // "Zadatak" is the product's noun, in the same words as the empty "Moji zadaci" list the door opens.
-  expect(text()).toContain('Još nemaš Zadatak'); expect(text()).toContain('Još nemaš prijavu');
+  expect(text()).not.toMatch(/\b0\b/);
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Još nemaš prijavu');
 });
 
-it('the first-run greeting stands under the tiles, so nothing above them moves when the reads answer', async () => {
+it('keeps the same launch targets mounted as the initial overview read completes', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
   await render();
-  // The first thing in the scroll view holds the two tiles, before the reads answer and after.
-  const tilesFirst = () => (tree.root.findByType('ScrollView' as React.ElementType).children[0] as ReactTestInstance)
-    .findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Objavi zadatak').length === 1;
-  expect(text()).not.toContain('Šta rešavamo'); expect(tilesFirst()).toBe(true);
+  const before = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => tree.root.findAll(
+    node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci');
   await act(async () => wait.resolve([]));
-  expect(text()).toContain('Šta rešavamo'); expect(tilesFirst()).toBe(true);
+  before.forEach((entry, index) => expect(tree.root.findAll(node => String(node.type) === 'Press'
+    && node.props.accessibilityLabel === ['Objavi zadatak', 'Uskoči i zaradi'][index])[0]).toBe(entry));
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
 });
 
-it('the greeting belongs to a first run only: once something exists, the tiles come first', async () => {
+it('an account with a withdrawn application says no active applications, not no application history', async () => {
   mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), stanje: 'WITHDRAWN' }]);
   await render();
-  expect(text()).not.toContain('Šta rešavamo');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Nema aktivnih prijava');
+  expect(text()).not.toContain('Još nemaš prijavu');
 });
 
 it('a failed refresh never claims an empty account and keeps both new start tiles available', async () => {
@@ -480,7 +467,7 @@ it('a failed refresh never claims an empty account and keeps both new start tile
   const refresh = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh;
   await act(async () => refresh());
   expect(text()).toContain('Pregled trenutno nije učitan.');
-  expect(text()).not.toContain('Šta rešavamo');
+
   expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
   await act(async () => action('Uskoči i zaradi').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');

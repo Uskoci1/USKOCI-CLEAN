@@ -14,14 +14,14 @@ import { useSesija, sesijaSada } from '../../../store/sesija';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import type { PrilikaProjekcija } from '../../../contracts/projections';
 
-type ActionScope = { id: string | null; accountId: string | undefined; epoch: number; busy: boolean; refreshing: boolean };
+type ActionScope = { id: string | null; accountId: string | undefined; accountRevision: number; busy: boolean; refreshing: boolean };
 
 export default function PrilikaDetaljiEkran() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const id = typeof params.id === 'string' && params.id.trim() ? params.id : null;
   const router = useRouter();
   const izvor = useIzvor();
-  const { user, sessionEpoch: epoch } = useSesija();
+  const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const readRequest = useRef(0);
   const readCancellations = useRef(new Set<() => void>());
@@ -42,14 +42,15 @@ export default function PrilikaDetaljiEkran() {
         timer = setTimeout(() => reject(new Error('TASK_READ_TIMEOUT')), 15_000);
       })]) : null;
     } finally { if (timer !== undefined) clearTimeout(timer); if (cancel) readCancellations.current.delete(cancel); }
-    if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
+    if (sesijaSada().accountRevision !== accountRevision || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
     const relation: TaskRelation = relationRead ? await relationRead : { kind: 'UNKNOWN' };
-    if (sesijaSada().sessionEpoch !== epoch || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
+    if (sesijaSada().accountRevision !== accountRevision || sesijaSada().user?.id !== accountId) throw new Error('STALE_TASK_READ');
     return { prilika, request, relation };
-  }, [id, izvor, accountId, epoch]);
+  }, [id, izvor, accountId, accountRevision]);
   useEffect(() => () => { readCancellations.current.forEach(cancel => cancel()); readCancellations.current.clear(); }, [load]);
   const resource = useFocusedResource(load);
-  // The cache is display-only and cannot survive a task, account, session or intent change.
+  // The cache is display-only and cannot survive a task/source or account-incarnation change.
+  // Same-account token refresh does not change who may see this task or remount its presentation.
   const cache = useMemo(() => ({ data: null as PrilikaProjekcija | null }), [load]);
   const fresh = resource.data?.prilika?.id === id ? resource.data.prilika : null;
   const deadlineAt = fresh?.rokZaPrijaveIso === null ? null
@@ -75,17 +76,17 @@ export default function PrilikaDetaljiEkran() {
   const [busy, setBusy] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    const scope: ActionScope = { id, accountId, epoch, busy: false, refreshing: false };
+    const scope: ActionScope = { id, accountId, accountRevision, busy: false, refreshing: false };
     scopeRef.current = scope;
     setBusy(false);
     return () => { if (scopeRef.current === scope) scopeRef.current = null; };
-  }, [id, accountId, epoch]));
+  }, [id, accountId, accountRevision]));
 
   function currentScope() {
     const scope = scopeRef.current;
     const session = sesijaSada();
-    if (!scope || scope.id !== id || scope.accountId !== accountId || scope.epoch !== epoch
-      || !accountId || session.user?.id !== accountId || session.sessionEpoch !== epoch) return null;
+    if (!scope || scope.id !== id || scope.accountId !== accountId || scope.accountRevision !== accountRevision
+      || !accountId || session.user?.id !== accountId || session.accountRevision !== accountRevision) return null;
     return scope;
   }
 
@@ -115,7 +116,7 @@ export default function PrilikaDetaljiEkran() {
   // existing `javniProfil` read; opened only by an explicit press, retired with the scope.
   const [requesterProfile, setRequesterProfile] = useState<PublicProfileState>(null);
   const profileRequest = useRef(0);
-  useEffect(() => { profileRequest.current++; setRequesterProfile(null); }, [id, accountId, epoch]);
+  useEffect(() => { profileRequest.current++; setRequesterProfile(null); }, [id, accountId, accountRevision]);
   useEffect(() => () => { profileRequest.current++; }, []);
   function openRequesterProfile() {
     const scope = currentScope();
@@ -146,7 +147,7 @@ export default function PrilikaDetaljiEkran() {
   const safety = safetyEntry ? { ...safetyEntry, error: safetyError } : undefined;
   function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); setSafetyError(null); }
 
-  return <PublicNeedPresentation key={`${accountId}:${epoch}:${id}`}
+  return <PublicNeedPresentation key={`${accountId}:${accountRevision}:${id}`}
     qa={fresh && !resource.loading && !resource.error ? <TaskQaEntry disabled={busy} onPress={() => {
       if (resource.data?.request !== readRequest.current || !currentScope()) return;
       navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own: '0' } }));
@@ -154,7 +155,7 @@ export default function PrilikaDetaljiEkran() {
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     map={fresh && fresh.priblizno && !resource.loading && !resource.error
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}
-        scopeKey={`${accountId}:${epoch}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
+        scopeKey={`${accountId}:${accountRevision}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
       : undefined}
     need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}

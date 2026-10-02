@@ -6,7 +6,7 @@ import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceView';
 import { inicijali } from '../../lib/inicijali';
 import { Avatar } from '../system/Avatar';
-import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { osobuAkuz, plural } from '../system/plural';
 import type { WindowRoom } from '../system/textScale';
 import { nested, sys } from '../system/tokens';
@@ -228,17 +228,18 @@ export function CardDecision({ value, places, large }: { value: TaskValue; place
   </View>;
 }
 
-/** One fact on its own line: a 16 px drawing and the words, never wrapping into the next fact. */
-export function CardFact({ art, text, lines = 1 }: { art: ReactNode; text: string; lines?: number }) {
+/** One complete fact. A larger illustration opts into a matching slot without crowding the words. */
+export function CardFact({ art, text, lines = 1, artSize = 24 }: { art: ReactNode; text: string; lines?: number; artSize?: 24 | 28 }) {
   return <View style={s.fact}>
-    <View style={s.art}>{art}</View>
+    <View style={[s.art, artSize === 28 && s.artLarge]}>{art}</View>
     <T style={s.factText} numberOfLines={lines || undefined}>{text}</T>
   </View>;
 }
 
 /** Line 5: a condition draws the "info" fact, a vehicle the van and a tool the toolbox, all at fact size. */
-export function CardRequirement({ requirement }: { requirement: TaskRequirement }) {
-  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={24} cut="art" />} text={requirement.text} lines={0} />;
+export function CardRequirement({ requirement, artSize = 24, role }: { requirement: TaskRequirement; artSize?: 24 | 28; role?: FactArtRole }) {
+  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={artSize} cut="art" role={role} />}
+    text={requirement.text} lines={0} artSize={artSize} />;
 }
 
 /** Who posted the task: the one avatar and the one initials rule of the app, the name, and the honest rating. */
@@ -431,6 +432,7 @@ const s = StyleSheet.create({
   offerWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   art: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  artLarge: { width: 28, height: 28, flexShrink: 0 },
   factText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 21, fontWeight: '400', color: sys.color.muted },
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 },
   footStacked: { gap: 8, marginTop: 2 },

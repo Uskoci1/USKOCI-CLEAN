@@ -87,8 +87,11 @@ it('retires the final callback immediately after canceling its review, including
  await act(async()=>{cancel();old();});expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('cancel reason is required and a transport ACK remains unknown until canonical CANCELLED',async()=>{
+ snapshot={...snapshot,title:'Prenos ormara',terms:{...terms,startsAt:'2026-10-15T10:00:00Z',endsAt:'2026-10-15T12:00:00Z'}};
  await render();await tap('Otkaži Dogovor');await tap('Pregledaj otkazivanje');expect(text()).toContain('Unesi razlog otkazivanja');
  await type('Razlog otkazivanja Dogovora','Otkazujem');await tap('Pregledaj otkazivanje');expect(text()).toContain('precizna lokacija se opozivaju');
+ expect(text()).toContain('Prenos ormara');expect(text()).toContain('Sa kim: Bojan Petrović');
+ expect(text()).toContain('12:00–14:00');expect(mockService.cancel).not.toHaveBeenCalled();
  mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri ishod radnje')).toBeDefined();
  expect(text()).not.toContain('Dogovor je otkazan.');snapshot={...snapshot,agreementStatus:'CANCELLED'};
  await tap('Proveri ishod radnje');expect(text()).toContain('Dogovor je otkazan.');expect(mockService.cancel).toHaveBeenCalledTimes(1);
@@ -148,6 +151,7 @@ it('form and review are two steps of one flow whose X leaves the step without an
  await tap('Otkaži Dogovor');await type('Razlog otkazivanja Dogovora','Razlog');await tap('Pregledaj otkazivanje');expect(text()).toContain('Korak 2 od 2');
  expect(text()).toContain('Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.');
  expect(action('Otkaži Dogovor').kind).toBe('destructive');
+ expect(text()).toContain('Naziv Dogovora nije dostupan');expect(text()).toContain('Termin nije potvrđen');
  await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkaži Dogovor')).toBeDefined();
 });
 it('the system Back closes a step of the flow like its X, and leaves the screen only from the hub',async()=>{

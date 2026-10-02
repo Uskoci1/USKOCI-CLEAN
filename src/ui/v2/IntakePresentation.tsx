@@ -68,7 +68,6 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 }
 
 /** Three ways in, taken from what people actually opened a conversation to ask for. */
-const OPENINGS = ['Treba mi prevoz', 'Treba mi majstor', 'Treba mi pomoć oko selidbe'] as const;
 
 /**
  * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
@@ -233,7 +232,7 @@ export function IntakePresentation(props: Props) {
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
     welcomeDetail="Opiši posao svojim rečima. Pre objave sve pregledaš."
-    openings={OPENINGS} openingArts={['vehicle', 'tool', 'home']} placeholder="Opiši šta ti treba"
+    placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace && !contextualReply ? undefined : props.voice}

@@ -1,3 +1,4 @@
+import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
 import type { WorkerLocation } from '../contracts/location';
 import type { WorkerAvailabilityInput, AvailabilityRule, AvailabilityWindow } from '../contracts/workerAvailability';
 import type { Ishod } from './ports';
@@ -125,6 +126,7 @@ export function decodeWorkerAiSnapshot(raw:unknown,account:string,cid?:string):W
     profileStatus:v.profileStatus,revision:v.revision,candidate,safety:v.safety,stale:v.stale,messages,turn,review,saved};
 }
 const ERRORS:Readonly<Record<string,string>>={
+  AI_SERVICE_UNAVAILABLE:'AI trenutno nije dostupan.',[AI_CREDITS_UNAVAILABLE]:AI_CREDITS_UNAVAILABLE_COPY,
   AUTH_REQUIRED:'Prijavi se da urediš radni profil.',WORKER_AI_DENIED:'Ponovo otvori svoj radni profil.',
   WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokreni nov razgovor iz aktuelnog profila.',
   WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvori sačuvani profil.',

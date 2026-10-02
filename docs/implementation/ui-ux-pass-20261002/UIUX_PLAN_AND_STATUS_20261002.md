@@ -17,6 +17,8 @@ Screen reviews must consider the whole purpose and journey: information order, p
 
 ### Najnovije stanje posle AI-LOCATION-01 — odgovor vlasniku
 
+**Kasnija vlasnikova proba21:23:** instalacija potvrđena, prihvatanje NIJE prošlo. AI provajder vraća402/RESOURCE_EXHAUSTED; govorni unos se prekida; vlasnik odbija sadašnju vizuelnu kompoziciju. [Tačna dijagnoza i granice](OWNER_PHONE_FAILURE_20261002.md). Novi source popravlja razlikovanje grešaka i raspored sopstvenog zadatka; ne tvrditi da je time obnovljen kredit ili završen ceo izgled.
+
 Preseci i tabela talasa ispod čuvaju ranije stanje; sledeće dopune ih nadjačavaju za navedene stavke. Osnovni tok objava → prijava → izbor → Dogovor → završetak → obe ocene već ima raniji stvarni R18 dokaz. Izmene zadatka/prijave, termina, otkazivanje i safety ekrani postoje; to nije isto što i završna potvrda svih njihovih kombinacija u najnovijem APK-u.
 
 - **AI i mapa:** SQL20261002185306 i Edge51 primenjeni uz tačan readback, flag uključen posle provere. ARM64 phone build37051296452 uspešno sastavljen iz source6fb39b30; hash/tri attestacije provereni i paket instaliran na HONOR preko postojeće aplikacije. [Receipt](AI_LOCATION_PHONE_APK_37051296452.json). Prirodni odgovori, aktivna tačka rute i zadržani govor povezani; ne tvrditi probu na telefonu pre nje. Pravi AI koji odgovara glasom ostaje odvojen otvoren deo.
@@ -177,3 +179,53 @@ Sixteen conflicts between audits and fourteen dropped items are listed with thei
 ## What this document does not claim
 
 Wave 1 had its FIRST LOOK on the HONOR on 2026-10-02 (four screens; motion not captured). It is source plus unit tests plus two review rounds plus that first look; the owner has not judged it. A wave is DONE only with phone evidence for the current build (`AGENTS.md` 3.2.1).
+
+
+## Whole-product takeover — source audit and first vertical implementation, 2026-10-02
+
+The owner's latest 51-section instruction supersedes old visual locks on Home, cards and screen composition. It explicitly requires a source-derived graph before redesign, then real APK/screenshot/critique iteration. This is the same Expo/RN product and the same 62-row registry, not a new app or master tracker.
+
+The complete route appendix is [WHOLE_APP_ROUTE_AUDIT_20261002.json](WHOLE_APP_ROUTE_AUDIT_20261002.json): 45 production route files plus overlapping subviews/route infrastructure captured in three independently reviewed clusters. Every surface records SCREEN, ENTRY_POINT, USER_GOAL, PRIMARY_ACTION, SECONDARY_ACTION, NEXT_SCREEN, BACK_BEHAVIOR, STATE_TO_PRESERVE, LOADING_STATE, EMPTY_STATE and ERROR_STATE, actual contracts and source evidence. These are source findings, not visual acceptance of unseen screens.
+
+Sources: AGENTS, authority index, LIVE plan, registry, product runbook, Design Master, OWNER_DESIGN_DIRECTION, UX_NACRT, actual navigation/controllers/projections and the supplied USKOCI_VIZUELNI_PREDLOG_I_TOKOVI_20261002.html (SHA256 6F1C94F46B777260F4D9F5DE252FB256CE8B621C5247B718925F1D0E5483AE14, its 32 surface descriptions and source545dafa0). The HTML is a historical design reference, not runtime proof. Official reference research: Airbnb 2025 summer product release (news.airbnb.com/product-releases/airbnb-2025-summer-release) for connected consumer journeys; Apple's WWDC2025/359 and WWDC2020/10175 for disciplined hierarchy and meaningful motion. No copying brand assets or inventing capabilities.
+
+### Findings and decisions
+
+KEEP the one-account/three-root graph, actual projection and command boundaries, current coarse/private location split, explicit frozen publication review, candidate selection receipt, accepted Agreement terms, uncertain-write journals and real legal/support availability. Legacy routes are deliberate compatibility shims, not disposable dead code. Group chat is currently text-only; spoken AI output is not implemented/proven by its speech-input mode.
+
+REPAIR: same-account public-detail refresh remount; application journal read recovery; retained task content replaced by skeleton; partial candidate-price sorting presented without qualification; name/work-area Back silently dropping local draft; Agreement refresh error clearing rows; group history page failure clearing transcript. The first four are in this client batch; profile guard has a separate source candidate; Agreement/group continuity require their own guarded slice. Old402 is historical evidence, not evidence the owner's now-paid account is still unpaid.
+
+REDESIGN: Home command space; task-focused AI creation and progressive facts; coherent TaskCard/Peek/Detail; person/offer hierarchy; Agreement overview with a clear next action and separate Messages; restrained filter hierarchy. Secondary account/support screens get state/copy/consistency review without changing legal truth. Photos use actual media only. Missing photo/price/location/reputation is never replaced with invented content.
+
+### Design language — implemented candidate, awaiting exact-build visual acceptance
+
+White reading canvas, #202020 content, #525252 metadata. Primary green #00845A (white text about4.72:1); warm orange #FF7A1A with dark labels (about6.25:1), never small white text. Blue represents location/communication, coral people, gold time artwork. AI is blue, not purple. Art colors do not imply status. Success remains green only with actual confirmation. Neutral wells group controls, not every piece of information.
+
+Inter remains bundled. Existing roles stay centralized: display32/37 semibold, detail hero30/35 semibold, screen title21/26 semibold, section18/24 semibold, card title20/25, body16/24 regular, secondary15/22 regular, facts14/20 medium, metadata13/18 medium, button16/22 semibold, label/caption12/16 semibold, money23/28 or24/30 bold tabular. Detail titles, names, price and conditions wrap; no clipping to make a screenshot fit. Only feed snippets may truncate with a complete detail destination and spoken label. Large text/narrow widths stack comparisons and composer controls; intrinsic height replaces fixed text heights. Maximum reading width remains bounded, system font scale remains enabled.
+
+Spacing follows4/8/12/16/20/24/32/40/48 by relationship: facts close, separate decisions farther apart. Existing radii12 controls/24 independent objects/28 sheets; avoid rounding every row. Primary buttons share green; explicitly neutral contextual controls remain charcoal. Actual icon controls use one Phosphor family; dimensional art is selective, static and cached. No new dependency.
+
+Home now gives creation one clear illustrated surface and a compact discovery row, followed by actual attention and next Agreement. No fabricated greeting, earnings, activity or global worker/requester mode. This deliberately replaces the older equal launch tiles. Own-task facts are an open reading section; applications remain a distinct actionable object. AI removes the rejected production suggestion stack; keyboard/layout updates no longer issue redundant scroll commands. Recorded audio visualization follows measured level and stops in background/reduced motion; service failure is distinguished from microphone capture failure.
+
+### Motion contract and verification order
+
+Press: existing short native opacity/scale and haptics; row less than button, no heavy surface squash. Navigation: existing native push/pop with reduced-motion alternative; root tabs change without a showcase slide. Pin selection→peek→half/full sheet preserves spatial source and list/camera state. Sheet/filter/calendar use current controllers, intrinsic height, and reduced-motion. Message send shows actual pending intent immediately; server stream only supplies actual text, no simulated typewriter. Voice responds to actual amplitude; no idle listening pulse. Extracted facts update only from accepted data; disclosure preserves transcript position. Success/check/publish/Agreement transition requires a matching receipt/readback. Photo fullscreen uses authorized original; no fake image transition when missing. Skeleton is cold-load only; warm state should retain known content with a local refresh/recovery affordance and fenced actions. New motion uses RN Animated native-driver transforms/opacity under the current B22 discipline. Existing Reanimated arrivals still need the whole-app motion pass; they are not newly certified here.
+
+### Connected vertical sequence
+
+1. Current batch: audit + foundation + Home + task-family/AI readability + concrete refresh/recovery fixes; targeted checks, consolidated APK, actual emulator screenshots and separate critique.
+2. AI/draft/location/review/publication: verify natural ambiguity, manual correction, one confirmed location and real handoff. True spoken-AI output is a capability gap, not a visual button fix; paid/provider probes and Edge deployment retain their explicit gates.
+3. Discovery→detail→offer→selection→Agreement: actual price basis, coarse map/privacy, current revisions, uncertainty recovery; preserve viewport/zoom/filter/pin/scroll on Back.
+4. Agreement→Messages→change→completion→rating, and cancellation→reason→contextual final confirmation→real result. Current cancellation reason is free text, not invented enums/penalties/refunds.
+5. Profile/work profile/calendar/availability, reviews, event-specific notifications, settings/safety/support/account; draft Back, copy, keyboard, a11y and continuity.
+6. Whole-app visual/motion/accessibility consistency and long/empty/error/offline/stale/large-font edge cases. Device claims attach only to actual installed source; store/legal/provider readiness remain separate.
+
+Scenarios A/B cross the same canonical task→application→Agreement graph; C specifically verifies map restoration; D/E preserve proposal vs accepted terms and dismissing a cancellation vs confirming it. Opening a screen alone is not a complete scenario result. No new whole-app completion percentage is inferred from this audit.
+
+
+### Additional bounded source repairs in this batch
+
+Personal name and work area now share explicit toolbar/Android Back discard protection, including focus/account/revision retirement; no draft persistence across process death is claimed. Profile-route behavioral checks:8/8 PASS. Cancellation final review now shows the real workspace title, other party and accepted Serbian-time term, bound to the reviewed Agreement id/version; free-text reason, consequences, journal and command guards are unchanged. Existing cancellation/read checks:87/87 PASS. Task public/own detail now share semantic logistics art. AI typing feedback moved to native-driver opacity/transform and stops while backgrounded or reduced-motion; streamed text itself is never animated artificially.
+
+
+Targeted check reconciliation is complete: Home/FactArt/voice/layout4 suites257 checks PASS; profile Back8/8; Agreement context/read87/87;7 additional existing affected suites passed. Initial obsolete-layout/component/prose failures are retained in [source check receipt](TAKEOVER_SOURCE_CHECKS_20261002.json). This is not emulator acceptance.

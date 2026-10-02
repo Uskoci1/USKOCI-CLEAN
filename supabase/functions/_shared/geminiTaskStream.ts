@@ -1,3 +1,10 @@
+import { AI_CREDITS_UNAVAILABLE } from '../../../src/contracts/aiAvailability.ts';
+
+/** Constructed only from the actual provider HTTP status, never provider text. */
+export class GeminiCreditsUnavailableError extends Error {
+  constructor() { super(AI_CREDITS_UNAVAILABLE); this.name = 'GeminiCreditsUnavailableError'; }
+}
+
 /** Bounded provider stream. Only the top-level assistantMessage becomes UI text. */
 function stringAt(input: string, start: number): { value: string; end: number; complete: boolean } {
   let value = '';
@@ -206,6 +213,7 @@ export async function streamGeminiTask(input: {
       headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: geminiRequestBody(input.body) }), stoppedIO]);
     if (!response.ok) {
       await reportGeminiHttpFailure(response, controller.signal);
+      if (response.status === 402) throw new GeminiCreditsUnavailableError();
       throw new Error('AI_STREAM_UNAVAILABLE');
     }
     if (response.redirected || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {

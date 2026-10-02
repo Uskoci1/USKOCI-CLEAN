@@ -15,6 +15,7 @@ export type VoiceSession = Readonly<VoiceScope & {
 export type VoiceErrorCode =
   | 'VOICE_NOT_CONFIGURED' | 'MIC_PERMISSION_DENIED' | 'MIC_PERMISSION_TIMEOUT'
   | 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'CAPTURE_TIMEOUT' | 'AUDIO_INTERRUPTED'
+  | 'SPEECH_UNAVAILABLE' | 'SPEECH_CONNECTION_FAILED'
   | 'FINALIZATION_FAILED' | 'FINALIZATION_TIMEOUT' | 'FINAL_TRANSCRIPT_MISSING'
   | 'TRANSCRIPT_INVALID' | 'TRANSCRIPT_TOO_LONG' | 'AI_SPEAKING'
   | 'DRAFT_NOT_ACCEPTED' | 'VOICE_PREPARATION_FAILED';
@@ -24,7 +25,9 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možeš promeniti u podešavanjima telefona ili nastaviti kucanjem.',
   MIC_PERMISSION_TIMEOUT: 'Zahtev za mikrofon je istekao. Pokreni novi unos ponovo.',
   MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan. Nastavi kucanjem.',
-  CAPTURE_FAILED: 'Govorni unos je prekinut. Sačuvani tekst možeš da izmeniš.',
+  CAPTURE_FAILED: 'Govorni unos je prekinut. Možeš da nastaviš kucanjem.',
+  SPEECH_UNAVAILABLE: 'Govorni servis trenutno nije dostupan. Pokušaj kasnije ili nastavi kucanjem.',
+  SPEECH_CONNECTION_FAILED: 'Veza za govorni unos je prekinuta. Pokušaj ponovo ili nastavi kucanjem.',
   CAPTURE_TIMEOUT: 'Govorni unos je zaustavljen zbog ograničenja trajanja. Sačuvani tekst možeš da dopuniš.',
   AUDIO_INTERRUPTED: 'Zvuk je prekinut. Proveri sačuvani tekst ili pokreni novi unos.',
   FINALIZATION_FAILED: 'Završni transkript nije potvrđen. Proveri i izmeni sačuvani tekst.',
@@ -40,7 +43,8 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
 export type SpeechEvent =
   | { kind: 'segment'; index: number; final: boolean; text: string }
   | { kind: 'level'; value: number | null }
-  | { kind: 'error'; code: 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'AUDIO_INTERRUPTED' };
+  | { kind: 'error'; code: 'MIC_UNAVAILABLE' | 'CAPTURE_FAILED' | 'AUDIO_INTERRUPTED'
+    | 'SPEECH_UNAVAILABLE' | 'SPEECH_CONNECTION_FAILED' };
 
 export type FinalTranscript = { kind: 'final'; text: string } | { kind: 'incomplete' };
 

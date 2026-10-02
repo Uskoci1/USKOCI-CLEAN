@@ -1,3 +1,4 @@
+import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../contracts/aiAvailability';
 import { uuid, record, sameId } from './serverReceipt';
 
 export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal };
@@ -9,6 +10,7 @@ export function createAiTurnStreamDecoder(input: {
 }) {
   let sequence = 0, attempt: string | null = null, turn: string | null = null;
   let text = '', terminal = false, safeError = false, receipt: unknown = undefined;
+  let failureCode: typeof AI_CREDITS_UNAVAILABLE | null = null;
   const accept = (raw: unknown) => {
     const e = record(raw);
     if (!input.current() || terminal || !e || !sameId(e.conversationId, input.conversationId)
@@ -38,11 +40,11 @@ export function createAiTurnStreamDecoder(input: {
     } else if (e.kind === 'safe_error') {
       // Never reflect provider, SQL, Auth or arbitrary event text in the UI.
       terminal = true;
-      if (e.code !== 'AI_TURN_NOT_CONFIRMED') throw new Error('AI_STREAM_INVALID');
-      safeError = true;
+      if (e.code !== 'AI_TURN_NOT_CONFIRMED' && e.code !== AI_CREDITS_UNAVAILABLE) throw new Error('AI_STREAM_INVALID');
+      safeError = true; failureCode = e.code === AI_CREDITS_UNAVAILABLE ? AI_CREDITS_UNAVAILABLE : null;
     }
   };
-  return { accept, result: () => terminal ? receipt : undefined, failed: () => safeError };
+  return { accept, result: () => terminal ? receipt : undefined, failed: () => safeError, failureCode: () => failureCode };
 }
 
 export async function requestAiTurnStream(input: AiTurnStreamOptions & {
@@ -61,14 +63,14 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (!current()) throw new Error('AI_STREAM_STOPPED');
     const response = await fetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
-      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
       body: JSON.stringify({ conversationId: input.conversationId, text: input.text, clientRequestId: input.clientRequestId }),
     });
     if (!current() || response.redirected || !response.body) throw new Error('AI_STREAM_STOPPED');
     if (!response.ok && response.status !== 409) {
       void response.body.cancel().catch(() => undefined);
-      return { data: null, error: { message: response.status === 401 ? 'AUTH_REQUIRED' : response.status === 403 ? 'AI_ACCESS_DENIED'
-        : response.status === 429 ? 'AI_RATE_LIMITED' : 'AI_SERVICE_UNAVAILABLE' } };
+      return { data: null, error: { message: aiAvailabilityFromResponse(response.status, response.headers) ?? (response.status === 401 ? 'AUTH_REQUIRED' : response.status === 403 ? 'AI_ACCESS_DENIED'
+        : response.status === 429 ? 'AI_RATE_LIMITED' : 'AI_SERVICE_UNAVAILABLE') } };
     }
     const contentType = response.headers.get('content-type') ?? '';
     const streaming = contentType.includes('text/event-stream');
@@ -102,7 +104,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (!streaming) return { data: JSON.parse(buffer), error: null }; // Existing claim replay/terminal envelope.
     if (buffer.trim()) event(buffer);
     return events.failed()
-      ? { data: undefined, error: { message: 'AI_SERVICE_UNAVAILABLE' } }
+      ? { data: undefined, error: { message: events.failureCode() ?? 'AI_SERVICE_UNAVAILABLE' } }
       : { data: events.result(), error: null };
   } catch {
     return { data: undefined, error: { message: 'AI_TURN_SEND_UNCONFIRMED' } };
@@ -110,4 +112,19 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     clearTimeout(timer); input.signal?.removeEventListener('abort', stop); abort.abort();
     void reader?.cancel().catch(() => undefined);
   }
+}
+
+/** Read one closed diagnostic header from our own Edge response. No error body,
+ * provider prose, or classification of the command's durable outcome. */
+export function aiAvailabilityFromResponse(status: number, headers: unknown): typeof AI_CREDITS_UNAVAILABLE | null {
+  if (status !== 503) return null;
+  const value = record(headers);
+  if (!value || typeof value.get !== 'function') return null;
+  try {
+    return value.get.call(headers, AI_AVAILABILITY_HEADER) === AI_CREDITS_UNAVAILABLE ? AI_CREDITS_UNAVAILABLE : null;
+  } catch { return null; }
+}
+export function aiAvailabilityFromSdkError(error: unknown): typeof AI_CREDITS_UNAVAILABLE | null {
+  const context = record(record(error)?.context);
+  return context && typeof context.status === 'number' ? aiAvailabilityFromResponse(context.status, context.headers) : null;
 }

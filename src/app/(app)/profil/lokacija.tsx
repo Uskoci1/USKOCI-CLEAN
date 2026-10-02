@@ -1,10 +1,11 @@
-import { useCallback, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import type { CoarsePosition, WorkerLocation, WorkerLocationInput } from '../../../contracts/location';
 import { workerLocationClientService } from '../../../data/locationClientService';
 import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { LocationField, locationStyles } from '../../../ui/location/LocationControls';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
@@ -22,6 +23,7 @@ import type { createConfiguredLocationResolver } from '../../../data/configuredL
 /** The form's two parts: fields and the save action that stays above the keyboard. */
 export type WorkerLocationParts = { body: ReactNode; footer: ReactNode };
 type WorkerLocationFormProps = { location: WorkerLocation; busy: boolean; uncertain: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
   resolver?: Pick<ReturnType<typeof createConfiguredLocationResolver>, 'search' | 'cancel'>; onSave: (value: WorkerLocationInput) => void;
   /** Where the route places the parts (the screen's sticky footer); by default they are drawn one under the other. */
   children?: (parts: WorkerLocationParts) => ReactElement;
@@ -49,7 +51,7 @@ const stacked = ({ body, footer }: WorkerLocationParts) => <View style={{ gap: 2
 const samePosition = (a: CoarsePosition | null, b: CoarsePosition | null) =>
   a === b || (!!a && !!b && a.latitude === b.latitude && a.longitude === b.longitude);
 function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver, children = stacked, error: refusal, onRetry, countryOptions,
-  reading = false, saved = false }: WorkerLocationFormProps & { countryOptions: CountryOptions }) {
+  reading = false, saved = false, onDirtyChange }: WorkerLocationFormProps & { countryOptions: CountryOptions }) {
   const [city, setCity] = useState(location.city);
   const [country, setCountry] = useState<string | null>(location.operatingCountryCode);
   const [radius, setRadius] = useState(String(location.radiusKm));
@@ -66,8 +68,10 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const changeRadius = (text: string) => { setRadius(text); setError(false); };
   // Right after a confirmed save the form is what was saved; until something changes the footer says so, instead of an
   // empty confirmation and a grey save that read as "confirm it again" (review of step 9, 2026-09-24).
-  const settled = saved && city === location.city && country === location.operatingCountryCode && radius === String(location.radiusKm)
-    && samePosition(position, location.approximatePosition);
+  const dirty = city !== location.city || country !== location.operatingCountryCode || radius !== String(location.radiusKm)
+    || !samePosition(position, location.approximatePosition);
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  const settled = saved && !dirty;
   const submit = () => {
     if (disabled || reading || settled || !selectableCountry(countryOptions.countries, country)) return;
     const value = normalizeWorkerLocation({ operatingCountryCode: country, city: city.trim(), radiusKm: /^\d+$/.test(radius) ? Number(radius) : NaN,
@@ -140,23 +144,25 @@ const quietStart = { alignSelf: 'flex-start' } as const;
 export default function PodrucjeRada() {
   const read = useCallback(() => workerLocationClientService.read(), []);
   const editor = useOwnedEditor(read);
-  const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
+  const [dirty, setDirty] = useState(false);
+  const leave = useUnsavedProfileBack({ dirty: !!editor.data && dirty, busy: editor.busy, uncertain: editor.uncertain,
+    revision: editor.data?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil') });
   const refresh = () => { void editor.refresh(); };
   const location = editor.data;
   // The form stays on screen while it is read again; only a first read or a failed one without data replaces it.
-  if (!location) return <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={back}>
+  if (!location) return <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={leave.back}>
     {editor.error && !editor.loading ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error}
       primary={{ label: 'Učitaj sačuvano stanje', onPress: refresh }} />
       : <StateView kind="loading" title="Učitavamo sačuvanu lokaciju…" skeleton={{ count: 2, rows: 1 }} />}
   </WorkerProfileFrame>;
   // The saved line stands in the footer above the save (it used to sit at the top of the body, out of sight of the button).
   return <WorkerLocationForm key={location.revision} location={location} busy={editor.busy} uncertain={editor.uncertain}
-    reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}
+    onDirtyChange={setDirty} reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}
     onSave={value => {
       void editor.save(async () => { const result = await workerLocationClientService.save({ expectedRevision: location.revision, confirmed: true, value });
         return result.ok ? { ok: true, podatak: result.podatak.location } : result; });
     }}>
-    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={back} footer={footer}>{body}</WorkerProfileFrame>}
+    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={leave.back} footer={footer}>{body}{leave.sheet}</WorkerProfileFrame>}
   </WorkerLocationForm>;
 }
 

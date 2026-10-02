@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 import { requesterProfileClientService } from '../../../data/requesterProfileClientService';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { useSesija } from '../../../store/sesija';
 import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 import { StateView } from '../../../ui/system/StateView';
@@ -14,10 +15,13 @@ export default function PersonalProfile() {
 function OwnedPersonalProfile() {
   const read = useCallback(() => requesterProfileClientService.read(), []);
   const editor = useOwnedEditor(read);
+  const [dirty, setDirty] = useState(false);
+  const leave = useUnsavedProfileBack({ dirty: !!editor.data && dirty, busy: editor.busy, uncertain: editor.uncertain,
+    revision: editor.data?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil') });
   const check = () => { void editor.refresh(); };
-  return <SettingsScreen title="Ime na profilu" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
+  return <SettingsScreen title="Ime na profilu" onBack={leave.back}>
     {editor.data ? <DisplayNameForm key={editor.data.revision} savedName={editor.data.displayName} busy={editor.busy} uncertain={editor.uncertain}
-      saved={editor.saved} error={editor.error} checking={editor.busy || editor.loading} check={check}
+      onDirtyChange={setDirty} saved={editor.saved} error={editor.error} checking={editor.busy || editor.loading} check={check}
       save={(name, requestId) => editor.save(async () => {
         const result = await requesterProfileClientService.save({ displayName: name, clientRequestId: requestId, expectedRevision: editor.data!.revision });
         return result.ok ? { ok: true, podatak: result.podatak.identity } : result;
@@ -25,5 +29,6 @@ function OwnedPersonalProfile() {
       : editor.error && !editor.loading ? <StateView kind="error" title="Ime nije učitano" body={editor.error}
         primary={{ label: 'Proveri sačuvane podatke', onPress: check, disabled: editor.busy || editor.loading }} />
         : <StateView kind="loading" title="Učitavamo podatke…" skeleton={{ count: 1, rows: 1 }} />}
+    {leave.sheet}
   </SettingsScreen>;
 }

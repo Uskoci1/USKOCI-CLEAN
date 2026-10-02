@@ -1,8 +1,8 @@
 import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowUpRight, DotsThree, Info, PaperPlaneTilt, Plus, Waveform } from 'phosphor-react-native';
-import Animated, { cancelAnimation, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { Press } from '../Press';
@@ -204,12 +204,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
           thread.current?.scrollTo({ y: target, animated: false });
         }}
         onLayout={event => {
-          geometry.current.viewport = event.nativeEvent.layout.height;
+          const viewport = event.nativeEvent.layout.height;
+          if (!Number.isFinite(viewport) || viewport <= 0 || geometry.current.viewport === viewport) return;
+          geometry.current.viewport = viewport;
           if (followLatest.current) followAfterLayout();
           else thread.current?.scrollTo({ y: historyOffset.current, animated: false });
         }}
         // The first pending turn already belongs at the bottom, even before the server returns a message ID.
-        onContentSizeChange={(_width, content) => { geometry.current.content = content; followAfterLayout(); }}>
+        onContentSizeChange={(_width, content) => {
+          if (!Number.isFinite(content) || content < 0 || geometry.current.content === content) return;
+          geometry.current.content = content; followAfterLayout();
+        }}>
         {/* Always mounted: inserting/removing inline context preserves the sentence being read below it. */}
         <View testID="ai-inline-context" style={pinned && inlineSummary && !cardAtEnd ? s.inlineContext : undefined} onLayout={event => {
           const previous = contextHeight.current, next = event.nativeEvent.layout.height, delta = next - previous;
@@ -288,7 +293,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
             button still says it to a screen reader. */}
         {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
-        <View testID="ai-composer" onLayout={event => setComposerWidth(event.nativeEvent.layout.width)}
+        <View testID="ai-composer" onLayout={event => {
+          const width = event.nativeEvent.layout.width;
+          if (Number.isFinite(width) && width > 0) setComposerWidth(previous => previous === width ? previous : width);
+        }}
           style={[s.pill, stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
           {p.attach ? <View style={[s.attachmentSlot, stackedComposer && s.attachmentBelow]}>
             <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
@@ -303,7 +311,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
             onContentSizeChange={event => {
               const measured = Math.ceil(event.nativeEvent.contentSize.height);
-              setInputHeight(Math.max(48, Math.min(132, measured)));
+              if (!Number.isFinite(measured) || measured <= 0) return;
+              const nextHeight = Math.max(48, Math.min(132, measured));
+              setInputHeight(previous => previous === nextHeight ? previous : nextHeight);
               const oneLine = sys.type.body.lineHeight * textScale + 20;
               if (!stackedComposer && p.value.length > 8 && measured > oneLine + 8) setExpandedDraft(true);
             }}
@@ -356,14 +366,26 @@ function AssistantPresence() {
 
 /** One of three dots that rise and fall while an answer is being written. */
 function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
-  const life = useSharedValue(0);
+  const life = useRef(new NativeAnimated.Value(0)).current;
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
   useEffect(() => {
-    if (reduced) { cancelAnimation(life); life.set(0.5); return; }
-    life.set(withDelay(index * 140, withRepeat(withTiming(1, { duration: 520 }), -1, true)));
-    return () => cancelAnimation(life);
-  }, [index, life, reduced]);
-  const style = useAnimatedStyle(() => ({ opacity: 0.25 + life.get() * 0.6, transform: [{ translateY: reduced ? 0 : -life.get() * 3 }] }));
-  return reduced ? <View style={[s.dot, s.dotStill]} /> : <Animated.View style={[s.dot, style]} />;
+    const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    life.stopAnimation();
+    life.setValue(0);
+    if (reduced || !foreground) return;
+    const timing = (toValue: number) => NativeAnimated.timing(life, { toValue, duration: 520,
+      easing: Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false });
+    const run = NativeAnimated.sequence([NativeAnimated.delay(index * 140),
+      NativeAnimated.loop(NativeAnimated.sequence([timing(1), timing(0)]))]);
+    run.start();
+    return () => run.stop();
+  }, [index, life, reduced, foreground]);
+  const style = { opacity: life.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.85] }),
+    transform: [{ translateY: life.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] };
+  return reduced || !foreground ? <View style={[s.dot, s.dotStill]} /> : <NativeAnimated.View style={[s.dot, style]} />;
 }
 
 /**
@@ -394,7 +416,7 @@ const s = StyleSheet.create({
   presenceDisc: { width: 62, height: 62, borderRadius: 22, backgroundColor: sys.conversation.surface, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
   presenceAccent: { position: 'absolute', right: 4, top: 6, width: 16, height: 16, borderRadius: 8,
     backgroundColor: sys.color.artRole.ai.front, borderWidth: 3, borderColor: sys.conversation.ground },
-  welcomeTitle: { ...sys.type.title, color: sys.color.ink, textAlign: 'center' },
+  welcomeTitle: { ...sys.type.title, fontWeight: '600', color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   openings: { gap: sys.space.sm, marginTop: sys.space.sm },
   // Three illustrated ways into the person's task, not generic command chips.

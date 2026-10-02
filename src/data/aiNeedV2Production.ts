@@ -1,3 +1,4 @@
+import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../contracts/aiAvailability';
 import type {
   AiNeedConversationAbandoned, AiNeedConversationOpened, AiNeedDraftSaved,
   AiNeedEditConfirmed, AiNeedEditOpened, AiNeedMessage, AiNeedSafety,
@@ -7,7 +8,7 @@ import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
-import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
+import { aiAvailabilityFromSdkError, requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
 import { locationPayloadFits, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
@@ -48,7 +49,8 @@ const ERRORS: Readonly<Record<string, string>> = {
   CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvori razgovor.',
   AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proveri ishod pre ponovnog pokušaja.',
   AI_ACCESS_DENIED: 'Pristup razgovoru nije odobren. Ponovo otvori razgovor.',
-  AI_SERVICE_UNAVAILABLE: 'Obrada razgovora trenutno nije dostupna. Proveri ishod pre ponavljanja.',
+  AI_SERVICE_UNAVAILABLE: 'AI trenutno nije dostupan.',
+  [AI_CREDITS_UNAVAILABLE]: AI_CREDITS_UNAVAILABLE_COPY,
   AI_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj poruci. Proveri prethodni rezultat.',
   CONVERSATION_NOT_ABANDONABLE: 'Ovaj razgovor više ne može da se napusti. Proveri njegovo stanje.',
   CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugom pregledu. Proveri sačuvano stanje.',
@@ -386,13 +388,13 @@ export const aiNeedV2Production = {
           return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
             conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account) });
         }
-        const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', { body: { conversationId, text, clientRequestId } });
+        const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', { body: { conversationId, text, clientRequestId }, headers: { [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION } });
         if (!scopeCurrent(account)) return scopeChanged();
         if (Date.now() >= deadline) return invalidResponse();
         if (response.error) {
           const envelope = await failedTurnEnvelope(response.error, conversationId, clientRequestId, deadline, account);
           if (envelope) return { data: envelope, error: null };
-          const name = transportErrorName(response.error);
+          const name = aiAvailabilityFromSdkError(response.error) ?? transportErrorName(response.error);
           return name ? { data: null, error: { message: name } } : response;
         }
         const envelope = turnStatus(response.data, conversationId, clientRequestId);

@@ -1,6 +1,7 @@
+import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -193,7 +194,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (usage.value) { try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
           p_prompt_tokens:usage.value.promptTokens,p_output_tokens:usage.value.outputTokens,p_total_tokens:usage.value.totalTokens},abort.signal); } catch {} }
         send('final',{turn});
-      } catch { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
+      } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:
+        req.headers.get(AI_DIAGNOSTICS_HEADER)===AI_DIAGNOSTICS_VERSION && error instanceof GeminiCreditsUnavailableError
+          ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
       finally { req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort(); }
     }, cancel(){stop();req.signal.removeEventListener('abort',stop);}
   });

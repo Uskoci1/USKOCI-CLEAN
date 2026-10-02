@@ -113,7 +113,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
   } else if (review) {
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustani od radnje" disabled={busy}
       title={reviewTitle(review)} step={review.kind === 'PROPOSE' || review.kind === 'CANCEL' ? 'Korak 2 od 2' : undefined} />;
-    body = <Review review={review} proposed={p.proposed} base={snapshot?.terms ?? null} />;
+    body = <Review review={review} proposed={p.proposed} base={snapshot?.terms ?? null} snapshot={snapshot} />;
     footer = <V2Action tone="neutral" label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'}
       style={ending(review) ? [s.danger, busy && !sending && s.dangerResting] : brandAction}
       loading={sending} disabled={busy && !sending} error={p.error} onPress={p.onSend} />;
@@ -245,12 +245,23 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
   </View>;
 }
 
-function Review({ review, proposed, base }: { review: AgreementActionCommand; proposed: AgreementChangeTerms | null; base: AgreementChangeTerms | null }) {
+function Review({ review, proposed, base, snapshot }: { review: AgreementActionCommand; proposed: AgreementChangeTerms | null;
+  base: AgreementChangeTerms | null; snapshot: AgreementChangeSnapshot | null }) {
   const reason = review.kind === 'PROPOSE' ? review.value.razlog : review.kind === 'CANCEL' ? review.reason : review.proposal.reason;
+  const cancelContext = review.kind === 'CANCEL' && snapshot?.agreementId === review.agreementId
+    && snapshot.agreementVersion === review.version ? snapshot : null;
   return <View style={s.stack}>
     {review.kind === 'CANCEL'
       // The three sentences are the cancellation's binding words; they stay exactly as written.
-      ? <T variant="copy">Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.</T>
+      ? <>
+        <View style={s.section}>
+          <T variant="meta" tone="muted">Dogovor koji otkazuješ</T>
+          <T variant="heading" accessibilityRole="header">{cancelContext?.title || 'Naziv Dogovora nije dostupan'}</T>
+          <Fact art="person" label="Sa kim" value={cancelContext?.counterpartName || 'Ime druge strane nije dostupno'} />
+          <Fact art="calendar" label="Važeći termin" value={cancelContext?.terms ? schedule(cancelContext.terms) : 'Termin nije dostupan'} />
+        </View>
+        <T variant="copy">Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.</T>
+      </>
       : <>
         <Terms terms={proposed} base={base} />
         <T variant="copy">{review.kind === 'PROPOSE' ? 'Uslovi se menjaju tek kada druga strana prihvati predlog.' : review.kind === 'WITHDRAW' ? 'Povlačiš svoj predlog. Važeći uslovi ostaju.' : review.accept ? 'Prihvatanjem odmah počinju da važe prikazani novi uslovi. Raspored se ponovo proverava.' : 'Odbijaš ovaj predlog. Važeći uslovi ostaju.'}</T>

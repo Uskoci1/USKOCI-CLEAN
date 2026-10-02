@@ -510,18 +510,23 @@ describe('voice mode', () => {
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     expect(tree.root.findByProps({ testID: 'ai-voice-mode' }).props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
   });
-  it('holds still under reduced motion and fades in otherwise', async () => {
+  it('opens voice mode without capture, using the reduced-motion modal policy', async () => {
     const p = props(); p.value = ''; p.voice = voice();
     mockReduced = true;
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findByType(VoiceMode).findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('none');
+    expect(tree.root.findByProps({ testID: 'voice-glow' }).props.importantForAccessibility).toBe('no-hide-descendants');
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Razgovor glasom').length).toBeGreaterThan(0);
     await act(async () => tree.unmount());
     mockReduced = false;
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    expect(tree.root.findByProps({ testID: 'voice-glow' }).findAllByType('AnimatedView' as React.ElementType)).toHaveLength(1);
+    expect(tree.root.findByType(VoiceMode).findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('fade');
+    expect(p.voice!.controller.begin).not.toHaveBeenCalled();
+    expect(p.voice!.controller.release).not.toHaveBeenCalled();
+    expect(p.onSend).not.toHaveBeenCalled();
+    // Measured level / idle / background / reduced-motion resets are covered in voice-composer-controls.
   });
   it('a reviewed capture lands in the field and voice mode steps aside for it', async () => {
     const p = props(); p.value = ''; const v = voice(); p.voice = v;

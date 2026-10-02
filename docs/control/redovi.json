@@ -4765,9 +4765,32 @@
       "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_DEV_APPLICATION_RECEIPT_20261001.md",
       "checkpoint_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_B2A_CHECKPOINT_RECEIPT_20261001.md",
       "ledger_receipt": "supabase/operations/dev-alpha/ledger/20261001_chat_voice_b1_application.receipt.json",
-      "candidates": ["supabase/candidates/chat_voice_b1_dev_application.sql", "supabase/candidates/chat_voice_b1_revert.sql", "supabase/candidates/chat_voice_b1a_feature_chain.sql", "supabase/candidates/chat_voice_b1b_closure_integration.sql"],
-      "candidate_sha256": {"dev_application": "416ba1459b528f2ce0876b76e03902fda8cd647bea395185efde6c07dc76898e", "revert": "ab22e08f5669f45a6b3153c05f1d2943da74ee69ea802de49ee4ba647e7d1173"},
-      "proof": {"b1a_b1b_run": 36786883950, "b1a": "16/16", "b1b": "21/21", "edge_offline_run": 36786887149, "edge_offline": "79/79", "dev_application_runs": [36784486016, 36785614498, 36788595185], "dev_application": "17/17, 8 odbijanja, 9 kasnijih drifta, 2 puna zatvaranja, postflight prazan", "revert_run": 36789867392, "revert": "16/16, 10 odbijanja, katalog i digest vraćeni tačno", "client_b2a": "11 paketa / 182 testa"},
+      "candidates": [
+        "supabase/candidates/chat_voice_b1_dev_application.sql",
+        "supabase/candidates/chat_voice_b1_revert.sql",
+        "supabase/candidates/chat_voice_b1a_feature_chain.sql",
+        "supabase/candidates/chat_voice_b1b_closure_integration.sql"
+      ],
+      "candidate_sha256": {
+        "dev_application": "416ba1459b528f2ce0876b76e03902fda8cd647bea395185efde6c07dc76898e",
+        "revert": "ab22e08f5669f45a6b3153c05f1d2943da74ee69ea802de49ee4ba647e7d1173"
+      },
+      "proof": {
+        "b1a_b1b_run": 36786883950,
+        "b1a": "16/16",
+        "b1b": "21/21",
+        "edge_offline_run": 36786887149,
+        "edge_offline": "79/79",
+        "dev_application_runs": [
+          36784486016,
+          36785614498,
+          36788595185
+        ],
+        "dev_application": "17/17, 8 odbijanja, 9 kasnijih drifta, 2 puna zatvaranja, postflight prazan",
+        "revert_run": 36789867392,
+        "revert": "16/16, 10 odbijanja, katalog i digest vraćeni tačno",
+        "client_b2a": "11 paketa / 182 testa"
+      },
       "dev_applied": {
         "at": "2026-10-01 (owner PRIMENI; migration version 20261001065800)",
         "edge": "uskoci-account-closure-worker v3 -> v4 (2026-10-01T04:07:10Z) and uskoci-media v13 -> v14 (04:11:51Z), every file byte-equal to git HEAD",
@@ -4783,10 +4806,120 @@
       "state": "S1_S4_APPLIED_TO_DEV_20261001 / CERTIFICATE_UNCHANGED / CLIENT_FLAGS_ON_IN_DEV_APK_WORKFLOW_ONLY / NATIVE_HONOR_PARTIAL_20261001 / PAGE_BOUNDARY_NOT_PROVEN / OPTION_A_WINDOW_RUN_1_PARTIAL_INSTRUMENT_REMOVED_FROM_CONFIG / WINDOW_2_PARTIAL / WINDOW_3_BOUNDARY_PROVEN_S1_S2_S4_REFRESH_AND_CANDIDATE_LOOP_10_OF_10_PAGING_ERROR_ROW_NOT_REPRODUCED_CAUSE_UNDETERMINED / CLOSED_WITH_LIMITS_20261001_OWNER_DA",
       "canonical": "LIVE Master Plan §5.4: EX-04 Posao = B09 authority, projekcije, pun P2 lifecycle; preduslov: funkcionalne promene + odobren UI zajedno; merilo: oba učesnika završavaju posao i oporavak. EX oznake su radne celine unutar postojećeg plana, ne novi tracker; izlaz se beleži u postojećim redovima. Poglavlje 9 (P2).",
       "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_PERSONAL_LISTS_PLAN_20260930.md",
-      "flows_p2": ["A01", "A08", "A09", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "B06", "B07", "B08", "B09", "B10", "B11", "B12", "D01", "D02", "D06", "D07", "D08", "D09", "D10", "D11", "D12", "D13"],
+      "flows_p2": [
+        "A01",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "B06",
+        "B07",
+        "B08",
+        "B09",
+        "B10",
+        "B11",
+        "B12",
+        "D01",
+        "D02",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11",
+        "D12",
+        "D13"
+      ],
       "first_open_row": "ZATVORENO SA GRANICAMA 1.10. (EX04_CLOSURE_RECEIPT_20261001.md); sledeći otvoreni redovi po redosledu rada: EX-06 (F1 i D12 kandidati u popravnom krugu pa CI dokaz na probnom lancu), EX-05 Komunikacija i EX-07 Nalog (zapisi obima, pomoćna traka), pa UI/UX prolaz. Prethodni tekst: Lične liste A09 / B10 / A11 (P6 L7) i RC-03 zbirna projekcija ocena A01 / D01 (P6 L10): direktiva vlasnika 30.09, tačka 4 (eksplicitan otvoren sledeći red EX-04/P2).",
-      "aligned_order": ["S1 A09: rpc_list_my_needs_page dopunjen na mestu + private.own_task_counts: SOURCE + CI (run 36836659746; ponovo zeleno 36846103774) i PRIMENJENO NA DEV 1.10. (migracija 20261001113449, ledger 216), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen)", "S2 B10: rpc_list_my_applications_page (5 argumenata, redosled kao puna lista, činjenice zadatka, tabovi i brojevi) + private.own_application_rows: SOURCE + CI (run 36839658547; ponovo zeleno 36846103943) i PRIMENJENO NA DEV 1.10. (migracija 20261001113629, ledger 217), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen)", "S3 RC-03: ratingDue u stranici Dogovora i ratings {due, dueAgreementId} u rpc_home_attention, oba dopunjena na mestu, samo dodati ključevi: SOURCE + CI (run 36846103770) i PRIMENJENO NA DEV 1.10. (migracija 20261001113949, ledger 219), postflight prazan; klijent bez flaga (podatak određuje put, stari put ostaje rezerva)", "S4 A11: rpc_list_need_candidates_page + private.need_candidate_states_v5(uuid, uuid[]) (dve NOVE funkcije): SOURCE + CI (run 36846103824) i PRIMENJENO NA DEV 1.10. (migracija 20261001113815, ledger 218), postflight prazan; klijent iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (isključen)"],
-      "slices": {"S1_A09": {"status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven", "candidate": "supabase/candidates/ex04a_own_tasks_page.sql", "candidate_sha256": "3e502e62598fac40fdbfa47623904b736b0fb1e46c5d886f4e423ff0fa50ab59", "revert_sha256": "c790dfb9133793f10e57eca21b7e391fb4ecb49705675ec1902f9e12a7582f3e", "postflight_sha256": "92d0c1dd688d242050f848b74572e190602f9ca49222d3acebafe604ac7998da", "ci_runs": [36836659746, 36837512563, 36839658435, 36846103774], "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md", "dev_migration": {"name": "dev_alpha_ex04a_own_tasks_page_application", "version": "20261001113449", "ledger_after": 216, "stored_sha256": "4d55af3eed0aa92b3e281152beaa6ac986b9110cb95563e2dedfeba6e51274b9"}, "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"}, "S2_B10": {"status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven", "candidate": "supabase/candidates/ex04b_own_applications_page.sql", "candidate_sha256": "d0bc1e1bc4e919eba06559be807fc1c8e54a30b4a282ddc6f4e857e9f93d4948", "revert_sha256": "66e0bcdb0535f4242526ff22b3f748fcf0c20ef42164199f83bbca59abd8380a", "postflight_sha256": "ab49bf0e722b090f9baf800d67b731a00f8e9e812358526a7e1784f4557f990a", "ci_runs": [36839658547, 36846103943], "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md", "dev_migration": {"name": "dev_alpha_ex04b_own_applications_page_application", "version": "20261001113629", "ledger_after": 217, "stored_sha256": "2ad69506885029ecf47e00fa06fdcf7e23c68c83a56384d9b183df7338e0c351"}, "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"}, "S4_A11": {"status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven", "candidate": "supabase/candidates/ex04d_candidates_page.sql", "candidate_sha256": "ff11ea470d2afa09b6651a5f1b55bc68d19578862841e12a4c83287924564a09", "revert_sha256": "086a5662d8a78d46d6688f6ab7e1983e8de16cc582bdb2124ca571173579b792", "postflight_sha256": "7709e14c26555ec709a2c5c48b261be8f1be4127e8f07cc38c6f328273117963", "ci_runs": [36846103824], "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md", "dev_migration": {"name": "dev_alpha_ex04d_candidates_page_application", "version": "20261001113815", "ledger_after": 218, "stored_sha256": "db03fc0f1cf4b4340866073c1aad2ef3c891b10ee5e13ce28b38c6668c03c9f7"}, "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"}, "S3_RC03": {"status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client without a flag (the data decides, the old per-Dogovor path stays as the fallback); HONOR native check 2026-10-01 (ROUND_77): no display regression, 0 per-Dogovor review reads, positive rating-due path NOT proven", "candidate": "supabase/candidates/ex04c_rating_state.sql", "candidate_sha256": "e67eabecd7d820f9b2ea41b4ac4508459c7beadda5caf3ce72c848c8fc3317e6", "revert_sha256": "3fe26a1d54e95772ad0b3fc20904a54b446ed5c6a446e61b8ad354ff43d3f84e", "postflight_sha256": "dc6b160482441f152737a51cd317161bb5afa6a6dc089aefe306cbee70e89632", "ci_runs": [36846103770], "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md", "dev_migration": {"name": "dev_alpha_ex04c_rating_state_application", "version": "20261001113949", "ledger_after": 219, "stored_sha256": "9aaadf7aeb806ba9f80b1ee3157652b1e7f5bab50e46b1829370fc32ed720cee"}, "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"}},
+      "aligned_order": [
+        "S1 A09: rpc_list_my_needs_page dopunjen na mestu + private.own_task_counts: SOURCE + CI (run 36836659746; ponovo zeleno 36846103774) i PRIMENJENO NA DEV 1.10. (migracija 20261001113449, ledger 216), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (isključen)",
+        "S2 B10: rpc_list_my_applications_page (5 argumenata, redosled kao puna lista, činjenice zadatka, tabovi i brojevi) + private.own_application_rows: SOURCE + CI (run 36839658547; ponovo zeleno 36846103943) i PRIMENJENO NA DEV 1.10. (migracija 20261001113629, ledger 217), postflight prazan; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (isključen)",
+        "S3 RC-03: ratingDue u stranici Dogovora i ratings {due, dueAgreementId} u rpc_home_attention, oba dopunjena na mestu, samo dodati ključevi: SOURCE + CI (run 36846103770) i PRIMENJENO NA DEV 1.10. (migracija 20261001113949, ledger 219), postflight prazan; klijent bez flaga (podatak određuje put, stari put ostaje rezerva)",
+        "S4 A11: rpc_list_need_candidates_page + private.need_candidate_states_v5(uuid, uuid[]) (dve NOVE funkcije): SOURCE + CI (run 36846103824) i PRIMENJENO NA DEV 1.10. (migracija 20261001113815, ledger 218), postflight prazan; klijent iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (isključen)"
+      ],
+      "slices": {
+        "S1_A09": {
+          "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven",
+          "candidate": "supabase/candidates/ex04a_own_tasks_page.sql",
+          "candidate_sha256": "3e502e62598fac40fdbfa47623904b736b0fb1e46c5d886f4e423ff0fa50ab59",
+          "revert_sha256": "c790dfb9133793f10e57eca21b7e391fb4ecb49705675ec1902f9e12a7582f3e",
+          "postflight_sha256": "92d0c1dd688d242050f848b74572e190602f9ca49222d3acebafe604ac7998da",
+          "ci_runs": [
+            36836659746,
+            36837512563,
+            36839658435,
+            36846103774
+          ],
+          "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md",
+          "dev_migration": {
+            "name": "dev_alpha_ex04a_own_tasks_page_application",
+            "version": "20261001113449",
+            "ledger_after": 216,
+            "stored_sha256": "4d55af3eed0aa92b3e281152beaa6ac986b9110cb95563e2dedfeba6e51274b9"
+          },
+          "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+        },
+        "S2_B10": {
+          "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven",
+          "candidate": "supabase/candidates/ex04b_own_applications_page.sql",
+          "candidate_sha256": "d0bc1e1bc4e919eba06559be807fc1c8e54a30b4a282ddc6f4e857e9f93d4948",
+          "revert_sha256": "66e0bcdb0535f4242526ff22b3f748fcf0c20ef42164199f83bbca59abd8380a",
+          "postflight_sha256": "ab49bf0e722b090f9baf800d67b731a00f8e9e812358526a7e1784f4557f990a",
+          "ci_runs": [
+            36839658547,
+            36846103943
+          ],
+          "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_75_EX04_S1_S2_PERSONAL_LISTS.md",
+          "dev_migration": {
+            "name": "dev_alpha_ex04b_own_applications_page_application",
+            "version": "20261001113629",
+            "ledger_after": 217,
+            "stored_sha256": "2ad69506885029ecf47e00fa06fdcf7e23c68c83a56384d9b183df7338e0c351"
+          },
+          "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+        },
+        "S4_A11": {
+          "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client behind EXPO_PUBLIC_EX04_CANDIDATES_PAGED (ON in the DEV APK workflow only, since bf48a5db); HONOR native check 2026-10-01 (ROUND_77) PASSED for the existing-data paths, page boundary NOT proven",
+          "candidate": "supabase/candidates/ex04d_candidates_page.sql",
+          "candidate_sha256": "ff11ea470d2afa09b6651a5f1b55bc68d19578862841e12a4c83287924564a09",
+          "revert_sha256": "086a5662d8a78d46d6688f6ab7e1983e8de16cc582bdb2124ca571173579b792",
+          "postflight_sha256": "7709e14c26555ec709a2c5c48b261be8f1be4127e8f07cc38c6f328273117963",
+          "ci_runs": [
+            36846103824
+          ],
+          "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md",
+          "dev_migration": {
+            "name": "dev_alpha_ex04d_candidates_page_application",
+            "version": "20261001113815",
+            "ledger_after": 218,
+            "stored_sha256": "db03fc0f1cf4b4340866073c1aad2ef3c891b10ee5e13ce28b38c6668c03c9f7"
+          },
+          "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+        },
+        "S3_RC03": {
+          "status": "APPLIED TO DEV 2026-10-01 (owner PRIMENI); postflight problems []; certificate unchanged; client without a flag (the data decides, the old per-Dogovor path stays as the fallback); HONOR native check 2026-10-01 (ROUND_77): no display regression, 0 per-Dogovor review reads, positive rating-due path NOT proven",
+          "candidate": "supabase/candidates/ex04c_rating_state.sql",
+          "candidate_sha256": "e67eabecd7d820f9b2ea41b4ac4508459c7beadda5caf3ce72c848c8fc3317e6",
+          "revert_sha256": "3fe26a1d54e95772ad0b3fc20904a54b446ed5c6a446e61b8ad354ff43d3f84e",
+          "postflight_sha256": "dc6b160482441f152737a51cd317161bb5afa6a6dc089aefe306cbee70e89632",
+          "ci_runs": [
+            36846103770
+          ],
+          "receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_76_EX04_S3_S4_RATING_STATE_AND_CANDIDATES.md",
+          "dev_migration": {
+            "name": "dev_alpha_ex04c_rating_state_application",
+            "version": "20261001113949",
+            "ledger_after": 219,
+            "stored_sha256": "9aaadf7aeb806ba9f80b1ee3157652b1e7f5bab50e46b1829370fc32ed720cee"
+          },
+          "dev_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+        }
+      },
       "owner_decision_20261001_option_a": "Vlasnik 1.10. (kasnije): ODOBRAVA OPCIJU A. Test-only EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 isključivo u DEV APK workflow-u; jedan novi verifikovani ARM64 DEV APK; tri EX-04 flaga ostaju uključena samo za DEV; adb install -r uz očuvanje sesije i podataka; bez izmene servera, bez izmene DEV podataka, bez fixture-a, bez PROD-a. Guard mora dokazati da promenljiva ne ulazi u release profil/eas.json niti van DEV workflow-a (src/data/__tests__/ex04-test-page-limit-guard.test.ts, mutacijski dokazan). Telefon se ne dira do vlasnikovog „SAD“ (oko 4 minuta ekskluzivnog HONOR prozora). Posle testa se DEV test konfiguracija vraća na normalno, a PAGE_LIMIT=2 se evidentira kao ISKLJUČIVO test instrument, nikad proizvodna vrednost. EX-04 se NE proglašava potpuno zatvorenim dok postoje nedokazane granice; one se evidentiraju tačno. Tumačenje: S4 čita strane od (vrednost - 1), najmanje 1, jer nijedan zadatak test podataka nema više od 2 kandidata.",
       "option_a_test_apk": "Test APK IZGRAĐEN I VERIFIKOVAN 1.10.: workflow run 36873169662 (pokušaj 2; pokušaj 1 pao na prolaznoj grešci preuzimanja Kotlin kompajlera, HTTP 500), izvor 52a66a7638ff55549825b0dccee331c28a979886, USKOCI-DEV.apk 71.250.306 bajtova, sha256 9ef10b674a9b4f323542225b2e5414ff28301d8d06418b59d8bf73b3b90a18ab (podudara se sa .sha256 fajlom i obe atestacije PASS na istom hash-u i izvoru), paket rs.uskoci.dev versionCode 35, native-code arm64-v8a, potpis fac61745dc09… identičan potpisu instaliranog APK-a (adb install -r je moguć bez deinstalacije), okruženje build-a pokazuje EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uz tri EX-04 flaga. NIJE instaliran na telefon i telefon nije dirnut; čeka vlasnikovo „SAD“. Skript ex04_boundary.py (install -r, tri prelaska granice + Back, pull-to-refresh, S1/S2/S4 do kraja, ciklusi, crash/ANR sken) ima tvrd budžet i staje ako izgubi foreground ili zazvoni telefon. Posle testa: brisanje linije iz DEV workflow-a i evidencija da je PAGE_LIMIT=2 bio isključivo test instrument.",
       "owner_decision_20261001_sad_attempt": "Vlasnik 1.10. (kasnije): „SAD“ za EX-04 test prozor (do 4,5 min ekskluzivnog HONOR-a, sesija i podaci sačuvani, bez reseta i bez ičeg van EX-04 testa); posle testa se test-only linija EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT=2 uklanja iz normalne build konfiguracije, a rezultat se evidentira u receipt, registar i LIVE plan. ISHOD POKUŠAJA: telefon je fizički povezan (HONOR 600 Pro vidljiv u Windows-u) ali ADB interfejs nije vidljiv (adb devices prazno; verovatno isključen USB debugging) - NIŠTA nije poslato telefonu, prozor nije potrošen, podešavanja telefona se ne menjaju; čeka se ponovno „SAD“ posle uključenog USB debugging-a.",
@@ -4794,10 +4927,25 @@
       "option_a_window2_result": "PROZOR 2 (vlasnikovo drugo „SAD“, oko 3 min, skripta 124 s, 20:31-20:33 po telefonu, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, posle prozora telefon nije diran): DELIMIČNO DOKAZANO. DOKAZANO: pull-to-refresh sa pravog vrha (prva kartica na ekranu = prva kartica baze, 0 krugova skrola) vraća listu na prvu stranu (2 kartice, prva = pozicija 0, foot „Prikaži još“); posle refresha prvih 8 kartica = pozicije 0..7 od 17, isti redosled i tekst, bez duplikata/anomalije; jedan tap na „Prikaži još“, ostalo kroz onEndReached; bez pada i ANR; 2217 frejmova, janky 1,13 %, p99 15 ms, PSS 271 MB. UOČENO PRVI PUT, UZROK NEODREĐEN: posle 8. kartice foot je prikazao „Nije uspelo učitavanje još zadataka.“ uz „Pokušaj ponovo“ (lista ostaje na ekranu, projektovano ponašanje moreError). Poznato: prozor 1 je pročitao svih 17 bez te greške; DEV edge_logs (lossy, 19 redova za 16 min) pokazuju 5 poziva rpc_list_my_needs_page 18:31:27-18:32:11 UTC, svi HTTP 200; postgres_logs bez ERROR/FATAL za 18:20-18:36 UTC; nijedan red needs nije menjan posle 17:30 UTC osim jednog novog PUBLISHED zadatka 18:04:49 UTC (Aktivni, pre prozora); šesti zahtev nije u logovima; čitač strane svaku grešku svodi na jednu poruku (greška servera, mreža/15 s timeout, promena revizije naloga, nevažeći odgovor), pa KLASA uzroka nije utvrđena - ne tvrdim ni defekt ni prolaznu smetnju. NIJE dokazano: S4 Kandidati i ciklusi kandidata (korak s4 pao na „open Aktivni tab“ - ekran je još bio Istorija na dnu sa redom greške, snimak fail_s4_candidates.png; korak cycles pao jer ciljna kartica nije bila na prvom ekranu Aktivnih („3 zadatka“, novi zadatak od 18:04 UTC, skripta ne skroluje); rpc_list_need_candidates_page nije pozvan), šetnja do kraja 17 kartica, odbijanje mešanih revizija, loading skeleton, pozitivan put ocene. EX-04 NE ispunjava native closure kriterijum. Sledeće (samo uz vlasnikovo „SAD“, oko 2,5 min): skripta koja skroluje do ciljne kartice, tap „Pokušaj ponovo“ posle greške i čitanje app loga (samo čitanje). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 5)",
       "option_a_window3_result": "PROZOR 3 (vlasnikovo „ajde sad“, 2.10. u noći 23:29-23:34 po telefonu, skripta 262 s, isti test APK 9ef10b67 bez instalacije, bez izmene podataka/sesije, telefon posle nije dirnut; prvo ADB interfejs nije bio vidljiv jer je USB debugging bio isključen, ništa nije poslato dok ga vlasnik nije uključio): GRANICA STRANE DOKAZANA NA TELEFONU za S1, S2 i S4. DOKAZANO: pull-to-refresh sa pravog vrha vraća S1 Istoriju na prvu stranu (2 kartice, foot „Prikaži još“); šetnja do kraja = 17 od 17 kartica, isti redosled i tekst kao baza, bez duplikata/anomalije i BEZ reda greške; S4 Kandidati (strane od 1): skrol do kartice „Pomoć pri nošenju ormara“, 2 od 2 kandidata pročitana, „Uporedi“ otvoreno sa obe prijave; ciklusi zadatak -> Prijave -> Back 10 od 10 (otvaranje 6,7-7,6 s, Back 3,2-3,5 s, uključuje polling UI dump-a, gornja granica); bez pada i ANR; 10405 frejmova, janky 0,44 %, p99 14 ms; PSS 483 MB (posmatranje, bez osnove za poređenje). DEV brojači: rpc_list_need_candidates_page +22 (5 -> 27), rpc_list_need_candidates +0 (40 -> 40, nijedno čitanje cele liste kandidata), rpc_list_my_needs_page +19, rpc_get_my_agreement_review +0. RED GREŠKE IZ PROZORA 2 SE NIJE PONOVIO (isti niz koraka čist; prozor 1 takođe čist: viđen u 1 od 3 pune šetnje); uzrok i dalje neodređen (app log ima samo platformska WARN upozorenja, nema JS linije ni izuzetka); kontrola „Pokušaj ponovo“ NIJE isprobana. NEMA nativno: odbijanje mešanih revizija (CI dokaz i unit testovi, ne telefon), loading skeleton i retry reda greške, pozitivan put ocene (drugi nalog), Home brojevi i dalje čitaju cele liste (A01), veličina strane je TEST vrednost (2/2/1; proizvodne 30/30/50 se ne mogu preći sa trenutnim podacima), ništa na iOS-u ni drugom Android uređaju, test APK nije proizvodni build. EX-04 NIJE zatvoren mojom odlukom: zatvaranje „sa granicama“ (kao P6) je vlasnikova odluka. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_79_EX04_PAGE_BOUNDARY_NATIVE_WINDOW_20261001.md (odeljak 6); docs/implementation/product-v1-closure-20260926/finalization-20260927/ex04-physical-honor/",
       "closure_20261001": "ZATVORENO SA GRANICAMA 1.10. (vlasnik, na pitanje „EX-04: zatvoriti sa granicama, da ili ne?“: „DA“). Zatvoren je TAČNO obim EX04_PERSONAL_LISTS_PLAN (A09 Moji zadaci, B10 Moje prijave, A11 Kandidati, RC-03 stanje ocene = A01 + D01): straničenje server+klijent, primenjeno na DEV (ledger 216-219, sertifikat 58447d77 nepromenjen), dokazano na telefonu pri test veličinama strane. NIJE zatvoreno šire merilo reda iz LIVE plana 5.4 (oba učesnika završavaju posao i oporavak, 27 P2 tokova, dvonaložni scenario 9.3): EX04-L0. Granice (tačno, EX04_CLOSURE_RECEIPT): L0 šire merilo reda; L1 mešane revizije samo CI/unit; L2 red greške „Nije uspelo učitavanje još zadataka.“ viđen jednom u 3 šetnje, uzrok neodređen, „Pokušaj ponovo“ i loading skeleton neprobani - OTVARA EX-04 ponovo ako se ponovi; L3 pozitivan put ocene (drugi nalog); L4 Home brojevi A01 čitaju cele liste; L5 test veličine strane 2/2/1 umesto 30/30/50 (podaci premali); L6 Back posle dubokog skrola vraća najviše 5 strana (dizajn); L7 ZATVORENO 2.10. 00:19: test APK zamenjen normalnim DEV build-om 81b8a833 (run 36931086522, izvor fb865dd7) sa install -r, sesija i podaci sačuvani; L8 jedan telefon, jedan nalog, bez iOS-a i dugotrajne sesije. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_CLOSURE_RECEIPT_20261001.md",
-      "open_items": ["A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve", "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)", "Preostalo za EX-04 posle prozora 3 (ROUND_79 odeljak 6): granica strane S1/S2/S4, pull-to-refresh i ciklusi kandidata su DOKAZANI na telefonu pri test vrednostima; ostaju granice koje vlasnik prihvata ako zatvara EX-04 „sa granicama“: red greške viđen jednom (1 od 3 šetnje) i neponovljen, kontrola „Pokušaj ponovo“ i loading skeleton neprobani, mešana revizija samo CI/unit, pozitivan put ocene (drugi nalog) nedokazan, Home brojevi (A01), test vrednosti strane 2/2/1 umesto 30/30/50, bez iOS-a. Test APK je još instaliran; sledeći normalan DEV build ga zamenjuje.", "Nije dokazano: HTTP/JWT poziv novih čitača kroz PostgREST kao zaseban posmatrani događaj (aplikacijini pozivi novih RPC-ova uspeli su i vidljivi su u pg_stat_statements), troškovi na produkcijskom obimu", "Vlasnikove odluke koje ostaju: B09/PKG-049 (serverska cena) i pisani komentar D12; svaki revert traži novo posebno PRIMENI"],
+      "open_items": [
+        "A01 Home brojevi (L7 za Početnu): Početna i dalje čita cele liste zadataka i prijava za dva broja (HONOR 1.10.: rpc_list_my_tasks 653 -> 660 i rpc_list_my_applications 969 -> 976 uz Home posete dok nove strane rade); prve strane S1/S2 daju iste brojeve (dokazano jednaki pravilima klijenta i na pravim DEV podacima), pa je ograničeno čitanje moguće bez novog servera; nije urađeno jer kanonska kartica A01 imenuje dopunu ocena (S3), ne brojeve",
+        "Nativno na HONOR-u 1.10. (ROUND_77, APK 93e48799 / izvor bf48a5db, tri flaga SAMO u DEV workflow-u): isti skup, redosled i sadržaj kao stari build (S1 2/2 i 17/17, S2 4 prijave i tabovi 4/1/2/1 uz NAMERNO pun termin, S4 2 prijave, cena, poređenje, S3 Dogovori 5/5), 0 čitanja cele liste kandidata i 0 čitanja ocena po Dogovoru, nema pada/ANR; NIJE dokazano: druga strana i granica strane (premalo podataka: najviše 19 zadataka, 6 prijava, 2 kandidata prema stranama od 30/30/50), odbijanje mešanih revizija, loading i error stanje, pozitivan put ocene (Dogovor za ocenu), preostali ciklusi S2 (4 od 10) i Kandidati i pull-to-refresh (prekinuto dolaznim pozivom na vlasnikovom telefonu)",
+        "Preostalo za EX-04 posle prozora 3 (ROUND_79 odeljak 6): granica strane S1/S2/S4, pull-to-refresh i ciklusi kandidata su DOKAZANI na telefonu pri test vrednostima; ostaju granice koje vlasnik prihvata ako zatvara EX-04 „sa granicama“: red greške viđen jednom (1 od 3 šetnje) i neponovljen, kontrola „Pokušaj ponovo“ i loading skeleton neprobani, mešana revizija samo CI/unit, pozitivan put ocene (drugi nalog) nedokazan, Home brojevi (A01), test vrednosti strane 2/2/1 umesto 30/30/50, bez iOS-a. Test APK je još instaliran; sledeći normalan DEV build ga zamenjuje.",
+        "Nije dokazano: HTTP/JWT poziv novih čitača kroz PostgREST kao zaseban posmatrani događaj (aplikacijini pozivi novih RPC-ova uspeli su i vidljivi su u pg_stat_statements), troškovi na produkcijskom obimu",
+        "Vlasnikove odluke koje ostaju: B09/PKG-049 (serverska cena) i pisani komentar D12; svaki revert traži novo posebno PRIMENI"
+      ],
       "withdrawn": "rpc_home_summary() kao imenovana isporuka: ne postoji ni u jednom kanonskom izvoru; Home ide kroz postojeću projekciju (RC-03).",
-      "not_in_scope": ["sačuvani zadaci (tok ne postoji među 62 reda)", "pisani komentar uz ocenu D12 (poseban server/privacy/moderation paket i odvojeno prihvatanje)", "D03-D05 poruke i grupa, P01 inbox, N06 blokirani, P05 podsetnik (EX-05 / EX-07 / P4)"],
-      "owner_gates": ["PRIMENI za svaki DEV kandidat", "B09 / PKG-049: da li server mora da sprovodi cenu koju zadaje naručilac (LIVE §9.2: plan ne izmišlja politiku cene)", "D12 pisani komentar: poseban server paket", "HONOR prozor (oko 4 min) za preostale cikluse S2/Kandidati i pull-to-refresh; izbor vlasnika za dokaz granice strane (test-only veličina strane + novi APK, ili state-changing DEV fixture)"],
+      "not_in_scope": [
+        "sačuvani zadaci (tok ne postoji među 62 reda)",
+        "pisani komentar uz ocenu D12 (poseban server/privacy/moderation paket i odvojeno prihvatanje)",
+        "D03-D05 poruke i grupa, P01 inbox, N06 blokirani, P05 podsetnik (EX-05 / EX-07 / P4)"
+      ],
+      "owner_gates": [
+        "PRIMENI za svaki DEV kandidat",
+        "B09 / PKG-049: da li server mora da sprovodi cenu koju zadaje naručilac (LIVE §9.2: plan ne izmišlja politiku cene)",
+        "D12 pisani komentar: poseban server paket",
+        "HONOR prozor (oko 4 min) za preostale cikluse S2/Kandidati i pull-to-refresh; izbor vlasnika za dokaz granice strane (test-only veličina strane + novi APK, ili state-changing DEV fixture)"
+      ],
       "done": "§5.4 oba učesnika završavaju posao i oporavak; §9.3 odobreni dvonaložni scenario prolazi novim zajedničkim kandidatom (konkurentnost, izmene, terminalna stanja, oporavak), novi kod samo za stvarno reprodukovanu rupu; po toku A09 / B10 / A11 / A01 'DONE samo za ovaj tok' uključuje native dokaz. Source, CI i disposable dokaz su tek prvi nivoi (LIVE §4.2)."
     },
     "ex05": {
@@ -4984,172 +5132,184 @@
       ]
     },
     "ex06": {
-          "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_S02_S03_S05_RECORDED",
-          "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
-          "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md",
-          "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
-          "owner_decision_20261001": "Vlasnik 1.10. (kasnije): nastavi EX-06 S00-S07 u granicama kanonskog LIVE plana; S03 nastavlja; S06 počinje tek iz stvarnih nalaza S03; S07 ostaje USLOVAN (nije proširen paralelnim radom); bez plaćenog AI testa dok se ne iznese poseban S08 approval block sa providerom, modelom, brojem testova, maksimalnim troškom i tačno onim što test dokazuje.",
-      "s02_open_owner_questions": ["ELEKTRO i VODOINSTALATER nemaju slučaj u korpusu: da li su elektro i vodoinstalaterski radovi običan ili regulisan posao nije odlučeno u izvorima politike; svaki očekivani ishod bio bi izmišljena politika (vlasnička odluka)", "Radni nazivi mogućih novih vrsta posla iz korpusa (NE dodaju se, devet slučajeva očekuje unclassified): rad na daljinu (tekst), postavljanje podova, kućni ljubimci, pakovanje; vlasnik ih pregleda i odlučuje", "Izvorni nalazi korpusa (čitanje koda, ne ponašanje): stem sklapanj daje lažno pogođen slučaj za sklapanje maketa, prevoz daje SELIDBE_PREVOZ za prevoz putnika, ćirilica se ne svodi na latinicu, ofarba nema stem; proveravaju se u S03"],
-      "s03_open_owner_questions": ["F1 (S03 nalaz, proizvod): zadaci TOMORROW_FLEXIBLE/WEEK_FLEXIBLE bez sačuvanog prozora nikad ne stižu ni do jednog radnika; potrebna je vlasnikova potvrda šta znači „sutra“ i „ove nedelje“ pre kandidata (podrazumevano: lokalni kalendarski dan / ostatak lokalne nedelje u needs.task_timezone, bez izmišljenih sati)"],
+      "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / S00_S01_S02_S03_S05_RECORDED",
+      "canonical": "LIVE Master Plan §5.4 row EX-06 (\"Korpus, review, canonical grupe, matching, dispatch\"; uslov: \"Ne šalje se novi paid test bez dogovorenog budžeta\"; merilo: \"Trajne činjenice zaista vode relevantnom obaveštenju\"). Predloženi radni paket, ne vlasnikov obim; detaljan ugovor je pod imenom P5 (plan poglavlje 12, PLAN.md odeljci 3-4, runbook P5, kartice A02/B00-B03/P04, scenariji J03/J15). EX oznake su radne celine unutar postojećeg plana, ne novi tracker.",
+      "plan": "docs/implementation/product-v1-closure-20260926/finalization-20260927/EX06_CANONICAL_SCOPE_20261001.md",
+      "raw_workflow_result": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_SCOPE_CHECK_WORKFLOW_RESULT_20261001.json",
+      "owner_decision_20261001": "Vlasnik 1.10. (kasnije): nastavi EX-06 S00-S07 u granicama kanonskog LIVE plana; S03 nastavlja; S06 počinje tek iz stvarnih nalaza S03; S07 ostaje USLOVAN (nije proširen paralelnim radom); bez plaćenog AI testa dok se ne iznese poseban S08 approval block sa providerom, modelom, brojem testova, maksimalnim troškom i tačno onim što test dokazuje.",
+      "s02_open_owner_questions": [
+        "ELEKTRO i VODOINSTALATER nemaju slučaj u korpusu: da li su elektro i vodoinstalaterski radovi običan ili regulisan posao nije odlučeno u izvorima politike; svaki očekivani ishod bio bi izmišljena politika (vlasnička odluka)",
+        "Radni nazivi mogućih novih vrsta posla iz korpusa (NE dodaju se, devet slučajeva očekuje unclassified): rad na daljinu (tekst), postavljanje podova, kućni ljubimci, pakovanje; vlasnik ih pregleda i odlučuje",
+        "Izvorni nalazi korpusa (čitanje koda, ne ponašanje): stem sklapanj daje lažno pogođen slučaj za sklapanje maketa, prevoz daje SELIDBE_PREVOZ za prevoz putnika, ćirilica se ne svodi na latinicu, ofarba nema stem; proveravaju se u S03"
+      ],
+      "s03_open_owner_questions": [
+        "F1 (S03 nalaz, proizvod): zadaci TOMORROW_FLEXIBLE/WEEK_FLEXIBLE bez sačuvanog prozora nikad ne stižu ni do jednog radnika; potrebna je vlasnikova potvrda šta znači „sutra“ i „ove nedelje“ pre kandidata (podrazumevano: lokalni kalendarski dan / ostatak lokalne nedelje u needs.task_timezone, bez izmišljenih sati)"
+      ],
       "owner_decision_20261001_f1_and_open_items": "Vlasnik 1.10. (kasnije): F1 - ODOBRENO pripremiti i dokazati kandidata, DEV primena NIJE odobrena. Semantika: „sutra“ = odgovarajući sledeći lokalni kalendarski dan; „ove nedelje“ = preostali deo odgovarajuće lokalne nedelje; ne izmišljati sate ni uži prozor koji korisnik nije dao. Source/test/disposable dokaz pa poseban approval block za eventualno PRIMENI. Vlasnik 1.10. (kasnije): elektro/vodoinstalaterski radovi (obični ili regulisani) i radna imena novih vrsta poslova (rad na daljinu, podovi, ljubimci, pakovanje) se NE zaključavaju kao nove product odluke - evidentirani kao OTVORENE KLASIFIKACIONE STAVKE do odluke. S07 i plaćeni S08 ostaju zatvoreni. Nastavlja se po kanonskom LIVE planu bez čekanja vlasnika za source/test/CI/disposable rad; svaka nova state-changing DEV/PROD promena traži poseban „primeni“.",
       "provenance": "workflow ex06-canonical-scope-check: 7 mapera + 7 skeptika + kritičar + sintetizator = 16 agenata, svi claude-sonnet-5-5; 277 nalaza, 0 odbijenih, 41 delimično ispravljenih; read-only, DEV nije čitan",
-          "flows": [
-                "A02",
-                "B00",
-                "B01",
-                "B02",
-                "B03",
-                "P04",
-                "J03",
-                "J15"
-          ],
-          "first_open_row": "S01 read-only DEV BEFORE baza lanca, S02 offline korpus, S05 mapa polje-potrošač (bez vlasnikove reči), zatim S03/S04 disposable dokazi i S06 kao kandidat u EX-04 šablonu do PRIMENI granice.",
-          "slices": {
-        "S03F1_ex06a": {"title": "F1 candidate ex06a: flexible-window dispatch fix (two function bodies, certificate-neutral)", "status": "APPLIED TO DEV 2026-10-02 02:26Z on the owner's exact PRIMENI EX-06 ex06a (migration 20261002022631, ledger 220, postflight problems [], certificate 58447d77 unchanged, receipt supabase/operations/dev-alpha/ledger/20261002_ex06a_flexible_window_application.receipt.json; the first attempt was refused by the integrity guard, nothing applied, then passed). Before that: SOURCE + CI-PROVEN 2026-10-02 (disposable chain, run 36939555154, source c6c4d9ca, result PASS, 20 of 20 checks, 64 offline tests); NOT APPLIED to DEV; fresh read-only DEV preflight 2026-10-02 01:10Z: both targets = predecessor, 10 neighbours unchanged, certificate 58447d77 ready, ledger 219, 0 open TOMORROW/WEEK tasks; approval block ready for the owner (\"PRIMENI EX-06 ex06a\"): docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06A_F1_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md", "autonomous": true, "depends_on": "S03 (finding F1), owner decision 2026-10-01 (sutra = next local calendar day, ove nedelje = remaining part of the local week, no invented hours)", "first_owner_boundary": "DONE: the owner's PRIMENI of 2026-10-02 was given and used; the revert needs a separate PRIMENI; F4 (one stored bound) and D7 (client viewing-day reading) are open and unchanged."},
-                "S00": {
-                      "title": "EX-06 scope record and registry anchor",
-                      "status": "DONE 2026-10-01 (this record)",
-                      "autonomous": true
-                },
-                "S01": {
-                      "title": "Read-only DEV BEFORE baseline of the EX-06 chain",
-                      "status": "DONE 2026-10-01 (read-only DEV BEFORE baseline: ledger 219, certificate 58447d77 certified = live, 12 function md5 pins equal earlier receipts, aggregate chain state; docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_S01_DEV_BEFORE_BASELINE_20261001.md)",
-                      "autonomous": true,
-                      "depends_on": "none",
-                      "first_owner_boundary": "None (read-only). If the host classifier blocks the reads, ask the owner for the word instead of routing around the denial (memory: uskoci-dev-writes-need-owners-word)."
-                },
-                "S02": {
-                      "title": "Contract corpus v1 (offline, synthetic) with expected structured facts and a coverage report",
-                      "status": "DONE 2026-10-01 (offline SYNTHETIC corpus v1: 66 cases = 50 task + 16 worker, every task case with three reference workers; all 13 plan 12.5 and 10 plan 12.6 items, the A02 painting defect and 13 worker topics covered; 9 of 11 hidden kinds; validator test ex06-corpus-contract 25/25 incl. 15 negative tests; NOT run against any provider, matcher or database; supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_CORPUS_COVERAGE_REPORT_20261001.md)",
-                      "autonomous": true,
-                      "depends_on": "none",
-                      "first_owner_boundary": "None while synthetic. Q5 if the owner wants real descriptions included."
-                },
-                "S03": {
-                      "title": "Corpus-driven matching contract proof on a disposable chain (positive and negative candidates)",
-                      "status": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md SECOND CI RUN 2026-10-01 (harness round 3, 127 offline tests, CI 36901457675, source 852cf658): result PARTIAL (honest enum) - 37 of 66 cases compared, 0 refused, 29 skipped, 436 of 897 leaves compared, 6 SHAPE_DEGRADED (T-003, T-006, T-007, T-008, T-026, T-027: the task stores no window) and 3 POSITIVE_ONLY (T-004, T-005, T-036), the same 11 findings in the same 3 cases, 0 harness errors, canary 7/7, 219 Auth accounts, 0 retries; 12 of 12 pins equal DEV (the 12th after the extension). Reports ex06/s03_run_36901457675/; ROUND_78 section 6.",
-                      "autonomous": true,
-                      "depends_on": "S01 (md5 pins), S02 (corpus)",
-                      "first_owner_boundary": "None for the proof. PRIMENI is needed only for a follow-up candidate."
-                },
-                "S04": {
-                      "title": "Dispatch lifecycle negative-case proof and probe of the untested inferences",
-                      "status": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED; run 36994974997 at 3ae018be. Triage 8 findings with stated chain-fidelity limits; 54/54 cases decided, 9 probes confirmed, 0 harness errors. No new DEV reproduction.",
-                      "autonomous": true,
-                      "depends_on": "S01, S03 (shared fixtures)",
-                      "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval.",
-                      "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
-                },
-                "S05": {
-                      "title": "Field-to-consumer map (documentation + contract test)",
-                      "status": "DONE 2026-10-01 at SOURCE level (field-to-consumer map of the eight fact families + 12-item decision list D-01..D-12 for S12; contract test p5-matching-field-contract 50/50 incl. md5 replay of the repository matcher text against the DEV md5 recorded in receipts; docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_FIELD_CONSUMER_MAP_20261001.md)",
-                      "autonomous": true,
-                      "depends_on": "S01 optional (live md5 for the claim that a body is unchanged)",
-                      "first_owner_boundary": "None for the map; each resulting change (G05/S12) needs its own primeni and, for Edge schemas, a paid test."
-                },
-                "S06": {
-                      "title": "Canonical groups step 1: certificate-neutral alias registry and classification version",
-                      "status": "SOURCE + OFFLINE 2026-10-02 (commit 6c979c12): ex06b alias registry candidate (NOT APPLIED; private.work_kinds_v5 becomes plpgsql STABLE and reads 12 configuration rows; Cyrillic fold, IKEA declensions, the F2 'sklapanje' fix with an accepted recall loss), exact revert, read-only pre/postflight, four guarded transport texts, corpus v1.1, CI proof workflow ex06b-alias-proof.yml NEVER RUN; certificate-neutral by catalog read; DRAFT approval block ex06/EX06B_APPROVAL_BLOCK_DRAFT.md (owner words 'PRIMENI EX-06 ex06b' only after a green CI proof); unreviewed",
-                      "autonomous": true,
-                      "depends_on": "S01, S02, S03",
-                      "first_owner_boundary": "Owner's exact 'primeni' before any DEV application."
-                },
-                "S07": {
-                      "title": "Ranking policy version and on-demand exclusion explainer (function-only)",
-                      "status": "NOT STARTED",
-                      "autonomous": true,
-                      "depends_on": "S01, S03",
-                      "first_owner_boundary": "'primeni'. Lowest priority: not part of the runbook P5 Exit sentence."
-                },
-                "S08": {
-                      "title": "Real-provider corpus run (budgeted, report-only)",
-                      "status": "NOT STARTED",
-                      "autonomous": false,
-                      "depends_on": "S02, S01, owner answer Q1 and Q5",
-                      "first_owner_boundary": "Owner states provider, call count/ceiling, admitted accounts (and DEV write approval for any new account) - Q1."
-                },
-                "S09": {
-                      "title": "Live persisted-fact -> opportunity-notification chain on DEV with positive and negative candidates (the EX-06 measure)",
-                      "status": "NOT STARTED",
-                      "autonomous": false,
-                      "depends_on": "S01, S03, S04, S06 (if applied), S08, EX-04 native check (the chain ends in 'prijava/izbor'), owner answers Q1 and Q2",
-                      "first_owner_boundary": "Paid-AI budget (Q1) + the owner's word for DEV writes (accounts, admission, data) + a granted HONOR window."
-                },
-                "S10": {
-                      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
-                      "status": "NOT STARTED",
-                      "autonomous": false,
-                      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
-                      "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."
-                },
-                "S11": {
-                      "title": "Opportunity push device proof (conditional on Q2)",
-                      "status": "NOT STARTED",
-                      "autonomous": false,
-                      "depends_on": "S04 probes (c)(d), owner answers Q2/Q7, push-capable build",
-                      "first_owner_boundary": "Owner's 'primeni' for the named package + OS permission + device window + store-package Firebase decision."
-                },
-                "S12": {
-                      "title": "Resolution of matcher-consumed field gaps (after S05)",
-                      "status": "NOT STARTED",
-                      "autonomous": false,
-                      "depends_on": "S05 decision list, S03",
-                      "first_owner_boundary": "'primeni' per package; paid test for any Edge schema/prompt change; certificate approval if a trigger/column is chosen."
-                }
-          },
-          "open_items": [
-                "G01 - No corpus (expected structured facts) exists anywhere",
-                "G02 - No corpus-driven proof that persisted facts reach the matcher with positive AND negative candidates on the current bodies",
-                "G03 - Dispatch lifecycle negatives (12.5) not proven as a set; several inferences untested",
-                "G04 - No field-to-consumer map; matcher-consumed worker fields have no collector or writer",
-                "G05 - Resolution of the collector/consumer mismatches found by G04",
-                "G06 - Canonical groups: only the PKG-031b hidden closed set of eleven kinds; no alias data, no classification version, no registry/candidate/promotion",
-                "G07 - No taxonomy candidate capture and explicit promotion path",
-                "G08 - No stored ranking policy/version per dispatch wave and no record of why candidates were excluded",
-                "G09 - Real-provider extraction/location samples never run on the current candidate",
-                "G10 - No live worker interview -> save/activation -> dispatch -> opportunity event -> application proof on the current build",
-                "G11 - Opportunity push leg: no device proof, no single-target admission mechanism, no opportunity-specific payload, no push-capable DEV APK",
-                "G12 - No current DEV baseline and live function bodies of the EX-06 chain not re-read since 2026-09-21/27",
-                "G13 - No registry anchor for EX-06",
-                "G14 - A02 category dead-end: need.category is required for a draft but hidden from people and never asked by the AI",
-                "G15 - Adjacent items the plan does not give to EX-06: P05 reminder, HITNO, A2 opportunity push metadata, identity gate"
-          ],
-          "owner_questions": [
-                "Q1 Paid AI budget (money/provider): which provider and model (the code is Gemini gemini-3.8-flash only), the maximum number of paid calls and USD ceiling for the EX-06 corpus run and the later live chain, and which accounts may be admitted (only the owner and one QA account are admitted today; the earlier allowance is fulfilled; the in-database cap is off since PKG-026 and every call stops on 2027-01-01). Also: does the owner's own AI use on the HONOR count as a 'new paid test', and every publish adds a second paid call (publication evaluator) - should it be counted?",
-                "Q2 What closes the EX-06 measure 'relevant notification': (a) the durable OPPORTUNITY_AVAILABLE event that reaches only eligible workers and is visible in the in-app Inbox and opens the task (event level, no Firebase or push needed), or (b) a device push of that event? And is push part of the first store release at all (RELEASE_CONFIG_MATRIX C-36; the store package rs.uskoci has no Firebase client)? If (b) or yes: authorize preparing a single-target one-event push proof (new admission package, push-capable build, HONOR window) as a separate package; the default recommendation is (a) for EX-06 and a separate P4/EX-05 evidence row for push.",
-                "Q3 P05 reminder before an appointment: in V1 or explicitly deferred? The plan requires a visible owner-level decision, no EX row owns it, and it is not implemented (no scheduler/event/recipient/push path).",
-                "Q4 HITNO: confirm it stays OUT of EX-06 (policy disabled, no category registry, price policy and category allowlist are his), or put it in scope with his category/price policy.",
-                "Q5 Privacy of the corpus: confirm the corpus is built only from synthetic or owner-authored descriptions (no stored user conversations, per AGENTS 3.4.2) and that no real user text is sent to the provider; if he wants the painting-type real descriptions from card A02, say who authors them and whether the existing disclosure is sufficient.",
-                "Q6 (conditional, only if the table-based taxonomy candidates S10 are wanted): approve an isolated closure-certificate recertification and a compatible APK rollout; the recommended default is NOT to ask now - S06 is certificate-neutral and the corpus coverage report will show whether S10 is needed.",
-                "Q7 (conditional on Q2): may a public task title, rounded distance or price appear on the lock screen (A2 metadata)? The global notification rule forbids arbitrary user-authored text; default is out of EX-06 and the existing generic copy stays."
-          ],
-          "owner_gates": [
-                "Paid AI / provider budget: no new paid call without an owner-agreed provider, call count and admitted accounts. The one earlier allowance is fulfilled. The DB reservation cap is switched off since PKG-026, so the gate is purely procedural (only Edge flags + admitted accounts limit spend) and a hard stop exists at price_valid_until 2027-01-01. Every publish also costs a second paid call (publication evaluator).",
-                "Server/Edge application needs the owner's exact word 'primeni' per package; DEV candidates under supabase/candidates are NOT applied unless a ledger receipt says so; any state-changing DEV action (test accounts, AI admission, QA credential, data writes) needs his word first; read-only diagnostics do not.",
-                "Closure certificate: a new table, column, constraint or certified trigger/function (the 76-function digest set) moves the closure digest (now 58447d77) and needs an isolated recertification, the owner's explicit approval and a compatible APK. Function-only changes outside the certified set and data rows do not (precedents PKG-027a, PKG-031b, PKG-051a; counter-example B24 Part 2).",
-                "Push: no global enable, no blanket enable window, no mass notification; a single-target admission mechanism does not exist yet; a push-capable build exists only as the rs.uskoci.preview proof build (the HONOR DEV APK rs.uskoci.dev has no Firebase client); owner OS permission and a device window; iOS is a separate proof; exact-message payload is MESSAGE_RECEIVED-only and OFF.",
-                "Privacy: the two Sep-27 branches (AI context minimization d18e830a, processor inventory 1ab01e78) stay NOT INTEGRATED and must not be started; but the deferral does not cover a newly observed serious exposure (exact addresses/access notes reaching the provider or logs, plan card N11). Sending real descriptions to a third-party AI needs disclosure and permission; raw conversations must not be copied into the repo.",
-                "Owner device: the physical HONOR is used only in a window he grants (his word 'sad' = 6 minutes), never clearing data/signing out without his OK; QA device chosen by adb serial; two-device E2E later.",
-                "TEST world: the owner's accounts are in the TEST world (pkg029e) until removed before real users, so any DEV dispatch proof is inside that temporary arrangement and not production behavior.",
-                "HITNO (urgent dispatch) is policy-disabled (allowedCategories empty because no category registry; chargesFee false); enabling needs the owner's category/price policy; exclusion from V1 is explicitly not automatic.",
-                "P05 appointment reminder: scheduler->event->recipient->push is NOT IMPLEMENTED and the V1 delivery-or-explicit-deferral decision must be visible and is the owner's; no EX row owns it.",
-                "Scope reduction of AI/worker/taxonomy/matching/dispatch for a deadline needs an explicit owner decision; likewise adding scope not named by the EX-06 row.",
-                "Identity/KYC: private.identity_admitted is a fail-closed placeholder; no verified badge on self-declared facts and no new KYC project without a decision; AF-D23 only allows correcting the requirement to false.",
-                "External accounts/keys: push for the store package rs.uskoci needs a new Firebase Android app and an Expo access token from the owner's accounts; paid keys/accounts are owner-only.",
-                "Dependencies: no new package without owner approval; expo-speech not approved, expo-audio conditional; AI audio/STT/TTS/voice transcription needs separate approval.",
-                "Subagents run on the parent model; Fable 5.1 only after the owner says yes; say which model each subagent runs on."
-          ],
-          "not_in_scope": [
-                "tačna poruka čet push (EX-05)",
-                "profil/nalog ekrani (EX-07)",
-                "životni ciklus posla (EX-04)",
-                "dve odložene privatnosti grane (EX-08)",
-                "P05 podsetnik, HITNO, A2 metapodaci push-a, identitet/KYC (kanonski drugde, vlasnikova odluka)",
-                "glas/TTS",
-                "novi paid AI test bez dogovorenog budžeta"
-          ],
-          "withdrawn": "Nijedna stavka nije povučena; 13 predloga je označeno kao NIJE KANONSKO u planu (odeljak 10) i ne gradi se po pretpostavci.",
-          "done": "Plan 12.5 DONE: oba intervjua završavaju sačuvanim, od čoveka potvrđenim rezultatom; klasifikacija bez duplikata; matcher koristi stvarne uslove (tvrda podobnost pre rangiranja); pravi tok radnik -> zadatak -> dispatch -> prijava/izbor sa pozitivnim I negativnim kandidatima; trajne činjenice vode ograničenom, relevantnom obaveštenju; izveštaj korpusa bez izmišljenog praga; nivoi dokaza odvojeni (SOURCE / CI / DEV_APPLIED / CLIENT_WIRED / APK_BUILT / DEVICE / PROVIDER)."
+      "flows": [
+        "A02",
+        "B00",
+        "B01",
+        "B02",
+        "B03",
+        "P04",
+        "J03",
+        "J15"
+      ],
+      "first_open_row": "S01 read-only DEV BEFORE baza lanca, S02 offline korpus, S05 mapa polje-potrošač (bez vlasnikove reči), zatim S03/S04 disposable dokazi i S06 kao kandidat u EX-04 šablonu do PRIMENI granice.",
+      "slices": {
+        "S03F1_ex06a": {
+          "title": "F1 candidate ex06a: flexible-window dispatch fix (two function bodies, certificate-neutral)",
+          "status": "APPLIED TO DEV 2026-10-02 02:26Z on the owner's exact PRIMENI EX-06 ex06a (migration 20261002022631, ledger 220, postflight problems [], certificate 58447d77 unchanged, receipt supabase/operations/dev-alpha/ledger/20261002_ex06a_flexible_window_application.receipt.json; the first attempt was refused by the integrity guard, nothing applied, then passed). Before that: SOURCE + CI-PROVEN 2026-10-02 (disposable chain, run 36939555154, source c6c4d9ca, result PASS, 20 of 20 checks, 64 offline tests); NOT APPLIED to DEV; fresh read-only DEV preflight 2026-10-02 01:10Z: both targets = predecessor, 10 neighbours unchanged, certificate 58447d77 ready, ledger 219, 0 open TOMORROW/WEEK tasks; approval block ready for the owner (\"PRIMENI EX-06 ex06a\"): docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06A_F1_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md",
+          "autonomous": true,
+          "depends_on": "S03 (finding F1), owner decision 2026-10-01 (sutra = next local calendar day, ove nedelje = remaining part of the local week, no invented hours)",
+          "first_owner_boundary": "DONE: the owner's PRIMENI of 2026-10-02 was given and used; the revert needs a separate PRIMENI; F4 (one stored bound) and D7 (client viewing-day reading) are open and unchanged."
+        },
+        "S00": {
+          "title": "EX-06 scope record and registry anchor",
+          "status": "DONE 2026-10-01 (this record)",
+          "autonomous": true
+        },
+        "S01": {
+          "title": "Read-only DEV BEFORE baseline of the EX-06 chain",
+          "status": "DONE 2026-10-01 (read-only DEV BEFORE baseline: ledger 219, certificate 58447d77 certified = live, 12 function md5 pins equal earlier receipts, aggregate chain state; docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_S01_DEV_BEFORE_BASELINE_20261001.md)",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None (read-only). If the host classifier blocks the reads, ask the owner for the word instead of routing around the denial (memory: uskoci-dev-writes-need-owners-word)."
+        },
+        "S02": {
+          "title": "Contract corpus v1 (offline, synthetic) with expected structured facts and a coverage report",
+          "status": "DONE 2026-10-01 (offline SYNTHETIC corpus v1: 66 cases = 50 task + 16 worker, every task case with three reference workers; all 13 plan 12.5 and 10 plan 12.6 items, the A02 painting defect and 13 worker topics covered; 9 of 11 hidden kinds; validator test ex06-corpus-contract 25/25 incl. 15 negative tests; NOT run against any provider, matcher or database; supabase/proofs/ai/corpus/ex06_contract_corpus_v1.json, docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_CORPUS_COVERAGE_REPORT_20261001.md)",
+          "autonomous": true,
+          "depends_on": "none",
+          "first_owner_boundary": "None while synthetic. Q5 if the owner wants real descriptions included."
+        },
+        "S03": {
+          "title": "Corpus-driven matching contract proof on a disposable chain (positive and negative candidates)",
+          "status": "DONE 2026-10-01 (first corpus-driven run, CI 36890566753, source e7f129d5, result FINDINGS): real S02 corpus through a total adapter, 37 task cases built on the product path (0 direct), canary 3/3, 436 assertions, 0 harness errors, 34 of 37 cases pass every assertion; 12 of 12 function pins equal DEV; 11 findings in 3 cases: F1 PRODUCT (verified on DEV) TOMORROW_FLEXIBLE/WEEK_FLEXIBLE tasks stored without a window are refused for every worker by worker_dispatch_time_admitted (DEV: 3 of 3 such tasks, 41 of 41 rounds empty); F2 PRODUCT stem sklapanj false positive (T-031, input to S06); F3 corpus expectation (CURRENT_AVAILABILITY_PAUSED). docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_78_EX06_S03_DISPOSABLE_MATCHING_PROOF_20261001.md SECOND CI RUN 2026-10-01 (harness round 3, 127 offline tests, CI 36901457675, source 852cf658): result PARTIAL (honest enum) - 37 of 66 cases compared, 0 refused, 29 skipped, 436 of 897 leaves compared, 6 SHAPE_DEGRADED (T-003, T-006, T-007, T-008, T-026, T-027: the task stores no window) and 3 POSITIVE_ONLY (T-004, T-005, T-036), the same 11 findings in the same 3 cases, 0 harness errors, canary 7/7, 219 Auth accounts, 0 retries; 12 of 12 pins equal DEV (the 12th after the extension). Reports ex06/s03_run_36901457675/; ROUND_78 section 6.",
+          "autonomous": true,
+          "depends_on": "S01 (md5 pins), S02 (corpus)",
+          "first_owner_boundary": "None for the proof. PRIMENI is needed only for a follow-up candidate."
+        },
+        "S04": {
+          "title": "Dispatch lifecycle negative-case proof and probe of the untested inferences",
+          "status": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED; run 36994974997 at 3ae018be. Triage 8 findings with stated chain-fidelity limits; 54/54 cases decided, 9 probes confirmed, 0 harness errors. No new DEV reproduction.",
+          "autonomous": true,
+          "depends_on": "S01, S03 (shared fixtures)",
+          "first_owner_boundary": "PRIMENI for the first candidate (if any probe fails). A trigger or column fix for probe (a) additionally needs the owner's recertification approval.",
+          "continuation_report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md"
+        },
+        "S05": {
+          "title": "Field-to-consumer map (documentation + contract test)",
+          "status": "DONE 2026-10-01 at SOURCE level (field-to-consumer map of the eight fact families + 12-item decision list D-01..D-12 for S12; contract test p5-matching-field-contract 50/50 incl. md5 replay of the repository matcher text against the DEV md5 recorded in receipts; docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06_FIELD_CONSUMER_MAP_20261001.md)",
+          "autonomous": true,
+          "depends_on": "S01 optional (live md5 for the claim that a body is unchanged)",
+          "first_owner_boundary": "None for the map; each resulting change (G05/S12) needs its own primeni and, for Edge schemas, a paid test."
+        },
+        "S06": {
+          "title": "Canonical groups step 1: certificate-neutral alias registry and classification version",
+          "status": "SOURCE + OFFLINE 2026-10-02 (commit 6c979c12): ex06b alias registry candidate (NOT APPLIED; private.work_kinds_v5 becomes plpgsql STABLE and reads 12 configuration rows; Cyrillic fold, IKEA declensions, the F2 'sklapanje' fix with an accepted recall loss), exact revert, read-only pre/postflight, four guarded transport texts, corpus v1.1, CI proof workflow ex06b-alias-proof.yml NEVER RUN; certificate-neutral by catalog read; DRAFT approval block ex06/EX06B_APPROVAL_BLOCK_DRAFT.md (owner words 'PRIMENI EX-06 ex06b' only after a green CI proof); unreviewed",
+          "autonomous": true,
+          "depends_on": "S01, S02, S03",
+          "first_owner_boundary": "Owner's exact 'primeni' before any DEV application."
+        },
+        "S07": {
+          "title": "Ranking policy version and on-demand exclusion explainer (function-only)",
+          "status": "NOT STARTED",
+          "autonomous": true,
+          "depends_on": "S01, S03",
+          "first_owner_boundary": "'primeni'. Lowest priority: not part of the runbook P5 Exit sentence."
+        },
+        "S08": {
+          "title": "Real-provider corpus run (budgeted, report-only)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S02, S01, owner answer Q1 and Q5",
+          "first_owner_boundary": "Owner states provider, call count/ceiling, admitted accounts (and DEV write approval for any new account) - Q1."
+        },
+        "S09": {
+          "title": "Live persisted-fact -> opportunity-notification chain on DEV with positive and negative candidates (the EX-06 measure)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S01, S03, S04, S06 (if applied), S08, EX-04 native check (the chain ends in 'prijava/izbor'), owner answers Q1 and Q2",
+          "first_owner_boundary": "Paid-AI budget (Q1) + the owner's word for DEV writes (accounts, admission, data) + a granted HONOR window."
+        },
+        "S10": {
+          "title": "Taxonomy candidate capture and explicit promotion (table-based)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
+          "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."
+        },
+        "S11": {
+          "title": "Opportunity push device proof (conditional on Q2)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S04 probes (c)(d), owner answers Q2/Q7, push-capable build",
+          "first_owner_boundary": "Owner's 'primeni' for the named package + OS permission + device window + store-package Firebase decision."
+        },
+        "S12": {
+          "title": "Resolution of matcher-consumed field gaps (after S05)",
+          "status": "NOT STARTED",
+          "autonomous": false,
+          "depends_on": "S05 decision list, S03",
+          "first_owner_boundary": "'primeni' per package; paid test for any Edge schema/prompt change; certificate approval if a trigger/column is chosen."
+        }
+      },
+      "open_items": [
+        "G01 - No corpus (expected structured facts) exists anywhere",
+        "G02 - No corpus-driven proof that persisted facts reach the matcher with positive AND negative candidates on the current bodies",
+        "G03 - Dispatch lifecycle negatives (12.5) not proven as a set; several inferences untested",
+        "G04 - No field-to-consumer map; matcher-consumed worker fields have no collector or writer",
+        "G05 - Resolution of the collector/consumer mismatches found by G04",
+        "G06 - Canonical groups: only the PKG-031b hidden closed set of eleven kinds; no alias data, no classification version, no registry/candidate/promotion",
+        "G07 - No taxonomy candidate capture and explicit promotion path",
+        "G08 - No stored ranking policy/version per dispatch wave and no record of why candidates were excluded",
+        "G09 - Real-provider extraction/location samples never run on the current candidate",
+        "G10 - No live worker interview -> save/activation -> dispatch -> opportunity event -> application proof on the current build",
+        "G11 - Opportunity push leg: no device proof, no single-target admission mechanism, no opportunity-specific payload, no push-capable DEV APK",
+        "G12 - No current DEV baseline and live function bodies of the EX-06 chain not re-read since 2026-09-21/27",
+        "G13 - No registry anchor for EX-06",
+        "G14 - A02 category dead-end: need.category is required for a draft but hidden from people and never asked by the AI",
+        "G15 - Adjacent items the plan does not give to EX-06: P05 reminder, HITNO, A2 opportunity push metadata, identity gate"
+      ],
+      "owner_questions": [
+        "Q1 Paid AI budget (money/provider): which provider and model (the code is Gemini gemini-3.8-flash only), the maximum number of paid calls and USD ceiling for the EX-06 corpus run and the later live chain, and which accounts may be admitted (only the owner and one QA account are admitted today; the earlier allowance is fulfilled; the in-database cap is off since PKG-026 and every call stops on 2027-01-01). Also: does the owner's own AI use on the HONOR count as a 'new paid test', and every publish adds a second paid call (publication evaluator) - should it be counted?",
+        "Q2 What closes the EX-06 measure 'relevant notification': (a) the durable OPPORTUNITY_AVAILABLE event that reaches only eligible workers and is visible in the in-app Inbox and opens the task (event level, no Firebase or push needed), or (b) a device push of that event? And is push part of the first store release at all (RELEASE_CONFIG_MATRIX C-36; the store package rs.uskoci has no Firebase client)? If (b) or yes: authorize preparing a single-target one-event push proof (new admission package, push-capable build, HONOR window) as a separate package; the default recommendation is (a) for EX-06 and a separate P4/EX-05 evidence row for push.",
+        "Q3 P05 reminder before an appointment: in V1 or explicitly deferred? The plan requires a visible owner-level decision, no EX row owns it, and it is not implemented (no scheduler/event/recipient/push path).",
+        "Q4 HITNO: confirm it stays OUT of EX-06 (policy disabled, no category registry, price policy and category allowlist are his), or put it in scope with his category/price policy.",
+        "Q5 Privacy of the corpus: confirm the corpus is built only from synthetic or owner-authored descriptions (no stored user conversations, per AGENTS 3.4.2) and that no real user text is sent to the provider; if he wants the painting-type real descriptions from card A02, say who authors them and whether the existing disclosure is sufficient.",
+        "Q6 (conditional, only if the table-based taxonomy candidates S10 are wanted): approve an isolated closure-certificate recertification and a compatible APK rollout; the recommended default is NOT to ask now - S06 is certificate-neutral and the corpus coverage report will show whether S10 is needed.",
+        "Q7 (conditional on Q2): may a public task title, rounded distance or price appear on the lock screen (A2 metadata)? The global notification rule forbids arbitrary user-authored text; default is out of EX-06 and the existing generic copy stays."
+      ],
+      "owner_gates": [
+        "Paid AI / provider budget: no new paid call without an owner-agreed provider, call count and admitted accounts. The one earlier allowance is fulfilled. The DB reservation cap is switched off since PKG-026, so the gate is purely procedural (only Edge flags + admitted accounts limit spend) and a hard stop exists at price_valid_until 2027-01-01. Every publish also costs a second paid call (publication evaluator).",
+        "Server/Edge application needs the owner's exact word 'primeni' per package; DEV candidates under supabase/candidates are NOT applied unless a ledger receipt says so; any state-changing DEV action (test accounts, AI admission, QA credential, data writes) needs his word first; read-only diagnostics do not.",
+        "Closure certificate: a new table, column, constraint or certified trigger/function (the 76-function digest set) moves the closure digest (now 58447d77) and needs an isolated recertification, the owner's explicit approval and a compatible APK. Function-only changes outside the certified set and data rows do not (precedents PKG-027a, PKG-031b, PKG-051a; counter-example B24 Part 2).",
+        "Push: no global enable, no blanket enable window, no mass notification; a single-target admission mechanism does not exist yet; a push-capable build exists only as the rs.uskoci.preview proof build (the HONOR DEV APK rs.uskoci.dev has no Firebase client); owner OS permission and a device window; iOS is a separate proof; exact-message payload is MESSAGE_RECEIVED-only and OFF.",
+        "Privacy: the two Sep-27 branches (AI context minimization d18e830a, processor inventory 1ab01e78) stay NOT INTEGRATED and must not be started; but the deferral does not cover a newly observed serious exposure (exact addresses/access notes reaching the provider or logs, plan card N11). Sending real descriptions to a third-party AI needs disclosure and permission; raw conversations must not be copied into the repo.",
+        "Owner device: the physical HONOR is used only in a window he grants (his word 'sad' = 6 minutes), never clearing data/signing out without his OK; QA device chosen by adb serial; two-device E2E later.",
+        "TEST world: the owner's accounts are in the TEST world (pkg029e) until removed before real users, so any DEV dispatch proof is inside that temporary arrangement and not production behavior.",
+        "HITNO (urgent dispatch) is policy-disabled (allowedCategories empty because no category registry; chargesFee false); enabling needs the owner's category/price policy; exclusion from V1 is explicitly not automatic.",
+        "P05 appointment reminder: scheduler->event->recipient->push is NOT IMPLEMENTED and the V1 delivery-or-explicit-deferral decision must be visible and is the owner's; no EX row owns it.",
+        "Scope reduction of AI/worker/taxonomy/matching/dispatch for a deadline needs an explicit owner decision; likewise adding scope not named by the EX-06 row.",
+        "Identity/KYC: private.identity_admitted is a fail-closed placeholder; no verified badge on self-declared facts and no new KYC project without a decision; AF-D23 only allows correcting the requirement to false.",
+        "External accounts/keys: push for the store package rs.uskoci needs a new Firebase Android app and an Expo access token from the owner's accounts; paid keys/accounts are owner-only.",
+        "Dependencies: no new package without owner approval; expo-speech not approved, expo-audio conditional; AI audio/STT/TTS/voice transcription needs separate approval.",
+        "Subagents run on the parent model; Fable 5.1 only after the owner says yes; say which model each subagent runs on."
+      ],
+      "not_in_scope": [
+        "tačna poruka čet push (EX-05)",
+        "profil/nalog ekrani (EX-07)",
+        "životni ciklus posla (EX-04)",
+        "dve odložene privatnosti grane (EX-08)",
+        "P05 podsetnik, HITNO, A2 metapodaci push-a, identitet/KYC (kanonski drugde, vlasnikova odluka)",
+        "glas/TTS",
+        "novi paid AI test bez dogovorenog budžeta"
+      ],
+      "withdrawn": "Nijedna stavka nije povučena; 13 predloga je označeno kao NIJE KANONSKO u planu (odeljak 10) i ne gradi se po pretpostavci.",
+      "done": "Plan 12.5 DONE: oba intervjua završavaju sačuvanim, od čoveka potvrđenim rezultatom; klasifikacija bez duplikata; matcher koristi stvarne uslove (tvrda podobnost pre rangiranja); pravi tok radnik -> zadatak -> dispatch -> prijava/izbor sa pozitivnim I negativnim kandidatima; trajne činjenice vode ograničenom, relevantnom obaveštenju; izveštaj korpusa bez izmišljenog praga; nivoi dokaza odvojeni (SOURCE / CI / DEV_APPLIED / CLIENT_WIRED / APK_BUILT / DEVICE / PROVIDER)."
     },
     "ex07": {
       "state": "CANONICAL_SCOPE_CHECKED_20261001 / NO_CODE / NO_DEV_CHANGE / NO_PAID_CALL / 6_OF_7_AREAS / SCOPE_RECORD_ONLY",
@@ -5733,7 +5893,7 @@
           "nativeAcceptance": false,
           "naturalLocationDialogue": {
             "package": "supabase/candidates/ai-location-01-20261002/APPROVAL.md",
-            "status": "DEV_APPLIED_PHONE_APK_VERIFIED_INSTALLED_OWNER_TRY_PENDING",
+            "status": "DEV_APPLIED_OWNER_REJECTED_CLIENT_RECOVERY_AND_VISUAL_FIXES_SOURCE",
             "contract": "Existing AI interview plus locationReply mode; same budget/dispatch/idempotency/recovery. No coordinates from model, fixed phrase dictionary, extra provider or new raw-content table. Natural confirmation requires actual proposal, ALLOW and zero fact proposals.",
             "client": "Question/proposal/account/focus/revision lease; guarded same save awaits receipt; typed and held speech share existing journal. Lost/stale response never confirms a new pin. Contextual held speech retained after terminal failure/cancel. Saved summary remains editable.",
             "limits": "No paid AI/geocoder calls or new/manual tests. Exact ARM64 APK installed by owner request on HONOR with install -r; no UI/session inspection or whole-flow acceptance. True live spoken AI remains unfinished.",
@@ -5748,7 +5908,24 @@
               "receipt": "docs/implementation/ui-ux-pass-20261002/AI_LOCATION_PHONE_APK_37051296452.json",
               "installed": true,
               "nativeAcceptance": false
-            }
+            },
+            "ownerFeedback": "Owner reports credit paid and rejects loading, mic/composition and map behavior. Earlier402 is historical, not current availability proof. Fixed source: opening layout jump and lost unsaved pin after recovery. Live speech cause and end-to-end acceptance remain open."
+          },
+          "postPhoneVisualPolish": {
+            "status": "WHOLE_APP_AUDIT_FOUNDATION_IMPLEMENTED_AWAITING_EMULATOR",
+            "file": "src/ui/aiFirst/VoiceComposer.tsx",
+            "change": "Latest owner full UI/UX takeover: 45 production routes / 78 overlapping surface records; Home command composition, vivid AA primary palette, typography, semantic art, task/AI hierarchy; warm task refresh, partial offer-order disclosure and profile Back protection.",
+            "checks": "Types/whitespace PASS; targeted existing checks PASS after reviewed expectation reconciliation. Home/FactArt/voice/layout257; profile Back8; Agreement context87. Source only, exact APK native review next.",
+            "installedSource": "6fb39b301888527350701741c659bb32cbe617bd",
+            "limits": "Server diagnostic remains UNAPPLIED. True spoken AI, provider/STT runtime, complete whole-app visual and connected scenario acceptance remain open.",
+            "files": [
+              "src/ui/aiFirst/VoiceComposer.tsx",
+              "src/features/voice/holdToTalk.ts",
+              "src/features/voice/nativeSpeechAdapter.ts",
+              "src/ui/v2/NeedPresentation.tsx"
+            ],
+            "evidence": "docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json",
+            "checkReceipt": "docs/implementation/ui-ux-pass-20261002/TAKEOVER_SOURCE_CHECKS_20261002.json"
           }
         },
         "ciReconciliation": {

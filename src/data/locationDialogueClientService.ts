@@ -1,3 +1,5 @@
+import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../contracts/aiAvailability';
+import { aiAvailabilityFromSdkError } from './aiNeedTurnStream';
 import type { LocationDialogueRequest, LocationDialogueResult } from '../contracts/locationDialogue';
 import { parseLocationDialogueContext, parseLocationDialogueReceipt } from '../contracts/locationDialogue';
 import { decodeAiNeedTurnStatus } from './aiNeedV2Production';
@@ -42,13 +44,15 @@ export async function resolveLocationDialogue(
   const timer = setTimeout(abort, 55_000);
   try {
     const result = await readOwnedResult<LocationDialogueResult>({ account, write: true, timeoutMs: 55_000,
-      errors: {}, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
+      errors: { [AI_CREDITS_UNAVAILABLE]: AI_CREDITS_UNAVAILABLE_COPY }, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
         if (!current()) return { data: null, error: { message: 'LOCATION_DIALOGUE_INTERRUPTED' } };
         const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', {
-          body, signal: controller.signal, headers: { Accept: 'application/json' },
+          body, signal: controller.signal, headers: { Accept: 'application/json', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
         });
-        return current() ? response : { data: null, error: { message: 'LOCATION_DIALOGUE_INTERRUPTED' } };
+        if (!current()) return { data: null, error: { message: 'LOCATION_DIALOGUE_INTERRUPTED' } };
+        const availability = response.error ? aiAvailabilityFromSdkError(response.error) : null;
+        return availability ? { data: null, error: { message: availability } } : response;
       },
       decode: raw => {
         if (!current()) return null;

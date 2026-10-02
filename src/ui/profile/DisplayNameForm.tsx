@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { SettingsText as T, SettingsAction } from '../settings/SettingsPresentation';
@@ -12,9 +12,11 @@ import { field } from '../system/tokens';
  * The request id belongs to the typed name: the same name retried reuses it, and any edit retires it.
  */
 export function DisplayNameForm(p: { savedName: string; busy: boolean; uncertain: boolean; saved: boolean; error: string | null;
+  onDirtyChange?: (dirty: boolean) => void;
   /** A read is in flight or a write is. */ checking: boolean; check: () => void; save: (name: string, key: string) => Promise<void> }) {
   const [name, setName] = useState(p.savedName), request = useRef<{ name: string; id: string } | null>(null);
   const unchanged = name.trim() === p.savedName;
+  useEffect(() => { p.onDirtyChange?.(!unchanged); }, [unchanged, p.onDirtyChange]);
   // A grey button says why it is grey (owner rule, 2026-09-23). Busy and unconfirmed states are named by the action
   // itself; right after a save "Ime je sačuvano." already says the rest. While the saved name is read again (the form
   // stays on screen) the save waits: the editor would refuse it without a word (review of step 9, 2026-09-24).

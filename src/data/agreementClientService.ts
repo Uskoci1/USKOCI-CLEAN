@@ -295,6 +295,8 @@ export type AgreementChangeProposal = {
 } & ({ termsAvailable: true; terms: AgreementChangeTerms } | { termsAvailable: false; terms: null });
 export type AgreementChangeSnapshot = {
   agreementId: string; agreementVersion: number;
+  /** Display context from the same workspace read; older in-memory snapshots may omit it. */
+  title?: string | null;
   agreementStatus: 'CONFIRMED' | 'SUPERSEDED' | 'COMPLETED' | 'CANCELLED';
   requesterAccountId: string; workerAccountId: string;
   /** The other party's name as the workspace reply already carries it (its requesterName / workerName); null when it
@@ -419,6 +421,7 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
   // The same two name fields the Dogovor projection reads (mapAgreement); a missing or blank one is null, never a label.
   const counterpart = sameId(row.requesterAccountId, accountId) ? row.workerName : row.requesterName;
   return { agreementId, agreementVersion: row.currentVersion,
+    title: typeof row.title === 'string' && row.title.trim() ? row.title.trim() : null,
     agreementStatus: row.agreementStatus as AgreementChangeSnapshot['agreementStatus'],
     requesterAccountId: row.requesterAccountId, workerAccountId: row.workerAccountId,
     counterpartName: typeof counterpart === 'string' && counterpart.trim() ? counterpart.trim() : null,

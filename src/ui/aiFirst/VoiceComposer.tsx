@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, Easing, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { Check, Info, Microphone, StopCircle, Waveform, X } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
@@ -164,7 +163,7 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
 
 /**
  * Talking instead of typing (the owner's Gemini reference, 2026-09-23): the last exchange as plain large text, a softly
- * glowing pill that follows the measured level while listening (a slow breath otherwise, still under reduced motion),
+ * glowing pill that follows the measured level while listening (still otherwise and under reduced motion),
  * the microphone toggle and the close X. Tap starts, tap again sends what was said through the screen's own
  * `onTranscript`, and the answer arrives here as text. "Pregledaj tekst pre slanja" (always on with a screen reader)
  * puts the text in the message field instead, and this screen steps aside so the person can read and send it.
@@ -281,21 +280,33 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
 
 /**
  * The glowing pill: a white capsule with the waveform, lying on a soft blue glow. While the microphone listens the
- * capsule turns ink and the glow follows the measured level; before that it breathes slowly. Under reduced motion it
- * holds still. It says nothing a screen reader needs: the microphone button and the line above say the state.
+ * capsule turns ink and the glow follows the measured level. Idle, unknown levels, permission/error states and the
+ * background stay still: decoration must not imply that the microphone hears audio. Reduced motion stays still too.
+ * It says nothing a screen reader needs: the microphone button and the line above say the state.
  */
 function GlowPill({ listening, level, reduced }: { listening: boolean; level: number | null; reduced: boolean }) {
-  const pulse = useSharedValue(0);
+  const pulse = useRef(new Animated.Value(0)).current;
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
   useEffect(() => {
-    if (reduced) { cancelAnimation(pulse); pulse.value = 0; return; }
-    if (listening && level !== null) { pulse.value = withTiming(level, { duration: sys.motion.press }); return; }
-    pulse.value = withRepeat(withTiming(0.5, { duration: 1600 }), -1, true);
-    return () => cancelAnimation(pulse);
-  }, [pulse, reduced, listening, level]);
-  const glow = useAnimatedStyle(() => ({ opacity: 0.1 + pulse.value * 0.22,
-    transform: [{ scaleX: 1 + pulse.value * 0.05 }, { scaleY: 1 + pulse.value * 0.3 }] }));
+    const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    pulse.stopAnimation();
+    if (reduced || !foreground || !listening || level === null || !Number.isFinite(level)) {
+      pulse.setValue(0);
+      return;
+    }
+    const transition = Animated.timing(pulse, { toValue: Math.max(0, Math.min(1, level)),
+      duration: sys.motion.press, easing: Easing.out(Easing.quad), useNativeDriver: true, isInteraction: false });
+    transition.start();
+    return () => transition.stop();
+  }, [pulse, reduced, foreground, listening, level]);
+  const glow = { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.36] }),
+    transform: [{ scaleX: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) },
+      { scaleY: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] }) }] };
   return <View testID="voice-glow" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.pillStage}>
-    {reduced ? <View style={[s.glow, listening && s.glowOn]} /> : <Animated.View style={[s.glow, listening && s.glowOn, glow]} />}
+    <Animated.View style={[s.glow, listening && s.glowOn, !reduced && glow]} />
     <View style={[s.pillCore, listening && s.pillCoreOn]}>
       <Waveform size={28} weight="bold" color={listening ? sys.color.onGreen : sys.color.ink} />
     </View>
@@ -341,7 +352,7 @@ const s = StyleSheet.create({
   bigOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
   pillStage: { flex: 1, minWidth: 0, maxWidth: 120, marginRight: 'auto', height: 56, justifyContent: 'center' },
-  // The glow is the voice blue, faint: 10–32 % as it breathes or follows the voice, 14 % when it holds still.
+  // A faint blue glow; only measured speech adds movement. The idle surface remains still.
   glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.location.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },
   pillCore: { height: BIG, marginHorizontal: 4, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
@@ -351,5 +362,5 @@ const s = StyleSheet.create({
   box: { width: 22, height: 22, borderRadius: sys.radius.check, borderWidth: 1.5, borderColor: sys.color.lineStrong,
     alignItems: 'center', justifyContent: 'center', backgroundColor: sys.color.surface },
   boxOn: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
-  optionText: { color: sys.color.ink },
+  optionText: { flexShrink: 1, color: sys.color.ink },
 });
