@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-02T05:40:36Z",
+  "osvezeno": "2026-10-02T08:35:14Z",
   "grana": "work/uskoci-ui-unification-20260924",
-  "head": "a96bbb72",
-  "head_poruka": "docs(plan): the UI/UX pass plan (waves W1-W12, 13 owner questions with defaults, audits, wave-1 results) moves into the repository; the LIVE plan's next-block starts with a current cursor",
+  "head": "fd0103a9",
+  "head_poruka": "ops(honor): window 7 - the UI wave-1 APK 71697bf2 seen on the HONOR for the first time (Home, Moji zadaci, Zadaci, Dogovori at 361 dp / font 1.15); B22 probes P3 and P5 passed, P1/P2/P4 NOT RUN (driver tapped the wrong screen); B22 NOT closed",
   "server": {
    "snimljeno": "2026-10-02T04:55:00Z",
    "migracije": 221,
