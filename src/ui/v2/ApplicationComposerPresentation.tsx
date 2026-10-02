@@ -20,7 +20,7 @@ import { useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, inset, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
-import { CardFact, CardPlaces, placesText, taskSpoken, taskValue, valueSpoken } from './TaskFace';
+import { CardFact, placesText, taskSpoken, taskValue, valueSpoken } from './TaskFace';
 import { V2Action } from './V2Action';
 
 /**
@@ -135,23 +135,20 @@ export function ComposerUnavailable({ loading, message, retry, back }: { loading
  * in its own amount section; an offer-taking task keeps its truthful "Tražim ponude" caption. Place and time retain
  * two lines and the worker's capacity wording stays visible. The form's amount is the strongest value on this screen.
  */
-function TaskHead({ opportunity, large }: { opportunity: PrilikaProjekcija; large: boolean }) {
+function TaskHead({ opportunity }: { opportunity: PrilikaProjekcija }) {
   const title = readableTitle(opportunity.naslov), value = taskValue(opportunity);
   const places = placesText(opportunity.pokrivenost, 'worker');
   const priced = opportunity.rezimCene === 'MY_PRICE';
   const spoken = priced ? [title, opportunity.podrucjeTekst, opportunity.vremeTekst, places.spoken].filter(part => part.trim().length > 0).join(', ')
     : `${title}, ${taskSpoken({ value, place: opportunity.podrucjeTekst, schedule: opportunity.vremeTekst, places: places.spoken })}`;
   return <View accessible accessibilityLabel={spoken} style={s.task}>
-    <View style={s.contextLabel}>
-      <T variant="meta" tone="muted">Za zadatak</T>
-      {!priced ? <T variant="meta" tone="muted">{valueSpoken(value)}</T> : null}
-    </View>
-    <T style={s.taskTitle} numberOfLines={3}>{title}</T>
+    <T accessibilityRole="header" style={s.taskTitle}>{title}</T>
+    {!priced ? <T variant="note" tone="muted">{valueSpoken(value)}</T> : null}
     <View style={s.taskFacts}>
-      <CardFact art={<FactArt kind="pin" size={20} />} text={opportunity.podrucjeTekst} lines={2} />
-      <CardFact art={<FactArt kind="calendar" size={20} />} text={opportunity.vremeTekst} lines={2} />
+      <CardFact art={<FactArt kind="pin" size={24} cut="art" />} text={opportunity.podrucjeTekst} lines={2} />
+      <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={opportunity.vremeTekst} lines={2} />
     </View>
-    <CardPlaces places={opportunity.pokrivenost} audience="worker" large={large} />
+    <CardFact art={<FactArt kind="users" size={24} cut="art" tone="quiet" />} text={places.text} lines={0} />
   </View>;
 }
 
@@ -172,18 +169,18 @@ function SentFacts({ price, people, time, flexible, proposed }: { price: string 
   return <View style={s.receipt}>
     <View accessible accessibilityLabel={`Ukupna ponuda: ${price ?? 'Proveri unetu cenu'}${price ? ', ukupno za sve ljude koje dovodiš' : ''}`} style={s.receiptAmount}>
       <View style={s.receiptLabel}>
-        <FactArt kind="money" size={28} />
+        <FactArt kind="money" size={24} cut="art" />
         <T variant="meta" tone="muted">Ukupna ponuda</T>
       </View>
       <T style={price ? s.receiptMoney : s.unknownPrice}>{price ?? 'Proveri unetu cenu'}</T>
       {price ? <T variant="note" tone="muted">Ukupno za sve ljude koje dovodiš</T> : null}
     </View>
     <View accessible accessibilityLabel={`Ljudi: ${people}`} style={s.receiptRow}>
-      <FactArt kind="users" size={28} />
+      <FactArt kind="users" size={24} cut="art" tone="quiet" />
       <View style={s.grow}><T variant="meta" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{people}</T></View>
     </View>
     <View accessible accessibilityLabel={`Termin: ${time}${timeNote ? `, ${timeNote}` : ''}`} style={s.receiptRow}>
-      <FactArt kind="calendar" size={28} />
+      <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
       <View style={s.grow}>
         <T variant="meta" tone="muted">Termin</T><T variant="bodyStrong" style={s.ink}>{time}</T>
         {timeNote ? <T variant="note" tone="muted">{timeNote}</T> : null}
@@ -329,7 +326,6 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       {!pending && refreshHelps ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noticeAction} /> : null}
     </View> : null}
     {!locked && !busy && !keyboard ? <View style={s.summaryRow}>
-      <T variant="meta" tone="muted">Tvoja ponuda</T>
       <T style={s.summary}>{`${summary} · ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`}</T>
     </View> : null}
     {primary}
@@ -359,15 +355,13 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} style={s.resultTitle}>Prijava je poslata.</T>
         <T variant="copy" tone="muted">Ako tvoja ponuda bude izabrana, odmah nastaje Dogovor. Prijavu pratiš u Mojim prijavama.</T>
       </View>
-      <TaskHead opportunity={opportunity} large={large} />
+      <TaskHead opportunity={opportunity} />
       {sentFacts}
       <SentMessage note={draft.note} />
     </View> : <>
-    <TaskHead opportunity={opportunity} large={large} />
+    <TaskHead opportunity={opportunity} />
     {locked ? <View style={s.section}>
-      {/* The facts of the saved offer stand under their own name: hairline, air, heading, then the facts (r6: the band
-          between the task face's hairline and the price fact's own line stood empty). */}
-      <T accessibilityRole="header" variant="heading" style={s.ink}>Tvoja ponuda</T>
+      {/* The receipt names its amount, people and time once, without another summary heading. */}
       {sentFacts}
       <SentMessage note={draft.note} />
       {/* After a known refusal the same offer is not repeated, so the sentence about repeating it is not said. */}
@@ -376,7 +370,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       <View style={s.section}>
         {offers ? <>
           <View style={s.amountHeading}>
-            <FactArt kind="money" size={28} />
+            <FactArt kind="money" size={24} cut="art" />
             <Question>Ukupna cena</Question>
           </View>
           <View style={[s.priceBox, focused === 'price' && s.fieldFocused, issue.price === 'invalid' && s.fieldDanger]}>
@@ -388,13 +382,13 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
             <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
           </View>
           {issue.price === 'invalid' ? <T variant="note" tone="danger">Upiši ceo iznos u dinarima, bez tačaka i slova.</T> : null}
-          <T variant="note" tone="muted">Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.</T>
+          <T variant="note" tone="muted">Ukupan iznos za sve ljude koje dovodiš, ne po osobi.</T>
         </> : <FixedPrice need={need} count={count} />}
       </View>
       <View style={s.terms}>
       <View style={[s.peopleRow, stackPeople && s.peopleStacked]}>
         <View style={[s.peopleQuestion, stackPeople && s.unflex]}>
-          <FactArt kind="users" size={28} />
+          <FactArt kind="users" size={24} cut="art" tone="quiet" />
           <View style={s.grow}>
             <Question>Koliko ljudi dolazi</Question>
             {!peopleLocked ? <T variant="note" tone={issue.people === 'over' ? 'danger' : 'muted'} accessibilityLiveRegion="polite">
@@ -420,11 +414,10 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" accessibilityHint="Otvara izbor tačnog termina"
           accessibilityValue={{ text: time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
           onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} style={s.term}>
-          <FactArt kind="calendar" size={28} />
+          <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
           <View style={s.grow}>
-            <T variant="meta" tone="muted">Termin</T>
+            <T variant="note" tone="muted">{exact ? 'Tvoj predlog termina' : 'Termin zadatka'}</T>
             <T variant="bodyStrong" style={s.ink}>{time}</T>
-            <T variant="note" tone="muted">{exact ? 'Tvoj predlog' : 'Termin zadatka'}</T>
           </View>
           <CaretRight size={20} color={sys.color.muted} />
         </Press>
@@ -449,9 +442,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       </>}>
       {() => <>
         <View style={s.reviewTask}>
-          <T variant="meta" tone="muted">Za zadatak</T>
-          <T style={s.taskTitle} numberOfLines={3}>{readableTitle(opportunity.naslov)}</T>
-          <T variant="note" tone="muted">{opportunity.podrucjeTekst}</T>
+          <T accessibilityRole="header" style={s.taskTitle}>{readableTitle(opportunity.naslov)}</T>
+          <CardFact art={<FactArt kind="pin" size={24} cut="art" />} text={opportunity.podrucjeTekst} lines={0} />
         </View>
         {sentFacts}
         <SentMessage note={draft.note} />
@@ -475,11 +467,11 @@ function FixedPrice({ need, count }: { need: PotrebaProjekcija; count: number | 
   const rule = !amount ? null
     : need.osnovaCene === 'PER_PERSON' ? `Cena je ${amount} po osobi, pa se ukupan iznos računa po broju ljudi koje dovodiš.`
     : fixedApplicationPeople(need) !== null ? `Cena važi za ceo Zadatak, pa prijava pokriva sva mesta: ${osoba(need.pokrivenost.ukupno)}.`
-    : 'Cena je navedena u Zadatku. Ovo je ukupan iznos za sve ljude koje dovodiš, ne cena po osobi.';
+    : 'Cena je navedena u Zadatku. Ukupan iznos za sve ljude koje dovodiš, ne po osobi.';
   return <>
     <Question>Cena zadatka</Question>
     <View accessible accessibilityLabel={amount ? `Cena zadatka: ${amount}${basis ? ` ${basis}` : ''}` : 'Cena nije navedena'} style={s.fixed}>
-      <FactArt kind="money" size={28} />
+      <FactArt kind="money" size={24} cut="art" />
       {amount ? <View style={s.fixedValue}>
         <T style={s.money}>{amount}</T>{basis ? <T variant="bodyStrong" tone="muted">{basis}</T> : null}
       </View> : <T variant="bodyStrong" style={s.ink}>Cena nije navedena</T>}
@@ -490,25 +482,24 @@ function FixedPrice({ need, count }: { need: PotrebaProjekcija; count: number | 
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
+  screen: { flex: 1, backgroundColor: sys.color.surface }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
   content: { paddingHorizontal: SIDE, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, gap: sys.space.lg },
   // The context belongs to the draft; it is quieter than the amount without hiding the task's time or capacity.
   task: { gap: sys.space.sm, paddingBottom: sys.space.lg, borderBottomWidth: 1, borderColor: sys.color.line },
-  contextLabel: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: sys.space.sm },
   taskTitle: { ...sys.type.title, color: sys.color.ink },
   taskFacts: { gap: sys.space.xs },
-  question: { gap: sys.space.xs, flexShrink: 1 },
+  question: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: sys.space.xs, flexShrink: 1 },
   section: { gap: sys.space.md },
   amountHeading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   priceBox: { ...fieldBox, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
     backgroundColor: sys.color.surface, paddingVertical: 0, borderColor: sys.color.lineStrong },
   priceInput: withInter({ ...sys.type.display, fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0,
-    color: sys.color.money, paddingVertical: sys.space.md }),
+    color: sys.color.ink, paddingVertical: sys.space.md }),
   fieldFocused: { borderColor: sys.color.green },
   fieldDanger: { borderColor: sys.color.danger },
   fixed: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   fixedValue: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: sys.space.sm, flex: 1, minWidth: 0 },
-  money: { ...sys.type.hero, fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'], color: sys.color.money, maxWidth: '100%', flexShrink: 1 },
+  money: { ...sys.type.hero, fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'], color: sys.color.ink, maxWidth: '100%', flexShrink: 1 },
   terms: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   peopleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.lg,
     borderBottomWidth: 1, borderBottomColor: sys.color.line },
@@ -531,7 +522,7 @@ const s = StyleSheet.create({
   receiptAmount: { alignItems: 'flex-start', gap: sys.space.xs, paddingVertical: sys.space.base,
     borderBottomWidth: 1, borderColor: sys.color.line },
   receiptLabel: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  receiptMoney: { ...sys.type.display, fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'], color: sys.color.money, maxWidth: '100%' },
+  receiptMoney: { ...sys.type.display, fontSize: 28, lineHeight: 34, fontVariant: ['tabular-nums'], color: sys.color.ink, maxWidth: '100%' },
   unknownPrice: { ...sys.type.bodyStrong, color: sys.color.ink },
   receiptRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
   sentMessage: { gap: sys.space.sm, borderTopWidth: 1, borderColor: sys.color.line, paddingTop: sys.space.lg },
@@ -539,8 +530,7 @@ const s = StyleSheet.create({
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },
   notice: { ...inset, backgroundColor: sys.color.warnSoft, gap: sys.space.xs },
   noticeAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
-  // One anatomy in every state: the label above the value, at the left (r6: a row that wrapped put the value at the
-  // right edge or under the label depending on how long the price and the count were).
+  // One compact offer summary stays beside Review while the keyboard is hidden.
   summaryRow: { alignItems: 'flex-start', gap: 2 },
   summary: { ...sys.type.bodyStrong, color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },

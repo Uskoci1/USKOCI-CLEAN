@@ -18,15 +18,14 @@ import { CardFact, valueStyles } from './TaskFace';
  * The one face of an application in the requester's list (owner's step 7, 2026-09-24). An offer is chosen as a PERSON
  * first, so the card reads the way the decision is made:
  *
- *   1. what state the offer is in, only when it cannot simply be chosen ("Potrebna nova provera", "Izabrana prijava");
- *   2. the person — the one Avatar (or their photo), the name and the rating with the count it stands on;
- *   3. the total and what it covers, then two lines of their own message (the whole text is on the offer);
- *   4. the time they proposed, only when they proposed one (without it the offer takes the task's own time, which every
- *      card would repeat).
+ *   1. the person — the one Avatar (or their photo), the name and the rating with the count it stands on;
+ *   2. an exceptional state, then the total and what it covers;
+ *   3. the time they proposed, only when they proposed one (otherwise the task's time applies);
+ *   4. their complete message, before opening the offer to make the decision.
  *
  * A line either says something or is not drawn. Nothing here invents a rating, a count, a time or a state: a missing
  * rating says it is missing, a count is the server's own words, and an amount without figures is never dressed as money.
- * The value always has its own row, so identity and terms never compete for width; a name may take three lines.
+ * The value always has its own row, so identity and terms never compete for width; the list keeps the full name.
  * At large text the total and its basis stack too. The card is ONE press that opens the offer and is
  * heard once, as the person and everything the card shows.
  *
@@ -147,7 +146,7 @@ export function CandidateValueSlot({ value, large }: { value: CandidateValue; la
     <T variant="bodyStrong" tone="muted">{UNPRICED}</T></View>;
   return <View style={[s.valueLine, large && s.valueStack]}>
     <T style={s.amount}>{value.amount}</T>
-    <T variant="note" tone="muted">{value.basis}</T>
+    <T variant="note" tone="muted" style={s.basis}>{value.basis}</T>
   </View>;
 }
 
@@ -165,18 +164,24 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj ponudu: ${k.ime}`}
     accessibilityValue={{ text: candidateSpoken(k, time) }} accessibilityHint="Otvara celu ponudu."
     haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.card, k.stanje === 'SELECTED' && s.chosen]}>
-    {status ? <CandidateStatusLine status={status} /> : null}
     <View style={s.head}>
       <CandidateAvatar candidate={k} size={56} photo={photo} />
       <View style={s.identity}>
-        <T style={s.name} numberOfLines={3}>{k.ime}</T>
+        <T style={s.name}>{k.ime}</T>
         <CandidateTrustLine candidate={k} />
       </View>
       <CaretRight size={20} color={sys.color.muted} />
     </View>
-    <CandidateValueSlot value={value} large={large || narrow} />
-    {message ? <T style={s.message} numberOfLines={2} ellipsizeMode="tail">{message}</T> : null}
-    {time ? <CardFact art={<FactArt kind="calendar" size={16} />} text={time} lines={2} /> : null}
+    {status ? <CandidateStatusLine status={status} /> : null}
+    <View style={s.terms}>
+      <CandidateValueSlot value={value} large={large || narrow} />
+      {value.kind === 'unpriced' ? <CardFact art={<FactArt kind="users" size={24} cut="art" tone="quiet" />} text={osoba(k.pokrivaMesta)} lines={0} /> : null}
+      {time ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={time} lines={0} /> : null}
+    </View>
+    {message ? <View style={s.messageRow}>
+      <FactArt kind="chat" size={24} cut="art" tone="quiet" />
+      <T style={s.message}>{message}</T>
+    </View> : null}
   </Press>;
 });
 
@@ -194,8 +199,8 @@ const TRUST_LINE = 20, COMPARE_IDENTITY_GAP = 6;
 
 /**
  * An offer as a comparison column: the same person on top, then the same three cells in the same order in every column —
- * the total, the people, the time — so two offers line up cell by cell. `aligned` holds the person's part to one height
- * when two columns stand side by side.
+ * the total, the people, the time — followed by the state and complete message. `aligned` holds the person's part to
+ * one height when two columns stand side by side.
  */
 export const CandidateCompareCard = memo(function CandidateCompareCard({ candidate: k, timezone, fallbackTime, onOpen, photo, aligned }: {
   candidate: KandidatProjekcija; timezone?: string | null; fallbackTime: string; onOpen: () => void; photo?: ReactNode; aligned: boolean;
@@ -217,6 +222,7 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
     <View style={s.cell}><T variant="label" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.cell}><T variant="label" tone="muted">Termin</T><T variant="meta" style={s.ink}>{time ?? fallbackTime}</T></View>
     {status ? <CandidateStatusLine status={status} /> : null}
+    {k.napomena?.trim() ? <View style={s.cell}><T variant="label" tone="muted">Poruka</T><T style={s.compareMessage}>{k.napomena.trim()}</T></View> : null}
   </Press>;
 });
 
@@ -255,18 +261,22 @@ const s = StyleSheet.create({
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   identity: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  name: { ...sys.type.cardTitle, color: sys.color.ink },
+  name: { fontSize: 18, lineHeight: 24, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
   trust: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trustText: { flexShrink: 1, fontSize: 14, lineHeight: TRUST_LINE, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   valueLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: sys.space.xs },
   valueStack: { flexDirection: 'column', alignItems: 'flex-start' },
-  amount: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'left' },
-  message: { ...sys.type.body, color: sys.color.ink },
+  amount: { ...sys.type.priceSmall, color: sys.color.money, textAlign: 'left', flexShrink: 1, maxWidth: '100%' },
+  basis: { flexShrink: 1, maxWidth: '100%' },
+  terms: { gap: sys.space.sm },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  message: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 21, color: sys.color.muted },
   compare: { ...cardCompact, flex: 1, minWidth: 0, padding: sys.space.base, gap: sys.space.md,
-    borderColor: sys.color.line, backgroundColor: sys.color.wash },
+    borderColor: sys.color.line, backgroundColor: sys.color.surface },
   compareName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   compareIdentity: { gap: COMPARE_IDENTITY_GAP },
   cell: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line },
-  compareAmount: { ...sys.type.priceRow, color: sys.color.money },
+  compareAmount: { ...sys.type.priceRow, color: sys.color.money, flexShrink: 1, maxWidth: '100%' },
+  compareMessage: { fontSize: 14, lineHeight: 21, color: sys.color.muted },
   person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base, minHeight: 64, paddingVertical: sys.space.xs },
 });

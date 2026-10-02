@@ -208,32 +208,40 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   if (conversation) {
     const loading = lookup.status === 'LOADING';
-    const label = selectedLabel || point?.address || initialQuery;
+    // A moved pin has no newly resolved address. Keep the old description as context, not its label.
+    const manualProposal = !!position && pending && origin.kind === 'MANUAL_PIN';
+    const label = manualProposal ? 'Tačka izabrana na mapi' : selectedLabel || point?.address || initialQuery;
+    const confirmed = !!point && !pending;
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const lookupMessage = lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
       : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili probaj kasnije.'
         : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
           : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
             : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
-    return <View style={{ gap: sys.space.sm }}>
-      <T variant="bodyStrong">{title}</T>
-      <T variant="body" accessibilityLiveRegion="polite">{position ? 'Je l’ ovde?'
-        : loading ? 'Tražimo mesto iz razgovora…' : 'Obeleži mesto na mapi.'}</T>
-      {label ? <T variant="note" tone="muted">{label}</T> : null}
+    return <View style={{ gap: sys.space.md }}>
+      <View style={{ gap: sys.space.xs }}>
+        <T variant="meta" tone="muted">{title}</T>
+        <T variant="bodyStrong" style={{ fontSize: 18, lineHeight: 24 }}>{label || 'Mesto još nije izabrano'}</T>
+        <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
+          ? confirmed ? 'Potvrđena tačka. Možeš da je izmeniš.'
+            : alternatives.length > 1 ? 'Ima više predloga. Proveri pin pre potvrde.' : 'Proveri pin, pa potvrdi mesto.'
+          : loading ? 'Tražimo mesto iz razgovora…' : 'Obeleži tačno mesto na mapi.'}</T>
+        {manualProposal && initialQuery ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
+      </View>
       {!position && !loading && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}
       {!loading || position ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey}
         disabled={disabled || !focused} height={220} /> : null}
-      <T variant="meta" tone="muted">Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
+      <T variant="meta" tone="muted">Svi vide približno područje. Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
       {position ? <>
         <Button label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
           style={confirmAsPrimary ? brandAction : undefined} disabled={disabled || !focused || loading} onPress={confirm} />
-        <Button label={correctionOpen ? 'Sakrij druge predloge' : 'Nije ovde'} kind="quiet"
+        <Button label={correctionOpen ? 'Sakrij opcije izmene' : 'Ispravi mesto'} kind="quiet"
           disabled={disabled || !focused} onPress={() => { if (owns()) setCorrectionOpen(value => !value); }} />
       </> : null}
       {correctionOpen ? <>
-        <T variant="meta" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi.</T>
+        <T variant="note" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi, pa potvrdi izmenu.</T>
         {alternatives.length > 1 ? alternatives.map((candidate, index) => <Button
           key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={candidate.label}
           accessibilityLabel={`Izaberi predlog: ${candidate.label}`} kind="secondary"

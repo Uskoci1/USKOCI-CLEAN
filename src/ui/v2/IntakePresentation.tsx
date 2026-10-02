@@ -96,7 +96,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const DisclosureCaret = expanded ? CaretUp : CaretDown;
   const title = <View style={s.titleSide}>
     <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
-      <T variant="label" numberOfLines={1} style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
+      <T variant="label" style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
     <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : 2}
       style={[s.compactTitle, !summary.title && s.titleEmpty]} />
   </View>;
@@ -109,12 +109,12 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru." accessibilityState={{ expanded }}
       onPress={toggle} haptic="select" style={s.disclosure}>
       {title}
-      <DisclosureCaret size={20} color={sys.color.green} />
+      <DisclosureCaret size={20} color={sys.color.muted} />
     </Press>}
     {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
-      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={20} />} text={summary.zone} /> : null}
-      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={20} />} text={summary.schedule} lines={2} /> : null}
-      {summary.people ? <CardFact art={<FactArt kind="users" size={20} />} text={summary.people} /> : null}
+      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" tone="quiet" />} text={summary.zone} lines={0} /> : null}
+      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={summary.schedule} lines={0} /> : null}
+      {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" tone="quiet" />} text={summary.people} lines={0} /> : null}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
@@ -128,7 +128,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
         onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
         <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
-        <CaretRight size={18} color={canReview ? sys.color.green : sys.color.muted} />
+        <CaretRight size={18} color={canReview ? sys.color.ink : sys.color.muted} />
       </Press> : null}
     </View> : null}
   </View>;
@@ -274,9 +274,9 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.
-  card: { ...cardCompact, paddingVertical: 8, gap: 4, backgroundColor: sys.conversation.summary, borderColor: sys.conversation.edge },
-  cardCompact: { paddingVertical: 6 },
-  cardReady: { borderColor: sys.color.green },
+  card: { ...cardCompact, paddingVertical: 12, gap: 8, backgroundColor: sys.color.surface, borderColor: sys.conversation.edge },
+  cardCompact: { paddingVertical: 8 },
+  cardReady: { borderColor: sys.color.line },
   disclosure: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
   details: { gap: 8, paddingTop: 8, paddingBottom: 4 },
   reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -284,19 +284,19 @@ const s = StyleSheet.create({
   value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
   valueStacked: { width: '100%' },
   reviewAction: { minHeight: 48, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  compactTitle: { ...sys.type.cardTitleCompact },
+  compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
   // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.
   dotBusy: { backgroundColor: sys.color.orange },
   dotReady: { backgroundColor: sys.color.green },
   status: { flex: 1, color: sys.color.muted, letterSpacing: 0.3 },
-  statusReady: { color: sys.color.green },
+  statusReady: { color: sys.color.muted },
   titleSide: { flex: 1, minWidth: 0, gap: 4 },
   titleEmpty: { color: sys.color.muted },
   next: { marginTop: 2 },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
-  readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.green },
+  readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },
   unavailable: { flex: 1, paddingHorizontal: sys.space.xl, justifyContent: 'center' },
   loading: { gap: 16, alignItems: 'center' },
   unavailableMark: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },

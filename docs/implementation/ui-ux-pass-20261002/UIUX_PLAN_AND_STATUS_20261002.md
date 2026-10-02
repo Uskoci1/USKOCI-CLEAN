@@ -56,7 +56,7 @@ Jedan nalog, dve namere; nema globalnog prebacivanja uloge. Donja navigacija je 
 
 Snimak kataloga i pregled dostupnih poziva trenutno ne prijavljuju klijentski poziv bez serverskog ugovora. Pregledani dostupni pozivi imaju odgovarajuće ugovore u snimku; to ne dokazuje njihovo uspešno izvršenje ili poslovnu ispravnost svih kombinacija. Poslednje posebno DEV čitanje u ovom nastavku ostaje ono iz `CODEX_CONTINUATION_20261002.md`, 2.10. u 10:35:43 UTC; ovaj presek ne tvrdi novo živo čitanje.
 
-**Već prihvaćene granice prvog izdanja:** Android prvi, besplatan početak; push, HITNO, podsetnik pred termin, plaćanja i iOS su odloženi prema 75 prihvaćenih odluka. Ne prikazivati ih ponovo kao neodgovorena pitanja ili obavezan rad pre prvog Android izdanja. Glasovne poruke nisu odložene. Javno izdanje još traži završnu privatnost, pravne/operativne podatke, novi produkcioni projekat i potpisani paket.
+**Najnovija odluka posle ovog preseka:** vlasnik je izričito vratio HITNO i push u obim (“Uključi i HITNO i push obaveštenja”). Ranija odlaganja R02/A21 su time zamenjena. Push je već stvarno radio na njegovom Androidu; taj dokaz ostaje, bez ponovnog građenja ili novog dokazivanja radi sigurnosti. Android prvi, besplatan početak, odlaganje podsetnika pred termin, plaćanja i iOS ostaju. AI je postojeća funkcija koju sada vizuelno doterujemo. Glasovne poruke nisu odložene. Aktuelne konkretne izmene: [povezani završni paket](VISUAL_FINISHING_20261002.md#connected-finishing-batch--owner-directed-source-polish). Javno izdanje još traži završnu privatnost, pravne/operativne podatke, novi produkcioni projekat i potpisani paket.
 
 ### Završna kompozicija: odluka prvo, sadržaj zatim
 

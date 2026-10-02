@@ -114,9 +114,14 @@ export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: 
 function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void }) {
   const title = readableTitle(need.naslov), { preostalo, ukupno } = need.pokrivenost;
   const places = preostalo > 0 ? `${preostalo} od ${ukupno} mesta je slobodno` : 'Sva mesta su popunjena';
-  const body = <><FactArt kind="tasks" size={28} />
-    <View style={s.briefCopy}><T variant="bodyStrong" style={s.ink} numberOfLines={2}>{title}</T><T variant="meta" tone="muted">{places}</T></View>
-    {open ? <CaretRight size={18} color={sys.color.muted} /> : null}</>;
+  const body = <View style={s.briefCopy}>
+    <View style={s.briefHeading}>
+      <T variant="bodyStrong" style={[s.ink, s.grow]}>{title}</T>
+      {open ? <CaretRight size={18} color={sys.color.muted} /> : null}
+    </View>
+    <View style={s.briefFacts}><FactArt kind="users" size={24} cut="art" tone="quiet" />
+      <T variant="note" tone="muted" style={s.grow}>{places}</T></View>
+  </View>;
   return open ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityHint={places}
     haptic="select" scaleTo={0.99} onPress={open} style={s.brief}>{body}</Press>
     : <View accessible accessibilityLabel={`${title}. ${places}`} style={s.brief}>{body}</View>;
@@ -338,17 +343,19 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       </View> : null}
       <View style={s.offerTerms}>
         <View accessible accessibilityLabel={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}: ${value.kind === 'amount' ? value.amount : UNPRICED}`} style={s.offerPrice}>
-          <T variant="note" tone="muted">Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T>
+          <View style={s.offerPriceLabel}><FactArt kind="money" size={24} cut="art" />
+            <T variant="note" tone="muted" style={s.grow}>Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T></View>
           {value.kind === 'amount' ? <T style={s.offerAmount}>{value.amount}</T> : <T variant="bodyStrong" tone="muted">{UNPRICED}</T>}
         </View>
         <View accessible accessibilityLabel={`Termin: ${time ?? need.vremeTekst}${time ? '' : ', Termin zadatka'}`} style={s.offerTime}>
-          <FactArt kind="calendar" size={24} />
-          <View style={s.offerTimeCopy}><T variant="bodyStrong" style={s.ink}>{time ?? need.vremeTekst}</T>
-            <T variant="note" tone="muted">{time ? 'Predloženi termin' : 'Termin zadatka'}</T></View>
+          <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
+          <View style={s.offerTimeCopy}>
+            <T variant="note" tone="muted">{time ? 'Predloženi termin' : 'Termin zadatka'}</T>
+            <T variant="bodyStrong" style={s.ink}>{time ?? need.vremeTekst}</T></View>
         </View>
       </View>
       <View style={s.offerMessage}>
-        <T accessibilityRole="header" variant="heading" style={s.ink}>Poruka</T>
+        <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Poruka</T>
         {message ? <T selectable variant="body" style={s.ink}>{candidate.napomena}</T> : <T variant="body" tone="muted">Bez poruke.</T>}
       </View>
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
@@ -362,7 +369,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   </ProductSheet>;
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
+  screen: { flex: 1, backgroundColor: sys.color.surface }, grow: { flex: 1, minWidth: 0 }, stack: { gap: 14 },
   ink: { color: sys.color.ink },
   content: { padding: LIST_PADDING, paddingTop: 16, paddingBottom: 28 },
   warnCard: { ...inset, backgroundColor: sys.color.warnSoft, padding: 16, gap: 8 },
@@ -373,7 +380,9 @@ const s = StyleSheet.create({
   // A row that opens something is a command: never under 48.
   brief: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: ACTION_MIN_HEIGHT,
     paddingVertical: sys.space.base, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  briefCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  briefCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
+  briefHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  briefFacts: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm, minHeight: 52 },
   counts: { flexGrow: 1, color: sys.color.ink },
   sortButton: { minHeight: ACTION_MIN_HEIGHT, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -387,19 +396,21 @@ const s = StyleSheet.create({
   pagingFoot: { alignItems: 'center', gap: 8, paddingBottom: 4 },
   footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 8 },
   footerAction: { alignSelf: 'center', marginTop: 8 },
-  // The offer sheet: its pinned actions, a state band on a flat tint (never a card inside the sheet), the outcome.
+  // The offer sheet stays one white reading surface; a status line keeps its semantic accent.
   sheetFooter: { gap: sys.space.xs },
   offerContent: { gap: sys.space.lg },
   offerTerms: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.base,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
-  offerPrice: { gap: sys.space.xs },
-  offerAmount: { ...sys.type.pageTitle, color: sys.color.money, fontVariant: ['tabular-nums'] },
+  offerPrice: { gap: sys.space.sm },
+  offerPriceLabel: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  offerAmount: { ...sys.type.pageTitle, color: sys.color.ink, fontVariant: ['tabular-nums'], maxWidth: '100%' },
   offerTime: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },
   offerTimeCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  offerMessage: { gap: sys.space.md },
-  band: { ...inset, backgroundColor: sys.color.wash, gap: sys.space.sm },
-  bandWarn: { backgroundColor: sys.color.warnSoft },
-  bandGreen: { backgroundColor: sys.color.greenSoft },
+  offerMessage: { gap: sys.space.sm },
+  band: { backgroundColor: sys.color.surface, gap: sys.space.sm, paddingVertical: sys.space.md,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  bandWarn: { borderLeftWidth: 3, borderLeftColor: sys.color.warn, paddingLeft: sys.space.md },
+  bandGreen: { borderLeftWidth: 3, borderLeftColor: sys.color.green, paddingLeft: sys.space.md },
   bandAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   done: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });

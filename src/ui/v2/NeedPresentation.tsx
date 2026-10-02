@@ -24,6 +24,8 @@ export type NeedPresentationProps = {
   need: PotrebaProjekcija | null; loading: boolean; error: string | null; busy: boolean;
   remainingClosed: boolean;
   onBack: () => void; onRefresh: () => void; onReview: () => void; onEdit: () => void; onCloseRemaining: () => void; onCandidates: () => void;
+  /** Opens the existing personal Agreements list, not a task-filtered list. */
+  onAgreements?: () => void;
   /** What the publish gate says about a draft, asked of the gate itself. Absent means not asked. */
   readiness?: NeedPublicationReadiness | null;
   photos?: ReactNode;
@@ -97,10 +99,15 @@ export function NeedPresentation(props: NeedPresentationProps) {
   // `busy` is true while anything on the screen is loading, including the first read, so the one
   // action announced work in progress before anything had been asked for.
   const working = busy && !loading;
-  const applications = need && !working && !blocked && !draft ? applicationsAction(need) : null;
+  const hasAgreements = !!need && need.pokrivenost.popunjeno > 0 && !!props.onAgreements;
+  const agreementsNext = hasAgreements && !draft && (remainingClosed || need?.stanje === 'POPUNJENA'
+    || need?.stanje === 'ZATVORENA' || need?.brojPrijavaZaIzbor === 0);
+  const applications = need && !working && !blocked && !draft && !agreementsNext ? applicationsAction(need) : null;
   const primaryLabel = working ? 'Radnja je u toku…'
-    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu' : 'Pregledaj prijave';
-  const primaryAction = blocked ? props.onEdit : draft ? props.onReview : props.onCandidates;
+    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu'
+      : agreementsNext ? 'Otvori moje Dogovore' : 'Pregledaj prijave';
+  const primaryAction = blocked ? props.onEdit : draft ? props.onReview
+    : agreementsNext ? props.onAgreements! : props.onCandidates;
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   // The owner's own task shows the same price a stranger sees, totals included; only the line under an
   // open price speaks to the owner instead of to the person applying.
@@ -139,15 +146,16 @@ export function NeedPresentation(props: NeedPresentationProps) {
         </View>
         {props.lifecycleActions}
       </View> : <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
-        {props.photos}
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {/* People never see a category (owner decision 2026-09-21); the server reads kinds of work only to match. */}
           {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
-          {state ? <View style={s.stateRow} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
-            <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
-            <T variant="bodyStrong" style={{ color: state.tone === 'green' ? sys.color.green : sys.color.muted }}>{state.title}</T>
-            {state.detail ? <T variant="note" tone="muted" style={s.grow}>{`· ${state.detail}`}</T> : null}
+          {state ? <View style={s.stateCopy} accessible accessibilityLabel={`Stanje: ${state.title}${state.detail ? `, ${state.detail}` : ''}`}>
+            <View style={s.stateRow}>
+              <View style={[s.dot, { backgroundColor: state.tone === 'green' ? sys.color.green : sys.color.muted }]} />
+              <T variant="bodyStrong" style={s.ink}>{state.title}</T>
+            </View>
+            {state.detail ? <T variant="note" tone="muted">{state.detail}</T> : null}
           </View> : null}
         </View>
         {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
@@ -159,6 +167,13 @@ export function NeedPresentation(props: NeedPresentationProps) {
             they pressed: the check, the command running, its uncertain, confirmed or refused outcome. It draws nothing
             while there is nothing to say. */}
         {props.lifecycleActions}
+        {!draft && counted ? <View style={s.applications}>
+          <DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates} disabled={busy}
+            accessibilityLabel={`Otvori prijave. ${counted.text}`}
+            trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} />
+          {hasAgreements ? <View style={s.agreementsRow}><DetailLink art="agreements" label="Moji dogovori"
+            detail="Razgovor, uslovi i završetak posla." onPress={props.onAgreements!} disabled={busy} /></View> : null}
+        </View> : null}
         <View style={s.brief}>
           {/* A draft has no places that could be taken yet, so it says only how many people it needs. */}
           <TaskDecisionLogistics remote={remote} place={need.podrucjeTekst} time={need.vremeTekst} people={osoba(need.pokrivenost.ukupno)}
@@ -166,11 +181,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
             spokenFilled={draft ? undefined : `popunjeno ${need.pokrivenost.popunjeno} od ${need.pokrivenost.ukupno} mesta`} />
           {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
         </View>
+        {props.photos}
         {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
         <TaskDecisionRequirements rows={requirements} />
-        {!draft && counted ? <View style={s.applications}><DetailLink art="offers" label="Prijave" detail={counted.text} onPress={props.onCandidates}
-          accessibilityLabel={`Otvori prijave, ukupno ${need.brojPrijava}`}
-          trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : null} /></View> : null}
         {/* A stranger saw this Task on a map before its owner did: the public projection carried the
             point and the owner's own read never asked for it. Same coarse pair, same map, one section. */}
         {!remote && (props.map || route.length) ? <DetailSection title="Mesto zadatka">
@@ -183,10 +196,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* The "Upravljanje zadatkom" section that ended the screen is gone: its actions are behind "···", a closed
             remaining search is said in the state line, and the lifecycle's outcomes are shown under the title. */}
       </ScrollView>}
-    {/* A published Zadatak nobody has applied to yet has no next step for its owner: the "Pregledaj prijave"
-        opened an empty list (phone, 2026-09-23). The applications row still opens the list, so the footer
-        waits for the first application. */}
-    {usable && (draft || blocked || busy || need!.brojPrijava > 0) ? <View style={s.footer}>
+    {/* Once there is nobody left to choose, the existing Agreements list becomes the next step.
+        The applications row remains available for the full application history. */}
+    {usable && (draft || blocked || busy || agreementsNext || need!.brojPrijava > 0) ? <View style={s.footer}>
       <ProductFooterAction label={primaryLabel} count={applications?.count} accessibilityLabel={applications?.spoken}
         disabled={busy} arrow={!working} onPress={primaryAction} />
     </View> : null}
@@ -198,7 +210,8 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
   state: { padding: 20, gap: 16 },
   content: { paddingHorizontal: sys.space.xl, paddingTop: sys.space.sm, paddingBottom: 40, gap: sys.space.xl },
-  hero: { gap: 16 },
+  hero: { gap: 12 },
+  stateCopy: { gap: 4 },
   brief: { gap: sys.space.base },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   stateRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
@@ -206,7 +219,8 @@ const s = StyleSheet.create({
   blocked: { backgroundColor: sys.color.warnSoft, gap: 4 },
   warnTitle: { color: sys.color.warn },
   privacy: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  applications: { paddingVertical: sys.space.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  applications: { paddingVertical: sys.space.xs, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
+  agreementsRow: { borderTopWidth: 1, borderTopColor: sys.color.line },
   countPill: { minWidth: 26, height: 26, borderRadius: sys.radius.pill, paddingHorizontal: 8, backgroundColor: sys.color.orange, alignItems: 'center', justifyContent: 'center' },
   countText: { color: sys.color.onOrange, letterSpacing: 0, lineHeight: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },

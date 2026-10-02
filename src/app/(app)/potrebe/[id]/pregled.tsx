@@ -10,6 +10,7 @@ import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } f
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
+import { UrgentActivationActions, useUrgentActivationActions } from '../../../../ui/v2/UrgentActivationActions';
 import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
 import { NeedLifecycleActions, needLifecycleEntries, type NeedLifecycleMenu } from '../../../../ui/needs/NeedLifecycleActions';
@@ -45,6 +46,9 @@ function OwnedNeed({ id }: { id: string }) {
   const closeAttempt = useRef<RemainingSearchCloseAttempt | null>(null);
   const [terminalActive, setTerminalActive] = useState(false);
   const terminalActiveRef = useRef(false);
+  const [urgentActive, setUrgentActive] = useState(false);
+  const urgentActiveRef = useRef(false);
+  const setUrgent = useCallback((active: boolean) => { urgentActiveRef.current = active; setUrgentActive(active); }, []);
   const setTerminal = useCallback((active: boolean) => { terminalActiveRef.current = active; setTerminalActive(active); }, []);
   // Wherever the screen retires `dialog.current`, the open question it belonged to leaves the screen too.
   const confirmSheet = useConfirmSheet(), retireConfirmation = confirmSheet.close;
@@ -122,11 +126,15 @@ function OwnedNeed({ id }: { id: string }) {
   }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle]);
   // This screen shows a Zadatak returned by the owner-only read, so whoever sees it owns it; the
   // server checks that again on every command. No app-wide mode stands in for that any more.
-  const canAct = () => current() && !terminalActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+  const canAct = () => current() && !terminalActiveRef.current && !urgentActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; retireConfirmation(); navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null; retireConfirmation();
     void editor.refresh(); };
+  const urgent = useUrgentActivationActions({
+    needId: id, need: potreba, disabled: akcijaUToku || ucitava || !!greska || terminalActive,
+    onActiveChange: setUrgent, onRefresh: refresh,
+  });
   // `danger` for a question whose confirm cannot be undone (closing the search), drawn like izvoz's withdrawals.
   const ask = (title: string, description: string, label: string, tone: 'default' | 'danger', command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return;
@@ -186,6 +194,7 @@ function OwnedNeed({ id }: { id: string }) {
   const lifecycleMenu = useRef<NeedLifecycleMenu | null>(null);
   const entries = needLifecycleEntries(potreba);
   const lifecycleMenuActions: SheetAction[] = [
+    ...(urgent.entry ? [urgent.entry] : []),
     // A task with agreed places cannot be cancelled as a whole, and the menu says why where it is seen, not only to a
     // screen reader: the line under the row replaces the inline sentence the lifecycle used to draw.
     ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, subtitle: 'Postojeći Dogovori se otkazuju zasebno.',
@@ -204,13 +213,17 @@ function OwnedNeed({ id }: { id: string }) {
       : undefined}
     qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
       onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}
-    lifecycleActions={uuid(id) ? <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}
-      disabled={akcijaUToku || ucitava || !!greska} onActiveChange={setTerminal} onRefresh={refresh} /> : undefined}
+    lifecycleActions={uuid(id) ? <>
+      <UrgentActivationActions control={urgent} />
+      <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}
+        disabled={akcijaUToku || ucitava || !!greska || urgentActive} onActiveChange={setTerminal} onRefresh={refresh} />
+    </> : undefined}
     lifecycleMenu={lifecycleMenuActions}
-    error={greska} busy={akcijaUToku || terminalActive} remainingClosed={preostalaPotragaZatvorena}
+    error={greska} busy={akcijaUToku || terminalActive || urgentActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
+    onAgreements={entries.agreements ? () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } : undefined}
     // Opened from a notification on a cold start there is nothing behind this screen; the arrow then
     // lands on the person's own tasks instead of doing nothing.
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'))} onRefresh={refresh} onReview={() => { void openOwnedReview('/pregled-zadatka'); }} onEdit={otvoriIzmenu} onCloseRemaining={zatvoriPreostaluPotragu}
-    onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />{confirmSheet.sheet}</>;
+    onCandidates={() => navigate(() => router.push({ pathname: '/potrebe/[id]/kandidati', params: { id } }))} />{confirmSheet.sheet}{urgent.sheet}</>;
 }

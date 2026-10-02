@@ -207,8 +207,8 @@ export type PushPreferencesViewProps = {
 
 /**
  * The notification settings of one set (step 11a, 2026-09-24), drawn from what the container read. Whether anything
- * reaches the phone comes first, because it decides whether the rest matters; then the categories in the app, the quiet
- * hours, and the last check of sending. The one green action, "Sačuvaj podešavanja", sits in the footer, so a change at
+ * can reach the phone comes first: its permission and connection, then the last check of sending. Categories and quiet
+ * hours follow and remain editable even when phone delivery is unavailable. "Sačuvaj podešavanja" sits in the footer, so a change at
  * the top does not need a scroll to be saved; the phone's own actions are white and never compete with it.
  */
 export function PushPreferencesView({ role, signedIn, data, busy, error, locked, dirty, validation, working, justSaved,
@@ -236,7 +236,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  // Sending is already on for this set and only this phone is missing: the step is to connect it, not to switch on.
  if (deviceCanAsk && (!registered || !enabled)) phoneActions.push({ label: enabled ? 'Poveži ovaj telefon' : 'Uključi obaveštenja na telefonu',
   kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
- if (enabled && deviceKnowsPush) phoneActions.push({ label: 'Isključi obaveštenja na telefonu', kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
+ if (enabled && deviceKnowsPush) phoneActions.push({ label: `Isključi za ${FOR_SET[role].toLocaleLowerCase('sr-Latn-RS')}`, kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
  // Reading again is offered only where it can change something, and not beside "Proveri stanje", which already does it.
  if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
  const firstGuarded = phoneActions.findIndex(action => action.guarded);
@@ -247,7 +247,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  // After a confirmed save the grey button's reason gives way to the saved line above it, which is said once. Another
  // command (a phone button, "Osveži stanje", the re-read on return) keeps the reason as it was: dropping it while that
  // command ran made it come back afterwards, and a changed reason is spoken again.
- const saveReason = error ? CHECK_FIRST : dirty || justSaved || working === 'save' ? null : 'Dugme se uključuje kad promeniš neko podešavanje.';
+ const saveReason = error ? CHECK_FIRST : dirty || justSaved || working === 'save' ? null : 'Nema nesačuvanih izmena.';
  const stackTimes = large || narrow;
  return <View style={styles.fill}>
   <SavedAnnouncement justSaved={justSaved} />
@@ -262,14 +262,29 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
    </View> : null}
 
    <View style={styles.block}>
-    <SettingsGroup title="Na telefonu">
-     <SettingsInfo title={phone.title} icon={<FactArt kind="phone" size={26} />} last>{phone.body}</SettingsInfo>
-    </SettingsGroup>
+    <T variant="meta" tone="muted">{error ? 'Poslednje potvrđeno stanje telefona' : 'Na ovom telefonu'}</T>
+    <View style={styles.phoneStatus}>
+     <FactArt kind="phone" size={32} cut="art" tone="quiet" />
+     <View style={styles.phoneCopy}>
+      <T accessibilityRole="header" style={styles.phoneTitle}>{phone.title}</T>
+      <T variant="note" tone="muted">{phone.body}</T>
+     </View>
+    </View>
     {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
      reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
     <T variant="note" tone="muted" style={styles.aside}>{PRIVACY}</T>
+   </View>
+
+   <View style={styles.readiness}>
+    <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Poslednja provera slanja</T>
+    <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Sistem za slanje je radio pri poslednjoj proveri.'
+     : readiness?.state === 'DEGRADED' ? 'Zabeležene su poteškoće ili kašnjenje u slanju.'
+      : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
+       : 'Rad sistema za slanje još nije potvrđen.'}</T>
+    {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
+    <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
    </View>
 
    {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
@@ -299,7 +314,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       value={settings.account_enabled} disabled={locked} onChange={value => onEdit('account_enabled', value)} last />
     </SettingsGroup>
     <SettingsGroup title="Tihi sati">
-     <SettingsSwitchRow label="Uključi tihe sate" help="Telefon ćuti u tom periodu. Period može da prelazi preko ponoći."
+     <SettingsSwitchRow label="Uključi tihe sate" help="Bez obaveštenja na telefon u ovom periodu, osim posebno dozvoljenih hitnih događaja. Period može da prelazi preko ponoći."
       value={settings.quiet_hours_enabled} disabled={locked} onChange={value => onEdit('quiet_hours_enabled', value)}
       last={!settings.quiet_hours_enabled && !showZone} />
      {settings.quiet_hours_enabled ? <View style={[styles.times, stackTimes && styles.timesStacked]}>
@@ -320,15 +335,6 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
     </SettingsGroup>
    </View>
 
-   <View style={styles.readiness}>
-    <T variant="bodyStrong" accessibilityRole="header">Poslednja provera slanja</T>
-    <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Pri poslednjoj proveri slanje obaveštenja je radilo.'
-     : readiness?.state === 'DEGRADED' ? 'Provera je zabeležila poteškoće ili kašnjenje u slanju.'
-      : readiness?.state === 'NOT_READY' ? 'Slanje obaveštenja na telefon još nije uključeno.'
-       : 'Još ne možemo da potvrdimo da slanje obaveštenja radi.'}</T>
-    {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
-    <T variant="meta" tone="muted">Ovo je stanje sistema za slanje, a ne potvrda da je obaveštenje stiglo na tvoj telefon.</T>
-   </View>
   </ScrollView>
   <SettingsFooter>
    {validation ? <T variant="note" tone="danger" accessibilityRole="alert">{validation}</T> : null}
@@ -348,18 +354,20 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  */
 function phoneStatus(native: NativePushState['kind'], enabled: boolean, registered: boolean, set: string): { title: string; body: string } {
  // The account's choice is said with the buttons' own noun ("obaveštenja na telefon"). "Slanje" belongs to the send check
- // at the foot of the screen, which can say sending is not on while this set's choice is.
+ // below the phone state, which can say sending is not on while this set's choice is.
  const choice = enabled ? `Obaveštenja na telefon su uključena za ${set}.` : `Obaveštenja na telefon su isključena za ${set}.`;
- // On a device that cannot show anything the account's choice matters only when it is on (other phones still receive).
+ // A saved preference is not evidence that another phone received a notification.
  const onElsewhere = enabled ? ` ${choice}` : '';
- if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Obaveštenja na telefon rade samo na pravom telefonu.${onElsewhere}` };
- if (native === 'UNCONFIGURED') return { title: 'Još nije dostupno', body: `Obaveštenja na telefon još nisu dostupna u ovoj verziji aplikacije.${onElsewhere}` };
+ if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Ovde ne možeš da uključiš obaveštenja na telefonu. Podešavanja u aplikaciji i dalje možeš da uređuješ.${onElsewhere}` };
+ if (native === 'UNCONFIGURED') return { title: 'Povezivanje trenutno nije dostupno', body: `Ova verzija aplikacije trenutno ne može da poveže telefon za obaveštenja.${onElsewhere}` };
  if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: `Dozvoli obaveštenja u podešavanjima telefona.${onElsewhere}` };
- if (!registered) return { title: 'Ovaj telefon još nije povezan', body: choice };
+ if (native === 'PERMISSION_REQUIRED') return { title: 'Potrebna je dozvola telefona',
+  body: `Dugme ispod traži dozvolu za obaveštenja i povezuje ovaj telefon. ${choice}` };
+ if (!registered) return { title: 'Ovaj telefon još nije povezan', body: `Dozvola telefona je data. ${choice}` };
  // A short headline without a period, like the others; the set it belongs to is already the selected tab, and the body
  // names it again for a screen reader.
- return { title: enabled ? 'Obaveštenja na telefon su uključena' : 'Obaveštenja na telefon su isključena',
-  body: `Važi za ${set}. Ovaj telefon je povezan sa tvojim nalogom. Povezan telefon ne znači da je svako obaveštenje stiglo.` };
+ return { title: enabled ? 'Obaveštenja su uključena' : 'Obaveštenja su isključena',
+  body: `Važi za ${set}. Ovaj telefon je povezan sa tvojim nalogom. Stanje slanja je prikazano ispod.` };
 }
 
 /** iOS ignores `accessibilityLiveRegion`, so there the saved line is also said once, when it appears. */
@@ -376,9 +384,13 @@ const deviceZone = (): string | null => {
 const zoneLabel = (zone: string): string => zone === 'Europe/Belgrade' ? 'Vreme u Srbiji' : zone.split('/').pop()?.replace(/_/g, ' ') ?? zone;
 
 const styles = StyleSheet.create({
- fill: { flex: 1 },
- content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, gap: 24, flexGrow: 1 },
+ fill: { flex: 1, backgroundColor: sys.color.surface },
+ content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, gap: 20, flexGrow: 1 },
  block: { gap: 8 },
+ ink: { color: sys.color.ink },
+ phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
+ phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+ phoneTitle: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: sys.color.ink },
  groups: { gap: 24 },
  checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },
  aside: { paddingHorizontal: 4 },
@@ -388,7 +400,7 @@ const styles = StyleSheet.create({
  // The zone sits between the times and the last switch, so it keeps the rows' hairline under it.
  zone: { borderBottomWidth: 1, borderBottomColor: sys.color.line, paddingBottom: 4 },
  inline: { paddingHorizontal: 0, alignSelf: 'flex-start' },
- readiness: { gap: 4 },
+ readiness: { gap: 4, paddingTop: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {
