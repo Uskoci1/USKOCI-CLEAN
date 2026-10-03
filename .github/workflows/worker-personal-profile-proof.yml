@@ -4,6 +4,11 @@ name: Worker personal profile bounded proof
 # pinned; the historical replay is not claimed to be globally DEV-equivalent.
 on:
   workflow_dispatch:
+  push:
+    branches: [work/uskoci-ui-unification-20260924]
+    paths:
+      - '.github/workflows/worker-personal-profile-proof.yml'
+      - 'supabase/candidates/worker-personal-profile-20261003/**'
 permissions:
   contents: read
 concurrency:
