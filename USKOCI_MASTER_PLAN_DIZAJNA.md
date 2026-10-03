@@ -1,3 +1,4 @@
+<!-- Current continuation: d18d083b Worker picker surfaces, exact emulator build37136726468; 1.0/1.3 bounded review, font restored1.15. Detailed catalogue remains partly vector; see INBOX_AND_NATIVE_20261003.md section Worker picker material continuation. -->
 # Current design direction — owner takeover, 2026-10-02
 
 The latest owner51-section instruction authorizes full presentation/flow redesign within existing functional contracts. Old visual locks below are historical. Current source audit, design language, typography, motion contract and vertical sequence: [UIUX_PLAN_AND_STATUS_20261002.md](docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md#whole-product-takeover--source-audit-and-first-vertical-implementation-2026-10-02). [Complete source route matrix](docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json).

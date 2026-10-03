@@ -7169,6 +7169,16 @@
       "scope": "Equal Home doors1.0/1.15/1.3; actual Discovery, Profile, Applications, Agreement remote art; compact candidate comparison1.3; withdrawn separator1.15. Some subjects board-only.",
       "remaining": "Detailed equipment/catalogue, whole-app, phone, performance/motion, AI provider, push and store not accepted.",
       "device": "emulator only; UID10227 preserved; font restored1.15"
+    },
+    "worker_picker_material_20261003": {
+      "source": "d18d083be2963ef302825d04c586be194cdce884",
+      "build": 37136726468,
+      "status": "BOUNDED_EMULATOR_REVIEW",
+      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+      "checks": "TypeScript and2 existing suites/58 cases pass",
+      "remaining": "44 detailed identities retain vector drawings; mixed art family and odd final tile stretching remain composition follow-ups. Whole-app/phone/motion/provider/push/store not accepted.",
+      "apkSha256": "637f857a71552de49bd35f6548421b8d5e25dbdaadae80b9ab42a3c261e32996",
+      "native": "Emulator UID10227 preserved; actual form/tool grid1.0, local laptop select/deselect without save; tool/vehicle rows1.3; font restored1.15."
     }
   }
 }
