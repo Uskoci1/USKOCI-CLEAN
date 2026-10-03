@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T15:19:16Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "a52680e3",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "osvezeno": "2026-10-03T15:20:35Z",
+  "grana": "HEAD",
+  "head": "e73a7262",
+  "head_poruka": "Record bounded native review of shared artwork and equal Home doors",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -10050,102 +10050,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37131295912,
-   "ime": "P5 ready task and matching contract",
-   "sha": "a52680e3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T14:54:10Z"
-  },
-  {
-   "id": 37131261764,
-   "ime": "Build Android development APK",
-   "sha": "a52680e3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T14:53:35Z"
-  },
-  {
-   "id": 37131239596,
-   "ime": "Control tracker refresh",
-   "sha": "a8213105",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T14:53:11Z"
-  },
-  {
-   "id": 37131239548,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "a8213105",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T14:53:11Z"
-  },
-  {
-   "id": 37129136638,
-   "ime": "Control tracker refresh",
-   "sha": "f2425c7b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T14:18:26Z"
-  },
-  {
-   "id": 37127687752,
-   "ime": "Build Android development APK",
-   "sha": "e3f4ea70",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T13:52:49Z"
-  },
-  {
-   "id": 37127674877,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "e3f4ea70",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T13:52:35Z"
-  },
-  {
-   "id": 37127674809,
-   "ime": "P5 ready task and matching contract",
-   "sha": "e3f4ea70",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T13:52:35Z"
-  },
-  {
-   "id": 37127674772,
-   "ime": "Control tracker refresh",
-   "sha": "e3f4ea70",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T13:52:35Z"
-  },
-  {
-   "id": 37124121129,
-   "ime": "Control tracker refresh",
-   "sha": "ebed71e3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:49:24Z"
-  },
-  {
-   "id": 37122685412,
-   "ime": "P5 ready task and matching contract",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:55Z"
-  },
-  {
-   "id": 37122683343,
-   "ime": "Build Android development APK",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:53Z"
-  }
- ]
+ "ci": null
 }
