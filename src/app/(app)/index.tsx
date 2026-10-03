@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { ScreenHeader } from '../../ui/system/ScreenHeader';
+import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { composeHome, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
@@ -60,9 +62,10 @@ function Home() {
   });
   // My own tasks and my applications are reached from here, as two front doors; "Moje aktivnosti" is no longer a
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
-  return <HomePresentation home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  const onProfile = () => navigate(() => router.navigate('/profil'));
+  return <HomePresentation header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
-    onProfile={() => navigate(() => router.navigate('/profil'))} onOpen={open}
+    onProfile={onProfile} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
     // 2026-09-24), exactly as the Dogovor screen opens it. Several, or none known: Dogovori, where each one waits.
     // `from` tells the rating where Back returns, so its button says "Nazad na Početnu" and not "Nazad na Dogovor".

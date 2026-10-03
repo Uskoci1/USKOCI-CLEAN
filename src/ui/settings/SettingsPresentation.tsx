@@ -110,17 +110,19 @@ export function SettingsSwitchRow({ label, help, value, disabled = false, reason
   const why = disabled && reason ? reason : null;
   const hint = [help, why].filter(Boolean).join(' ') || undefined;
   return <Press accessibilityRole="switch" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ checked: value, disabled }}
-    disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={1} onPress={() => onChange(!value)} style={[styles.row, last && styles.last]}>
-    <View style={styles.rowCopy}>
-      <SettingsText variant="bodyStrong" style={{ color: disabled ? sys.color.muted : sys.color.ink }}>{label}</SettingsText>
-      {help ? <SettingsText variant="note" tone="muted">{help}</SettingsText> : null}
-      {why ? <SettingsText variant="note" tone="muted">{why}</SettingsText> : null}
+    disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={1} onPress={() => onChange(!value)} style={[styles.row, styles.switchRow, last && styles.last]}>
+    <View style={styles.switchHeading}>
+      <View style={styles.rowCopy}>
+        <SettingsText variant="bodyStrong" style={{ color: disabled ? sys.color.muted : sys.color.ink }}>{label}</SettingsText>
+      </View>
+      <View style={styles.switchControl} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch value={value} disabled={disabled} onValueChange={onChange}
+          trackColor={{ false: sys.color.lineStrong, true: sys.color.green }} thumbColor={sys.color.surface}
+          ios_backgroundColor={sys.color.lineStrong} />
+      </View>
     </View>
-    <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      <Switch value={value} disabled={disabled} onValueChange={onChange}
-        trackColor={{ false: sys.color.lineStrong, true: sys.color.green }} thumbColor={sys.color.surface}
-        ios_backgroundColor={sys.color.lineStrong} />
-    </View>
+    {help ? <SettingsText variant="note" tone="muted">{help}</SettingsText> : null}
+    {why ? <SettingsText variant="note" tone="muted">{why}</SettingsText> : null}
   </Press>;
 }
 
@@ -216,6 +218,9 @@ const styles = StyleSheet.create({
   rowIcon: { width: 32, height: 40, borderRadius: sys.radius.chip, alignItems: 'center', justifyContent: 'center' },
   rowIconDanger: { backgroundColor: sys.color.dangerSoft },
   rowCopy: { flex: 1, gap: 2, minWidth: 0 },
+  switchRow: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
+  switchHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  switchControl: { flexShrink: 0 },
   person: { minHeight: 56, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   personOpen: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
   personName: { flex: 1, minWidth: 0 },

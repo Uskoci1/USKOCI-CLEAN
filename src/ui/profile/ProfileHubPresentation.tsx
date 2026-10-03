@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SignOut, Camera } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
@@ -11,6 +12,8 @@ import { Avatar } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
 import { WorkProfileArt } from './WorkProfileArt';
 import { V2Action } from '../v2/V2Action';
+
+const NOTIFICATION_ART = require('../../../assets/illustrations/uskoci-notification-bell-v1.png');
 
 /** The identity passport reserves the same size for a real photo, initials and unavailable identity. */
 export const PROFILE_AVATAR = 96;
@@ -134,7 +137,12 @@ function ProfileUtilityRow({ label, detail, art, disabled, last = false, feature
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail} disabled={disabled}
     accessibilityState={{ disabled }} onPress={onPress} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
     style={[s.utility, featured && s.workEntry, last && s.utilityLast]}>
-    {featured ? <WorkProfileArt /> : art ? <View style={s.utilityArt}><FactArt kind={art} size={28} cut="art" muted={disabled} /></View> : null}
+    {featured ? <WorkProfileArt /> : art ? <View style={s.utilityArt} accessible={false}
+      importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+      {art === 'bell' ? <Image source={NOTIFICATION_ART} style={s.notificationArt} contentFit="contain"
+        cachePolicy="memory" transition={0} allowDownscaling accessible={false} tintColor={disabled ? sys.color.muted : undefined} />
+        : <FactArt kind={art} size={28} cut="art" muted={disabled} />}
+    </View> : null}
     <View style={s.utilityCopy}>
       <T variant={featured ? "bodyStrong" : "body"} tone={disabled ? 'muted' : 'ink'}>{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
@@ -168,6 +176,7 @@ const s = StyleSheet.create({
     alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   utilityLast: { borderBottomWidth: 0 },
   utilityArt: { width: 36, alignItems: 'center' },
+  notificationArt: { width: 32, height: 32 },
   workEntry: { paddingVertical: sys.space.base },
   utilityCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

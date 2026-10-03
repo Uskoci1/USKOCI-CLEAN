@@ -8,6 +8,7 @@ import { useConversationInbox } from '../../hooks/useConversationInbox';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { ConversationInboxPresentation } from '../../ui/messages/ConversationInboxPresentation';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
+import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
 import { sys } from '../../ui/system/tokens';
@@ -44,12 +45,13 @@ function ConversationInbox() {
   };
   const latestOpen = useRef(open); latestOpen.current = open;
   const onOpen = useCallback((row: ConversationInboxItem) => latestOpen.current(row), []);
+  const onProfile = () => navigate(() => router.push('/profil'));
   return <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: sys.color.surface }}>
     <ConversationInboxPresentation items={state.page?.items ?? null} loading={state.loading} refreshing={state.refreshing}
       error={(!state.page && !!state.error) || state.error === 'load' || state.error === 'refresh'} paging={state.paging} pageError={state.error === 'page'}
       hasMore={!!state.page?.nextCursor} openingDisabled={state.stale} onOpen={onOpen}
       onRefresh={() => { if (active()) void model.refresh(); }} onLoadMore={() => { if (active()) void model.more(); }}
       onAgreements={() => navigate(() => router.push('/dogovori'))}
-      titleInHeader header={<ScreenHeader showTitle title="Poruke" onProfile={() => navigate(() => router.push('/profil'))} />} />
+      titleInHeader header={<ScreenHeader showTitle title="Poruke" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} />
   </SafeAreaView>;
 }

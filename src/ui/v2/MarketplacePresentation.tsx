@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Keyboard, Platform, ScrollView, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, SlidersHorizontal, X } from 'phosphor-react-native';
@@ -29,6 +29,8 @@ import { V2Action } from './V2Action';
 export type MarketplacePaging = { counts: OwnedTaskCounts | null; hasMore: boolean; loadingMore: boolean; moreError: boolean; onLoadMore: () => void };
 
 export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
+  /** A route-owned root header. Pushed screens still keep their existing Back header. */
+  header?: ReactNode;
   /** Paged builds only (the ex04a package). */
   paging?: MarketplacePaging;
   view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
@@ -160,7 +162,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
     <View aria-hidden={filterOpen} accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {props.onBack ? <ProductHeader title="Moji zadaci" back={props.onBack} />
-        : <ScreenHeader title="Moji zadaci" onProfile={props.onProfile} />}
+        : props.header ?? <ScreenHeader title="Moji zadaci" onProfile={props.onProfile} />}
       {/* The tabs have the whole row to themselves, spread over it (plan item 8.1: beside two 48 dp buttons they had 209 dp of 321
           and the third read "Istorij"). The scroller is the resilience fallback for a text size beyond what fits: it stretches to
           the row, so it scrolls only when it has to, and a label is never cut. */}

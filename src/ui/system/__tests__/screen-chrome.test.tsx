@@ -23,6 +23,7 @@ import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X }
 import { GLYPH_NAMES } from '../Glyph';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
+import { ActualUserAvatar } from '../ActualUserAvatar';
 import { DetailTopBar } from '../DetailTopBar';
 import { ProductHeader } from '../../product/ProductDetails';
 import { SettingsScreen } from '../../settings/SettingsPresentation';
@@ -53,7 +54,7 @@ const noop = () => {};
 describe('one bar for every kind of screen', () => {
   it('keeps shared padding, with a 56 px profile target and unchanged 48 px detail/flow controls', async () => {
     for (const [element, lead] of [
-      [<ScreenHeader title="Dogovori" onProfile={noop} />, 'Moj profil'],
+      [<ScreenHeader title="Dogovori" onProfile={noop} profileEntry={<ActualUserAvatar onPress={noop} />} />, 'Moj profil'],
       [<DetailTopBar title="Kalendar obaveza" onBack={noop} />, 'Nazad'],
       [<ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />, 'Zatvori'],
     ] as const) {
@@ -84,7 +85,7 @@ describe('one bar for every kind of screen', () => {
 
 describe('root', () => {
   it('keeps the mark in flow, then the screen action, bell and own profile; the section remains spoken', async () => {
-    await render(<ScreenHeader title="Dogovori" onProfile={noop} right={<HeaderIconButton label="Kalendar obaveza" icon={MagnifyingGlass} onPress={noop} />} />);
+    await render(<ScreenHeader title="Dogovori" onProfile={noop} profileEntry={<ActualUserAvatar onPress={noop} />} right={<HeaderIconButton label="Kalendar obaveza" icon={MagnifyingGlass} onPress={noop} />} />);
     expect(control('Moj profil')).toBeDefined();
     expect(header().props.accessibilityLabel).toBe('USKOČI, Dogovori');
     expect(tree.root.findAllByType('Bell' as React.ElementType)).toHaveLength(1);
@@ -107,7 +108,7 @@ describe('root', () => {
 
   it('places the larger own profile last and preserves its navigation callback', async () => {
     const open = jest.fn();
-    await render(<ScreenHeader title="Dogovori" onProfile={open} />);
+    await render(<ScreenHeader title="Dogovori" onProfile={open} profileEntry={<ActualUserAvatar onPress={open} />} />);
     expect(flat(control('Moj profil'))).toMatchObject({ width: 56, height: 56 });
     expect(tree.root.findByType('HeaderAvatar' as React.ElementType).props.size).toBe(48);
     const orderedArt = tree.root.findAll(node => typeof node.type === 'string'
@@ -116,6 +117,16 @@ describe('root', () => {
     await act(async () => press('Moj profil').props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
     expect(header().props.accessibilityLabel).toBe('USKOČI, Dogovori');
+  });
+
+  it('keeps a data-free profile fallback when a presentation has no injected identity', async () => {
+    const open = jest.fn();
+    await render(<ScreenHeader title="Dogovori" onProfile={open} />);
+    expect(tree.root.findAllByType('HeaderAvatar' as React.ElementType)).toHaveLength(0);
+    expect(glyph('Moj profil').type).toBe(User);
+    expect(flat(control('Moj profil'))).toMatchObject({ width: 48, height: 48 });
+    await act(async () => press('Moj profil').props.onPress());
+    expect(open).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a data-free profile glyph for direct ScreenChrome galleries', async () => {
@@ -443,7 +454,7 @@ describe('silent navigation (rule R5: a tick is an outcome, not a touch)', () =>
   });
 
   it('keeps the selection tick for the controls that are not navigation back, and ticks nothing when disabled', async () => {
-    await render(<ScreenHeader title="Dogovori" onProfile={noop} />);
+    await render(<ScreenHeader title="Dogovori" onProfile={noop} profileEntry={<ActualUserAvatar onPress={noop} />} />);
     expect(press('Moj profil').props.haptic).toBe('select');
     await act(async () => tree.update(<ChromeIconButton label="Pretraga" glyph="search" onPress={noop} />));
     expect(press('Pretraga').props.haptic).toBe('select');

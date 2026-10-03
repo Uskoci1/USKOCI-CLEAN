@@ -4,7 +4,6 @@ import { T } from '../Text';
 import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
 import { InboxBell } from '../InboxBell';
-import { ActualUserAvatar } from './ActualUserAvatar';
 import type { GlyphIcon, GlyphName } from './Glyph';
 import { chrome, ChromeIconButton, ScreenChrome } from './ScreenChrome';
 
@@ -25,28 +24,30 @@ export function HeaderIconButton({ label, hint, active = false, onPress, caption
 
 /**
  * Root navigation: the brand or section title leads, then the optional control, inbox and own profile.
- * The authorized avatar is the last action. Direct ScreenChrome galleries retain their data-free fallback.
+ * Routes inject the authorized avatar as the last action; presentations retain a data-free profile fallback.
  * The default section name is spoken with the mark; showTitle opts into a visible title.
  */
 type ScreenHeaderProps = { title: string; onProfile: () => void; right?: ReactNode;
+  /** Data-owning routes inject the current-account identity; galleries never import its service. */
+  profileEntry?: ReactNode;
   /** A visible section title instead of the brand mark. Only opt-in callers omit their duplicate content heading. */
   showTitle?: boolean;
 };
 
-export function ScreenHeader({ title, onProfile, right, showTitle = false }: ScreenHeaderProps) {
-  if (showTitle) return <TitledRootHeader title={title} onProfile={onProfile} right={right} />;
-  return <ScreenChrome variant="root" title={title} onProfile={onProfile} right={right} bell={<InboxBell />} profileEntry={<ActualUserAvatar onPress={onProfile} />} />;
+export function ScreenHeader({ title, onProfile, right, profileEntry, showTitle = false }: ScreenHeaderProps) {
+  if (showTitle) return <TitledRootHeader title={title} onProfile={onProfile} right={right} profileEntry={profileEntry} />;
+  return <ScreenChrome variant="root" title={title} onProfile={onProfile} right={right} bell={<InboxBell />} profileEntry={profileEntry} />;
 }
 
 /** One in-flow title. Large text/narrow windows put it below the controls, with no clipping or font cap.
  * The profile and bell retain the same host positions when the layout class changes; the bell never remounts for layout. */
-function TitledRootHeader({ title, onProfile, right }: ScreenHeaderProps) {
+function TitledRootHeader({ title, onProfile, right, profileEntry }: ScreenHeaderProps) {
   const { stacked } = useLayoutClass();
   const heading = <T variant="title" accessibilityRole="header" style={s.title}>{title}</T>;
   return <View style={s.header}>
     <View style={s.row}>
       {!stacked ? <View style={s.copy}>{heading}</View> : null}
-      <View style={s.actions}>{right}<InboxBell /><ActualUserAvatar onPress={onProfile} /></View>
+      <View style={s.actions}>{right}<InboxBell />{profileEntry ?? <ChromeIconButton glyph="profile" label="Moj profil" onPress={onProfile} />}</View>
     </View>
     {stacked ? <View style={s.stackedTitle}>{heading}</View> : null}
   </View>;

@@ -72,7 +72,11 @@ describe('the name comes from the server result for the profile the person came 
     expect(nameLines()).toEqual([PERSON]);
     expect(copy()).toContain('Korisnik nije blokiran.');
     // the name is the first thing on the screen, before the sentence that explains the two roles
-    const drawn = tree.toJSON() as { children: Array<{ props: { testID?: string; accessibilityRole?: string } }> };
+    const viewport = tree.toJSON() as { type: string; children: Array<{ type: string; children: Array<{ props: { testID?: string; accessibilityRole?: string } }> }> };
+    expect(viewport.type).toBe('View');
+    expect(viewport.children).toHaveLength(1);
+    const drawn = viewport.children[0];
+    expect(drawn.type).toBe('Screen');
     expect(drawn.children[0].props.testID).toBe('safety-target-name');
     expect(drawn.children[0].props.accessibilityRole).toBe('header');
   });

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScreenHeader } from '../../ui/system/ScreenHeader';
+import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -85,12 +87,13 @@ function OwnedAgreements({ foreground, section, confirmationOnly, onSection, onC
     if (!shown(agreement) || agreement.stanje !== 'COMPLETED' || !agreement.ocenaMoguca) return;
     navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
-  return <AgreementCollectionPresentation items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  const onProfile = () => navigate(() => router.navigate('/profil'));
+  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     section={section} confirmationOnly={confirmationOnly}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
-    onProfile={() => navigate(() => router.navigate('/profil'))}
+    onProfile={onProfile}
     onHome={() => navigate(() => router.navigate('/'))} />;
 }

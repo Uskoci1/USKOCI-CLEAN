@@ -24,6 +24,9 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('phosphor-react-native', () => new Proxy({}, { get: (_target, key) => key === '__esModule' ? false : String(key) }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
+// The route owns this data-reading child. Its account/focus lifecycle has a dedicated real-resource suite.
+jest.mock('../../ui/system/ActualUserAvatar', () => ({ ActualUserAvatar: ({ onPress }: { onPress: () => void }) =>
+  require('react').createElement('Press', { accessibilityRole: 'button', accessibilityLabel: 'Moj profil', onPress }) }));
 jest.mock('../../ui/entry/BrandAssets', () => ({ BrandLockup: 'BrandLockup' }));
 jest.mock('../../ui/home/HomeIllustration', () => ({ HomeIllustration: 'HomeIllustration' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));

@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import { ScreenHeader } from '../../ui/system/ScreenHeader';
+import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { PotrebaProjekcija } from '../../contracts/projections';
@@ -88,11 +90,12 @@ function OwnedCollection() {
   };
   // Moji zadaci is the whole of this presentation since Zadaci became its own map-and-sheet screen (owner step 4,
   // 2026-09-24): there is no discovery mode to switch off and no map scope to hand down.
-  return <MarketplacePresentation items={owned.items} loading={owned.loading} refreshing={owned.refreshing} error={owned.error}
+  const onProfile = () => navigate(() => router.navigate('/profil'));
+  return <MarketplacePresentation header={<ScreenHeader title="Moji zadaci" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={owned.items} loading={owned.loading} refreshing={owned.refreshing} error={owned.error}
     view={view} paging={owned.paging}
     onView={next => { if (current()) setView(next); }} onRefresh={() => { if (current()) owned.refresh(); }} onOpen={open}
     onApplications={applications}
-    onProfile={() => navigate(() => router.navigate('/profil'))}
+    onProfile={onProfile}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
     onNew={() => navigate(() => router.navigate('/nova'))} />;
 }
