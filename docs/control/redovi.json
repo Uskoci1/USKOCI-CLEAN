@@ -106,6 +106,12 @@
         "shared_material_home_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       }
     },
@@ -1247,6 +1253,12 @@
           "ciRun": 37145120004,
           "ciResult": "SUCCESS",
           "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1405,6 +1417,12 @@
           "ciRun": 37145120004,
           "ciResult": "SUCCESS",
           "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       }
     },
@@ -1995,6 +2013,12 @@
           "scope": "Root confirmed actual single peek -> own task detail -> Back preserves the same peek/title, selected orange halo, visible map paths/zoom/filter. Bounded visible retention only; no native-instance, motion or latency claim.",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
           "boundary": "Exact ae76 only; no native-instance or motion claim; existing lights unchanged."
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       }
     },
@@ -2367,6 +2391,12 @@
             "phone": 37110902973,
             "emulator": 37110904517
           }
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       }
     },
@@ -3835,6 +3865,12 @@
           "build": 37118304645,
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
           "boundary": "No preference submitted and no phone/push-delivery acceptance; no overlapping label or switch in bounded native captures."
+        },
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
         }
       }
     },
@@ -4044,7 +4080,13 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+        }
       }
     },
     {
@@ -4833,7 +4875,13 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "brand_map_profile_20261003": {
+          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+        }
       }
     },
     {
@@ -7241,6 +7289,12 @@
       "remaining": "44 detailed identities retain vector drawings; mixed art family and odd final tile stretching remain composition follow-ups. Whole-app/phone/motion/provider/push/store not accepted.",
       "apkSha256": "637f857a71552de49bd35f6548421b8d5e25dbdaadae80b9ab42a3c261e32996",
       "native": "Emulator UID10227 preserved; actual form/tool grid1.0, local laptop select/deselect without save; tool/vehicle rows1.3; font restored1.15."
+    },
+    "brand_map_profile_20261003": {
+      "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+      "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+      "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+      "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
   }
 }

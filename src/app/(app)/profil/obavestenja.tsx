@@ -9,12 +9,12 @@ import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
 import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
-const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }] as const;
+const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Poslovi' }] as const;
 type SetKey = typeof SETS[number]['key'];
 type ActionScope = { accountId: string; revision: number; leaving: boolean };
 const CAPTION: Record<SetKey, string> = {
  REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
- WORKER: 'Obaveštenja o poslovima na koje se prijavljuješ.',
+ WORKER: 'Novi poslovi, tvoje prijave i Dogovori.',
 };
 const WAIT_FOR_WRITE = 'Sačekaj da se čuvanje završi.';
 export default function PushSettings() {

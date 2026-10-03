@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Image as NativeImage, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'phosphor-react-native';
 import Svg, { Defs, Ellipse, LinearGradient, Rect, Stop, SvgXml } from 'react-native-svg';
@@ -14,6 +14,7 @@ import { BrandArtwork, BrandLockup, useBrandClock } from './BrandScene';
 import { brandFrame, INTRO_DURATION_MS, type Box } from './spojBrandMath';
 import { ENTRY_V49, entryV49Intent, entryV49Intro, entryV49Layout, type EntryV49Layout } from './entryV49Math';
 import { requesterNoteXml, workerNoteXml } from './entryV49Notes';
+import { BRAND_RASTER } from './BrandRaster';
 
 type Intent = 'REQUESTER' | 'WORKER';
 export type EntryIntentSelection = { isCurrent: () => boolean };
@@ -139,6 +140,15 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   };
   const phone = { x: 0, y: 0, width, height };
   const measuredLogo = logo ?? { x: (width - g.logoW) / 2, y: g.brandY + g.padY + 1, width: g.logoW, height: g.logoH };
+  const artLoaded = useRef(false), sourcePrepared = useRef(false);
+  const acknowledgeArt = useCallback(() => {
+    artLoaded.current = true;
+    if (sourcePrepared.current) onSceneReady();
+  }, [onSceneReady]);
+  const acknowledgeSource = useCallback(() => {
+    sourcePrepared.current = true;
+    if (artLoaded.current) onSceneReady();
+  }, [onSceneReady]);
   const intro = phase === 'intro', settled = phase === 'welcome';
   // Final welcome must not depend on a queued UI-runtime clock assignment.
   // Plain native views also detach the previous intro mappers on skip/finish.
@@ -146,7 +156,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const staticChoice = settled && !selected;
   const ChoiceView = staticChoice ? View : Animated.View;
   const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish,
-    logo && prepared ? onSceneReady : undefined, logo && prepared ? { readiness, phone, logo } : undefined);
+    logo && prepared ? acknowledgeSource : undefined, logo && prepared ? { readiness, phone, logo } : undefined);
   const green = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.greenPercent * width / 200 }] }));
   const orange = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.orangePercent * width / 200 }] }));
   const panel = useAnimatedStyle(() => {
@@ -225,6 +235,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     if (enabled && !pending.current && sesijaSada().accountRevision === account && !sesijaSada().user) callback?.();
   };
   return <View onLayout={onLayout} style={styles.root}>
+    {/* Also mounted on reduced-motion / returning welcome, where artwork is static. */}
+    <NativeImage source={BRAND_RASTER} onLoad={acknowledgeArt} resizeMethod="scale" fadeDuration={0} accessible={false}
+      style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} />
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <PresentationView testID="entry-green-field" style={[styles.half, { width: width / 2, backgroundColor: ENTRY_V49.green }, settled ? styles.finalColumn : green]} />
       <PresentationView testID="entry-orange-field" style={[styles.half, { left: width / 2, width: width / 2, backgroundColor: ENTRY_V49.orange }, settled ? styles.finalColumn : orange]} />

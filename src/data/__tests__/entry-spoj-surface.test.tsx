@@ -69,7 +69,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true,
   withTiming: (...args: Parameters<typeof mockTiming>) => mockTiming(...args), cancelAnimation: (...args: unknown[]) => mockCancel(...args),
 }));
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: () => void) => fn() }));
-jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', SvgXml: 'SvgXml', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath', Ellipse: 'Ellipse', LinearGradient: 'LinearGradient', Stop: 'Stop' }));
+jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', SvgXml: 'SvgXml', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath', Image: 'SvgImage', Use: 'Use', Ellipse: 'Ellipse', LinearGradient: 'LinearGradient', RadialGradient: 'RadialGradient', Stop: 'Stop' }));
 jest.mock('expo-image', () => ({ Image: (props: Record<string, unknown>) => {
   const React = jest.requireActual('react');
   const nativeIdentity = React.useRef({});

@@ -586,12 +586,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const creditsRoom = mapShown && creditsHeight ? creditsHeight + GAP : 0;
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
   // At the full stop the map is covered, so the list uses all the room below search. Lower stops and pin previews
-  // still leave the attribution visible. A very tall count/filter header joins the list scroll instead of pinning it.
+  // keep the fixed source strip below search clear. A tall count/filter header joins the list scroll instead of pinning it.
   const listTop = toolsBottom;
   const availableSheet = bodyHeight ? Math.max(3, bodyHeight - listTop) : 0;
   const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - creditsRoom - GAP) : 0;
   const scrollHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
-  // A chosen pin's card: the list's top line steps out of sight behind it, and the map's zoom and credits step up above it.
+  // A chosen pin's card: the list's top line steps out of sight behind it; fixed map controls never follow the card.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
   const [cardHeight, setCardHeight] = useState(0);
   // Android: Reanimated writes a view's opacity and transform by a synchronous update that is lost when Fabric has not mounted the view yet, and nothing
@@ -719,7 +719,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const pillShown = expanded && mapShown;
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
-  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + creditsRoom;
+  // Attribution occupies camera headroom now, so it must not also inflate the bottom padding.
+  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP;
   const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - creditsRoom - CARD_BOTTOM - 2 * GAP - HIDDEN) : undefined;
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
   useEffect(() => {
@@ -1159,7 +1160,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
           onCreditsHeight={next => setCreditsHeight(current => current === next ? current : next)}
           coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
-          focusBottom={CARD_BOTTOM + GAP + creditsRoom + Math.min(360, Math.round(windowHeight / 2))} />
+          focusBottom={CARD_BOTTOM + GAP + Math.min(360, Math.round(windowHeight / 2))} />
           : <View style={s.ground} />}
       </Animated.View>
       <Animated.View testID="discovery-search-backing" pointerEvents="none" accessible={false} importantForAccessibility="no"

@@ -193,7 +193,7 @@ const CHECK_FIRST = 'Prvo proveri stanje.';
 const SAVED = 'Podešavanja su sačuvana.';
 /** Each set by the name its underlined tab shows, in the form that follows "za" ("za Moje zadatke"), so a sentence about
  *  sending says which set it means. */
-const FOR_SET: Record<NotificationRole, string> = { REQUESTER: 'Moje zadatke', WORKER: 'Moje prijave' };
+const FOR_SET: Record<NotificationRole, string> = { REQUESTER: 'Moje zadatke', WORKER: 'poslove' };
 
 export type PushPreferencesViewProps = {
  role: NotificationRole; signedIn: boolean;

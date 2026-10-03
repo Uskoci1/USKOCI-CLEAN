@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T18:46:01Z",
-  "grana": "HEAD",
-  "head": "495bcfaf",
-  "head_poruka": "Record passing personal-profile regression and exact installed-source limits",
+  "osvezeno": "2026-10-03T19:34:39Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "ba988c3e",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -1838,6 +1838,12 @@
    "remaining": "44 detailed identities retain vector drawings; mixed art family and odd final tile stretching remain composition follow-ups. Whole-app/phone/motion/provider/push/store not accepted.",
    "apkSha256": "637f857a71552de49bd35f6548421b8d5e25dbdaadae80b9ab42a3c261e32996",
    "native": "Emulator UID10227 preserved; actual form/tool grid1.0, local laptop select/deselect without save; tool/vehicle rows1.3; font restored1.15."
+  },
+  "brand_map_profile_20261003": {
+   "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+   "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+   "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+   "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
   }
  },
  "redovi": [
@@ -1946,6 +1952,12 @@
     "shared_material_home_native_20261003": {
      "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -3650,6 +3662,12 @@
      "ciRun": 37145120004,
      "ciResult": "SUCCESS",
      "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -3824,6 +3842,12 @@
      "ciRun": 37145120004,
      "ciResult": "SUCCESS",
      "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -4503,6 +4527,12 @@
      "scope": "Root confirmed actual single peek -> own task detail -> Back preserves the same peek/title, selected orange halo, visible map paths/zoom/filter. Bounded visible retention only; no native-instance, motion or latency claim.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
      "boundary": "Exact ae76 only; no native-instance or motion claim; existing lights unchanged."
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -4911,6 +4941,12 @@
       "phone": 37110902973,
       "emulator": 37110904517
      }
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -7208,6 +7244,12 @@
      "build": 37118304645,
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
      "boundary": "No preference submitted and no phone/push-delivery acceptance; no overlapping label or switch in bounded native captures."
+    },
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
     }
    },
    "ukupno": "PROBLEM",
@@ -7540,7 +7582,13 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -8677,7 +8725,13 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+    "brand_map_profile_20261003": {
+     "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+     "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
+     "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
+     "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -10122,5 +10176,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37145419838,
+   "ime": "Control tracker refresh",
+   "sha": "495bcfaf",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:45:44Z"
+  },
+  {
+   "id": 37145120004,
+   "ime": "P5 ready task and matching contract",
+   "sha": "511a3588",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:40:58Z"
+  },
+  {
+   "id": 37144642648,
+   "ime": "P5 ready task and matching contract",
+   "sha": "87828942",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T18:33:27Z"
+  },
+  {
+   "id": 37144348384,
+   "ime": "Worker personal profile bounded proof",
+   "sha": "2c8b1fc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:28:53Z"
+  },
+  {
+   "id": 37144348344,
+   "ime": "Control tracker refresh",
+   "sha": "2c8b1fc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:28:53Z"
+  },
+  {
+   "id": 37144348342,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "2c8b1fc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:28:53Z"
+  },
+  {
+   "id": 37144348331,
+   "ime": "D12 written review comment proof",
+   "sha": "2c8b1fc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:28:53Z"
+  },
+  {
+   "id": 37142990111,
+   "ime": "Build Android development APK",
+   "sha": "95a99f06",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:06:48Z"
+  },
+  {
+   "id": 37142045047,
+   "ime": "Worker personal profile bounded proof",
+   "sha": "29ae4f52",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:51:27Z"
+  },
+  {
+   "id": 37141671693,
+   "ime": "Build Android development APK",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:45:18Z"
+  },
+  {
+   "id": 37141652015,
+   "ime": "P5 ready task and matching contract",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T17:45:02Z"
+  },
+  {
+   "id": 37141652011,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:45:02Z"
+  }
+ ]
 }

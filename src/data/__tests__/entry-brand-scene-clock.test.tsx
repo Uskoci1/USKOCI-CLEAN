@@ -6,7 +6,6 @@ import { BrandArtwork, BrandScene, entryPreparationSourceTime, useBrandClock } f
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
 import { brandFrame } from '../../ui/entry/spojBrandMath';
-import { brandWords } from '../../ui/entry/spojBrandData';
 import referenceFrames from './fixtures/spoj-brand-reference-frames.json';
 
 const mockTiming = jest.fn();
@@ -42,7 +41,7 @@ jest.mock('react-native-reanimated', () => ({
   cancelAnimation: (...args: unknown[]) => mockCancel(...args),
 }));
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (...args: unknown[]) => mockSchedule(...args) }));
-jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath' }));
+jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', G: 'G', Path: 'Path', Rect: 'Rect', Defs: 'Defs', ClipPath: 'ClipPath', Image: 'SvgImage', Use: 'Use', LinearGradient: 'LinearGradient', RadialGradient: 'RadialGradient', Stop: 'Stop' }));
 
 let tree: ReactTestRenderer;
 beforeEach(() => {
@@ -55,7 +54,7 @@ it('mounts the actual SVG scene at time zero while paused and starts the full un
   const complete = jest.fn();
   await act(async () => { tree = create(<BrandScene paused onComplete={complete} />); });
   expect(tree.root.findAllByType('Svg' as React.ElementType)).toHaveLength(2);
-  expect(tree.root.findAllByType('Path' as React.ElementType).length).toBeGreaterThanOrEqual(11);
+  expect(tree.root.findAllByType('SvgImage' as React.ElementType)).toHaveLength(2);
   expect(mockClock.set).toHaveBeenLastCalledWith(0); expect(mockTiming).not.toHaveBeenCalled();
   await act(async () => tree.update(<BrandScene animate onComplete={complete} />));
   expect(mockTiming).toHaveBeenCalledTimes(1);
@@ -284,7 +283,9 @@ it.each(referenceFrames.filter(frame => [2690, 3000, 3500].includes(frame.time))
   expect(artwork.props.viewBox).toBe('138 170 225 108');
   expect(artwork.props.width).toBeCloseTo(225 * k, 10);
   expect(artwork.props.height).toBeCloseTo(108 * k, 10);
-  expect(artwork.findAllByType('Path' as React.ElementType).map(path => path.props.d)).toEqual(brandWords.flatMap(word => word.paths.map(path => path.d)));
-  expect(tree.root.findAllByType('ClipPath' as React.ElementType)).toHaveLength(0);
+  // The dimensional atlas replaces flat paths; the original native-view reveal
+  // remains the sole animated clip, so SVG Defs never need per-frame invalidation.
+  expect(artwork.findAllByType('SvgImage' as React.ElementType)).toHaveLength(1);
+  expect(tree.root.findAllByType('ClipPath' as React.ElementType).every(node => !node.props.animatedProps)).toBe(true);
   expect(mockTiming).not.toHaveBeenCalled();
 });

@@ -6,10 +6,14 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
  * visible name, with a "Nazad" back to the list, and none may read or write anything.
  */
 const mockBack = jest.fn();
+jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: (...args: unknown[]) => unknown, ...args: unknown[]) => fn(...args) }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
+  const MockImage = Object.assign((props: object) => require('react').createElement('Image', props),
+    { resolveAssetSource: native.Image.resolveAssetSource });
   return new Proxy(native, { get(target, key) {
     if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
+    if (key === 'Image') return MockImage;
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView', 'Switch', 'Image'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });

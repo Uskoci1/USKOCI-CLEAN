@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image as NativeImage, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedProps, useAnimatedStyle, useFrameCallback, useSharedValue, withTiming, type FrameCallback, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import Svg, { G, Path } from 'react-native-svg';
-import { brandParts, brandWords } from './spojBrandData';
+import Svg, { G } from 'react-native-svg';
 import { BRAND_PARTS, brandFrame, INTRO_DURATION_MS, type Box } from './spojBrandMath';
 import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
+import { BRAND_RASTER, BrandRasterDefs, BrandRasterMark, BrandRasterWords, useBrandRasterId } from './BrandRaster';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const PHONE = { x: 0, y: 0, width: 390, height: 844 };
@@ -114,19 +114,20 @@ export function useBrandClock(animate: boolean, paused: boolean, onComplete?: ()
   return time;
 }
 
-function BrandPart({ index, time, phone, logo }: { index: number; time: SharedValue<number>; phone: Box; logo: Box }) {
+function BrandPart({ index, time, phone, logo, material }: { index: number; time: SharedValue<number>; phone: Box; logo: Box; material: string }) {
   const props = useAnimatedProps(() => {
     const f = brandFrame(time.get(), phone, logo).parts[index];
     // Native SVG's column-major matrix preserves the HTML transform order.
     return { opacity: f.opacity, matrix: [f.sx, 0, 0, f.sy, f.dx + f.cx * (1 - f.sx), f.dy + f.cy * (1 - f.sy)] };
   });
   return <G transform={`translate(${BRAND_PARTS[index][0]} ${BRAND_PARTS[index][1]})`}>
-    <AnimatedG animatedProps={props}>{brandParts[index].map((path, key) => <Path key={key} {...path} />)}</AnimatedG>
+    <AnimatedG animatedProps={props}><BrandRasterMark id={material} part={index} /></AnimatedG>
   </G>;
 }
 
-/** Measured phone and logo boxes share coordinates; no raster or font substitution. */
-export function BrandArtwork({ time, phone, logo }: { time: SharedValue<number>; phone: Box; logo: Box }) {
+/** Original measured assembly and word reveal, now sharing the static enamel finish. */
+export function BrandArtwork({ time, phone, logo, onArtReady }: { time: SharedValue<number>; phone: Box; logo: Box; onArtReady?: () => void }) {
+  const markMaterial = useBrandRasterId(), wordMaterial = useBrandRasterId();
   const markProps = useAnimatedProps(() => {
     const f = brandFrame(time.get(), phone, logo).mark;
     return { opacity: 1, matrix: [f.scale, 0, 0, f.scale, f.x, f.y] };
@@ -137,10 +138,15 @@ export function BrandArtwork({ time, phone, logo }: { time: SharedValue<number>;
     return { width: frame.wordClipWidth * k, opacity: frame.wordOpacity };
   });
   return <View style={{ width: phone.width, height: phone.height }} pointerEvents="none" accessible={false}>
+    {/* RNSVG skips onLoad for Fresco memory-cache hits. RN Image acknowledges both
+        cached and cold decodes, and shares the same Android image pipeline. */}
+    {onArtReady ? <NativeImage source={BRAND_RASTER} onLoad={onArtReady} resizeMethod="scale" fadeDuration={0} accessible={false}
+      style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} /> : null}
     <Svg width={phone.width} height={phone.height} viewBox={`0 0 ${phone.width} ${phone.height}`} style={StyleSheet.absoluteFill} accessible={false}>
+      <BrandRasterDefs id={markMaterial} />
       <G transform={`translate(${logo.x - 39 * k} ${logo.y - 174 * k}) scale(${k})`}>
         <AnimatedG animatedProps={markProps}><G transform="rotate(.40107046 140 145.44829)">
-          {BRAND_PARTS.map((_, index) => <BrandPart key={index} index={index} time={time} phone={phone} logo={logo} />)}
+          {BRAND_PARTS.map((_, index) => <BrandPart key={index} index={index} time={time} phone={phone} logo={logo} material={markMaterial} />)}
         </G></AnimatedG>
       </G>
     </Svg>
@@ -151,7 +157,8 @@ export function BrandArtwork({ time, phone, logo }: { time: SharedValue<number>;
       style={[{ position: 'absolute', left: logo.x + 99 * k, top: logo.y - 4 * k,
         height: 108 * k, overflow: 'hidden' }, wordStyle]}>
       <Svg width={225 * k} height={108 * k} viewBox="138 170 225 108" style={{ flexShrink: 0 }} accessible={false}>
-        {brandWords.map((word, index) => <G key={index} transform={word.transform}>{word.paths.map((path, key) => <Path key={key} {...path} />)}</G>)}
+        <BrandRasterDefs id={wordMaterial} />
+        <BrandRasterWords id={wordMaterial} />
       </Svg>
     </Animated.View>
   </View>;

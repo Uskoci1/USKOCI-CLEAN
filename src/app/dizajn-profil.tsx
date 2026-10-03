@@ -26,6 +26,7 @@ import { WorkerAiActivation, WorkerAiReviewDetails } from '../ui/workerProfile/W
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus,
   type WorkerActivationChecks } from '../ui/workerProfile/WorkerProfilePresentation';
 import { workerDraft, type WorkerDraft } from '../ui/workerProfile/workerProfileDraft';
+import { BrandSceneReview } from '../ui/entry/BrandSceneReview';
 
 /**
  * Profil, radni profil, fotografija, područje rada, ime (owner's step 9), in every state the lead photographs on the
@@ -137,6 +138,7 @@ function Name({ savedName, uncertain = false, error = null, saved = false, busy 
 const toList: { current: () => void } = { current: noop };
 
 const GROUPS: Group[] = [
+  { title: 'Identitet', scenes: [{ key: 'brand-dimensional', label: 'USKOČI: dimenzionalni logo i animacija', draw: () => <BrandSceneReview /> }] },
   { title: 'Profil', scenes: [
     { key: 'hub-loading', label: 'Profil: učitavanje', draw: () => <Hub identity={{ state: 'loading' }} /> },
     { key: 'hub-error', label: 'Profil: greška', draw: () => <Hub identity={{ state: 'error', retry: noop }} /> },

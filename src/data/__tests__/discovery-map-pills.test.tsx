@@ -21,7 +21,7 @@ jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => requir
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) { return ['View', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key); } }); });
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 // The shared Jest stand-in for Reanimated, with one change: an animated style is worked out on every render and a shared
-// value keeps its value, so where the zoom and the credits ride can be read. Nothing else in this suite passes a sheet.
+// value keeps its value, so fixed controls and their physical sheet-coverage boundary can be read.
 jest.mock('react-native-reanimated', () => {
   const React = require('react'), shared = jest.requireActual('../../../__mocks__/react-native-reanimated');
   return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value }).current, useAnimatedStyle: (updater: () => object) => updater() };
@@ -414,35 +414,40 @@ test('only the latest explicit selection survives a wait for measured layout', a
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.41, 44.83], zoom: 12 }));
 });
 
-// Review r3 item 11: a chosen pin's card rests on the sheet's top line, where the zoom and the credits ride.
-test('credits keep their own full-width strip when zoom cannot fit, including above a selected preview', async () => {
+// Owner, 2026-10-03: sources used to travel with every selected card. They now stay below search.
+test.each([false, true])('sources and zoom keep fixed positions across card and sheet changes (reduced motion: %s)', async reduced => {
+  mockReduced = reduced;
   extra = { sheetTop: { value: 600 }, toolsBottom: 60 };
   await render();
   const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
   await ready();
-  const ride = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom-ride' }));
-  const creditsRide = () => flat(tree.root.findByProps({ testID: 'discovery-map-credits-ride' }));
+  const zoomLayer = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom-layer' }));
   const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
   // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
   // worked out on a render, so one more render reads it.
   const settle = async () => { await update(); await update(); };
-  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
-  expect(creditsRide().transform).toEqual([{ translateY: 600 - 800 }]);
-  expect(flat(credits())).toMatchObject({ left: sys.space.base, right: sys.space.base });
+  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  const fixedCreditTop = 60 + sys.space.md;
+  expect(flat(credits())).toMatchObject({ top: fixedCreditTop, left: sys.space.base, right: sys.space.base });
+  expect(tree.root.findAllByProps({ testID: 'discovery-map-credits-ride' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).not.toHaveLength(0);
   extra = { ...extra, coverBottom: 250 }; await settle();
-  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 250 - 800 }], opacity: 1 });
-  expect(creditsRide().transform).toEqual([{ translateY: 600 - 250 - 800 }]);
+  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  expect(flat(credits()).top).toBe(fixedCreditTop);
   // Only 80 dp remain under the tools: the attribution still fits, while the zoom capsule does not.
   extra = { ...extra, coverBottom: 460 }; await settle();
-  expect(ride().opacity).toBe(0);
-  expect(creditsRide().opacity).not.toBe(0);
-  expect(creditsRide().transform).toEqual([{ translateY: 140 - 800 }]);
+  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: -1600 }], opacity: 0 });
+  expect(flat(credits()).top).toBe(fixedCreditTop);
+  expect(flat(credits()).transform).toBeUndefined();
   expect(credits().findAll(node => node.props.accessibilityRole === 'button')).toHaveLength(1);
   expect(credits().findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
   extra = { ...extra, coverBottom: 0 }; await settle();
-  expect(ride()).toMatchObject({ transform: [{ translateY: 600 - 800 }], opacity: 1 });
+  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  extra = { ...extra, sheetTop: { value: 280 } }; await settle();
+  expect(flat(credits()).top).toBe(fixedCreditTop);
+  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
 });
 
 test('credit height follows native content measurement and reaches the screen without changing the map query', async () => {

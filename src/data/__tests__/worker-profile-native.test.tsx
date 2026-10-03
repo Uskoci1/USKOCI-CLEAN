@@ -115,6 +115,29 @@ it('location is read-only here and routes to the area editor', async () => {
   expect(texts()).toContain('Novi Sad · 20 km');
   click('Područje rada'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/lokacija');
 });
+it('opens existing notification settings on WORKER without implying that profile save enables push', async () => {
+  await render(); click('Obaveštenja o poslovima');
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/obavestenja', params: { skup: 'WORKER' } });
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+it('notification settings cannot drop an edited profile or use a callback from another account revision', async () => {
+  await render();
+  const retained = control('Obaveštenja o poslovima').props.onPress;
+  input('Ime na radnom profilu', 'Lokalna izmena'); click('Obaveštenja o poslovima');
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(texts()).toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
+  expect(control('Ime na radnom profilu').props.value).toBe('Lokalna izmena');
+  mockRevision += 2; act(() => retained());
+  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
+});
+it('notification navigation stays blocked while a profile save has an unknown outcome', async () => {
+  mockWrite.mockResolvedValue({ ok: false, kod: 'TIMEOUT', poruka: 'unknown' });
+  await render(); const retained = control('Obaveštenja o poslovima').props.onPress;
+  input('Ime na radnom profilu', 'Unos koji ostaje'); click('Sačuvaj izmene'); await settle();
+  act(() => retained()); click('Obaveštenja o poslovima');
+  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockWrite).toHaveBeenCalledTimes(1);
+  expect(control('Ime na radnom profilu').props.value).toBe('Unos koji ostaje');
+});
 it('sends only edited fields and confirms success only after matching server readback', async () => {
   let finish!: (result: unknown) => void;
   mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));

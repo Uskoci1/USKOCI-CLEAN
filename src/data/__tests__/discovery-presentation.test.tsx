@@ -2060,23 +2060,24 @@ test('camera layout is ready only after body and tools measurements replace whol
   rows = [row('one', at(45.25, 19.83)), row('two', at(45.26, 19.85))];
   await render();
   expect(map().props.cameraLayoutReady).toBe(false);
-  expect(map().props.fitBottom).toBe(534);
+  expect(map().props.fitBottom).toBe(474);
   await layOutBody(790);
   expect(map().props.cameraLayoutReady).toBe(false);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(124));
   expect(map().props.cameraLayoutReady).toBe(true);
-  expect(map().props.fitBottom).toBe(467);
+  expect(map().props.fitBottom).toBe(407);
   expect(listSheet().props.snapPoints[1]).toBe(395);
 });
 
 test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
   const layOut = async () => layOutBody(800);
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + 48 + 2 * sys.space.md);
+  // The source strip lives below search, already in top camera padding; it is not counted again at the bottom.
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md);
   await act(async () => tree.unmount());
   rows = rows.slice(0, 3); await render(); await layOut();
   expect(listSheet().props.index).toBe(1);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + 48 + 2 * sys.space.md);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md);
   expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md);
 });
 
@@ -2094,14 +2095,14 @@ test('the map mounts without waiting for ownership and keeps the same pins after
   expect(map().props.items).toHaveLength(5);
   expect(map().props.items).toBe(publicPins);
   expect(listSheet().props.index).toBe(0);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + 48 + 2 * sys.space.md);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md);
   // A later read of the labels (a new list) does not take the map away again.
   relationsPending = true; await update();
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
 });
 
-// Review r3 item 11: a chosen pin's card rests where the zoom and the credits ride, so they step up above it. Discovery
-// V47: the card sits just above the tab bar (its gap under it counts) and spans its whole face, padding included.
+// The card sits just above the tab bar (its gap under it counts) and spans its whole face, padding included.
+// Fixed zoom uses its measured cover only to hide when covered; the source strip never follows the card.
 test('a chosen pin\'s card tells the map how much it covers, and closing it gives that back', async () => {
   await render();
   expect(map().props.coverBottom).toBe(0);

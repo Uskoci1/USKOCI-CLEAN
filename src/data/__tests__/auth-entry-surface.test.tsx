@@ -27,7 +27,7 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   Easing: { bezier: () => undefined }, interpolate: () => 0, useAnimatedStyle: () => ({}),
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
-  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path' }));
+  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path', ClipPath: 'ClipPath', Image: 'SvgImage', Use: 'Use' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void | (() => void)) => {
     const React = jest.requireActual('react');

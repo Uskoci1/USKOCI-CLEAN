@@ -4,8 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { brandParts } from '../../ui/entry/spojBrandData';
-import { BRAND_PARTS } from '../../ui/entry/spojBrandMath';
+import { createHash } from 'node:crypto';
 
 const mockHide = jest.fn();
 const mockOptions = jest.fn();
@@ -208,7 +207,7 @@ it('releases the cover at the finite fallback even when the async bridge hangs',
   await expect(bootstrap.releaseEntrySplash()).resolves.toBeUndefined();
 });
 
-it('uses a visible original mark on white for both native themes instead of an empty drawable', () => {
+it('uses the approved dimensional mark on white for both native themes instead of an empty drawable', () => {
   const project = resolve(__dirname, '../../..');
   const config = JSON.parse(readFileSync(resolve(project, 'app.json'), 'utf8')).expo;
   const splash = config.plugins.find((item: unknown) => Array.isArray(item) && item[0] === 'expo-splash-screen')[1];
@@ -219,11 +218,10 @@ it('uses a visible original mark on white for both native themes instead of an e
   expect(png.readUInt32BE(16)).toBe(640); expect(png.readUInt32BE(20)).toBe(640);
   expect(png.byteLength).toBeGreaterThan(1000);
   const svg = readFileSync(resolve(project, 'assets/entry-splash-mark.svg'), 'utf8');
-  // Exact same paths/fills/translations as the real BrandMark; only an outer
-  // centered safe-area pad is added for the native OS icon canvas.
-  const paths = [...svg.matchAll(/<path d="([^"]+)" fill="([^"]+)"\/>/g)].map(match => ({ d: match[1], fill: match[2] }));
-  expect(paths).toEqual(brandParts.flat());
-  const transforms = [...svg.matchAll(/<g transform="([^"]+)"/g)].map(match => match[1]);
-  expect(transforms).toEqual(['translate(20 14.5)', ...BRAND_PARTS.map(part => `translate(${part[0]} ${part[1]})`)]);
-  expect(svg).toContain('25162f9bc7e7f822e77bd4ff078b8295a50796e9af49ffbdac98dac04d17ae97');
+  // The owner replaced the old flat material while preserving the source motion.
+  // Native boot art is exported from the shared BrandMark, with a safe square pad.
+  expect(svg).toContain('translate(20 14.5)');
+  expect(svg).toContain('brand/uskoci-dimensional-20261003.png');
+  const manifest = JSON.parse(readFileSync(resolve(project, 'assets/brand/uskoci-dimensional-20261003.json'), 'utf8'));
+  expect(createHash('sha256').update(png).digest('hex')).toBe(manifest.exports.splash.sha256);
 });

@@ -99,8 +99,9 @@ export function PillAnnotation({ id, point, label, content, urgent, selected, re
 }
 
 /** The native SDK otherwise clips an over-padded fit to about one pixel. Keep a useful window at large text. */
-function boundedFitPadding(frame: { width: number; height: number }, toolsBottom: number, fitBottom: number) {
-  const top = 75 + toolsBottom, bottom = 24 + fitBottom;
+function boundedFitPadding(frame: { width: number; height: number }, toolsBottom: number, fitBottom: number, creditHeight = 48) {
+  // Sources now stay below search. The ordinary 75dp headroom clears the 48dp control; larger text can grow it.
+  const top = Math.max(75, creditHeight + 2 * GAP) + toolsBottom, bottom = 24 + fitBottom;
   const verticalBudget = Math.max(0, frame.height - Math.min(96, frame.height / 2));
   const verticalScale = Math.min(1, verticalBudget / Math.max(1, top + bottom));
   const side = Math.floor(Math.min(50, Math.max(0, (frame.width - Math.min(96, frame.width / 2)) / 2)));
@@ -315,9 +316,9 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     cancelArea(); intent.current = 0; openedCluster.current = null;
     const zoom = Math.min(18, Math.max(12, settledZoom.current ?? 12, zoomTarget.current ?? 0));
     const dispatched = moveCamera({ center: request.center, zoom,
-      padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.focusBottom ?? 0) }, sys.motion.camera);
+      padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.focusBottom ?? 0, creditHeight) }, sys.motion.camera);
     if (dispatched && request.publicationToken) props.onPublicationCameraConsumed?.(request.publicationToken, props.scopeKey);
-  }, [props.selectedId, props.selectedPlace, status, frame, props.cameraLayoutReady, props.toolsBottom, props.focusBottom,
+  }, [props.selectedId, props.selectedPlace, status, frame, props.cameraLayoutReady, props.toolsBottom, props.focusBottom, creditHeight,
     dataKey, props.fitTo?.key, props.centerNearby?.key, props.publicationCameraToken]); // eslint-disable-line react-hooks/exhaustive-deps
   // The pins that stand on their own become pills; a point shared by several tasks is one pill that says how many.
   const pills = useMemo(() => {
@@ -356,7 +357,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     initialFitPending.current = false; cancelArea();
     intent.current = Date.now();
     openedCluster.current = { bounds: memberBounds, at: Date.now() };
-    camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56),
+    camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56, creditHeight),
       duration: reduced ? 0 : sys.motion.camera });
   };
   // Exactly one first fit after BOTH native frame and screen overlays are measured. It is not a live camera binding:
@@ -372,8 +373,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (!bounds) return;
     cancelArea(); intent.current = 0; openedCluster.current = null;
     if (serverMap) skipSettledRefresh.current = true;
-    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
-  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key, serverMap?.wholeBounds]); // eslint-disable-line react-hooks/exhaustive-deps
+    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56, creditHeight), duration: 0 });
+  }, [status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, creditHeight, dataKey, props.fitTo?.key, props.centerNearby?.key, props.initialWorkArea?.key, serverMap?.wholeBounds]); // eslint-disable-line react-hooks/exhaustive-deps
   // The route owns this optional first-camera lifetime; fields and public GeoJSON never change.
   // Remembered viewport, publication, selected pin, search, Nearby and manual gestures win.
   useEffect(() => {
@@ -388,12 +389,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (bounds && bounds[0] <= bounds[2]) {
       cancelArea(); intent.current = 0; openedCluster.current = null;
       try {
-        camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: 0 });
+        camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56, creditHeight), duration: 0 });
         initialFitPending.current = false;
       } catch { /* Optional failure leaves the existing initial-fit/retry path intact. */ }
     }
     props.onInitialWorkAreaHandled?.(request.key);
-  }, [props.initialWorkArea, status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom,
+  }, [props.initialWorkArea, status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom, creditHeight,
     props.selectedId, props.selectedPlace, props.publicationCameraToken, props.fitTo, props.centerNearby]); // eslint-disable-line react-hooks/exhaustive-deps
   // A place chosen in the search: the camera brings its pins into view once, as its own move (never an area).
   useEffect(() => {
@@ -402,10 +403,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     initialFitPending.current = false; retirePublicationFocus();
     fitted.current = request.key;
     intent.current = 0; openedCluster.current = null;
-    camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom),
+    camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom, creditHeight),
       duration: reduced ? 0 : sys.motion.camera });
     props.onFitted?.(request.key);
-  }, [props.fitTo?.key, status, props.cameraLayoutReady, frame]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [props.fitTo?.key, status, props.cameraLayoutReady, frame, creditHeight]); // eslint-disable-line react-hooks/exhaustive-deps
   // One explicit location capture only moves the camera; it is never a pin or an area filter. Its viewport follows
   // the same in-memory screen path as a normal pan. No tracking marker or continuous subscription belongs to the map.
   useEffect(() => {
@@ -418,27 +419,23 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
     props.onNearbyConsumed?.(target.key);
   }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Credits have their own reserved strip. Zoom is optional when the sheet leaves too little clear map above it.
+  // Sources and zoom have stable homes below search. Neither rides a selected card or the list sheet.
+  // Attribution remains visible in its reserved band; optional zoom steps out only when the sheet covers its target.
   const height = frame?.height ?? 0, sheetTop = props.sheetTop;
-  const creditsTop = (props.toolsBottom ?? 0) + creditHeight + 2 * GAP;
-  const zoomTop = creditsTop + ZOOM_CAPSULE.height + GAP;
-  // A chosen pin's card rests on the sheet's top line, exactly where they ride; they step up above it (review r3 item
-  // 11), at the sheet's pace or at once under reduced motion, so zoom stays a tap away and the credits stay in sight.
+  const creditsTop = (props.toolsBottom ?? 0) + GAP;
+  const zoomTop = creditsTop + creditHeight + GAP;
   const cover = useSharedValue(props.coverBottom ?? 0);
   useEffect(() => {
     const next = Math.max(0, props.coverBottom ?? 0);
     cover.value = reduced ? next : withSpring(next, sys.motion.springSheet);
   }, [props.coverBottom, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
-  const zoomRide = useAnimatedStyle(() => {
-    const top = (sheetTop ? sheetTop.value : height) - cover.value;
-    return top < zoomTop ? { transform: [{ translateY: -2 * height }], opacity: 0 } : { transform: [{ translateY: Math.min(0, top - height) }], opacity: 1 };
+  const zoomVisibility = useAnimatedStyle(() => {
+    const clearBottom = (sheetTop ? sheetTop.value : height) - cover.value;
+    const covered = clearBottom < zoomTop + ZOOM_CAPSULE.height + GAP;
+    // Remove an invisible control from hit testing. This is an instant visibility change, never a travelling button.
+    return { transform: [{ translateY: covered ? -2 * height : 0 }], opacity: covered ? 0 : 1 };
   }, [height, zoomTop, sheetTop, cover]);
-  const creditsRide = useAnimatedStyle(() => {
-    const top = (sheetTop ? sheetTop.value : height) - cover.value;
-    // Never inherit zoom's fit/opacity branch. The screen reserves this measured height at its full sheet stop.
-    return { transform: [{ translateY: Math.min(0, Math.max(creditsTop, top) - height) }] };
-  }, [height, creditsTop, sheetTop, cover]);
-  const zoom = status === 'ready' ? <View style={[s.zoom, { bottom: creditHeight + 2 * GAP }]}>
+  const zoom = status === 'ready' ? <View style={[s.zoom, { top: zoomTop }]}>
       {([['Uvećaj mapu', Plus, 1], ['Umanji mapu', Minus, -1]] as const).map(([label, Glyph, delta], index) => <View key={label}>
         {index ? <View style={s.zoomRule} /> : null}
         <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !viewport }} disabled={!viewport}
@@ -447,13 +444,13 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
       </View>)}
     </View> : null;
-  const credits = <View testID="discovery-map-credits" style={s.attribution} onLayout={event => {
+  const credits = <View testID="discovery-map-credits" style={[s.attribution, { top: creditsTop }]} onLayout={event => {
     const next = Math.ceil(event.nativeEvent.layout.height);
     if (Number.isFinite(next) && next >= 48) { setCreditHeight(current => current === next ? current : next); props.onCreditsHeight?.(next); }
   }}>
     <Press accessibilityRole="button" accessibilityLabel="Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap"
       accessibilityHint="Otvara izvore i licence mape." hitSlop={0} style={s.creditLink} onPress={() => { if (owns()) setSourcesOpen(true); }}>
-      <T variant="label" style={s.credit}>© OpenStreetMap · © OpenMapTiles</T><Info size={14} color={sys.color.muted} />
+      <T variant="label" style={s.credit}>© OpenStreetMap · © OpenMapTiles</T><Info size={16} color={sys.color.muted} />
     </Press>
   </View>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
@@ -553,10 +550,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}
           content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} relation={relationFor(selected.id)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
     </Map>
-    {sheetTop && height ? <>
-      <Animated.View testID="discovery-map-zoom-ride" pointerEvents="box-none" style={[s.ride, { height }, zoomRide]}>{zoom}</Animated.View>
-      <Animated.View testID="discovery-map-credits-ride" pointerEvents="box-none" style={[s.ride, { height }, creditsRide]}>{credits}</Animated.View>
-    </> : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{zoom}{credits}</View>}
+    {sheetTop && height
+      ? <Animated.View testID="discovery-map-zoom-layer" pointerEvents="box-none" style={[s.controlLayer, { height }, zoomVisibility]}>{zoom}</Animated.View>
+      : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{zoom}</View>}
+    {credits}
     {sourcesOpen ? <ActionSheet title="Izvori mape" reduced={reduced} onClose={() => setSourcesOpen(false)} actions={CREDITS.map(credit => ({
       key: credit.url, label: credit.text, icon: 'map' as const, hint: 'Otvara izvor u pregledaču.',
       onPress: () => { void Linking.openURL(credit.url).catch(() => {}); },
@@ -601,15 +598,15 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
     onRetry={() => { if (owns()) { ready.current = false; setAttempt(value => value + 1); } }} />;
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
-  ride: { position: 'absolute', left: 0, right: 0, top: 0 },
-  // One capsule with a hairline between its halves (critique B11), bottom-right above the sheet.
-  zoom: { position: 'absolute', right: sys.space.base, bottom: GAP, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+  controlLayer: { position: 'absolute', left: 0, right: 0, top: 0 },
+  // One capsule with a hairline between its halves, fixed at the right below the source strip.
+  zoom: { position: 'absolute', right: sys.space.base, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
     borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.soft },
   zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
   zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // Two required names remain visible, wrapping at larger text. One 48dp target opens every source, no scrolling rail.
-  attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base,
+  attribution: { position: 'absolute', left: sys.space.base, right: sys.space.base,
     minHeight: 48 },
   creditLink: { alignSelf: 'flex-start', maxWidth: '100%', minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: sys.space.xs },
   credit: { fontWeight: '400', letterSpacing: 0, color: sys.color.muted, backgroundColor: sys.color.surface,

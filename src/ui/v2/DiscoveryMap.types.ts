@@ -56,11 +56,11 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   onSelectPlace?: (key: string) => void;
   /** The chosen place, drawn as the green pill that says how many tasks it holds. */
   selectedPlace?: string | null;
-  /** The list sheet's top edge, in pixels from the map's top; the zoom and the credits ride on it. */
+  /** The list sheet's top edge, in pixels from the map's top; fixed zoom hides when the sheet covers its target. */
   sheetTop?: SharedValue<number>;
   /** The floating search bar's bottom edge, in pixels from the map's top: fits and the credits keep clear of it. */
   toolsBottom?: number;
-  /** Measured independent attribution strip; the screen reserves it above the list and selected preview. */
+  /** Measured fixed attribution strip below search; lower sheet stops and selected previews keep it clear. */
   onCreditsHeight?: (height: number) => void;
   /** How much of the map's bottom a chosen pin's card covers, so the camera brings the pin into the clear band. */
   focusBottom?: number;
@@ -73,6 +73,6 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   cameraLayoutReady?: boolean;
   /**
    * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The
-   * zoom and the credits ride above it instead of lying under it.
+   * fixed zoom hides if that cover reaches it. Attribution keeps its reserved position below search.
    */
   coverBottom?: number };

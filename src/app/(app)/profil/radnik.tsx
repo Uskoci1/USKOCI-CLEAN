@@ -9,7 +9,7 @@ import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
 import { brandAction } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
-import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
+import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerNavigation, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
@@ -135,13 +135,14 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || transportRef.current || !editor.data || !pendingRef.current || editor.data.read <= pendingRef.current.afterRead) return;
     pendingRef.current = null; setPending(null); setMessage(null); setValidation(null); draftGeneration.current++;
   };
-  const navigate = (path: '/profil/lokacija' | '/profil/dostupnost' | '/podrska') => {
+  const navigate = (path: WorkerNavigation) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
       // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
       setValidation(path === '/podrska' ? 'Sačuvaj unos pre nego što pišeš podršci.' : 'Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
     }
-    router.navigate(path);
+    if (path === '/profil/obavestenja') router.navigate({ pathname: path, params: { skup: 'WORKER' } });
+    else router.navigate(path);
   };
   const guide = (target: WorkerProfileFocusRequest['target'], copy: string) => {
     if (!enabled || !current() || pendingRef.current || transportRef.current) return;

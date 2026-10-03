@@ -34,10 +34,10 @@ it('names the brand with its mark, not with a second title, and keeps the words'
   expect(copy).toContain('Pomoć počinje dogovorom.');
   expect(copy).toContain('Jedan nalog, obe mogućnosti');
   expect(copy).toContain('Objavi zadatak');
-  expect(copy).toContain('izbora saradnika');
+  expect(copy).toContain('Izaberi ko će pomoći.');
   expect(copy).toContain('Uskoči i zaradi');
-  expect(copy).toContain('zadacima na koje želiš da se prijaviš');
-  expect(copy).toContain('AI pomaže da sastaviš zadatak. Ti pregledaš podatke i odlučuješ o objavi.');
+  expect(copy).toContain('Pronađi posao za svoje veštine.');
+  expect(copy).toContain('AI pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.');
   expect(tree.root.findAllByType('BuildIdentity' as React.ElementType)).toHaveLength(1);
 });
 

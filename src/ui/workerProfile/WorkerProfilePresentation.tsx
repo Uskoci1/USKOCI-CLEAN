@@ -180,7 +180,7 @@ function ProfileSummary({ text, label, muted = false }: { text: string; label: s
 /** Personal profile activation needs identity/capabilities and an area, never a permanent team. */
 export type WorkerActivationChecks = { basics: boolean; area: boolean; capacity?: boolean };
 const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Ime i bar jedna veština'], ['area', 'Područje rada']];
-type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/podrska';
+export type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/profil/obavestenja' | '/podrska';
 
 /**
  * Whether tasks can be offered to you, first. Active is one line with a colored check. A draft is an open section with
@@ -271,8 +271,10 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     <View style={[s.rows, materialControl.raised]}>
       <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} cut="art" />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
+      <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
         detail={draft.dostupanOdmah ? 'Mogu odmah · pogledaj raspored' : 'Pogledaj i uredi raspored'} />
+      <SettingsRow label="Obaveštenja o poslovima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} cut="art" />}
+        disabled={disabled} last onPress={() => navigate('/profil/obavestenja')} />
     </View>
     <ProfileSection title="Alat i oprema" art="tool" summary={draft.alati.join(' · ')}
       empty="Dodaj opremu koju možeš da poneseš." open={editing === 'tools'} toggle={() => toggle('tools')} disabled={disabled}>

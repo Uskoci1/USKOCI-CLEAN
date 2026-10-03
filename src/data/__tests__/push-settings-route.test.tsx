@@ -55,9 +55,9 @@ it('account ABA cannot navigate through an old callback', () => { const old = ba
 it('chooses which of the two server sets to edit here, on the screen, and a flip of the retired app mode changes nothing', () => {
  const old = back(); mockIntent = 'uskocer'; act(() => { tree.update(<PushSettings />); });
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('REQUESTER');
- act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
  expect(tree.root.findByType('PushPreferences' as never).props.role).toBe('WORKER');
- expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+ expect(JSON.stringify(tree.toJSON())).toContain('Novi poslovi, tvoje prijave i Dogovori.');
  // Selecting another set retires the prior view's callback; the shown arrow still works.
  old(); expect(mockBack).not.toHaveBeenCalled();
  act(() => back()()); expect(mockBack).toHaveBeenCalledTimes(1);
@@ -85,16 +85,16 @@ it('a confirmed discard still refuses to leave for an account that changed while
 });
 it('switching the set with unsaved changes asks first; "Nastavi uređivanje" keeps the set and its changes', () => {
  makeDirty();
- act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
  expect(shown().props.role).toBe('REQUESTER');
  // The way out of "Odbaci izmene?" says it keeps the changes; "Odustani" could be read as giving them up.
  expect(cancelButton().props.accessibilityLabel).toBe('Nastavi uređivanje');
  act(() => cancelButton().props.onPress());
  expect(shown().props.role).toBe('REQUESTER'); expect(mockBack).not.toHaveBeenCalled();
- act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
  act(() => confirmButton().props.onPress());
  expect(shown().props.role).toBe('WORKER');
- expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+ expect(JSON.stringify(tree.toJSON())).toContain('Novi poslovi, tvoje prijave i Dogovori.');
 });
 it('Android Back asks the same question only while something is unsaved', () => {
  act(() => tree.unmount());
@@ -116,10 +116,10 @@ it('while a save of the shown set runs, the set switch waits and nothing is aske
  const before = untouchable();
  act(() => shown().props.onWritingChange(true));
  expect(untouchable()).toBeGreaterThan(before);
- act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
  expect(shown().props.role).toBe('REQUESTER'); expect(confirmButton()).toBeUndefined();
  act(() => shown().props.onWritingChange(false));
- act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+ act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
  expect(shown().props.role).toBe('WORKER');
 });
 // Round 5c (2026-09-24): a screen reader's double tap still reaches a waiting tab; it used to do nothing without a word.
@@ -127,11 +127,11 @@ it('a set tab pressed while a write runs says why it waits, and does not switch'
  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
  try {
   act(() => shown().props.onWritingChange(true));
-  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+  act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
   expect(shown().props.role).toBe('REQUESTER');
   expect(announce).toHaveBeenCalledWith('Sačekaj da se čuvanje završi.');
   act(() => shown().props.onWritingChange(false)); announce.mockClear();
-  act(() => tree.root.findByProps({ accessibilityLabel: 'Moje prijave' }).props.onPress());
+  act(() => tree.root.findByProps({ accessibilityLabel: 'Poslovi' }).props.onPress());
   expect(shown().props.role).toBe('WORKER'); expect(announce).not.toHaveBeenCalled();
  } finally { announce.mockRestore(); }
 });
@@ -140,7 +140,7 @@ it('opens on the set the inbox names, ignores anything else it is handed, and ta
  act(() => tree.unmount());
  mockParams = { skup: 'WORKER' }; act(() => { tree = Renderer.create(<PushSettings />); });
  expect(shown().props.role).toBe('WORKER');
- expect(JSON.stringify(tree.toJSON())).toContain('Obaveštenja o poslovima na koje se prijavljuješ.');
+ expect(JSON.stringify(tree.toJSON())).toContain('Novi poslovi, tvoje prijave i Dogovori.');
  act(() => tree.unmount());
  mockParams = { skup: 'ADMIN' }; act(() => { tree = Renderer.create(<PushSettings />); });
  expect(shown().props.role).toBe('REQUESTER');
