@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, BackHandler } from 'react-native';
+import { AppState, BackHandler, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
@@ -34,6 +34,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const lifecycle = useRef({ focus: null as object | null, active: !AppState.currentState || AppState.currentState === 'active', generation: 0 });
   const [foreground, setForeground] = useState(lifecycle.current.active), [resumeRequired, setResumeRequired] = useState(false);
   const [focusEpoch, setFocusEpoch] = useState(0);
+  const scroll = useRef<ScrollView>(null), readingOffset = useRef(0);
+  const returningTo = useRef<{ y: number; fromFocus: object | null } | null>(null);
   useFocusEffect(useCallback(() => {
     const token = {}; lifecycle.current.focus = token; setFocusEpoch(value => value + 1);
     return () => { if (lifecycle.current.focus === token) { lifecycle.current.focus = null; lifecycle.current.generation++; } };
@@ -88,6 +90,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const enabled = current() && !resumeRequired && !transportBusy && !editor.busy && !editor.loading && !editor.error && !editor.uncertain;
   const goBack = () => {
     if (!current() || transportRef.current || pendingRef.current) return;
+    returningTo.current = null;
     // Navigation may retain this route. An explicitly discarded draft must not
     // return on the next visit, or stay reachable through a retained callback.
     const local = draftRef.current;
@@ -141,6 +144,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
       setValidation(path === '/podrska' ? 'Sačuvaj unos pre nego što pišeš podršci.' : 'Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
     }
+    // Capture before blur replaces the private form with a short status. Its
+    // native scroll clamp must not overwrite where this owner was reading.
+    returningTo.current = { y: readingOffset.current, fromFocus: focus };
     if (path === '/profil/obavestenja') router.navigate({ pathname: path, params: { skup: 'WORKER' } });
     else router.navigate(path);
   };
@@ -150,6 +156,22 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     setFocusRequest({ target, token: ++focusRequestSequence.current });
   };
   const visible = foreground && !resumeRequired && !!editor.data && !!draft && !!focus;
+  const rememberReading = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (visible && current() && !returningTo.current) readingOffset.current = Math.max(0, event.nativeEvent.contentOffset.y);
+  };
+  const resumeReading = () => {
+    const target = returningTo.current;
+    if (!visible || !current() || !target || target.fromFocus === focus || !scroll.current) return;
+    returningTo.current = null;
+    // The form has laid out again; native scrollTo clamps if the updated
+    // content is shorter. No timer can move the next route or another owner.
+    scroll.current.scrollTo({ y: target.y, animated: false });
+  };
+  const beginReading = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!visible || !current()) return;
+    returningTo.current = null;
+    rememberReading(event);
+  };
   const profile = editor.data?.profile ?? null;
   const status = profile?.stanje ?? null;
   const firstSave = profile === null;
@@ -196,7 +218,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     router.push('/profil/razgovor');
   };
   // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
-  return <WorkerProfileFrame back={back} footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
+  return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
+    footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
     {pending && (editor.uncertain || editor.error) ? <V2Action tone="neutral" label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
       : <V2Action tone="neutral" label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
@@ -206,9 +229,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {pending && enabled ? <V2Action tone="neutral" label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
-      : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
+      : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
-        openConversation={openConversation} profileExists={profile !== null} />}
+        openConversation={openConversation} profileExists={profile !== null} /></View>}
     {leave.sheet}
   </WorkerProfileFrame>;
 }

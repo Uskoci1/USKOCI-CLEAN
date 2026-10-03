@@ -1,6 +1,6 @@
 import { createContext, isValidElement, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { CaretRight, PencilSimple, X } from 'phosphor-react-native';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
@@ -33,8 +33,9 @@ import type { WorkerDraft } from './workerProfileDraft';
  * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
  * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
-export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad' }: {
+export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
+  scrollRef?: RefObject<ScrollView | null>; onScroll?: ScrollViewProps['onScroll']; onScrollBeginDrag?: ScrollViewProps['onScrollBeginDrag'];
 }) {
   const typing = useKeyboardShown();
   const keepsStatus = isValidElement(footer) && footer.type === WorkerProfileFooter;
@@ -43,7 +44,8 @@ export function WorkerProfileFrame({ back, children, footer, title = 'Radni prof
     <DetailTopBar backLabel={backLabel} title={title} onBack={back} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* The iOS number pad has no return key and iOS has no Back: dragging the body closes the keyboard (review 5b). */}
-      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      <ScrollView ref={scrollRef} onScroll={onScroll} onScrollBeginDrag={onScrollBeginDrag} scrollEventThrottle={onScroll ? 16 : undefined}
+        keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         contentContainerStyle={s.content}>{children}</ScrollView>
       {footer ? <FooterTyping.Provider value={typing}>
         <View testID="worker-profile-footer" style={[s.footer, typing && (keepsStatus ? s.footerTyping : s.footerAside)]}

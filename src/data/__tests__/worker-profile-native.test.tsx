@@ -5,7 +5,7 @@ let mockAccount = '10000000-0000-4000-8000-000000000001', mockRevision = 1;
 let mockIntent = 'uskocer', mockFocused = true, mockPlatform = 'android';
 const mockListeners = new Set<(state: string) => void>();
 const mockBackHandlers = new Set<() => boolean>();
-const mockRead = jest.fn(), mockWrite = jest.fn();
+const mockRead = jest.fn(), mockWrite = jest.fn(), mockScrollTo = jest.fn();
 const mockSource = { mojRadnikProfil: mockRead, azurirajRadnikProfil: mockWrite };
 const mockRouter = { back: jest.fn(), navigate: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
@@ -48,7 +48,9 @@ const input = (label: string, value: string) => {
   act(() => control(label).props.onChangeText(value));
 };
 const settle = async () => { await act(async () => {}); };
-async function render() { await act(async () => { tree = create(<Profile />); }); }
+async function render() { await act(async () => { tree = create(<Profile />, {
+  createNodeMock: element => element.type === 'ScrollView' ? { scrollTo: mockScrollTo } : null,
+}); }); }
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset().mockResolvedValue(profile); mockWrite.mockReset().mockResolvedValue({ ok: true, podatak: null });
   mockAccount = '10000000-0000-4000-8000-000000000001'; mockRevision = 1; mockIntent = 'uskocer'; mockFocused = true; mockPlatform = 'android';
@@ -120,6 +122,57 @@ it('opens existing notification settings on WORKER without implying that profile
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/obavestenja', params: { skup: 'WORKER' } });
   expect(mockWrite).not.toHaveBeenCalled();
 });
+
+const readingScroll = () => tree.root.findByType('ScrollView' as any);
+const scrollEvent = (y: number) => ({ nativeEvent: { contentOffset: { x: 0, y } } });
+const formLayout = () => tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout();
+async function focusProfile(focused: boolean) { mockFocused = focused; await act(async () => tree.update(<Profile />)); }
+
+it.each(['Obaveštenja o poslovima', 'Područje rada', 'Dostupnost'])('returns from %s to the reading position after native form layout, ignoring blur clamps', async label => {
+  await render();
+  const oldScroll = readingScroll().props.onScroll;
+  const oldLayout = tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout;
+  act(() => oldScroll(scrollEvent(640))); click(label);
+  // A layout before actual navigation and a late native clamp cannot consume the snapshot.
+  act(() => { oldLayout(); oldScroll(scrollEvent(0)); });
+  await focusProfile(false);
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-reading' })).toHaveLength(0);
+  act(() => { oldLayout(); oldScroll(scrollEvent(0)); readingScroll().props.onScroll(scrollEvent(0)); });
+  expect(mockScrollTo).not.toHaveBeenCalled();
+  await focusProfile(true);
+  act(() => readingScroll().props.onScroll(scrollEvent(0)));
+  expect(mockScrollTo).not.toHaveBeenCalled();
+  act(() => formLayout());
+  expect(mockScrollTo).toHaveBeenCalledWith({ y: 640, animated: false });
+  act(() => { formLayout(); oldLayout(); });
+  expect(mockScrollTo).toHaveBeenCalledTimes(1);
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+
+it('a drag on return takes precedence over a delayed reading restoration', async () => {
+  await render(); act(() => readingScroll().props.onScroll(scrollEvent(640))); click('Dostupnost');
+  await focusProfile(false); await focusProfile(true);
+  act(() => readingScroll().props.onScrollBeginDrag(scrollEvent(24)));
+  act(() => formLayout()); expect(mockScrollTo).not.toHaveBeenCalled();
+  // The next visit starts from the newer position chosen by the person.
+  click('Područje rada'); await focusProfile(false); await focusProfile(true);
+  act(() => formLayout()); expect(mockScrollTo).toHaveBeenCalledWith({ y: 24, animated: false });
+});
+
+it('reading restoration survives a return read error but never crosses an account revision', async () => {
+  await render(); act(() => readingScroll().props.onScroll(scrollEvent(640))); click('Dostupnost');
+  await focusProfile(false); mockRead.mockRejectedValueOnce(new Error('offline')); await focusProfile(true);
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-reading' })).toHaveLength(0);
+  act(() => readingScroll().props.onScroll(scrollEvent(0))); expect(mockScrollTo).not.toHaveBeenCalled();
+  click('Ponovo učitaj profil'); await settle(); act(() => formLayout());
+  expect(mockScrollTo).toHaveBeenCalledWith({ y: 640, animated: false });
+  const oldLayout = tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout;
+  click('Područje rada'); await focusProfile(false); mockScrollTo.mockClear();
+  mockRevision += 2; await focusProfile(true);
+  act(() => { oldLayout(); formLayout(); });
+  expect(mockScrollTo).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
+});
+
 it('notification settings cannot drop an edited profile or use a callback from another account revision', async () => {
   await render();
   const retained = control('Obaveštenja o poslovima').props.onPress;
