@@ -310,6 +310,24 @@ it.each(['toolbar', 'hardware'])('%s Back asks before discarding a local draft a
   expect(mockWrite).not.toHaveBeenCalled();
 });
 
+it('confirmed discard resets a cached route draft before reentry and retires its retained save callback', async () => {
+  await render(); input('O tvom iskustvu', 'QA lokalno');
+  const previousSave = control('Sačuvaj izmene').props.onPress;
+  click('Nazad'); click('Odbaci izmene');
+  expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  // The router mock keeps the actual route mounted, just as a cached native route can remain mounted.
+  expect(control('O tvom iskustvu').props.value).toBe(profile.biografija);
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
+  act(() => previousSave()); expect(mockWrite).not.toHaveBeenCalled();
+  mockFocused = false; await act(async () => tree.update(<Profile />));
+  mockFocused = true; await act(async () => tree.update(<Profile />));
+  openEditor('O meni');
+  expect(control('O tvom iskustvu').props.value).toBe(profile.biografija);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
+  expect(texts()).not.toContain('QA lokalno');
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+
 it.each(['toolbar', 'hardware'])('%s Back retains an in-flight or unconfirmed command until successful readback', async entry => {
   let finish!: (result: unknown) => void;
   mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));

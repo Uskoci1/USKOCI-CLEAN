@@ -86,7 +86,17 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const focus = lifecycle.current.focus, generation = lifecycle.current.generation, renderedDraft = draftGeneration.current;
   const current = () => owns() && !!focus && lifecycle.current.focus === focus && lifecycle.current.active && lifecycle.current.generation === generation;
   const enabled = current() && !resumeRequired && !transportBusy && !editor.busy && !editor.loading && !editor.error && !editor.uncertain;
-  const goBack = () => { if (!current()) return; if (router.canGoBack()) router.back(); else router.replace('/profil'); };
+  const goBack = () => {
+    if (!current() || transportRef.current || pendingRef.current) return;
+    // Navigation may retain this route. An explicitly discarded draft must not
+    // return on the next visit, or stay reachable through a retained callback.
+    const local = draftRef.current;
+    if (local && JSON.stringify(local.value) !== JSON.stringify(local.initial)) {
+      setLocal({ ...local, value: local.initial });
+      setMessage(null); setValidation(null); setFocusRequest(null);
+    }
+    if (router.canGoBack()) router.back(); else router.replace('/profil');
+  };
   const change = (value: WorkerDraft) => {
     if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
     setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null); setFocusRequest(null);
