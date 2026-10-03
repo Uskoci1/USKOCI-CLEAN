@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T13:52:54Z",
-  "grana": "HEAD",
-  "head": "e3f4ea70",
-  "head_poruka": "Compose applicant surfaces and connect original work and time artwork",
+  "osvezeno": "2026-10-03T14:18:00Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "27ae4b29",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1793,6 +1793,19 @@
    "checks": "TypeScript PASS;201 existing cases/7 suites plus overlapping92-case calendar/offer rerun; no new tests.",
    "native": "Matching APK pending. Before: actual a790 candidate list. Phone unplugged.",
    "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+  },
+  "candidate_work_time_native_20261003": {
+   "source": "e3f4ea7075565c315de87ac62cb4b3d991097fa4",
+   "build": 37127687752,
+   "apkSha256": "9ce4ca343046e9221563426447df4312b771728ff1e7d3e94d6ebcb5e6e6a09b",
+   "status": "BOUNDED_EMULATOR_REVIEW",
+   "ci": [
+    37127674809,
+    37127674877
+   ],
+   "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+   "scope": "Actual candidate list/comparison and active/withdrawn offers; Clock24/26/28 and Tool24/28. Candidate list/Worker equipment1.3; restored1.15. No business writes. WorkerAI variants remain source-only.",
+   "remaining": "Withdrawn offer duplicate separators; lengthy phone comparison; no whole-app/phone/motion/provider/push/store acceptance."
   }
  },
  "redovi": [
@@ -2979,6 +2992,10 @@
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -3064,6 +3081,10 @@
     "source_finishing_20261002": "Selection review retains exact terms/confirmation/recovery with quieter white composition and consistent fact art. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -3673,6 +3694,10 @@
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -3889,6 +3914,10 @@
     },
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -4863,6 +4892,10 @@
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5460,6 +5493,10 @@
     },
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -7745,6 +7782,10 @@
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+     "status": "BOUNDED_EMULATOR_REVIEW",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -9923,5 +9964,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37127687752,
+   "ime": "Build Android development APK",
+   "sha": "e3f4ea70",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T13:52:49Z"
+  },
+  {
+   "id": 37127674877,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "e3f4ea70",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T13:52:35Z"
+  },
+  {
+   "id": 37127674809,
+   "ime": "P5 ready task and matching contract",
+   "sha": "e3f4ea70",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T13:52:35Z"
+  },
+  {
+   "id": 37127674772,
+   "ime": "Control tracker refresh",
+   "sha": "e3f4ea70",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T13:52:35Z"
+  },
+  {
+   "id": 37124121129,
+   "ime": "Control tracker refresh",
+   "sha": "ebed71e3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:49:24Z"
+  },
+  {
+   "id": 37122685412,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:55Z"
+  },
+  {
+   "id": 37122683343,
+   "ime": "Build Android development APK",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:53Z"
+  },
+  {
+   "id": 37122669107,
+   "ime": "Control tracker refresh",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37122669082,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37121358579,
+   "ime": "P5 ready task and matching contract",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:39Z"
+  },
+  {
+   "id": 37121336496,
+   "ime": "Build Android development APK",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:11Z"
+  },
+  {
+   "id": 37121302717,
+   "ime": "Control tracker refresh",
+   "sha": "e46b53c4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:57:32Z"
+  }
+ ]
 }

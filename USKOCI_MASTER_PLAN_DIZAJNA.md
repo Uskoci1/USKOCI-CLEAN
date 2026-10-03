@@ -18,7 +18,7 @@ CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores
 
 ## Current checkpoint — visual composition, 2026-10-03
 
-Next source: candidate list/comparison items gain the existing raised material and separated rhythm; original clock/tool art connects Profile, Agenda, Worker profile/AI review and task requirements. Same offer terms and commands. Source checks pass; matching emulator build and native review pending. [Scope and provenance](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#candidate-surfaces-and-worktime-artwork--source-continuation).
+Exact e3f4 emulator build37127687752 is installed with verified artifact/hash and preserved UID10227. Candidate list/comparison material, active/withdrawn offer presentation, Clock24/26/28 and Tool24/28 actual callers passed the bounded native review; list and Worker equipment were also checked at1.3, then font restored1.15. Exact CI37127674809 and application proof37127674877 pass. WorkerAI variants remain source-only. Duplicate withdrawn-offer separators and lengthy phone comparison remain explicit composition follow-ups. [Exact review and limits](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#e3f4-bounded-candidate-and-worktime-native-review).
 
 Owner prioritizes the complete visual product and permits recomposition within actual contracts. Continue the existing Expo application and sole62-row registry. [Current exact native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance).
 

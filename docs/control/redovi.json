@@ -845,6 +845,10 @@
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -897,6 +901,10 @@
         "source_finishing_20261002": "Selection review retains exact terms/confirmation/recovery with quieter white composition and consistent fact art. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -1299,6 +1307,10 @@
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -1449,6 +1461,10 @@
         },
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -2331,6 +2347,10 @@
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -2712,6 +2732,10 @@
         },
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -4168,6 +4192,10 @@
         },
         "candidate_work_time_source_20261003": {
           "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "candidate_work_time_native_20261003": {
+          "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -7042,6 +7070,19 @@
       "checks": "TypeScript PASS;201 existing cases/7 suites plus overlapping92-case calendar/offer rerun; no new tests.",
       "native": "Matching APK pending. Before: actual a790 candidate list. Phone unplugged.",
       "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "candidate_work_time_native_20261003": {
+      "source": "e3f4ea7075565c315de87ac62cb4b3d991097fa4",
+      "build": 37127687752,
+      "apkSha256": "9ce4ca343046e9221563426447df4312b771728ff1e7d3e94d6ebcb5e6e6a09b",
+      "status": "BOUNDED_EMULATOR_REVIEW",
+      "ci": [
+        37127674809,
+        37127674877
+      ],
+      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+      "scope": "Actual candidate list/comparison and active/withdrawn offers; Clock24/26/28 and Tool24/28. Candidate list/Worker equipment1.3; restored1.15. No business writes. WorkerAI variants remain source-only.",
+      "remaining": "Withdrawn offer duplicate separators; lengthy phone comparison; no whole-app/phone/motion/provider/push/store acceptance."
     }
   }
 }
