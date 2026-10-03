@@ -2,7 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { StyleSheet, View } from 'react-native';
 import type { VoiceSnapshot } from '../../features/voice/holdToTalk';
-let mockHeight = 844, mockScale = 1, mockReduced = false;
+let mockHeight = 844, mockWidth = 390, mockScale = 1, mockReduced = false;
 const mockKeyboard: Record<string, () => void> = {};
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
@@ -10,7 +10,7 @@ jest.mock('react-native', () => {
     if (key === 'Keyboard') return { addListener: (name: string, cb: () => void) => {
       mockKeyboard[name] = cb; return { remove: jest.fn() };
     }, dismiss: jest.fn() };
-    if (key === 'useWindowDimensions') return () => ({ width: 390, height: mockHeight, fontScale: mockScale, scale: 3 });
+    if (key === 'useWindowDimensions') return () => ({ width: mockWidth, height: mockHeight, fontScale: mockScale, scale: 3 });
     if (key === 'AccessibilityInfo') return { isScreenReaderEnabled: async () => false, addEventListener: () => ({ remove: jest.fn() }),
       announceForAccessibility: jest.fn(), isReduceMotionEnabled: async () => mockReduced };
     return ['View', 'ScrollView', 'KeyboardAvoidingView', 'TextInput', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -50,7 +50,7 @@ const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.f
   messages:[],welcome:'Šta ti treba?',welcomeDetail:'Opiši zadatak.',value:'Sačuvana poruka',canEdit:true,
   canSend:false,pending:false,busy:false,onChange:jest.fn(),onSend:jest.fn(),onBack:jest.fn(),onOptions:jest.fn()});
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-beforeEach(()=>{mockHeight=844;mockScale=1;mockReduced=false;});
+beforeEach(()=>{mockHeight=844;mockWidth=390;mockScale=1;mockReduced=false;});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
 it('keeps recovery scrollable and composer reachable, without discarding a pending draft',async()=>{
   const p=props();p.pending=true;p.status=<>Provera ishoda je dostupna.</>;
@@ -404,6 +404,39 @@ it('keeps an incomplete draft collapsible and does not call it ready', async () 
   expect(text()).toContain('Nacrt'); expect(text()).not.toContain('Spremno za pregled');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(1);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(0);
+});
+
+it.each([
+  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: true },
+  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'po osobi' as const }, words: '5.000 RSD po osobi', brief: true },
+  { width: 361, scale: 1.15, value: { kind: 'offers' as const }, words: 'Tražim ponude', brief: true },
+  { width: 361, scale: 1.3, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: false },
+  { width: 320, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: false },
+])('keeps compact draft terms and review authority at $width dp / $scale ($words)', async ({ width, scale, value, words, brief }) => {
+  mockWidth = width; mockScale = scale;
+  const p = props(), review = jest.fn(); let allowed = false;
+  p.pending = true;
+  p.card = compact => <DraftCard summary={{ title: 'Prenos ormara i kutija', value, zone: '', people: null }}
+    stillNeeded="Opis · Lokacija" open busy compact={compact} canReview={allowed} onReview={review} note={null} />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  expect(text()).toContain(words); expect(text()).toContain('Još treba: Opis · Lokacija');
+  const read = () => tree.root.findByProps({ testID: 'intake-draft-review' });
+  expect(read().props.accessibilityLabel).toBe('Pregledaj zadatak');
+  expect(read().props.disabled).toBe(true); await act(async () => read().props.onPress());
+  expect(review).not.toHaveBeenCalled();
+  const displayed = tree.root.findByProps({ testID: 'intake-draft-value' });
+  if (brief) {
+    expect(displayed.findAllByType(CardValue)).toHaveLength(0);
+    const terms = displayed.findByType('T' as React.ElementType);
+    expect(terms.props.children).toBe(words); expect(terms.props.numberOfLines).toBeUndefined();
+    expect(read().findByType('T' as React.ElementType).props.children).toBe('Pregledaj');
+  } else {
+    expect(displayed.findByType(CardValue).props.value).toEqual(value);
+    expect(StyleSheet.flatten(displayed.parent!.props.style).flexDirection).toBe('column');
+  }
+  allowed = true; await act(async () => tree.update(<AiConversationShell {...p} />));
+  await act(async () => read().props.onPress()); expect(review).toHaveBeenCalledTimes(1);
+  expect(tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.accessibilityValue.text).toContain(words);
 });
 
 it('keeps a legal long amount complete in a constrained, wrapping value row at large text', async () => {

@@ -11,7 +11,7 @@ import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { Press } from '../Press';
 import { brandAction, cardCompact, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
@@ -88,8 +88,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   /** Give an active location question room; existing disclosure still opens all draft facts. */
   locationEditing?: boolean;
 }) {
-  const large = useTextScale() >= 1.3;
-  const stackValue = large || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
+  const { stacked } = useLayoutClass();
+  const stackValue = stacked || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
   const { expanded, toggle } = useAiDraftDisclosure();
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
   const ready = open && !stillNeeded && !hiddenMissing;
@@ -97,6 +97,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // TaskFace language and shows the facts needed for the decision with one guarded primary review action.
   // This is not the published TaskCard/Peek and carries no publication state.
   const readyForReview = ready && reviewAtEnd;
+  // The docked summary keeps short terms readable beside one quiet action, without two competing blocks.
+  const briefReview = compact && !expanded && !readyForReview && !stackValue;
   const locationSummary = locationEditing && !expanded && !readyForReview;
   const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
@@ -130,15 +132,16 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null)}
     {!locationSummary && (summary.value || !reviewAtEnd || readyForReview) ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
       {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
-        <CardValue value={summary.value} large />
+        {briefReview ? <T variant="note" style={s.briefValue}>{valueSpoken(summary.value)}</T>
+          : <CardValue value={summary.value} large />}
       </View> : null}
       {!reviewAtEnd || readyForReview ? <Press testID="intake-draft-review" accessibilityRole="button"
         accessibilityLabel={readyForReview ? 'Izmeni podatke zadatka' : reviewLabel}
         accessibilityHint={readyForReview ? 'Otvara pregled u kome možeš da izmeniš podatke pre objave.'
           : editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
-        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
-        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{readyForReview ? 'Izmeni' : reviewLabel}</T>
+        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={[s.reviewAction, briefReview && s.reviewActionBrief]}>
+        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{readyForReview ? 'Izmeni' : briefReview ? 'Pregledaj' : reviewLabel}</T>
         <CaretRight size={18} color={canReview ? sys.color.ink : sys.color.muted} />
       </Press> : null}
     </View> : null}
@@ -316,6 +319,8 @@ const s = StyleSheet.create({
   reviewRowLarge: { flexDirection: 'column', alignItems: 'stretch', gap: 0 },
   value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
   valueStacked: { width: '100%' },
+  briefValue: { color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
+  reviewActionBrief: { flexShrink: 0 },
   reviewAction: { minHeight: 48, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6 },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
