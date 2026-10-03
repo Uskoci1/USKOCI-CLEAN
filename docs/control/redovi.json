@@ -915,6 +915,11 @@
           "typecheck": "PASS",
           "device": "PENDING",
           "provider": "NOT_RUN"
+        },
+        "native_20261003_current": {
+          "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "scope": "759299f2 installed on HONOR and emulator with exact hash/UID receipts. Physical chat+keyboard/review and clean/dirty/discard notification settings inspected; original worker robot/profile entry viewed. Scoped visual PASS, not whole-app acceptance."
         }
       }
     },
@@ -1886,7 +1891,12 @@
         "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
-        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+        "native_20261003_current": {
+          "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "scope": "f305 HONOR: Discovery cluster -> selected pin/peek -> task detail -> Back preserved the visible viewport, selected pin and peek. Bounded observed case; all-filter/cold-return/performance acceptance remains separate."
+        }
       }
     },
     {
@@ -2384,9 +2394,9 @@
         "performance": "Do50redova po čitanju, do200u klijentskom prozoru; osvežavanje može tražiti prozor50 i newest50. ScrollView ostaje ograničen, ne virtuelizovan. Nema dokaza velikog SQL opterećenja.",
         "test": "Round37 / run36400916665: agreement message client/history/read/chat/recovery suite-ovi PASS; full Jest 342/7.214 PASS; TypeScript PASS. B0 voice validator ostaje zaseban 36/36 source proof, ne audio device proof.",
         "device_proof": "f305: actual private text send on HONOR and focused inbox arrival on emulator verified. Other lifecycle/media cases remain open.",
-        "status": "TEXT/B3 SOURCE+DEV WIRED / CURRENT TWO-DEVICE NATIVE PENDING / VOICE B1 SERVER APPLIED ON DEV 2026-10-01, B2 NATIVE+UI NOT STARTED",
+        "status": "PRIVATE TEXT ARRIVAL PROVEN ON f305 / 759299f2 CHAT COMPOSITION PROVEN / GROUP, RECONNECT, HISTORY AND VOICE DEVICE ACCEPTANCE OPEN",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_CLIENT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/B3C_DEV_APPLICATION_RECEIPT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_37_P3_CHAT_CORE_AND_VOICE_BOUNDARY_20260928.md",
-        "voice": "B0 struktura AAC36/36PASS, bez dekodiranja ili pravog snimka. B1 serverski paket primenjen na DEV 1.10. (ledger 215; Edge worker v4 i uskoci-media v14); klijent B2-a headless, flag isključen. Glasovne poruke korisniku nisu isporučene. docs/implementation/product-v1-closure-20260926/finalization-20260927/P3_B0_AUDIO_STRUCTURE_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/VOICE_B1_DEV_APPLICATION_RECEIPT_20261001.md",
+        "voice": "Voice recording/playback client and review controls are included and enabled in DEV. 759299f2 physical review control and keyboard inspected; actual recording, upload, recipient playback and interruptions remain open. Older B2-not-started/flag-off statements are historical.",
         "round27": "Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
         "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
         "round37": {
@@ -2400,6 +2410,11 @@
         "codex_ci_20261002": {
           "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
           "scope": "CI PARTIAL / HARNESS FIX + LOCAL 138/138 / RERUN PENDING"
+        },
+        "native_20261003_current": {
+          "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "scope": "759299f2 physical chat toolbar/review OFF+ON and keyboard layout accepted; returned review to OFF, no new audio/message. f305 actual private send updated the focused other-device inbox without refresh. Group/reconnect/history/audio remain open."
         }
       }
     },
@@ -3136,7 +3151,12 @@
           "exact_transport": "OFF per canonical repository evidence",
           "device": "CURRENT ARTIFACT PENDING"
         },
-        "owner_correction_20261002": "Push vraćen u obim; vlasnik naglašava da ga je već isprobao. Historical device proof retained. No new send/enable or re-proof in finishing batch."
+        "owner_correction_20261002": "Push vraćen u obim; vlasnik naglašava da ga je već isprobao. Historical device proof retained. No new send/enable or re-proof in finishing batch.",
+        "native_20261003_current": {
+          "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "scope": "edd20976 phone preview registration confirmed active with revision/bound revision3 and stored session; no token read/provider send. CI37081876436 found non-newline predecessor certificate mismatch. c12eccc7/run37082860836 adds strict bounded semantic/catalog diagnostics; no DEV application."
+        }
       }
     },
     {
