@@ -81,6 +81,22 @@ it('a new empty interview starts with the invitation instead of an empty profile
  expect(await manualDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
 });
+it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
+ const sending=deferred();mockApi.send.mockReturnValueOnce(sending.promise);
+ await render();act(()=>shell().props.onChange('Moj nacrt'));await act(async()=>shell().props.onSend());
+ const transport=mockApi.send.mock.calls[0][3],reads=mockApi.read.mock.calls.length,thread=shell();
+ await act(async()=>transport.onText('Odgovor u toku'));
+ await act(async()=>{for(const listener of [...mockListeners]){listener('active');listener('active');}});
+ expect(shell()).toBe(thread);expect(shell().props.value).toBe('Moj nacrt');
+ expect(shell().props.streamingText).toBe('Odgovor u toku');expect(transport.signal.aborted).toBe(false);
+ expect(mockApi.read).toHaveBeenCalledTimes(reads);expect(mockApi.send).toHaveBeenCalledTimes(1);
+ await act(async()=>{for(const listener of [...mockListeners])listener('background');});
+ expect(transport.signal.aborted).toBe(true);expect(tree.root.findAllByType('Shell' as any)).toHaveLength(0);
+ await act(async()=>sending.resolve({ok:false,kod:'UNKNOWN',poruka:'Nepotvrđeno'}));
+ await act(async()=>{for(const listener of [...mockListeners])listener('active');});
+ expect(mockApi.read.mock.calls.length).toBeGreaterThan(reads);
+ expect(mockApi.send).toHaveBeenCalledTimes(1);expect(shell()).toBeTruthy();
+});
 it.each(['immediate','readback','retry'])('worker draft ownership: identical spoken text preserves the typed draft after %s success',async outcome=>{
  if(outcome==='immediate')succeedWorkerTurn();
  await render();act(()=>shell().props.onChange('  Radim vikendom.  '));

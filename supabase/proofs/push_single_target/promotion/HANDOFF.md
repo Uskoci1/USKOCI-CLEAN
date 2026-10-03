@@ -1,0 +1,38 @@
+# Current DEV push single-target promotion — prepared, not applied
+
+Project: `leqcwgzvjsxugfgzdmth`. Existing passing behavioral proof: run37077621475 at74cdca32bc48b9dfb95622bdd26920878797b805,13PASS/0FAIL/0SKIP plus6offline Edge checks. That run used the88-function predecessor, so it does not accept this new99-function promotion wrapper.
+
+## Fresh read-only evidence
+
+The exact generated `preflight.readonly.sql` returned `problems:[]` at2026-10-02T23:56:56.646106UTC (`preflight-receipt.json`). Ledger225; candidate functions absent; actual source roster99. Computed source digest, both certificates and erasure binding agree at `3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23`; retention readiness true. Full13 function metadata and body pins, three-table surface, catalogs and certificate rows match captures. No live write was performed.
+
+At23:44UTC no active push lease or SEND_STARTED attempt existed. One existing TICKET_PENDING attempt remains; it is not cancelled, deleted, retried or migrated by this package. No cron job matched push in name/command metadata. This is not evidence that external callers are stopped or either environment flag is false.
+
+Live Edgev22 ACTIVE has verify_jwt=false and its existing custom service-key check. Live index LFhash984c7bf83d6543c70865d89c162542c8d2248d18194361ec014a02371c6f0fc8; sharedLFhasha14fa35d3428f25b55ec68ad0e10dd881de238dfde164f834651c06e121e7c57. `edge-before/` holds exact normalized deployment assets. `edge-candidate/` holds the passing candidate assets, index6d27f508c53f8fed23b12e14ae873b633749aa4c7d457602d1e0d3a4f62ee1de.
+
+## Concrete isolated proof route
+
+Copy the promotion files to `supabase/proofs/push_single_target/promotion/`; copy the proposed workflow over the existing `.github/workflows/push-single-target-proof.yml`. Update its separate workflow hash in the existing manifest. Keep all captures/generator inputs source-bound. Do not commit generated fixture captures or raw CI logs.
+
+The proposed workflow retains the entire passing historical chain and D12 gate. It adds `proof-current99.mjs` before the unchanged13-group proof. Checkout needs history for frozen74cd source.
+
+The new script reconstructs the exact applied AI-location ledger bytes only when they match the immutable application receipt:40209characters, SHAe4a44a9bba6de1d671aa0698a1a9fa45685a7054f17c8d3dcc68c6ddc8a13b61. The receipt proves CRLF; no SQL pins or definitions are substituted. Strict predecessor drift aborts. After application, all13 current DEV definitions/bodies and portable metadata, current99 digest and binding must match. Only then are local catalog OIDs, ledger count and certificate timestamps bound separately for the fixture. Live guard files stay unchanged.
+
+The same generator creates the fixture-bound wrapper and exercises install→postflight→exact revert→preflight→reapply→postflight→exact revert. It leaves99 so the existing13groups exercise the unchanged business candidate on99. No provider, admission or real user data is involved in the new wrapper proof. Previous complete replay took4m15s; queue/failure repair time is unknown.
+
+Required acceptance is a successful new report `single-target-current99-promotion.json` AND the existing13groups/6offline checks, with exact committed source binding. This wrapper has not yet been executed. Do not promote based on preflight or source review alone.
+
+## Live steps for root after isolated proof
+
+1. Freeze final exact candidate/revert/Edge hashes and confirm the proof source. Explicitly keep `EXPO_PUSH_ENABLED=false` and `EXPO_PUSH_SINGLE_TARGET_ENABLED=false`; stop known external dispatchers. Do not print secrets. No device registration, token read or provider call is part of preflight.
+2. Drain existing in-flight invocations/leases, then rerun the read-only preflight immediately. Require no active lease, SEND_STARTED or closure EXECUTING and all pins unchanged. Preserve TICKET_PENDING. Source timeouts are not proof of drain; require fresh observed counters after callers are stopped.
+3. Apply `candidate.sql` as one atomic transaction with the normal exact migration-ledger mechanism. It takes the existing push claim advisory fence and closure locks, installs only the proved delta, extends actual99→108, proves inverse isolation in a rolled-back subtransaction, rebinds certificates, checks postflight and notifies the schema cache. It does not admit or send. Ledger225 is an internal precondition before the runner records the new migration; standalone postflight reports the resulting ledger without requiring225.
+4. Run `postflight.readonly.sql` and record the computed promoted digest, both full rows, binding, readiness, exact7 candidate bodies, function permissions and old projected table surface. Read back the applied migration bytes. Preserve legalPolicyAttested=false and all11 AI-location roster entries.
+5. Deploy only `edge-candidate/functions/uskoci-push-transport/index.ts` and its exact shared module through the established CLI route. Preserve the existing verify_jwt=false/custom authorization configuration; do not substitute a JWT-only gateway. Use the actual installed CLI help before constructing commands. Read back both files and hashes after deployment. Both flags remain false.
+6. Admission/target flag/one send is a separate concrete exact tuple action. Do not fabricate account, session, device revision, event, delivery or authorization IDs. A default-off deployment alone proves neither phone receipt nor live delivery.
+
+## Revert and authority limits
+
+Before any admission, disable both lanes, stop dispatchers, drain, verify the installed postflight, then use `revert-before-admission.sql` atomically and restore the captured Edgev22 assets/configuration. Revert refuses any admitted attempt and any body/certificate/schema drift; it restores exact old definitions, both full certificate rows and prior readiness digest. Rerun old preflight; if the migration runner added a ledger row, the225 ledger check intentionally flags that difference for an explicit receipt, not a pin edit.
+
+After any admission, do not drop these columns/functions or erase evidence; use flags off and a separately reviewed forward repair. Existing trusted service_role direct table DML privileges remain. This proves the exact Edge action path, not a database boundary against a malicious service credential. No ACL hardening, retention policy, matching algorithm, backlog mutation or global activation is included.

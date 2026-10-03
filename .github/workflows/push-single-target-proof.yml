@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-          fetch-depth: 1
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
@@ -164,6 +164,12 @@ jobs:
         run: |
           set -euo pipefail
           node supabase/proofs/push_single_target/prepare-d12.mjs
+      - name: Exact current99 predecessor and promotion wrapper proof
+        env:
+          PUSH_SINGLE_TARGET_DISPOSABLE: SINGLE_TARGET_V1
+        run: |
+          set -euo pipefail
+          node supabase/proofs/push_single_target/promotion/proof-current99.mjs
       - name: Exact candidate syntax and offline Edge checks
         run: |
           set -euo pipefail
@@ -190,6 +196,7 @@ jobs:
           path: |
             /tmp/chat-p4-private/single-target-proof-report.json
             /tmp/chat-p4-private/single-target-d12-predecessor.json
+            /tmp/chat-p4-private/single-target-current99-promotion.json
             /tmp/ex05-s01-artifacts/source-binding.txt
             /tmp/ex05-s01-artifacts/stages.txt
           if-no-files-found: error

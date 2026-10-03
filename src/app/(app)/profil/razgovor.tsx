@@ -53,6 +53,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
   };},[retireConfirmation]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
+    // Duplicate native activity notifications are not a return from background.
+    // Refreshing here would abort the current reply and unmount the voice composer.
+    if(active.current===(state==='active'))return;
     active.current=state==='active';setForeground(active.current);abort.current?.abort();setStream('');
     if(!active.current)retireConfirmation();
     if(active.current){setResuming(true);void refreshRef.current().finally(()=>{if(active.current)setResuming(false);});}
