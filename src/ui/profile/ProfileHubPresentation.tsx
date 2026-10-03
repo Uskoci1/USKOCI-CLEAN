@@ -92,7 +92,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
 
     <SettingsGroup title="Kako mogu da uskočim">
       {/* The one fact that decides whether a task is ever offered to you is whether this part is set up and active. */}
-      <ProfileUtilityRow label="Veštine, alat i tim" detail={capabilityDetail} art="users" featured disabled={busy}
+      <ProfileUtilityRow label="Radni profil" detail={capabilityDetail} art="users" featured disabled={busy}
         onPress={() => open('/profil/radnik')} />
       <ProfileUtilityRow label="Područje rada" detail={workArea} art="pin" disabled={busy}
         onPress={() => open('/profil/lokacija')} />

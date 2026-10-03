@@ -9,7 +9,7 @@ jest.mock('react-native', () => {
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 
-import { WorkerAiActivation, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiManual, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { sys } from '../../system/tokens';
 
 /**
@@ -44,14 +44,12 @@ it('names the zone only when it is not Serbian time', async () => {
   expect(texts()).toContain('Vremenska zona');
 });
 
-// Review of step 9 (2026-09-24): licences are on the owner's decision list, so their empty word stays the one it was
-// ("Nisu navedene"); every other field not given says the one word. The test pinned the licence word too; it no longer does.
-it('says one word for anything not given, and keeps the licence row as the owner worded it', async () => {
+it('uses one empty label without legacy licence/team rows or an empty biography section', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
   expect(copy).not.toMatch(/Još nije navedeno/);
-  expect(copy.split('Nije navedeno').length - 1).toBeGreaterThanOrEqual(5);
-  expect(copy.split('Nisu navedene').length - 1).toBe(1);
+  expect(copy.split('Nije navedeno').length - 1).toBe(4);
+  expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
 });
 
 it('writes the year of a rule day only when it is not the current one', async () => {
@@ -77,9 +75,41 @@ it('explains which saved profile facts affect matching without claiming verifica
   const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
   const copy = explanation.children.filter(child => typeof child === 'string').join('');
   expect(copy).toContain('veštine'); expect(copy).toContain('područje rada'); expect(copy).toContain('dostupnost');
-  expect(copy).toContain('Alat'); expect(copy).toContain('vozila'); expect(copy).toContain('licence');
-  expect(copy).toContain('kapacitet prijave'); expect(copy).toContain('ne povećavaju poklapanje');
+  expect(copy).toContain('Alat'); expect(copy).toContain('vozila');
+  expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).toContain('ne menjaju poklapanje');
   expect(copy).not.toMatch(/verifikovan|%|skor/i);
+});
+
+it('summarizes only actual schedule rules and keeps paused rules and exceptions visible', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({ rules: [
+    { id: 'rule-a', weekdays: [1, 3], startTime: '08:00:00', endTime: '16:00:00', startsOn: '2026-09-24', endsOn: null, label: 'Pre podne', active: true },
+    { id: 'rule-b', weekdays: [6], startTime: '10:00', endTime: '14:00', startsOn: '2026-09-24', endsOn: null, label: '', active: false },
+  ] })} />); });
+  const copy = texts();
+  expect(copy).toContain('Ponedeljak · Sreda'); expect(copy).toContain('Subota'); expect(copy).toContain('pauzirano');
+  expect(copy).toContain('Pre podne'); expect(copy).toContain('Slobodno za rad');
+  expect(copy).not.toContain('Nema redovnih termina'); expect(copy).not.toContain('08:00:00'); expect(copy).not.toContain('Utorak');
+});
+
+it('does not invent availability for an empty calendar', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({ rules: [], windows: [] })} />); });
+  const copy = texts();
+  expect(copy).toContain('Redovni termini nisu podešeni.');
+  expect(copy).not.toContain('Ponedeljak'); expect(copy).not.toContain('Slobodno za rad'); expect(copy).not.toContain('Posebni datumi');
+});
+
+it('manual personal-profile correction does not erase or write hidden legacy fields', async () => {
+  const profile = review({}, { licenses: ['LEGACY_LICENSE'], teamCapacity: 37 }).profile;
+  const apply = jest.fn();
+  await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={apply} />); });
+  const fields = tree.root.findAllByType('TextInput' as React.ElementType);
+  expect(fields.some(node => /licenc|ljudi/i.test(node.props.accessibilityLabel))).toBe(false);
+  const submit = tree.root.findAll(node => typeof node.props.onPress === 'function' && node.props.accessibilityLabel === 'Primeni na pregled profila')[0];
+  await act(async () => { submit.props.onPress(); });
+  expect(apply).toHaveBeenCalledTimes(1);
+  expect(apply.mock.calls[0][0]).not.toHaveProperty('licenses');
+  expect(apply.mock.calls[0][0]).not.toHaveProperty('teamCapacity');
+  expect(profile.licenses).toEqual(['LEGACY_LICENSE']); expect(profile.teamCapacity).toBe(37);
 });
 
 it('draws the activation choice on a flat tint with a white thumb', async () => {

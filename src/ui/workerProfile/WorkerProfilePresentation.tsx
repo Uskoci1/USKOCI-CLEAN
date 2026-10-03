@@ -1,28 +1,21 @@
 import { createContext, isValidElement, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { CaretRight, Minus, Plus, X } from 'phosphor-react-native';
+import { CaretRight, PencilSimple, X } from 'phosphor-react-native';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
-import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { ChromeIconButton } from '../system/ScreenChrome';
-import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { PeopleArt } from '../system/PeopleArt';
 import { ClockArt } from '../system/ClockArt';
 import { ToolArt } from '../system/ToolArt';
-import { PickerGrid, PickerTile } from '../system/PickerTile';
-import { pictogramCatalog, type PictogramGroup } from '../system/Pictogram';
 import { StateView } from '../system/StateView';
-import { plural } from '../system/plural';
 import { sys, field, materialControl } from '../system/tokens';
 import { useLayoutClass } from '../system/textScale';
 import { ConversationArt } from '../system/ConversationArt';
 import { SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
-import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
+import type { WorkerDraft } from './workerProfileDraft';
 
 /**
  * Frame of the worker profile: back, title, keyboard-safe body, sticky footer. `/profil/razgovor` and `/profil/lokacija`
@@ -40,7 +33,7 @@ import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
  * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
  * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
-export function WorkerProfileFrame({ back, children, footer, title = 'Veštine, alat i tim', backLabel = 'Nazad' }: {
+export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad' }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
 }) {
   const typing = useKeyboardShown();
@@ -122,39 +115,28 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
 }
 
 function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}>{art === 'users' ? <PeopleArt size={28} /> : art === 'tool' ? <ToolArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
+  return <View style={s.head}>{art === 'tool' ? <ToolArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
 const MAX_TERMS = 50;
 
-/**
- * A list the person owns, three ways to fill it: the chips already on it (a tap removes one), a field to type a new one,
- * and the pictures of the catalog behind "Brzi izbor". A picture inserts its catalog label as the same free text the
- * person could type ("Kombi", "Transportna kolica"); nothing new is stored and matching is unchanged. Tapping a chosen
- * picture again removes that term in any spelling of its case.
- */
-function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen = false, description, values, pending, setPending, change, disabled, inputRef }: {
-  label: string; art: FactArtKind; group?: PictogramGroup; placeholder: string; quickLabel?: string; quickOpen?: boolean; description?: string;
-  values: string[]; pending: string; setPending: (text: string) => void; change: (terms: string[], clearPending?: boolean) => void;
-  disabled: boolean; inputRef?: RefObject<TextInput | null>;
+/** Manual correction stays available after an explicit edit tap. Free text has no finite catalogue. */
+function TermsEditor({ label, placeholder, values, pending, setPending, change, disabled, inputRef }: {
+  label: string; placeholder: string; values: string[]; pending: string; setPending: (text: string) => void;
+  change: (terms: string[], clearPending?: boolean) => void; disabled: boolean; inputRef?: RefObject<TextInput | null>;
 }) {
   const { stacked } = useLayoutClass();
   const full = values.length >= MAX_TERMS;
-  const add = () => { const term = pending.replace(/^ +| +$/g, '');
+  const add = () => { const term = pending.trim();
     if (disabled || !term || Array.from(term).length > 500 || full) return;
     change([...values, term], true); };
-  const tiles = pictogramCatalog.filter(p => p.group === group && p.kind !== 'ostalo');
   return <View style={s.section}>
-    <SectionHead art={art} title={label} />
-    {description ? <T variant="note" tone="muted">{description}</T> : null}
-    {values.length ? <View style={s.chips}>
-      {values.map((value, index) => <Press key={index} accessibilityRole="button" accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`}
-        accessibilityState={{ disabled }} disabled={disabled} haptic="select" hitSlop={0}
-        onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }} style={s.chip}>
-        <T variant="note" style={s.chipText}>{value}</T><X size={16} color={sys.color.muted} weight="bold" />
-      </Press>)}
-    </View> : null}
+    {values.length ? <View style={s.chips}>{values.map((value, index) => <Press key={index} accessibilityRole="button"
+      accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`} accessibilityState={{ disabled }} disabled={disabled}
+      haptic="select" hitSlop={0} onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }} style={s.chip}>
+      <T variant="note" style={s.chipText}>{value}</T><X size={16} color={sys.color.muted} />
+    </Press>)}</View> : null}
     <View style={[s.addRow, stacked && s.addRowStacked]}>
       <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder={placeholder} placeholderTextColor={sys.color.muted}
         value={pending} editable={!disabled && !full} onChangeText={text => { if (!disabled) setPending(text); }}
@@ -163,58 +145,48 @@ function TermsPicker({ label, art, group, placeholder, quickLabel, quickOpen = f
         disabled={disabled || !pending.trim() || full} style={[s.add, stacked && s.addStacked]} />
     </View>
     {full ? <T variant="note" tone="muted">Najviše 50 stavki.</T> : null}
-    {group && quickLabel ? <Disclosure label={quickLabel} defaultExpanded={quickOpen}>
-      <PickerGrid>{tiles.map(tile => {
-        const selected = hasTerm(values, tile.label), blocked = !selected && full;
-        return <PickerTile key={tile.kind} kind={tile.kind} label={tile.label} size="medium" mode="multiple" tone="neutral" selected={selected}
-          disabled={disabled || blocked} reason={blocked ? 'Najviše 50 stavki' : undefined}
-          onPress={() => { if (!disabled && !blocked) change(toggleTerm(values, tile.label)); }} />;
-      })}</PickerGrid>
-    </Disclosure> : null}
   </View>;
 }
 
-/**
- * How many people the person can bring, 1 to 50, with a minus and a plus beside the number. Every press goes through the
- * same change as typing, so the route's guards decide it exactly as they decide a typed number; nothing fills the field
- * by itself, and an empty field stays empty until the person presses or types. A typed number above 50 (the field takes
- * three digits) is still read as that number: minus brings it back to 50 and plus stays grey.
- */
-function CountStepper({ value, revision, saved, change, disabled, inputRef }: {
-  value: string; revision: string | null; /** The profile exists (it has been saved once). */ saved: boolean;
-  change: (capacity: string) => void; disabled: boolean; inputRef?: RefObject<TextInput | null>;
+/** Facts read as a profile, with one clearly labelled edit affordance and no hidden removal gesture. */
+function ProfileSection({ title, art, summary, summaryContent, empty, open, toggle, disabled, children }: {
+  title: string; art: FactArtKind; summary: string; empty: string; open: boolean;
+  toggle: () => void; disabled: boolean; children: ReactNode; summaryContent?: ReactNode;
 }) {
-  const locked = disabled || revision === null;
-  const n = /^[0-9]{1,3}$/.test(value) ? Number(value) : null;
-  const unit = n === null ? 'osoba' : plural(n, 'osoba', 'osobe', 'osoba').replace(/^\S+ /, '');
-  return <View style={s.section}>
-    <SectionHead art="users" title="Koliko ljudi možeš da obezbediš" />
-    <View style={s.stepper}>
-      <ChromeIconButton label="Manje ljudi" icon={Minus} disabled={locked || n === null || n <= 1}
-        onPress={() => { if (!locked && n !== null && n > 1) change(String(Math.min(n - 1, 50))); }} />
-      <TextInput ref={inputRef} accessibilityLabel="Koliko ljudi možeš da obezbediš" value={value} editable={!locked}
-        onChangeText={text => { if (!locked) change(text); }} keyboardType="number-pad" maxLength={3}
-        style={[s.input, s.count, locked && s.inputLocked]} />
-      <ChromeIconButton label="Više ljudi" icon={Plus} disabled={locked || (n !== null && n >= 50)}
-        onPress={() => { if (!locked && (n === null || n < 50)) change(n === null || n < 1 ? '1' : String(n + 1)); }} />
-      <T variant="copy" tone="muted" style={s.shrink}>{unit}</T>
+  return <View style={s.profileSection}>
+    <View style={s.sectionHeading}><View style={s.grow}><SectionHead art={art} title={title} /></View>
+      <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${title}`} accessibilityState={{ expanded: open, disabled }}
+        disabled={disabled} onPress={toggle} haptic="select" style={[s.edit, materialControl.raised]}>
+        {open ? <X size={18} color={sys.color.ink} /> : <PencilSimple size={18} color={sys.color.ink} />}
+      </Press>
     </View>
-    {/* A saved profile without a capacity revision is loaded, not saved, first: the note says what the primary does. */}
-    <T variant="note" tone="muted">{revision === null ? saved ? 'Kapacitet profila još nije učitan.' : 'Sačuvaj profil da bi se broj ljudi potvrdio.'
-      : 'Uključujući tebe · od 1 do 50 osoba.'}</T>
+    {open ? children : summaryContent ?? <ProfileSummary text={summary || empty} label={title} muted={!summary} />}
   </View>;
 }
 
-/** The three checks that gate activation, in the words the checklist says. */
-export type WorkerActivationChecks = { basics: boolean; area: boolean; capacity: boolean };
-const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Ime i bar jedna veština'], ['area', 'Područje rada'], ['capacity', 'Kapacitet tima']];
+/** Long authored lists remain fully available without pushing the work area off several screens. */
+function ProfileSummary({ text, label, muted = false }: { text: string; label: string; muted?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 140;
+  return <View style={s.summary}>
+    <T variant="body" tone={muted ? 'muted' : 'ink'} numberOfLines={long && !expanded ? 3 : undefined}>{text}</T>
+    {long ? <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Sažmi' : 'Prikaži sve'}: ${label}`}
+      accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)} haptic="select" style={s.showMore}>
+      <T variant="note" style={s.summaryLink}>{expanded ? 'Sažmi' : 'Prikaži sve'}</T>
+    </Press> : null}
+  </View>;
+}
+
+/** Personal profile activation needs identity/capabilities and an area, never a permanent team. */
+export type WorkerActivationChecks = { basics: boolean; area: boolean; capacity?: boolean };
+const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Ime i bar jedna veština'], ['area', 'Područje rada']];
 type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/podrska';
 
 /**
  * Whether tasks can be offered to you, first. Active is one line with a colored check. A draft is an open section with
- * the three things activation waits for, each marked ready or missing; they are not buttons, because the footer's
+ * the two things activation waits for, each marked ready or missing; they are not buttons, because the footer's
  * primary already leads to the first missing one. "Ready" is said only when the route's primary really is the
- * activation (the three checks can pass while the capacity revision still has to be loaded or a change saved). A
+ * activation (both checks can pass while a change still has to be saved). A
  * suspension says so and offers support.
  */
 function ActivationStatus({ status, checks, readyToActivate, disabled, navigate }: {
@@ -244,74 +216,75 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   </View>;
 }
 
-export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'capacity'; token: number };
-/**
- * The worker's profile, recomposed 2026-09-24 (owner step 9): whether tasks are offered to you → the name → skills →
- * how many people → where and when (rows to their own editors) → tools → vehicles → an optional introduction → the
- * conversation as another way to fill it in. Skills, tools and vehicles take chips, typing or pictures. Every field
- * keeps its label as the input's spoken name; the route owns saving and every guard.
- */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation,
-  profileExists = status !== null }: {
-  draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null; navigate: (path: WorkerNavigation) => void;
-  focusRequest?: WorkerProfileFocusRequest | null;
-  /** What activation is actually waiting for, from the same checks that gate it. */
-  checks?: WorkerActivationChecks;
-  /** The route's primary action is the activation itself: only then does the note say everything is ready. */
-  readyToActivate?: boolean;
-  /** The AI conversation, behind the route's own guards. */
-  openConversation?: () => void;
-  /** A profile has been saved and read, whatever its state (a saved profile's state can be unknown). */
-  profileExists?: boolean }) {
-  // Where the lists stood when the screen opened decides only which quick pick starts open: an empty skill list opens its
-  // pictures, because that is where a first profile begins.
-  const skillsOpen = useRef(draft.vestine.length === 0).current;
-  const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), capacityRef = useRef<TextInput>(null);
+export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'tool' | 'vehicle'; token: number };
+/** AI is the main setup route. The same owned draft, save/readback and navigation guards govern manual corrections. */
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation }: {
+  draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
+  navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
+  checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
+}) {
+  const [editing, setEditing] = useState<'identity' | 'skills' | 'tools' | 'vehicles' | null>(null);
+  const { stacked } = useLayoutClass();
+  const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), toolRef = useRef<TextInput>(null), vehicleRef = useRef<TextInput>(null);
+  const focusSection = focusRequest ? { name: 'identity', skill: 'skills', tool: 'tools', vehicle: 'vehicles' }[focusRequest.target] as NonNullable<typeof editing> : null;
   useEffect(() => {
     if (!focusRequest || disabled) return;
-    const selected = focusRequest.target === 'name' ? nameRef.current : focusRequest.target === 'skill' ? skillRef.current : capacityRef.current;
-    (selected as { focus?: () => void } | null)?.focus?.();
-  }, [focusRequest, disabled]);
+    setEditing(focusSection);
+  }, [focusRequest, focusSection, disabled]);
+  useEffect(() => {
+    if (!focusRequest || disabled || editing !== focusSection) return;
+    ({ name: nameRef, skill: skillRef, tool: toolRef, vehicle: vehicleRef }[focusRequest.target].current)?.focus?.();
+  }, [editing, focusRequest, focusSection, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
+  const toggle = (key: NonNullable<typeof editing>) => { if (!disabled) setEditing(editing === key ? null : key); };
   const grad = draft.grad.trim();
-  const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Nije podešeno';
+  const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Izaberi gde želiš da radiš';
   return <View style={s.form}>
-    <View style={s.intro}>
-      <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
-      {openConversation ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
-        accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
-        style={[s.conversationEntry, materialControl.raised]}>
-        <ConversationArt size={44} />
-        <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.grow}>Uredi profil kroz razgovor</T>
-        <CaretRight size={20} color={sys.color.muted} />
-      </Press> : null}
-    </View>
-    <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
-    <TermsPicker label="Veštine i usluge" art="tasks" group="usluge" placeholder="Dodaj veštinu" quickLabel="Brzi izbor veština" quickOpen={skillsOpen}
-      values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
-      change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })} disabled={disabled} inputRef={skillRef} />
-    <CountStepper value={draft.capacity} revision={draft.capacityRevision} saved={profileExists} change={capacity => patch({ capacity })}
-      disabled={disabled} inputRef={capacityRef} />
-    {/* Where and when are set in their own editors, each with its own save; here they are read and opened. */}
-    <View style={s.rows}>
-      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={24} cut="art" />} disabled={disabled}
-        onPress={() => navigate('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" icon={<ClockArt size={24} quiet={disabled} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
-        detail={`Status „Mogu odmah“ je ${draft.dostupanOdmah ? 'uključen' : 'isključen'}.`} />
-    </View>
-    <TermsPicker label="Alat i oprema" art="tool" group="alat" placeholder="Dodaj alat" quickLabel="Brzi izbor alata" quickOpen={false}
-      values={draft.alati} pending={draft.newTool} setPending={newTool => patch({ newTool })}
-      change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} />
-    <TermsPicker label="Vozila" art="vehicle" group="vozila" placeholder="Dodaj vozilo" quickLabel="Brzi izbor vozila" quickOpen={false}
-      values={draft.vozila} pending={draft.newVehicle} setPending={newVehicle => patch({ newVehicle })}
-      change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} />
-    <TermsPicker label="Licence koje navodiš" art="document" placeholder="Dodaj licencu" description="Licence navodiš ti; USKOČI ih ne proverava."
-      values={draft.licence} pending={draft.newLicense} setPending={newLicense => patch({ newLicense })}
-      change={(licence, clear) => patch({ licence, ...(clear ? { newLicense: '' } : {}) })} disabled={disabled} />
-    <Disclosure label="Kratko predstavljanje" hint="Opciono" defaultExpanded={!!draft.biografija}>
+    <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
+    {openConversation ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
+      accessibilityHint="Razgovor o poslovima, alatu, vozilima i području rada."
+      accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
+      style={[s.conversationEntry, materialControl.raised]}>
+      <View style={[s.conversationCopy, stacked && s.conversationCopyStacked]}>
+        <ConversationArt size={64} />
+        <View style={s.grow}>
+          <T variant="heading" tone={disabled ? 'muted' : 'ink'}>Ispričaj čime se baviš</T>
+          <T variant="note" tone="muted">Veštine, poslovi i oprema — kroz razgovor.</T>
+        </View>
+      </View>
+      <View style={s.conversationBottom}><T variant="bodyStrong" style={s.ink}>Uredi kroz razgovor</T>
+        <View style={s.arrow}><CaretRight size={20} color={sys.color.ink} /></View></View>
+    </Press> : null}
+    <ProfileSection title="O meni" art="person" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
+      summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title">{draft.ime}</T>
+        {draft.biografija ? <ProfileSummary text={draft.biografija} label="O meni" muted /> : null}</View> : undefined}
+      empty="Dodaj ime i nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
+      <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
       <Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
-    </Disclosure>
-    <T variant="note" tone="muted" style={s.center}>Veštine, alat i vozila navodiš ti. Izmena profila ne prepisuje već poslate Prijave.</T>
+    </ProfileSection>
+    <ProfileSection title="Veštine i usluge" art="tasks" summary={draft.vestine.join(' · ')}
+      empty="Koje poslove možeš da preuzmeš?" open={editing === 'skills'} toggle={() => toggle('skills')} disabled={disabled}>
+      <TermsEditor label="Veštine i usluge" placeholder="Dodaj veštinu ili uslugu" values={draft.vestine} pending={draft.newSkill}
+        setPending={newSkill => patch({ newSkill })} change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })}
+        disabled={disabled} inputRef={skillRef} />
+    </ProfileSection>
+    <View style={[s.rows, materialControl.raised]}>
+      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} cut="art" />} disabled={disabled}
+        onPress={() => navigate('/profil/lokacija')} />
+      <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
+        detail={draft.dostupanOdmah ? 'Mogu odmah · pogledaj raspored' : 'Pogledaj i uredi raspored'} />
+    </View>
+    <ProfileSection title="Alat i oprema" art="tool" summary={draft.alati.join(' · ')}
+      empty="Dodaj opremu koju možeš da poneseš." open={editing === 'tools'} toggle={() => toggle('tools')} disabled={disabled}>
+      <TermsEditor label="Alat i oprema" placeholder="Dodaj alat ili opremu" values={draft.alati} pending={draft.newTool}
+        setPending={newTool => patch({ newTool })} change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} inputRef={toolRef} />
+    </ProfileSection>
+    <ProfileSection title="Vozila" art="vehicle" summary={draft.vozila.join(' · ')}
+      empty="Dodaj vozilo ako ga koristiš za posao." open={editing === 'vehicles'} toggle={() => toggle('vehicles')} disabled={disabled}>
+      <TermsEditor label="Vozila" placeholder="Dodaj vozilo" values={draft.vozila} pending={draft.newVehicle}
+        setPending={newVehicle => patch({ newVehicle })} change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} inputRef={vehicleRef} />
+    </ProfileSection>
+    <T variant="note" tone="muted">Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.</T>
   </View>;
 }
 const s = StyleSheet.create({
@@ -325,9 +298,20 @@ const s = StyleSheet.create({
   footerTyping: { paddingVertical: 0, borderTopWidth: 0, gap: 0 },
   answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
   form: { gap: sys.space.xxl },
-  intro: { gap: sys.space.sm },
-  conversationEntry: { minHeight: 76, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: sys.radius.card, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.surface },
+  conversationEntry: { padding: 20, gap: 16, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
+    borderWidth: 1, borderColor: sys.color.surface },
+  conversationCopy: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  conversationCopyStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  conversationBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  arrow: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+  identityCopy: { gap: 8 },
+  summary: { gap: 4 },
+  showMore: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  summaryLink: { color: sys.color.ink, textDecorationLine: 'underline' },
+  profileSection: { gap: 12, paddingBottom: 24, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  edit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.surface },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Activation requirements are an open reading section; suspension keeps its meaningful warning surface.
@@ -352,7 +336,6 @@ const s = StyleSheet.create({
   addInputStacked: { alignSelf: 'stretch' },
   add: { minWidth: 72 },
   addStacked: { alignSelf: 'flex-end' },
-  stepper: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  count: withInter({ width: 88, textAlign: 'center', fontSize: 20, lineHeight: 26, fontWeight: '700', fontVariant: ['tabular-nums'] }),
-  rows: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
+  rows: { borderRadius: sys.radius.card, paddingHorizontal: 16, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line },
 });

@@ -76,7 +76,7 @@ it('a new empty interview starts with the invitation instead of an empty profile
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();
  expect(shell().props.card(false)).toBeNull();
- expect(shell().props.welcome).toBe('Šta umeš da radiš?');
+ expect(shell().props.welcome).toBe('Koje poslove želiš da radiš?');
  expect(shell().props.canEdit).toBe(true);
  expect(await manualDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
@@ -211,6 +211,24 @@ const panelSubmit=(panel:string)=>panel==='manual'?()=>tree.root.findByType('Man
  :panel==='availability'?()=>tree.root.findByType('Availability' as any).props.onSave({...availability(),availableNow:true})
  :()=>action('Sačuvaj i aktiviraj profil').props.onPress();
 const panelBack=(panel:string)=>panel==='availability'?tree.root.findByType(CalendarScreen).props.back:tree.root.findByType('Frame' as any).props.back;
+it('a retired-field review refusal keeps a guarded restart path after same-review readback',async()=>{
+ await render();await enterPanel('review');
+ mockApi.save.mockResolvedValue({ok:false,kod:'WORKER_AI_STALE',poruka:'Pokreni nov razgovor.'});
+ await click('Sačuvaj i aktiviraj profil');
+ expect(action('Novi razgovor').props.disabled).toBe(true);
+ expect(action('Sačuvaj i aktiviraj profil').props.disabled).toBe(true);
+ await click('Novi razgovor');expect(mockApi.abandon).not.toHaveBeenCalled();expect(sheets()).toHaveLength(0);
+ await click('Proveri stanje');
+ expect(action('Novi razgovor').props.disabled).toBe(false);
+ expect(action('Sačuvaj i aktiviraj profil').props.disabled).toBe(true);
+ await click('Sačuvaj i aktiviraj profil');expect(mockApi.save).toHaveBeenCalledTimes(1);
+ await click('Novi razgovor');expect(sheets()).toHaveLength(1);
+ await answer('confirm-sheet-cancel');expect(mockApi.abandon).not.toHaveBeenCalled();
+ mockApi.abandon.mockImplementation(async()=>{mockApi.read.mockResolvedValue(ok({...reviewed(),status:'ABANDONED'}));return ok({...reviewed(),status:'ABANDONED'});});
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('P5: the worker calendar retires editing for the whole conversation read',async()=>{
  mockRealAvailability=true;await render();await enterPanel('availability');
  const retainedChange=tree.root.findByType('Switch' as any).props.onValueChange;

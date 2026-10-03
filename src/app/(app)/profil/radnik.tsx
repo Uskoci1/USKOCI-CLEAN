@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, BackHandler } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
 import { brandAction } from '../../../ui/system/tokens';
@@ -85,7 +86,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const focus = lifecycle.current.focus, generation = lifecycle.current.generation, renderedDraft = draftGeneration.current;
   const current = () => owns() && !!focus && lifecycle.current.focus === focus && lifecycle.current.active && lifecycle.current.generation === generation;
   const enabled = current() && !resumeRequired && !transportBusy && !editor.busy && !editor.loading && !editor.error && !editor.uncertain;
-  const back = () => { if (!current()) return; if (router.canGoBack()) router.back(); else router.replace('/profil'); };
+  const goBack = () => { if (!current()) return; if (router.canGoBack()) router.back(); else router.replace('/profil'); };
   const change = (value: WorkerDraft) => {
     if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
     setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null); setFocusRequest(null);
@@ -93,7 +94,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const save = async (activate: boolean) => {
     if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate);
-    if (!built.command) { setValidation(built.error ?? 'Proveri unos.'); return; }
+    if (!built.command) {
+      setValidation(built.error ?? 'Proveri unos.');
+      const value = draftRef.current.value;
+      const target = value.newSkill.trim() ? 'skill' : value.newTool.trim() ? 'tool' : value.newVehicle.trim() ? 'vehicle' : null;
+      if (target) setFocusRequest({ target, token: ++focusRequestSequence.current });
+      return;
+    }
     const attempt = pendingRef.current ?? { command: built.command, expected: built.expected!, profileId: draftRef.current.profileId, afterRead: readSequence.current };
     await editor.save(async () => {
       transportRef.current = true; setTransportBusy(true); pendingRef.current = attempt; setPending(attempt); setMessage(null); setValidation(null);
@@ -136,28 +143,40 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const status = profile?.stanje ?? null;
   const firstSave = profile === null;
   const localDirty = !!draft && JSON.stringify(draft.value) !== JSON.stringify(draft.initial);
+  const leave = useUnsavedProfileBack({ dirty: localDirty, busy: transportBusy || editor.busy, uncertain: !!pending || editor.uncertain,
+    revision: draftGeneration.current, onBack: goBack });
+  const pendingBack = () => {
+    if (!transportRef.current && !pendingRef.current) return false;
+    setValidation('Prvo proveri ishod čuvanja. Tvoj unos je zadržan.'); return true;
+  };
+  const back = () => { if (current() && !pendingBack()) leave.back(); };
+  // A local unconfirmed command must stay owned until readback. Hardware Back follows the same boundary.
+  useFocusEffect(useCallback(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!transportRef.current && !pendingRef.current) return false;
+      setValidation('Prvo proveri ishod čuvanja. Tvoj unos je zadržan.'); return true;
+    });
+    return () => subscription.remove();
+  }, []));
   const showFooter = (status !== 'ACTIVE' && status !== 'SUSPENDED') || localDirty || !!pending || transportBusy
     || editor.busy || editor.loading || editor.uncertain || !!editor.error || !!validation || !!message;
   const value = draft?.value;
   const basicsReady = !!value && value.ime.trim().length >= 2 && value.vestine.length > 0;
   const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
     && Number(value.radius) >= 1 && Number(value.radius) <= 200;
-  const capacityReady = !!value && /^[0-9]{1,2}$/.test(value.capacity) && Number(value.capacity) >= 1 && Number(value.capacity) <= 50;
   // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
-  // the primary still has to load the capacity revision or save a change first.
+  // the primary still has to save a change first.
   const primary: { label: string; run: () => void; activates?: boolean } = (() => {
     if (status === 'ACTIVE' || status === 'SUSPENDED') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (firstSave) return { label: 'Sačuvaj profil', run: () => { void save(false); } };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
-    if (value?.capacityRevision === null) return { label: 'Učitaj kapacitet profila', run: refresh };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
     if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide((value?.ime.trim().length ?? 0) >= 2 ? 'skill' : 'name',
       'Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.') };
-    if (!capacityReady) return { label: 'Unesi kapacitet tima', run: () => guide('capacity', 'Unesi kapacitet od 1 do 50 ljudi.') };
     return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); }, activates: true };
   })();
-  // The other way to fill this in, not the first thing on it: a row near the end of the form, behind the same guards.
+  // The main setup entry preserves the same ownership and pending-save guards as manual corrections.
   const openConversation = () => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
@@ -177,7 +196,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
-        checks={{ basics: basicsReady, area: locationReady, capacity: capacityReady }} readyToActivate={!!primary.activates && !pending}
+        checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
         openConversation={openConversation} profileExists={profile !== null} />}
+    {leave.sheet}
   </WorkerProfileFrame>;
 }

@@ -47,6 +47,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const draftRevision=useRef(0);
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
+  const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
@@ -99,6 +100,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   },[invalid,owns,openKey,accountId]);
   const editor=useOwnedEditor(read);refreshRef.current=editor.refresh;
   const data=editor.data,renderedFocus=focus.current;
+  const reviewNeedsRestart=!!rejectedReviewId&&data?.review?.reviewId===rejectedReviewId&&!data.saved;
+  useEffect(()=>{if(data&&data.review?.reviewId!==rejectedReviewId)setRejectedReviewId(null);},[data?.review?.reviewId,rejectedReviewId]);
   const [,expireReview]=useState(0);
   useEffect(()=>{
     if(!data?.review||data.saved)return;
@@ -187,11 +190,17 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       if(current()&&result.ok){showPanel('chat');saveKey.current=null;}return current()?result:unavailable();});
   };
   const save=async()=>{
-    const reviewed=data?.review;if(!canAct()||!enabled||!writable||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
+    const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
     if(saveKey.current?.reviewId!==reviewed.reviewId)saveKey.current={reviewId:reviewed.reviewId,key:noviUuidZahtevId()};
     const key=saveKey.current.key;
     await savePanel(async()=>{const saved=await api.save(reviewed,key);if(!current())return unavailable();
-      const result=await read();if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId)return result;return saved.ok?result:saved;});
+      const result=await read();if(!current())return unavailable();
+      if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId)return result;
+      // A retired-field review may be rejected although its older source hash
+      // still matches. Keep that refusal scoped to this review through a read;
+      // never silently alter its frozen content or relax uncertain-write guards.
+      if(!saved.ok&&saved.kod==='WORKER_AI_STALE')setRejectedReviewId(reviewed.reviewId);
+      return saved.ok?result:saved;});
   };
   const restart=()=>{
     if(!canAct()||voiceBusy||!data)return;
@@ -225,7 +234,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
     return <WorkerProfileFrame back={back} footer={data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:<>
       <V2Action tone="neutral" label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
-        disabled={!enabled||!writable||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
+        disabled={!enabled||!writable||reviewNeedsRestart||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
@@ -236,9 +245,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {data.profileStatus==='DRAFT'&&!data.saved?<WorkerAiActivation activate={frozen.activate} disabled={!enabled} change={value=>{void review(value);}}/>:null}
       {expired&&!data.saved?<V2Action tone="neutral" label="Učitaj novi pregled" disabled={!enabled} onPress={()=>{void review(frozen.activate);}}/>:null}
       {editor.error?<T accessibilityRole="alert" tone="danger">{editor.error}</T>:null}
+      {reviewNeedsRestart?<>
+        <T variant="note" tone="muted">{editor.uncertain?'Proveri stanje, pa otvori nov razgovor.':'Ovaj predlog više ne može da se sačuva. Novi razgovor kreće od tvog sačuvanog profila.'}</T>
+        <V2Action tone="neutral" label="Novi razgovor" disabled={!enabled} onPress={restart}/>
+      </>:null}
       {!data.saved?<><V2Action tone="neutral" label="Ručno uredi podatke" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('manual');}}/>
         <V2Action tone="neutral" label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('availability');}}/>
         <V2Action tone="neutral" label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={back}/></>:null}
+      {confirmSheet.sheet}
     </WorkerProfileFrame>;
   }
   // Editing by hand and the week are "sometimes" actions: they live behind "···", not at the end of every conversation.
@@ -254,14 +268,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
   const hasProfileContent = data.messages.some(message => message.role === 'USER')
-    || data.candidate.skills.length > 0 || data.candidate.tools.length > 0 || data.candidate.licenses.length > 0
+    || data.candidate.skills.length > 0 || data.candidate.tools.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Šta umeš da radiš?'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja.'}
+    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje poslove želiš da radiš?'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci čime se baviš i šta umeš. Zajedno ćemo složiti tvoj radni profil.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
@@ -286,7 +300,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       </>:null}
       {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:null}
-      {(pending.current||data.stale||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action tone="neutral" label="Novi razgovor" kind="quiet" disabled={!canAct()} onPress={restart}/>:null}
+      {(pending.current||data.stale||reviewNeedsRestart||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action tone="neutral" label="Novi razgovor" kind="quiet" disabled={!canAct()||voiceBusy} onPress={restart}/>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
       {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,

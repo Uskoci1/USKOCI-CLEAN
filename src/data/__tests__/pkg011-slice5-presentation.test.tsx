@@ -20,34 +20,35 @@ const inputs = () => tree.root.findAllByType('TextInput' as React.ElementType).m
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const draft = (patch: Partial<WorkerDraft> = {}): WorkerDraft => ({ ime: 'Marko Marić', capacity: '2', capacityRevision: 3, vestine: ['Selidbe', 'Montaža'], newSkill: '', alati: ['Kolica'], newTool: '',
   vozila: [], newVehicle: '', licence: [], newLicense: '', grad: 'Novi Sad', radius: '25', biografija: '', dostupanOdmah: false, ...patch } as WorkerDraft);
-const change = jest.fn(), navigate = jest.fn();
-beforeEach(() => { change.mockClear(); navigate.mockClear(); });
+const change = jest.fn(), navigate = jest.fn(), openConversation = jest.fn();
+beforeEach(() => { change.mockClear(); navigate.mockClear(); openConversation.mockClear(); });
 function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDraft; status?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; disabled?: boolean }) {
-  return <WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={value} change={change} disabled={disabled} status={status} navigate={navigate} /></WorkerProfileFrame>;
+  return <WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={value} change={change} disabled={disabled} status={status} navigate={navigate} openConversation={openConversation} /></WorkerProfileFrame>;
 }
-// Recomposed 2026-09-24 (owner step 9): no hero repeating the hub's identity, the activation state first, tools and
-// vehicles always visible with their pictures behind "Brzi izbor", and the area and availability as rows to their editors.
-test('the frame says what the screen is for and names no app mode; the form leads with the activation state, keeps every field label as its spoken name and offers pictures behind a row', async () => {
+test('the personal profile leads to AI setup and shows saved facts with one manual correction section at a time', async () => {
   await act(async () => { tree = create(<Screen value={draft()} />); });
   const copy = texts();
-  expect(copy).toContain('Veštine, alat i tim'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
+  expect(copy).toContain('Radni profil'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
   expect(tree.root.findAll(node => node.props && 'initials' in node.props)).toHaveLength(0);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Ime na radnom profilu' }).props.value).toBe('Marko Marić');
+  expect(copy).toContain('Marko Marić');
   expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
-  expect(inputs()).toEqual(expect.arrayContaining(['Ime na radnom profilu', 'Koliko ljudi možeš da obezbediš', 'Nova stavka: Veštine i usluge',
-    'Nova stavka: Alat i oprema', 'Nova stavka: Vozila']));
-  expect(inputs()).not.toContain('Grad ili mesto rada'); expect(inputs()).not.toContain('Radijus rada (km)');
+  expect(inputs()).toEqual([]);
+  expect(labels()).not.toContain('Brzi izbor alata');
+  await act(async () => byLabel('Uredi profil kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Izmeni: O meni').props.onPress());
+  expect(inputs()).toEqual(['Ime na radnom profilu', 'O tvom iskustvu']);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Ime na radnom profilu' }).props.value).toBe('Marko Marić');
+  await act(async () => byLabel('Izmeni: Alat i oprema').props.onPress());
+  expect(inputs()).toEqual(['Nova stavka: Alat i oprema']);
   expect(labels()).toContain('Ukloni alat i oprema: Kolica');
-  expect(byLabel('Brzi izbor alata').props.accessibilityState).toEqual({ expanded: false });
-  expect(tree.root.findAllByProps({ accessibilityRole: 'checkbox', accessibilityLabel: 'Transportna kolica' })).toHaveLength(0);
-  await act(async () => byLabel('Brzi izbor alata').props.onPress());
-  expect(tree.root.findAll(node => node.props?.accessibilityRole === 'checkbox' && node.props?.accessibilityLabel === 'Transportna kolica').length).toBeGreaterThan(0);
+  await act(async () => byLabel('Izmeni: Veštine i usluge').props.onPress());
+  expect(inputs()).toEqual(['Nova stavka: Veštine i usluge']);
   await act(async () => byLabel('Ukloni veštine i usluge: Selidbe').props.onPress()); expect(change).toHaveBeenCalledWith(expect.objectContaining({ vestine: ['Montaža'] }));
   await act(async () => byLabel('Dostupnost').props.onPress()); expect(navigate).toHaveBeenCalledWith('/profil/dostupnost');
 });
 test('status follows the server state and availability is a read-only summary, never a switch', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Status „Mogu odmah“ je uključen');
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah · pogledaj raspored');
   expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
@@ -127,12 +128,13 @@ test('the body closes the keyboard on a drag, so the footer can come back withou
   await act(async () => { tree = create(<Screen value={draft()} />); });
   expect(['on-drag', 'interactive']).toContain(tree.root.findByType('ScrollView' as React.ElementType).props.keyboardDismissMode);
 });
-// Round 5c: the capacity note keys on whether a profile exists, not on its state (a saved profile's state can be unknown).
-test('a saved profile with an unknown state says the capacity is not loaded yet, not that it must be saved', async () => {
-  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null })} change={change}
+test('unknown or absent profile state does not expose retired licenses or a capacity prerequisite', async () => {
+  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null, licence: ['B, C'] })} change={change}
     disabled={false} status={null} navigate={navigate} profileExists /></WorkerProfileFrame>); });
-  expect(texts()).toContain('Kapacitet profila još nije učitan.'); expect(texts()).not.toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
+  expect(texts()).not.toMatch(/Kapacitet profila|Licence|B, C|Sačuvaj profil da bi se broj ljudi potvrdio/);
+  expect(inputs()).toEqual([]);
   await act(async () => tree.update(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null })} change={change}
     disabled={false} status={null} navigate={navigate} /></WorkerProfileFrame>));
-  expect(texts()).toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
+  expect(texts()).not.toMatch(/Kapacitet profila|Sačuvaj profil da bi se broj ljudi potvrdio/);
+  expect(texts()).toContain('njihov broj navodiš u toj ponudi');
 });

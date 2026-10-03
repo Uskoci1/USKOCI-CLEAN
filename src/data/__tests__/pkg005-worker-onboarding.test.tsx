@@ -80,18 +80,17 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/profil/lokacija');
   });
 
-  it('refreshes a DRAFT that has no capacityRevision instead of constructing a predictable failed activation', async () => {
+  it('activates a ready personal profile without requiring legacy capacityRevision', async () => {
     readProfile.mockResolvedValue(readyDraft({ capacityRevision: null }));
     await render();
 
-    expect(action('Učitaj kapacitet profila')).toBeTruthy();
-    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Proveri i aktiviraj profil')).toHaveLength(0);
-    await act(async () => action('Učitaj kapacitet profila').props.onPress());
-    expect(writeProfile).not.toHaveBeenCalled();
-    expect(readProfile.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(action('Učitaj kapacitet profila')).toBeUndefined();
+    expect(action('Proveri i aktiviraj profil')).toBeTruthy();
+    await act(async () => action('Proveri i aktiviraj profil').props.onPress());
+    expect(writeProfile).toHaveBeenCalledWith({ zavrsi: true });
   });
 
-  it('exposes activation only when canonical draft, capacity, area and minimum profile facts are all present', async () => {
+  it('exposes activation when canonical draft, area and minimum personal profile facts are present', async () => {
     readProfile.mockResolvedValue(readyDraft());
     await render();
 

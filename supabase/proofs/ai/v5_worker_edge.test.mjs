@@ -8,7 +8,7 @@ const turn=(state='SUCCEEDED')=>({turnId,conversationId:conversation,clientReque
 function fixture(options={}){
  let handler;const calls=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'PUBLIC_SYNTHETIC',SUPABASE_SERVICE_ROLE_KEY:'SERVICE_SYNTHETIC',
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'PROVIDER_SYNTHETIC',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
- const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari'],teamCapacity:3}};
+ const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari'],tools:['Kolica']}};
  const fetch=async(url,init={})=>{
   calls.push({url:String(url),body:init.body?JSON.parse(init.body):null,init,abortedAtCall:init.signal?.aborted});
   if(url.endsWith('/auth/v1/user'))return json(options.auth??{id:account});
@@ -40,8 +40,11 @@ function fixture(options={}){
   return new vm.Script(`(function(exports,require){${compiled.outputText}\nreturn exports;})`,{filename:file}).runInContext(context)({},name=>{
    assert.ok(Object.hasOwn(imports,name),'UNDECLARED_IMPORT');return imports[name];});
  };
- const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts'),stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts');
- evaluate('supabase/functions/uskoci-worker-interview/index.ts',{'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream});
+ const availability=evaluate('src/contracts/aiAvailability.ts');
+ const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts'),stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',
+  {'../../../src/contracts/aiAvailability.ts':availability});
+ evaluate('supabase/functions/uskoci-worker-interview/index.ts',{'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
+  '../../../src/contracts/aiAvailability.ts':availability});
  return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
 }
@@ -73,16 +76,33 @@ for(const context of [{schemaVersion:'NEED_FACT_V2'},{schemaVersion:'WORKER_PROF
  const f=fixture({context});assert.equal((await f.invoke()).status,409);assert.equal(providers(f).length,0);assert.ok(!f.calls.some(c=>c.url.includes('budget')));
 });
 test('model cannot add task facts, verified fields or invented coordinates',async()=>{
- for(const patch of [{'need.title':'Wrong schema'},{verifiedIdentity:true},{location:{approximatePosition:{latitude:44.81,longitude:20.46}}}]){
+ for(const patch of [{'need.title':'Wrong schema'},{verifiedIdentity:true},{location:{approximatePosition:{latitude:44.81,longitude:20.46}}},
+  {licenses:['SYNTHETIC_LICENSE']},{teamCapacity:3},{excludedWork:['SYNTHETIC_EXCLUSION']},{urgentNotifications:true}]){
   const f=fixture({output:{assistantMessage:'Test',safety:'ALLOW',patch}}),es=await events(f);
   assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,1);
   assert.ok(!es.some(e=>e.kind==='text_delta'),'invalid output is never presented to the person');
  }
 });
 
+test('personal interview filters obsolete fields without changing the owned V1 candidate or inventing preferences',async()=>{
+ const candidate={displayName:'Ana',bio:'',skills:['Selidbe'],tools:['Kolica'],vehicles:['Kombi'],licenses:['PRIVATE_LEGACY_LICENSE'],teamCapacity:37,
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:20},availability:{timezone:'Europe/Belgrade',availableNow:false,rules:[],windows:[]}};
+ const f=fixture({context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',
+  candidate,messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]}});
+ const es=await events(f);assert.equal(es.at(-1).kind,'final');
+ const provider=providers(f)[0].body,prompt=provider.systemInstruction.parts[0].text;
+ assert.ok(!prompt.includes('PRIVATE_LEGACY_LICENSE'));assert.ok(!prompt.includes('"teamCapacity"'));
+ assert.ok(prompt.includes('"tools":["Kolica"]'));assert.ok(prompt.includes('"vehicles":["Kombi"]'));
+ const fields=provider.generationConfig.responseSchema.properties.patch.properties;
+ assert.ok(!Object.hasOwn(fields,'licenses'));assert.ok(!Object.hasOwn(fields,'teamCapacity'));
+ assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
+ assert.equal(candidate.teamCapacity,37);assert.deepEqual(candidate.licenses,['PRIVATE_LEGACY_LICENSE']);
+ assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('no separate exclusion or urgent-notification preference field'));
+});
+
 for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
  test('finish request hands off to profile review without another availability question: '+input,async()=>{
-  const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{teamCapacity:50}};
+  const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{tools:['Izmišljeni alat']}};
   const f=fixture({output}),es=await events(f,{text:input});
   assert.equal(es.at(-1).kind,'final');
   const applied=completions(f)[0].body.p_output;
@@ -94,7 +114,7 @@ for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'
  });
 
 test('finish handling does not swallow a correction or override a safety refusal',async()=>{
- for(const input of ['Nemoj još da sačuvaš.','Sačuvaj, ali promeni da nas je troje.']){
+ for(const input of ['Nemoj još da sačuvaš.','Sačuvaj, ali dodaj da imam kolica.']){
   const f=fixture(),es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
   assert.deepEqual(completions(f)[0].body.p_output,f.output);
  }

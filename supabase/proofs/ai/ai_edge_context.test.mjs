@@ -74,7 +74,8 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     fetch:fakeFetch,console:{error:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
   const cache=new Map();
   function load(file){
-    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
+    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
+      resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
     if(cache.has(file))return cache.get(file).exports;
     const source=readFileSync(file,'utf8');
     const result=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true,fileName:file});
@@ -137,7 +138,7 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
   const promptRegistry=JSON.parse(prompt(call).split('Jedini podržani V2 fact registry: ')[1]);
-  assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]);
+  assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS].filter(key=>key!=='need.required_licenses'));
   assert.deepEqual(promptRegistry.map(fact=>fact.key),allowedKeys);
   assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
   assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(!allowedKeys.includes('need.resolved_location'));
@@ -145,6 +146,18 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   assert.ok(!allowedKeys.includes('need.public_photo_paths'));
   assert.equal(f.registry.NEED_FACT_V2_DEFINITIONS['need.public_photo_paths'].manualOnly,true);
   assert.ok(f.registry.NEED_FACT_V2_KEYS.includes('need.resolved_location'),'manual form still owns the full registry key');
+  assert.ok(!allowedKeys.includes('need.required_licenses'));
+  assert.ok(f.registry.NEED_FACT_V2_KEYS.includes('need.required_licenses'),'historical licence facts remain decodable');
+});
+
+test('retired licence requirements remain readable but never reach new task inference or proposals',async()=>{
+  const historical={fact_key:'need.required_licenses',fact_value:['PRIVATE_HISTORICAL_LICENSE'],value_type:'STRING_ARRAY',display_value:'Legacy requirement',
+    status:'CONFIRMED',source:'AI',fact_schema_version:'NEED_FACT_V2',created_at:'2026-09-07T10:00:00Z'};
+  const f=fixture({activeFacts:[historical]});assert.equal((await f.invoke()).status,200);
+  assert.ok(!prompt(providerCall(f)).includes('PRIVATE_HISTORICAL_LICENSE'));
+  assert.match(prompt(providerCall(f)),/Ne pitajte za njih i ne predlažite need.required_licenses/);
+  const rejected=fixture({providerOutput:{...providerResult,facts:[{key:'need.required_licenses',valueJson:'["LICENSE"]',displayValue:'LICENSE',evidence:userText,confidence:1}]}});
+  assert.equal((await rejected.invoke()).status,502);assert.equal(materialWrites(rejected).length,0);
 });
 
 for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
@@ -188,6 +201,10 @@ test('the closed list of failure classes names every failure this function and i
   const sources=[entry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts')].map(file=>readFileSync(file,'utf8'));
   const handler=sources[0],listed=new Set(handler.match(/const OWN_FAILURE_NAMES = new Set\(\[([^\]]+)\]\)/)[1].match(/[A-Z][A-Z0-9_]+/g));
   const thrown=new Set(sources.flatMap(source=>[...source.matchAll(/new Error\(([^)]*)\)/g)].map(match=>match[1])));
+  // This existing typed provider-status error uses a shared literal, not Error('...').
+  assert.match(sources[2],/class GeminiCreditsUnavailableError extends Error[^]*?super\(AI_CREDITS_UNAVAILABLE\)/);
+  assert.match(readFileSync(resolve(root,'src/contracts/aiAvailability.ts'),'utf8'),/AI_CREDITS_UNAVAILABLE = 'AI_CREDITS_UNAVAILABLE'/);
+  thrown.add("'AI_CREDITS_UNAVAILABLE'");
   for(const argument of thrown){assert.match(argument,/^'[A-Z][A-Z0-9_]+'$/,'a failure is thrown with a text that is not a fixed name');assert.ok(listed.has(argument.slice(1,-1)),'a thrown failure name is missing from the closed list');}
   assert.equal(listed.size,thrown.size);
   // The one line that logs a failed provider call takes its second value from the classifier and from nowhere else.

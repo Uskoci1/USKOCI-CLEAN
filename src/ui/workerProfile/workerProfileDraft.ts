@@ -1,4 +1,3 @@
-import { workerCapacityRevision, workerCapacityValue } from '../../contracts/workerCapacity';
 import type { RadnikProfilProjekcija } from '../../contracts/projections';
 import type { AzurirajProfilKomanda } from '../../data/ports';
 import { capabilityTerms } from '../../lib/capabilityTerms';
@@ -18,15 +17,14 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   if (draft.grad !== initial.grad || draft.radius !== initial.radius || draft.dostupanOdmah !== initial.dostupanOdmah) {
     return { error: 'Mesto i radijus menjaj u području rada, a dostupnost u podešavanju dostupnosti.' };
   }
-  const capacityChanged = draft.capacity !== initial.capacity;
-  if ((capacityChanged || activate) && (!/^[0-9]{1,2}$/.test(draft.capacity) ||
-      !workerCapacityValue(Number(draft.capacity)) || !workerCapacityRevision(initial.capacityRevision))) {
-    return { error: 'Najpre sačuvaj i učitaj profil, zatim unesi kapacitet od 1 do 50 ljudi.' };
+  // Deprecated server fields are retained for compatibility, never edited or re-saved by this personal profile.
+  if (draft.capacity !== initial.capacity || !equal(draft.licence, initial.licence) || draft.newLicense.trim()) {
+    return { error: 'Licence i kapacitet tima više se ne podešavaju u profilu.' };
   }
-  const lists = { vestine: capabilityTerms(draft.vestine), alati: capabilityTerms(draft.alati), vozila: capabilityTerms(draft.vozila), licence: capabilityTerms(draft.licence) };
+  const lists = { vestine: capabilityTerms(draft.vestine), alati: capabilityTerms(draft.alati), vozila: capabilityTerms(draft.vozila) };
   if (Object.values(lists).some(value => value === null)) return { error: 'Svaka lista može imati do 50 stavki, do 500 znakova po stavci.' };
   const values = { ime: draft.ime.trim(), grad: draft.grad.trim(), biografija: draft.biografija.trim(),
-    vestine: lists.vestine!, alati: lists.alati!, vozila: lists.vozila!, licence: lists.licence!, radijusKm: Number(draft.radius), dostupanOdmah: draft.dostupanOdmah };
+    vestine: lists.vestine!, alati: lists.alati!, vozila: lists.vozila!, radijusKm: Number(draft.radius), dostupanOdmah: draft.dostupanOdmah };
   if (activate && (values.ime.length < 2 || values.grad.length < 2 || !values.vestine.length)) {
     return { error: 'Za aktivaciju unesi ime od najmanje 2 znaka i bar jednu veštinu; mesto potvrdi u području rada.' };
   }
@@ -37,10 +35,9 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   for (const key of Object.keys(values) as (keyof typeof values)[]) {
     if (!['grad', 'radijusKm', 'dostupanOdmah'].includes(key) && !equal(values[key], before[key])) Object.assign(command, { [key]: values[key] });
   }
-  if (capacityChanged) Object.assign(command, { kapacitetTima: Number(draft.capacity), capacityRevision: initial.capacityRevision });
   // Activation confirms the visible profile, including unchanged fields. A
   // concurrent edit must not turn a different profile into a claimed success.
-  return { command, expected: activate ? { ...values, kapacitetTima: Number(draft.capacity), zavrsi: true } : command };
+  return { command, expected: activate ? { ...values, zavrsi: true } : command };
 }
 /**
  * Quick picks (presentation only). A picture tile inserts its catalog label as the same free text a person could type

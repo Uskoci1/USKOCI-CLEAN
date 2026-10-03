@@ -67,7 +67,7 @@ describe('real profile hub', () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  it.each([['Veštine, alat i tim', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar obaveza', '/raspored']])
+  it.each([['Radni profil', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar obaveza', '/raspored']])
     ('offers %s to every account, without entering any mode first', async (label, route) => {
       mockIntent = 'narucilac'; await render();
       await act(async () => tree.root.findByProps({ label }).props.onPress());
@@ -176,7 +176,7 @@ describe('real profile hub', () => {
 
   it('opens the capability editor from the one hub, and with no history Back goes to Početna', async () => {
     await render();
-    await act(async () => tree.root.findByProps({ label: 'Veštine, alat i tim' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Radni profil' }).props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/radnik');
     await act(async () => tree.unmount());
     mockRouter.canGoBack.mockReturnValue(false);

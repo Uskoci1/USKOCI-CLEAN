@@ -313,7 +313,9 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.minimum_experience_years', 'need.category', 'need.required_skills', 'need.required_tools',
       'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions']));
-    expect(lf(TI)).toContain("key: { type: 'STRING', enum: AI_PROPOSABLE_NEED_FACT_V2_KEYS }");
+    // Historical registry remains readable; current interviews retire licence requirements.
+    expect(lf(TI)).toContain("AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key => key !== 'need.required_licenses')");
+    expect(lf(TI)).toContain("key: { type: 'STRING', enum: INTERVIEW_NEED_FACT_V2_KEYS }");
     expect(lf(TI)).toContain("if (key === 'need.minimum_experience_years') return Number(value) >= 0 && Number(value) <= 60;");
     // X-10: the facts the interview still asks for are not the matcher inputs
     const asked = between(lf(TI), "const missing = ['need.description'", ".filter(key => !facts.has(key));");
