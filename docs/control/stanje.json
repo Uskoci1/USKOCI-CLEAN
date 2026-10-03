@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T12:22:54Z",
-  "grana": "HEAD",
-  "head": "a7904583",
-  "head_poruka": "Unify amount and team illustrations across connected task surfaces",
+  "osvezeno": "2026-10-03T12:48:45Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "c1234f45",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1684,6 +1684,109 @@
     "phone": "Unplugged; remains cb96."
    },
    "boundary": "No new native artwork or depth acceptance, phone parity, performance, whole-app, provider, push-transport or store claim. No backend/dependency changes."
+  },
+  "ae76_native_depth_controls_20261003": {
+   "state": "BOUNDED EMULATOR ACCEPTANCE / actual Home, Profile, Agreements, Applications and D06; availability/time fixture only",
+   "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+   "source": "ae76a8a9005ec87856c35a3440bb4a470e22daca",
+   "emulator_build": 37121336496,
+   "apk_sha256": "abb5d84ca0803293b46eb0e5ea6a413f4106ab4bc0960ae96c3818c70ecc96bc",
+   "ci_run": 37121358579,
+   "ci": "SUCCESS",
+   "evidence_origin": "Root actual emulator execution and review; documentation agent enumerated existing private capture files, no device actions.",
+   "actual": "Home/Profile48dp edit retains name-edit route; Agreements1.15/1.3, Applications1.3/full-note disclosure and navigation accepted. D06 empty scope hidden, explicitly revealed, local text typed then cleared with input/keyboard retained, discarded and reopened collapsed. No proposal prepare/send.",
+   "fixture": "Existing dizajn-kalendar/noopSave only: copy disclosure, Saturday replacement warning, local copy/discard restore; separate warning/cancel. Native hour/minute contrast corrected,09:15 selected locally then rule cancelled; picker cancel retains09:00. No saved availability/business write.",
+   "captures": {
+    "actual": [
+     "depth-emu-home-settled-ae76",
+     "depth-emu-profile-ae76",
+     "depth-emu-profile-edit-ae76",
+     "depth-emu-agreements-ae76",
+     "depth-emu-agreements-130-ae76",
+     "depth-emu-agreements-lower-130-ae76",
+     "depth-emu-applications-130-ae76",
+     "depth-emu-application-note-130-ae76",
+     "depth-emu-actions-hub-ae76",
+     "depth-emu-empty-scope-ae76",
+     "depth-emu-scope-expanded-ae76",
+     "depth-emu-scope-cleared-keyboard-ae76",
+     "depth-emu-scope-reset-ae76",
+     "depth-emu-single-peek-ae76",
+     "depth-emu-single-detail-ae76",
+     "depth-emu-single-return-ae76"
+    ],
+    "fixture": [
+     "depth-emu-calendar-gallery-ae76",
+     "depth-emu-availability-collapsed-ae76",
+     "depth-emu-availability-copy-ae76",
+     "depth-emu-copy-picker-ae76",
+     "depth-emu-copy-replace-ae76",
+     "depth-emu-availability-discard-ae76",
+     "depth-emu-copy-warning-ae76",
+     "depth-emu-rule-editor-ae76",
+     "depth-emu-time-picker-ae76",
+     "depth-emu-time-minutes-ae76",
+     "depth-emu-time-selected-ae76",
+     "depth-emu-time-cancelled-ae76"
+    ]
+   },
+   "pending": "Moneyv3/Peoplev2 are absent from ae76; later bounded a790 acceptance is recorded separately in money_people_art_native_20261003.",
+   "later_artwork": {
+    "source_prefix": "a790",
+    "ci_run": 37122685412,
+    "ci": "SUCCESS",
+    "emulator_build": 37122683343,
+    "build_state": "SUCCESS; exact source/tree and recovery/icon/Reanimated attestations PASS",
+    "apk_sha256": "77269cf9b87302e733da9897679b00843fe5678bd5abc0c113793fca63400ffe",
+    "installation": "SUCCESS; UID10227 preserved, installed SHA verified",
+    "source": "a79045833fa28b04dc62c8b3d85be487f19a4fa6",
+    "source_tree": "833df66f1b77540c459209151ae762e9f2490046",
+    "native": "Bounded acceptance only; see money_people_art_native_20261003."
+   },
+   "phone": "Unplugged; cb96 evidence remains historical.",
+   "boundary": "No whole-app, hardware-phone parity, motion/performance, server/provider, publication, push or store acceptance. Existing62 rows and status lights unchanged.",
+   "map": "Root confirmed actual single peek -> own task detail -> Back preserves the same peek/title, selected orange halo, visible map paths/zoom/filter. Bounded visible retention only; no native-instance, motion or latency claim.",
+   "excluded_capture": "depth-emu-restored-ae76 shows Home after font change; not Availability fixture evidence."
+  },
+  "money_people_art_native_20261003": {
+   "state": "BOUNDED EMULATOR NATIVE ACCEPTANCE / Money24,32 and People24,28 at actual selected callers",
+   "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+   "source": "a79045833fa28b04dc62c8b3d85be487f19a4fa6",
+   "source_tree": "833df66f1b77540c459209151ae762e9f2490046",
+   "emulator_build": 37122683343,
+   "apk_sha256": "77269cf9b87302e733da9897679b00843fe5678bd5abc0c113793fca63400ffe",
+   "attestations": [
+    "recovery PASS",
+    "icon PASS",
+    "reanimated-patch PASS"
+   ],
+   "installed_uid": 10227,
+   "installation": "SUCCESS; UID preserved and installed SHA verified",
+   "ci": {
+    "run": 37122685412,
+    "state": "SUCCESS",
+    "typescript": "PASS",
+    "focused_cases": 191,
+    "suites": 427,
+    "cases": 9368,
+    "snapshots": 6
+   },
+   "scope": "Root and independent visual review accept actual Money24 Application100RSD/Agreement100RSD, Money32 own closed3000RSD detail, People24 public OFFERS detail and People28 own count/actual Worker team. Actual Applications and Worker team also checked at1.3; font restored1.15. Actual a790 Home/Profile at1.15 also show discover52 art, real avatar/bell and separate48dp pencil.",
+   "observation": "Money engraving optically fine/small but banknote subject recognizable; no blocker in observed sizes. OFFERS retains tag, quiet people unchanged.",
+   "captures": [
+    "amount-people-emu-applications-a790",
+    "amount-people-emu-agreement-a790",
+    "amount-people-emu-task-a790",
+    "amount-people-emu-worker-team-a790",
+    "amount-people-emu-history-a790",
+    "amount-people-emu-own-detail-a790",
+    "amount-people-emu-applications-130-a790",
+    "amount-people-emu-worker-team-130-a790",
+    "amount-people-emu-home-a790",
+    "amount-people-emu-profile-a790"
+   ],
+   "limits": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance.",
+   "meta_receipt": "amount-people-emu-a790.json (installed APK SHA and font1.15 confirmed)"
   }
  },
  "redovi": [
@@ -1772,6 +1875,18 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Actual Home composition accepted.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual a790 Home/Profile1.15: discover52 artwork, real avatar/bell and separate48dp pencil visible.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "PROBLEM",
@@ -2548,6 +2663,18 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / visible map retention",
+     "scope": "Root confirmed actual single peek -> own task detail -> Back preserves the same peek/title, selected orange halo, visible map paths/zoom/filter. Bounded visible retention only; no native-instance, motion or latency claim.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; no native-instance or motion claim; existing lights unchanged."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual own closed detail Money32/People28;3000RSD and count preserved.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -3518,6 +3645,12 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual Worker team People28;1.3 heading wraps and count stepper remains unclipped.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "PROBLEM",
@@ -3725,6 +3858,12 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Internal fixture only: copy disclosure/replacement/local discard and time selection/cancel. No saved availability acceptance.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
     }
    },
    "ukupno": "PROBLEM",
@@ -4169,6 +4308,12 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / visible map retention",
+     "scope": "Root confirmed actual single peek -> own task detail -> Back preserves the same peek/title, selected orange halo, visible map paths/zoom/filter. Bounded visible retention only; no native-instance, motion or latency claim.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; no native-instance or motion claim; existing lights unchanged."
     }
    },
    "ukupno": "PROBLEM",
@@ -4682,6 +4827,12 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual public OFFERS detail People24; OFFERS retains its tag. No exact compact Money28 claim.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5066,6 +5217,18 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Actual Applications1.3 and full-note reveal accepted; no application command.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual Application Money24/100RSD;1.3 complete amount/basis, separate people and disclosure action.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "PROBLEM",
@@ -5258,6 +5421,12 @@
      "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
      "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Internal calendar gallery only; not actual appointment or backend acceptance.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
     }
    },
    "ukupno": "PROBLEM",
@@ -5354,6 +5523,12 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Actual Agreements1.15/1.3 and navigation accepted.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
     }
    },
    "ukupno": "PROBLEM",
@@ -5469,6 +5644,12 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual Agreement Money24/100RSD.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5935,6 +6116,12 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Actual empty-scope reveal/type/clear/discard/reopen accepted; no prepare/proposal send.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -7508,6 +7695,18 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "ae76_native_depth_controls_20261003": {
+     "state": "BOUNDED EMULATOR / fixture explicitly separated",
+     "scope": "Actual Profile and48dp edit entry accepted; same name-edit destination, no profile save.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
+     "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+    },
+    "money_people_art_native_20261003": {
+     "state": "BOUNDED EMULATOR NATIVE",
+     "scope": "Actual a790 Home/Profile1.15: discover52 artwork, real avatar/bell and separate48dp pencil visible.",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
+     "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
     }
    },
    "ukupno": "PROBLEM",
@@ -9686,5 +9885,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37122685412,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:55Z"
+  },
+  {
+   "id": 37122683343,
+   "ime": "Build Android development APK",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:53Z"
+  },
+  {
+   "id": 37122669107,
+   "ime": "Control tracker refresh",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37122669082,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37121358579,
+   "ime": "P5 ready task and matching contract",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:39Z"
+  },
+  {
+   "id": 37121336496,
+   "ime": "Build Android development APK",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:11Z"
+  },
+  {
+   "id": 37121302717,
+   "ime": "Control tracker refresh",
+   "sha": "e46b53c4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:57:32Z"
+  },
+  {
+   "id": 37119634429,
+   "ime": "P5 ready task and matching contract",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:26:00Z"
+  },
+  {
+   "id": 37119632905,
+   "ime": "Build Android development APK",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:58Z"
+  },
+  {
+   "id": 37119620151,
+   "ime": "Control tracker refresh",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:42Z"
+  },
+  {
+   "id": 37118306278,
+   "ime": "P5 ready task and matching contract",
+   "sha": "7b33392d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T11:01:19Z"
+  },
+  {
+   "id": 37118304645,
+   "ime": "Build Android development APK",
+   "sha": "7b33392d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:01:17Z"
+  }
+ ]
 }
