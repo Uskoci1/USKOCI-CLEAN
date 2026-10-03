@@ -28,9 +28,9 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 describe('the design board renders its wave-2 sections', () => {
   it('draws the bar preview, the whole glyph registry and the controls with their words', async () => {
     await act(async () => { tree = create(<DizajnTabla />); });
-    // The three tabs of the preview, the first chosen.
+    // The four tabs of the preview, including the Conversations inbox.
     const tabs = tree.root.findAll(node => typeof node.type !== 'string' && node.props.accessibilityRole === 'tab' && node.props.accessibilityState !== undefined);
-    expect([...new Set(tabs.map(tab => tab.props.accessibilityLabel))]).toEqual(['Početna', 'Zadaci', 'Dogovori']);
+    expect([...new Set(tabs.map(tab => tab.props.accessibilityLabel))]).toEqual(['Početna', 'Zadaci', 'Dogovori', 'Poruke']);
     // Every glyph once per size, once per tone but the white one, once on green, once as an on-state.
     const perName = GLYPH_SIZES.length + (GLYPH_TONES.length - 1) + 1 + 1;
     const drawn = tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.size === 'number' && typeof node.props.weight === 'string'

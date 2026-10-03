@@ -86,7 +86,7 @@ import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { TaskCard } from '../../ui/v2/TaskCard';
-import { sys } from '../../ui/system/tokens';
+import { materialControl, sys } from '../../ui/system/tokens';
 /** TaskCard is memoised; the test renderer holds the function it wraps. */
 const CARD = (TaskCard as unknown as { type: React.ElementType }).type;
 
@@ -2287,16 +2287,20 @@ test('at large text the search stays two lines with separate tools and the pin p
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
 });
 
-// Review of V47, items 17 and 19: over the map the pill is drawn by the card edge, and the chips carry no shadow that the
-// scrolling row would cut off; a chosen chip keeps its selected well, ink edge and words, and an ink tick.
-test('over the map: search and tools share one edge; a quick chip has no shadow and selection stays visible', async () => {
+// Material controls: the shared search surface owns its edge; quick filters use the approved raised/recessed treatment.
+// Selection stays explicit through the selected well, stronger edge, ink words, accessibility state and check.
+test('over the map: search and tools share one edge; material quick-chip selection stays visible', async () => {
   await render();
   expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
   const free = StyleSheet.flatten(quick('Navedena cena').props.style);
-  expect(free.boxShadow).toBeUndefined(); expect(free.elevation).toBeUndefined();
+  expect(free).toMatchObject({ backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, ...materialControl.raised });
+  expect(quick('Navedena cena').props.accessibilityState.selected).toBe(false);
+  expect(free.minHeight).toBeGreaterThanOrEqual(48);
   await act(async () => quick('Navedena cena').props.onPress());
   const chosen = quick('Navedena cena'), style = StyleSheet.flatten(chosen.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.ink });
+  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.lineStrong, ...materialControl.inset });
+  expect(chosen.props.accessibilityState.selected).toBe(true);
+  expect(style.minHeight).toBeGreaterThanOrEqual(48);
   expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
   expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
   // A condition under the count removes itself by name, and takes 48 to a finger.

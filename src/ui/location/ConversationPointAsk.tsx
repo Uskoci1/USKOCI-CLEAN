@@ -421,6 +421,8 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}
       presentation="conversation" onCorrectInConversation={leave}
+      conversationSummary={slots.length > 1 ? { title: title(activeSlot, geography),
+        description: points.find(point => point.slot === activeSlot)?.address || seed(activeSlot, review.value) } : undefined}
       onPromptReady={registerEditorPrompt}
       disabled={state.kind === 'SAVING' || inactive} onInvalidate={() => {
         if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);

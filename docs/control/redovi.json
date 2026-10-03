@@ -691,7 +691,13 @@
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
         "round73": "P6 obuhvat: kandidati po zadatku (rpc_list_need_candidates) ostaju kakvi su; obim po jednom zadatku je ograničen brojem prijava. Nije novo P6 programiranje.",
         "ex04": "S4 (round 76 + DEV 1.10.): serverski kandidat ex04d (dve NOVE funkcije: rpc_list_need_candidates_page = isti dokument kandidata kao puna lista u istom redosledu (podnošenje, id) + keyset vrednost, ukupan broj na prvoj strani; private.need_candidate_states_v5(uuid, uuid[]) = stanje PKG-035a ograničeno na prijave jedne strane) DOKAZAN na disposable lancu (run 36846103824, 17 provera; strana od 30 radi 30 javnih profila i 19 uparivanja naspram 136 i 125 za celu listu) i PRIMENJEN NA DEV 1.10. (migracija 20261001113815, ledger 218; postflight problems []); na pravim DEV podacima prva strana = rpc_list_need_candidates za svih 11 zadataka sa prijavama (14 prijava); klijent (pager, „Prikaži još“, cena i poređenje čitaju ostatak, prijave dve revizije zadatka se nikad ne prikazuju zajedno) iza EXPO_PUBLIC_EX04_CANDIDATES_PAGED (uključen SAMO u DEV workflow-u od bf48a5db), nativno HONOR 1.10. (ROUND_77): 2 prijave, redosled, cena i poređenje isti, 0 čitanja cele liste (1 strana); druga strana i odbijanje mešanih revizija NISU dokazani. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
-        "source_finishing_20261002": "Candidates and comparison align person, full offer/people/time/message; white surfaces and black/gray hierarchy. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Candidates and comparison align person, full offer/people/time/message; white surfaces and black/gray hierarchy. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "native_comparison_a8e9_20261003": {
+          "source": "a8e9fcff exact both-device installs",
+          "accepted": "Emulator actual incoming offers full-width at361dp/1.0, withdrawn status near identity, offer sheet close restores comparison. Physical1.15 fixture layout only.",
+          "open": "No offer accepted; whole flow and wide native layout not claimed.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {
@@ -1184,7 +1190,13 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+        "native_readonly_e731_20261003": {
+          "source": "e7310578 HONOR1.15",
+          "accepted": "Saved weekly availability and calendar read-only navigation; no schedule mutation. Profile scroll restored.",
+          "open": "Write/save, conflict, busy and notification scenarios not certified.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {
@@ -2296,7 +2308,13 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "IZVOR PRIPREMLJEN / NIJE PROVERENO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md",
+        "native_readonly_e731_20261003": {
+          "source": "e7310578 HONOR1.15",
+          "accepted": "Saved weekly availability and calendar read-only navigation; no schedule mutation. Profile scroll restored.",
+          "open": "Write/save, conflict, busy and notification scenarios not certified.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {

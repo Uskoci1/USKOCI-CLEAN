@@ -261,9 +261,29 @@ describe('autoLocate', () => {
 });
 
 describe('compact conversation proposal', () => {
+  it('omits only exact visible parent summaries, preserving a standalone role and a different source description', async () => {
+    const resolver = configured({ status: 'UNAVAILABLE' });
+    await render({ resolver, presentation: 'conversation', initialQuery: 'Place',
+      conversationSummary: { title: 'Početak', description: 'Place' } });
+    const headings = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.children.join('') === 'Početak');
+    expect(headings()).toHaveLength(0); expect(text()).not.toContain('Opis iz razgovora:');
+    expect(text()).toContain('Lokacija nije određena');
+    await press('Označi na mapi');
+    expect(map().props.position).toBeNull(); expect(text()).not.toContain('Dopuni opis mesta ili ga označi na mapi.');
+    expect(text()).toContain('Svi vide približno područje.');
+    await update({ conversationSummary: { title: 'Početak', description: 'Place ' } });
+    expect(text()).toContain('Opis iz razgovora:'); expect(text()).toContain('Place');
+    await update({ conversationSummary: undefined });
+    expect(headings()).toHaveLength(1); expect(text()).toContain('Opis iz razgovora:');
+    expect(text()).toContain('Dopuni opis mesta ili ga označi na mapi.');
+    expect(map().props.position).toBeNull(); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(props.onInvalidate).not.toHaveBeenCalled(); expect(resolver.search).not.toHaveBeenCalled();
+  });
+
   it('places the single validated proposal, hides the form, and confirms only on the explicit action', async () => {
     const resolver = configured();
-    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place',
+      conversationSummary: { title: 'Početak', description: 'Known place' } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(props.onInvalidate).not.toHaveBeenCalled();
     expect(map().props).toMatchObject({ position: candidate.position, height: 220 });

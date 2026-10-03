@@ -32,6 +32,8 @@ type Props = {
   autoLocate?: boolean;
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
+  /** Visible selected-role summary above this editor; omit only its exact repeated text. */
+  conversationSummary?: { title: string; description: string };
   onCorrectInConversation?: () => void;
   onPromptReady?: (prompt: PointPrompt | null) => void;
   /** Confirming the point is the primary action where nothing else saves (the conversation's point sheet); in the long
@@ -45,7 +47,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, presentation = 'form', onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
@@ -315,6 +317,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       ? address.trim() || 'Tačka izabrana na mapi' : selectedLabel || point?.address || 'Tačka potvrđena na mapi';
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const ambiguous = !position && lookupMode === 'search' && alternatives.length > 1;
+    const mapExplainsNextStep = !!conversationSummary && !position && placeByHand && !loading && !ambiguous
+      && !controlDisabled && focused;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
     const lookupMessage = lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
@@ -324,16 +328,17 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
     return <View style={{ gap: sys.space.md }}>
       <View style={{ gap: sys.space.xs }}>
-        <T variant="meta" tone="muted">{title}</T>
+        {conversationSummary?.title === title ? null : <T variant="meta" tone="muted">{title}</T>}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm }}>
           <FactArt kind="pin" size={24} cut="art" role="location" />
           <T variant="bodyStrong" style={{ flex: 1, minWidth: 0, fontSize: 18, lineHeight: 24, color: sys.color.ink }}>{label || 'Mesto još nije izabrano'}</T>
         </View>
-        <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
+        {mapExplainsNextStep ? null : <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
           ? pointQuestion
           : loading ? 'Tražimo mesto iz razgovora…' : ambiguous
-            ? clarificationQuestion : 'Dopuni opis mesta ili ga označi na mapi.'}</T>
-        {(manualProposal || !position) && initialQuery ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
+            ? clarificationQuestion : 'Dopuni opis mesta ili ga označi na mapi.'}</T>}
+        {(manualProposal || !position) && initialQuery && conversationSummary?.description !== initialQuery
+          ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View>
       {!position && !loading && !ambiguous && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
