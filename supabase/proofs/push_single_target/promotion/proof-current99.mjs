@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {dirname,resolve,join,relative} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {diagnosticSql,withProjectedDigests,compareSurface} from './cert-surface-diagnostic.mjs';
+import {diagnosticSql,withProjectedDigests,compareSurface,invalidationDiagnosticSql,compareInvalidation} from './cert-surface-diagnostic.mjs';
 for(const key of ['PGHOSTADDR','PGSERVICE','PGSERVICEFILE','PGOPTIONS'])assert.ok(!process.env[key],'PG_OVERRIDE');
 assert.equal(process.env.PUSH_SINGLE_TARGET_DISPOSABLE,'SINGLE_TARGET_V1');
 assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),process.env.GITHUB_SHA);
@@ -38,6 +38,14 @@ try{
  const oldSource=read('supabase/candidates/ai-location-01-20261002/before-sql/private.closure_source_digest_v5.sql'),oldProgram=read('supabase/candidates/ai-location-01-20261002/before-sql/private.closure_erasure_program_digest_v5.sql');
  const observedSurface=observe(withProjectedDigests(diagnosticSql(oldSource,oldProgram)));
  report.certSurface=compareSurface(expectedSurface,observedSurface);
+ const expectedInvalidation=json('expected-invalidation-surface.json'),observedInvalidation=observe(invalidationDiagnosticSql());
+ assert.equal(expectedInvalidation.digest,expectedSurface.components.invalidationSurface,'INVALIDATION_BASELINE_BINDING');
+ assert.equal(observedInvalidation.digest,observedSurface.components.invalidationSurface,'INVALIDATION_ACTUAL_BINDING');
+ report.invalidationSurface=compareInvalidation(expectedInvalidation,observedInvalidation);
+ if(report.invalidationSurface.semanticDifferences.length===0){
+  report.certSurface.semanticDifferences=report.certSurface.semanticDifferences.filter(d=>!(d.surface==='components'&&d.field==='invalidationSurface'));
+  report.certSurface.catalogIdentityDifferences.push(...report.invalidationSurface.catalogIdentityDifferences);
+ }else report.certSurface.semanticDifferences.push(...report.invalidationSurface.semanticDifferences);
  report.certSurface.projectedSourceDigest=observedSurface.projectedSourceDigest;report.certSurface.projectedProgramDigest=observedSurface.projectedProgramDigest;
  assert.equal(observedSurface.projectedSourceDigest,observedSurface.components.sourceDigest,'DIAGNOSTIC_RECONSTRUCTION_MUST_MATCH_ACTUAL');
  assert.equal(observedSurface.projectedProgramDigest,observedSurface.components.programDigest,'DIAGNOSTIC_PROGRAM_MUST_MATCH_ACTUAL');

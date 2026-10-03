@@ -121,6 +121,9 @@ jobs:
           run_stage 24-p5 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/worker_profile_licenses_owned_projection.sql
           run_stage 25-b3c-application psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_b3c_private_invalidation_dev_application.sql
           run_stage 25b-p4-push-transport psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_p4_push_event_transport.sql
+          # Actual DEV ledger211, before B24. Exact existing candidate, including its own pins/isolation/rebind.
+          test "$(sha256sum supabase/candidates/pkg045b_task_column_privileges_p0.sql | cut -d' ' -f1)" = d34cb5d9fc1c514e31ee67a6adb05a5aa95ec80fab1a7874801f18d7b80a1ff0
+          run_stage 25c-pkg045b-p0 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/pkg045b_task_column_privileges_p0.sql
       - name: B24 part 1 as a chain variant (the targets that exist, relaxed pre-image mode), then B24 part 2 in relaxed mode and the chain fidelity check against the DEV receipt
         run: |
           set -euo pipefail

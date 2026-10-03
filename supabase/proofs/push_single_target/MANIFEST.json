@@ -27,5 +27,5 @@
     "candidate-runtime.mjs": "311974bf800af672100a0ee1580dc6af67bbe41ad7d5e74b49ff464c2187e603",
     "supabase/functions/_shared/pushNotificationCopy.mjs": "a14fa35d3428f25b55ec68ad0e10dd881de238dfde164f834651c06e121e7c57"
   },
-  "workflowSha256": "7752f8f93bdfee9c40901e9752e3763833720a3d6d9d643b2a59763d2f0c19c9"
+  "workflowSha256": "514b99b9082f443aa3a126ea3cd5916b08faf5c8293076db1aef6655eb79c7c8"
 }
