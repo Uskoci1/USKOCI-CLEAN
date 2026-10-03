@@ -9,6 +9,10 @@ import {
 } from '../FactArt';
 import { sys } from '../tokens';
 
+// This suite measures the retained vector fallback. Bundled art selection and
+// semantic-state precedence have separate coverage in fact-material.test.tsx.
+jest.mock('../materialSubjects', () => ({ MATERIAL_SUBJECTS: {} }));
+
 /**
  * The fact pictures (UI/UX pass 2026-10-02, item 1.3; audits ICO-01 to ICO-04, Z8, I1, F01). The pictures cannot be seen
  * from a test, so what a person would see is turned into things a test can measure: which cut a size gets, which colours

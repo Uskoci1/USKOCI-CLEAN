@@ -12,7 +12,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { materialControl, raisedItem, sys } from '../system/tokens';
+import { materialControl, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeLaunchArt } from './HomeLaunchArt';
@@ -33,27 +33,33 @@ export type HomePresentationProps = {
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
 };
 
-/** Creation leads; discovery remains one tap away without a second competing hero. */
+/** Equal doors for the two intentions of the same account (owner correction, 3 October). */
 function StartActions({ compact, onPublish, onEarn }: {
   compact: boolean; onPublish: () => void; onEarn: () => void;
 }) {
+  const textScale = useTextScale();
+  // Reserve the same two title/copy lines for each door; text can still grow beyond this minimum.
+  const minHeight = Math.ceil(40 + 2 * 27 * textScale + 2 * 20 * textScale);
   return <View style={s.actions}>
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
-      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised]}>
+      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised, { minHeight }]}>
       <View style={s.createMain}>
         <View style={s.actionCopy}>
           <T accessibilityRole="header" style={s.actionTitle}>Objavi zadatak</T>
-          <T variant="copy" tone="muted">Opiši šta ti treba.</T>
+          <T style={s.actionSubtitle} tone="muted">Opiši šta ti treba.</T>
         </View>
-        <HomeLaunchArt kind="publish" compact={compact} />
+        <HomeLaunchArt kind="publish" size={compact ? 64 : 80} />
       </View>
     </Press>
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Nađi posao blizu."
-      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={s.discoverEntry}>
-      <HomeLaunchArt kind="discover" compact />
-      <View style={s.rowCopy}><T variant="bodyStrong">Uskoči i zaradi</T>
-        <T variant="note" tone="muted">Pronađi posao koji ti odgovara</T></View>
-      <Glyph name="caret-right" tone="muted" />
+      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised, { minHeight }]}>
+      <View style={s.createMain}>
+        <View style={s.actionCopy}>
+          <T accessibilityRole="header" style={s.actionTitle}>Uskoči i zaradi</T>
+          <T style={s.actionSubtitle} tone="muted">Pronađi posao.</T>
+        </View>
+        <HomeLaunchArt kind="discover" size={compact ? 64 : 80} />
+      </View>
     </Press>
   </View>;
 }
@@ -256,14 +262,13 @@ const s = StyleSheet.create({
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
   actions: { gap: sys.space.base, paddingTop: sys.space.sm },
-  createEntry: { padding: sys.space.lg, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
+  createEntry: { padding: sys.space.lg, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, justifyContent: 'center',
     borderWidth: 1, borderColor: sys.color.surface,
     gap: sys.space.md },
   createMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   actionCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
-  actionTitle: { fontSize: 24, lineHeight: 29, fontWeight: '600', letterSpacing: -0.7, color: sys.color.ink },
-  discoverEntry: { ...raisedItem, borderRadius: sys.radius.card, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
-    paddingVertical: sys.space.md, paddingHorizontal: sys.space.base },
+  actionTitle: { fontSize: 22, lineHeight: 27, fontWeight: '600', letterSpacing: -0.5, color: sys.color.ink },
+  actionSubtitle: { fontSize: 15, lineHeight: 20, fontWeight: '400' },
   // Attention is an open inbox: the subject leads, with the exact action/reason below, never truncated.
   attention: { backgroundColor: sys.color.surface },
   section: { marginTop: sys.space.lg },

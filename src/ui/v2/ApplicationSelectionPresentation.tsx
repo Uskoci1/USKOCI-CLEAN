@@ -350,7 +350,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
         {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>
           <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.bandAction} /></> : null}
       </View> : null}
-      <View style={s.offerTerms}>
+      <View style={[s.offerTerms, (status || blocked) && s.afterStatus]}>
         <View accessible accessibilityLabel={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}: ${value.kind === 'amount' ? value.amount : UNPRICED}`} style={s.offerPrice}>
           <View style={s.offerPriceLabel}>{value.kind === 'amount' ? <MoneyArt size={24} /> : <FactArt kind="money" size={24} cut="art" tone="quiet" />}
             <T variant="note" tone="muted" style={s.grow}>Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T></View>
@@ -411,6 +411,7 @@ const s = StyleSheet.create({
   offerTerms: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.base,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   offerPrice: { gap: sys.space.sm },
+  afterStatus: { borderTopWidth: 0, paddingTop: 0 },
   offerPriceLabel: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   offerAmount: { ...sys.type.pageTitle, color: sys.color.ink, fontVariant: ['tabular-nums'], maxWidth: '100%' },
   offerTime: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },

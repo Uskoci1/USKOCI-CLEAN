@@ -43,5 +43,55 @@
     "file": "uskoci-tool-v1.png",
     "sha256": "021dc6d5ee1f88089a46d221fb015c87efe7cd49469ff0ad209bf65e3aaf10f8",
     "bytes": 1457918
+  },
+  {
+    "file": "uskoci-agreements-v1.png",
+    "sha256": "e8c498a9f3a27dc9dd633933689d3bd3f992972a2d0ebc01d4fe97de583269bf",
+    "bytes": 997284
+  },
+  {
+    "file": "uskoci-document-v1.png",
+    "sha256": "ffb44b123d5adc4c967b873ba988e6228fccf1face84d550f30b4d93442df92d",
+    "bytes": 1167032
+  },
+  {
+    "file": "uskoci-money-v3.png",
+    "sha256": "64f8f1f502dc6c328e46670f7032491a5454ef8f645ee0691b5d58bf0274da40",
+    "bytes": 1393931
+  },
+  {
+    "file": "uskoci-offers-v1.png",
+    "sha256": "96f497bffe6effc7f7359079f761cec96ebfa9597d214cfb00a8822e58729aa6",
+    "bytes": 918561
+  },
+  {
+    "file": "uskoci-people-v2.png",
+    "sha256": "014c40342a560b57072ca647d7e91ec58f6c72ee57ff4894a94b445d315b99e9",
+    "bytes": 1049535
+  },
+  {
+    "file": "uskoci-pin-v1.png",
+    "sha256": "66c683ba3f9051b52f18124ec3741fc7eaf5da49e92f0f02e22d28bc62beaa50",
+    "bytes": 876037
+  },
+  {
+    "file": "uskoci-remote-v1.png",
+    "sha256": "03e5cab68b41c40626c190041f9797190d0b97af7bdc2ff3cfaa064e0d7ed776",
+    "bytes": 991948
+  },
+  {
+    "file": "uskoci-support-v1.png",
+    "sha256": "e4138de3a06dd6e9be0ceda54b7eb62457c248d43275452322fd8a8c52e580f0",
+    "bytes": 1342912
+  },
+  {
+    "file": "uskoci-tasks-v1.png",
+    "sha256": "38f4f10a99768a96c6dd0b8327fa646a584ea27d99e67a3ec5f1aac454bbb30a",
+    "bytes": 994293
+  },
+  {
+    "file": "uskoci-vehicle-v1.png",
+    "sha256": "87af8c47615695e270f4caf1ceab91aab2b79584d67bcd344f21656768d758d6",
+    "bytes": 1126381
   }
 ]

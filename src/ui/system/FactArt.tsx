@@ -1,13 +1,15 @@
 import { memo, type ReactNode } from 'react';
 import { View } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { sys } from './tokens';
+import { MATERIAL_SUBJECTS } from './materialSubjects';
 
 /**
  * Decorative fact illustrations; adjacent text carries their meaning. Phosphor
  * line icons remain the controls. Small marks retain their contrast-controlled
- * solid silhouettes. Larger art uses a cached, static material gradient, an
- * extruded edge and a ground shadow; normal subjects use distinct semantic colors.
+ * solid silhouettes. Normal larger subjects share original bundled dimensional art;
+ * explicit state colors retain the cached vector material and its contrast.
  * Explicit tone/muted states override subject color. Only check, agreements and
  * shield may draw a tick: no illustration invents a confirmed business state.
  * Owner direction 2026-10-02 supersedes the historical all-green art treatment.
@@ -323,6 +325,14 @@ function FactArtBase({ kind, size = 20, tone, role, cut = 'auto', muted = false 
   const resolved: FactTone = muted ? 'quiet' : tone ?? DEFAULT_TONE[kind] ?? 'brand';
   const drawnCut = factCutFor(size, cut);
   const artRole = muted || tone ? undefined : role ?? (drawnCut === 'art' ? ART_ROLE[kind] : undefined);
+  // Explicit warning/confirmed/AI role colors have meaning and must not disappear into an image.
+  const subject = drawnCut === 'art' && size >= 24 && !muted && !tone
+    && role !== 'waiting' && role !== 'confirmed' && role !== 'ai' ? MATERIAL_SUBJECTS[kind] : undefined;
+  if (subject !== undefined) return <View aria-hidden accessible={false} accessibilityElementsHidden
+    importantForAccessibility="no-hide-descendants" style={{ width: size, height: size }}>
+    <Image source={subject} style={{ width: size, height: size }} accessible={false}
+      contentFit="contain" cachePolicy="memory" transition={0} allowDownscaling />
+  </View>;
   return <View aria-hidden style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox="0 0 32 32">{drawingFor(kind, resolved, drawnCut, artRole)}</Svg>
   </View>;

@@ -18,6 +18,8 @@ CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores
 
 ## Current checkpoint — visual composition, 2026-10-03
 
+Next source: owner now requests equal Home doors, replacing earlier asymmetric hero sizing. Shared original dimensional subject family extends17 decorative kinds while preserving semantic/small marks. Phone comparison and duplicate offer separator corrected from e3f4 critique. Matching emulator APK/review pending. [Scope](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#shared-dimensional-subjects-and-equal-home-doors--source-continuation).
+
 Exact e3f4 emulator build37127687752 is installed with verified artifact/hash and preserved UID10227. Candidate list/comparison material, active/withdrawn offer presentation, Clock24/26/28 and Tool24/28 actual callers passed the bounded native review; list and Worker equipment were also checked at1.3, then font restored1.15. Exact CI37127674809 and application proof37127674877 pass. WorkerAI variants remain source-only. Duplicate withdrawn-offer separators and lengthy phone comparison remain explicit composition follow-ups. [Exact review and limits](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#e3f4-bounded-candidate-and-worktime-native-review).
 
 Owner prioritizes the complete visual product and permits recomposition within actual contracts. Continue the existing Expo application and sole62-row registry. [Current exact native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance).

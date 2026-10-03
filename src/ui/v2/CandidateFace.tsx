@@ -212,11 +212,13 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
   return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
     accessibilityValue={{ text: candidateSpoken(k, time) }} accessibilityHint="Otvara celu ponudu."
     haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.compare, k.stanje === 'SELECTED' && s.chosen]}>
-    <View style={[s.compareIdentity, aligned && { minHeight: compareIdentityHeight(scale) }]}>
+    <View style={[s.compareIdentity, !aligned && s.comparePhoneHead, aligned && { minHeight: compareIdentityHeight(scale) }]}>
       <CandidateAvatar candidate={k} size={40} photo={photo} />
-      <T style={s.compareName} numberOfLines={3}>{k.ime}</T>
-      {status ? <CandidateStatusLine status={status} /> : null}
-      <CandidateTrustLine candidate={k} />
+      <View style={[!aligned && s.identity, s.comparePersonCopy]}>
+        <T style={s.compareName} numberOfLines={aligned ? 3 : undefined}>{k.ime}</T>
+        {status ? <CandidateStatusLine status={status} /> : null}
+        <CandidateTrustLine candidate={k} />
+      </View>
     </View>
     <View style={s.cell}><T variant="label" tone="muted">Ukupno</T>
       {/* A column reads from its left edge: the quiet word too (review r4 rk item 7). */}
@@ -276,6 +278,8 @@ const s = StyleSheet.create({
     borderColor: sys.color.line, backgroundColor: sys.color.surface },
   compareName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   compareIdentity: { gap: COMPARE_IDENTITY_GAP },
+  comparePhoneHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  comparePersonCopy: { gap: COMPARE_IDENTITY_GAP, minWidth: 0 },
   cell: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line },
   compareAmount: { ...sys.type.priceRow, color: sys.color.money, flexShrink: 1, maxWidth: '100%' },
   compareMessage: { fontSize: 14, lineHeight: 21, color: sys.color.muted },

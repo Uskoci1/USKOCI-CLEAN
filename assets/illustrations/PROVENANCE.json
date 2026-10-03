@@ -31,7 +31,15 @@
     "uskoci-money-v3.png",
     "uskoci-people-v2.png",
     "uskoci-clock-v1.png",
-    "uskoci-tool-v1.png"
+    "uskoci-tool-v1.png",
+    "uskoci-pin-v1.png",
+    "uskoci-tasks-v1.png",
+    "uskoci-offers-v1.png",
+    "uskoci-agreements-v1.png",
+    "uskoci-vehicle-v1.png",
+    "uskoci-support-v1.png",
+    "uskoci-remote-v1.png",
+    "uskoci-document-v1.png"
   ],
   "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
   "workProfileAsset": {
@@ -111,5 +119,101 @@
     "prompt": "Create ONE original premium USKOCI small mobile UI decorative 3D illustration on genuine transparent alpha. A compact open ivory tool tote with exactly two tools: an orange-handled screwdriver and a satin silver open-end wrench, protruding clearly above a single curved dark teal carry handle. Strong simple silhouette, nearly front-on slight three-quarter perspective, refined rounded edges, subtly woven canvas suggested broadly not microtexture, clean soft upper-left studio lighting, delicate shadow only directly beneath object. Same pearl ivory / emerald teal / warm orange material family as a premium mobile marketplace. Readable at 24–32dp; avoid tiny clutter. Subject fills 80 percent square canvas with 8 percent clear transparent margins each side. No hands, people, words, letters, numbers, checkmark, badge, currency, extra tools, logo, pedestal, background or checkerboard. Original design, not copied from any brand. One object, one isolated image.",
     "purpose": "Decorative subject only; no status or authoritative time/equipment claim.",
     "nativeAcceptance": "e3f4 exact emulator37127687752: root reviewed28dp actual Worker equipment at1.15/1.3 and24dp public task requirement. Fine texture is small but silhouette is recognizable. No profile Save or business writes. WorkerAI variants not newly native-verified; no phone/motion/whole-app acceptance. See INBOX_AND_NATIVE_20261003.md."
+  },
+  "sharedSubjectFamily20261003": {
+    "generator": "Built-in image_gen",
+    "date": "2026-10-03",
+    "purpose": "Original decorative subject family, no business state embedded. Small and explicit semantic/status marks remain vector.",
+    "nativeAcceptance": "Pending exact-source emulator build.",
+    "assets": [
+      {
+        "file": "uskoci-pin-v1.png",
+        "original": "exec-82dd5387-5797-4fe0-a1b8-85c59b2ca96d.png",
+        "sha256": "66c683ba3f9051b52f18124ec3741fc7eaf5da49e92f0f02e22d28bc62beaa50",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE upright location pin, rich clear cobalt-blue enamel front with thick pearl-ivory side bevel, open circular central hole, clean teardrop silhouette. No map, letters, badges or checkmarks."
+      },
+      {
+        "file": "uskoci-tasks-v1.png",
+        "original": "exec-ec9d6d04-692b-49cd-8b33-22f07fed73b6.png",
+        "sha256": "38f4f10a99768a96c6dd0b8327fa646a584ea27d99e67a3ec5f1aac454bbb30a",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE small ivory clipboard with a broad satin teal metal clip at top and three short recessed charcoal horizontal lines on its face. No checkboxes, checks, actual letters, numerals, pencil or surrounding objects."
+      },
+      {
+        "file": "uskoci-offers-v1.png",
+        "original": "exec-1c888330-fb58-40fe-925d-f57ce4bfaef8.png",
+        "sha256": "96f497bffe6effc7f7359079f761cec96ebfa9597d214cfb00a8822e58729aa6",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE warm coral-orange enamel price tag with a pearl-ivory thick bevel and a simple round punched hole at the narrow end, a short loop of ivory cord. No price, currency, numeral, letter, check or badge."
+      },
+      {
+        "file": "uskoci-agreements-v1.png",
+        "original": "exec-c787d48e-937c-4b87-8b0a-ae2342ae30d3.png",
+        "sha256": "e8c498a9f3a27dc9dd633933689d3bd3f992972a2d0ebc01d4fe97de583269bf",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. TWO simple interlocking rounded chain links, one emerald-teal ceramic and one pearl-ivory ceramic, forming one compact connected symbol viewed almost front-on. Means an agreement between two people. No checks, text, medal, hands or surrounding objects."
+      },
+      {
+        "file": "uskoci-vehicle-v1.png",
+        "original": "exec-6f4bf854-cd0a-4b74-892b-911cc8d2bc0c.png",
+        "sha256": "87af8c47615695e270f4caf1ceab91aab2b79584d67bcd344f21656768d758d6",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE compact small delivery van with pearl-ivory body, cobalt blue windows, charcoal wheels and one narrow warm-orange body accent, slightly front three-quarter view. Clear van silhouette with generous simple shapes. No driver, text, logo, licence plate characters or road."
+      },
+      {
+        "file": "uskoci-support-v1.png",
+        "original": "exec-4b9a72db-7c02-405e-ac14-aabb247dfba6.png",
+        "sha256": "e4138de3a06dd6e9be0ceda54b7eb62457c248d43275452322fd8a8c52e580f0",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE premium customer-support headset, pearl-ivory curved band, rich cobalt-blue padded earcups, short silver microphone arm. Clear headset silhouette nearly front-on. No head, face, person, text, chat bubble or badge."
+      },
+      {
+        "file": "uskoci-remote-v1.png",
+        "original": "exec-935be214-aec1-4c01-b7fa-5e2f01ecf076.png",
+        "sha256": "03e5cab68b41c40626c190041f9797190d0b97af7bdc2ff3cfaa064e0d7ed776",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE small open laptop, brushed pearl-silver rounded body, charcoal keyboard suggested by broad inset panel, clean cyan-blue screen with a tiny soft reflection. Three-quarter nearly frontal angle. No text, letters, symbols, wifi glyph or background scene."
+      },
+      {
+        "file": "uskoci-document-v1.png",
+        "original": "exec-44a3ba85-ae7a-4b5a-9161-eedce364bf87.png",
+        "sha256": "ffb44b123d5adc4c967b873ba988e6228fccf1face84d550f30b4d93442df92d",
+        "size": [
+          1254,
+          1254
+        ],
+        "mode": "RGBA",
+        "prompt": "Create one original premium USKOCI mobile app decorative 3D illustration, genuine transparent alpha background. Same coherent family: refined ceramic/enamel and satin metal materials, subtle physical depth, slightly three-quarter but nearly front-on, broad smooth shapes readable at24–56dp, soft upper-left studio lighting, tiny soft contact shadow only immediately beneath object. Subject fills84 percent of square canvas with safe transparent margins. Elegant consumer marketplace quality. No plastic toy glare, no pedestal, no scenery, no backdrop, no checkerboard, no watermark. ONE pearl-ivory sheet of thick paper with a distinctly folded upper-right corner and three recessed dark-gray horizontal lines of different lengths. Slight teal-blue underside edge. No actual text, signatures, checkmarks, stamps or seals."
+      }
+    ]
   }
 }

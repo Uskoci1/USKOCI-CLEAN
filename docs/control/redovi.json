@@ -98,6 +98,10 @@
           "scope": "Actual a790 Home/Profile1.15: discover52 artwork, real avatar/bell and separate48dp pencil visible.",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
           "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -849,6 +853,10 @@
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -905,6 +913,10 @@
         },
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -1311,6 +1323,10 @@
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -1465,6 +1481,10 @@
         },
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -2351,6 +2371,10 @@
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -2736,6 +2760,10 @@
         },
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -4196,6 +4224,10 @@
         },
         "candidate_work_time_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "shared_material_home_source_20261003": {
+          "status": "SOURCE_ONLY",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -7083,6 +7115,13 @@
       "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
       "scope": "Actual candidate list/comparison and active/withdrawn offers; Clock24/26/28 and Tool24/28. Candidate list/Worker equipment1.3; restored1.15. No business writes. WorkerAI variants remain source-only.",
       "remaining": "Withdrawn offer duplicate separators; lengthy phone comparison; no whole-app/phone/motion/provider/push/store acceptance."
+    },
+    "shared_material_home_source_20261003": {
+      "status": "SOURCE_ONLY",
+      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+      "scope": "Equal Home doors;17 bundled decorative subjects; compact phone comparison; one offer separator. Exact-source emulator review pending.",
+      "checks": "TypeScript PASS;290 cases/5 focused suites PASS.",
+      "remaining": "Exact native visual review; other whole-app, phone, business-flow, performance and store gates unchanged."
     }
   }
 }
