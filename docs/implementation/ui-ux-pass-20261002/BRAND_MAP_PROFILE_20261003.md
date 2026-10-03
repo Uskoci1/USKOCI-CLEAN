@@ -1,6 +1,6 @@
 # Dimenzionalni identitet, mirna mapa i radni profil — 3.10.2026.
 
-Aktuelno: materijal994c61 je pregledan na emulatoru; source1a03af51 dodaje povratak na prethodno mesto u profilu i čeka svoj APK. V2 intervju je izolovan ugovor, nije primenjena funkcija. Raniji neuspeli koraci ispod ostaju trag ispravke, ne trenutno prihvatanje.
+Aktuelno: završni source1a03af51/APK37150842656 je instaliran na emulatoru; povratak u radni profil je potvrđen. Materijal994c61 ostaje nepromenjen i pregledan u navedenom opsegu. V2 intervju je izolovan ugovor, nije primenjena funkcija. Raniji neuspeli koraci ispod ostaju trag ispravke, ne trenutno prihvatanje.
 
 ## Odluka i odnos prema nacrtu
 
@@ -80,3 +80,11 @@ Po prolazu prethodnog APK-a dodata je uska ispravka starog scroll problema. Samo
 51 fokusirana provera i TypeScript PASS, uključujući tri povratka, zakasnele blur događaje, korisnikov drag, grešku čitanja/retry, drugog vlasnika i stare dirty/unknown-save granice. APK37150842656 i CI37150844967 vezuju tačan source1a03af519da967572f0a38f1fa311edd411f75b0; native povratak još čeka taj APK.
 
 Puni CI37150844967 zatim SUCCESS:428 suite/9387 slučajeva/6 snapshot-a, uz159 fokusiranih Discovery slučajeva. Native994c kontrola +/− na fiksnim mestima zaista menja mapu i zadržava izvore/zum na istim granicama (`brand-map-controls-994c`, `brand-map-zoom-plus-994c`, `brand-map-zoom-minus-994c`). „Prikaži sve zadatke” vraća opšti režim bez promene preference. Nema tvrdnje o transportu push-a ili novom dispatch-u.
+
+## Završni native1a03af51 — povratak potvrđen
+
+APK37150842656 SUCCESS; source1a03af519da967572f0a38f1fa311edd411f75b0/treeaf926c0518f56099405388ccbf71a32f5daf2e42; SHA2561993e0c870ad4ceeec6c40f1a0564f9907be62eea9461106a06137ad3a643253. Tri attestacije PASS, instalacija uz očuvan UID10227 i isti nalog. Emulator1264×2728/density560/font1.15, motion1. Telefon nije priključen.
+
+Stvarni Radni profil pomeren do grupe područje/dostupnost/obaveštenja → Poslovi → Back sada čuva celu poziciju (`brand-worker-position-before-1a03`, `brand-worker-settings-1a03`, `brand-worker-position-after-1a03`). Zatim Dostupnost → Back čuva isto mesto (`brand-worker-availability-1a03`, `brand-worker-availability-return-1a03`). Read-only pixel poređenje celog regiona0,182–1264,2644 je identično pre/posle obe putanje. Sledeći ručni scroll ostaje na novom položaju (`brand-worker-next-scroll-1a03`), nema povratnog skoka. Nijedan switch, termin ili podatak nije čuvan. Lokacija ima izvorni regresioni dokaz; njen native povratak nije posebno ponovljen.
+
+Između994c i1a03 menjana su samo tri worker scroll fajla; prethodni material/motion/map dokazi pripadaju svojim tačnim izvorima i ostaju bounded parent dokaz. Novi screenshot Početne1a03 potvrđuje zadržani logo. Pravi prvi unauth/Auth ulaz, cold OS splash, fizički telefon, cele poslovne putanje, V2 server/provider i nova push dostava ostaju odvojene otvorene stavke. Postojeći62-redni plan i Design Master ažurirani; lokalna projekcija generisana, raniji remote-dashboard file-picker blokator nije ovim zatvoren i nova objava nije potvrđena.
