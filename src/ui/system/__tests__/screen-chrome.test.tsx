@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockReduced = false;
@@ -9,11 +10,16 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 // The bell reads the inbox; the root bar only has to hold it. The bell's own drawing is checked below on the real one.
 jest.mock('../../InboxBell', () => ({ InboxBell: () => require('react').createElement('Bell') }));
+// Own identity is exercised with the real focused resource in actual-user-avatar.test; chrome stays data-isolated.
+jest.mock('../ActualUserAvatar', () => ({ ActualUserAvatar: ({ onPress }: { onPress: () => void }) =>
+  require('react').createElement(require('../../Press').Press, { accessibilityRole: 'button', accessibilityLabel: 'Moj profil',
+    onPress, haptic: 'select', hitSlop: 0, style: { width: 56, height: 56 } },
+  require('react').createElement('HeaderAvatar', { size: 48 })) }));
 let mockUnread: number | undefined;
 jest.mock('../../../hooks/useInbox', () => ({ useInbox: () => ({ state: { error: null, page: mockUnread === undefined ? null : { unreadCount: mockUnread } } }) }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
-import { ArrowLeft, Bell, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
+import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
 import { GLYPH_NAMES } from '../Glyph';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
@@ -45,7 +51,7 @@ const glyph = (label: string) => press(label).findAll(node => node.props.size ==
 const noop = () => {};
 
 describe('one bar for every kind of screen', () => {
-  it('gives the root, detail and flow bars one height, one side padding and 48 px controls', async () => {
+  it('keeps shared padding, with a 56 px profile target and unchanged 48 px detail/flow controls', async () => {
     for (const [element, lead] of [
       [<ScreenHeader title="Dogovori" onProfile={noop} />, 'Moj profil'],
       [<DetailTopBar title="Kalendar obaveza" onBack={noop} />, 'Nazad'],
@@ -55,7 +61,8 @@ describe('one bar for every kind of screen', () => {
       expect(flat(bar())).toMatchObject({ minHeight: 64, paddingHorizontal: 20, paddingVertical: 8 });
       // The same values, named on the one spacing scale.
       expect(flat(bar())).toMatchObject({ paddingHorizontal: sys.space.lg, paddingVertical: sys.space.sm, gap: sys.space.md });
-      expect(flat(control(lead))).toMatchObject({ width: 48, height: 48 });
+      const target = lead === 'Moj profil' ? 56 : 48;
+      expect(flat(control(lead))).toMatchObject({ width: target, height: target });
       await act(async () => tree.unmount());
     }
   });
@@ -76,7 +83,7 @@ describe('one bar for every kind of screen', () => {
 });
 
 describe('root', () => {
-  it('has the profile, the centred mark and the bell; the section is spoken with the mark and never drawn', async () => {
+  it('keeps the mark in flow, then the screen action, bell and own profile; the section remains spoken', async () => {
     await render(<ScreenHeader title="Dogovori" onProfile={noop} right={<HeaderIconButton label="Kalendar obaveza" icon={MagnifyingGlass} onPress={noop} />} />);
     expect(control('Moj profil')).toBeDefined();
     expect(header().props.accessibilityLabel).toBe('USKOČI, Dogovori');
@@ -98,14 +105,23 @@ describe('root', () => {
     expect(glyph('Pretraga').props).toMatchObject({ weight: 'regular', color: sys.color.ink });
   });
 
-  it('draws the profile as the same circle with a neutral glyph, and nothing else between it, the mark and the bell', async () => {
-    await render(<ScreenHeader title="Dogovori" onProfile={noop} />);
-    expect(flat(circle('Moj profil'))).toMatchObject({ width: chrome.circle, height: chrome.circle, backgroundColor: sys.color.surface });
+  it('places the larger own profile last and preserves its navigation callback', async () => {
+    const open = jest.fn();
+    await render(<ScreenHeader title="Dogovori" onProfile={open} />);
+    expect(flat(control('Moj profil'))).toMatchObject({ width: 56, height: 56 });
+    expect(tree.root.findByType('HeaderAvatar' as React.ElementType).props.size).toBe(48);
+    const orderedArt = tree.root.findAll(node => typeof node.type === 'string'
+      && ['Bell', 'HeaderAvatar'].includes(node.type)).map(node => node.type);
+    expect(orderedArt).toEqual(['Bell', 'HeaderAvatar']);
+    await act(async () => press('Moj profil').props.onPress());
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(header().props.accessibilityLabel).toBe('USKOČI, Dogovori');
+  });
+
+  it('keeps a data-free profile glyph for direct ScreenChrome galleries', async () => {
+    await render(<ScreenChrome variant="root" title="Dogovori" onProfile={noop} bell={<React.Fragment />} />);
     expect(glyph('Moj profil').type).toBe(User);
-    expect(glyph('Moj profil').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
-    const buttons = hosts(node => node.props.accessibilityRole === 'button');
-    expect([...new Set(buttons.map(node => node.props.accessibilityLabel))]).toEqual(['Moj profil']);
-    expect(tree.root.findAllByType('Bell' as React.ElementType)).toHaveLength(1);
+    expect(flat(control('Moj profil'))).toMatchObject({ width: 48, height: 48 });
   });
 });
 
@@ -142,23 +158,27 @@ describe('the one chrome icon button', () => {
     expect(press('Kalendar obaveza').props.accessibilityState).toEqual({ disabled: false });
   });
 
-  it('draws the bell in neutral ink in the same circle; an unread count keeps the orange badge', async () => {
+  it('draws original bell art without a chrome circle; the real unread count keeps its orange badge', async () => {
     const { InboxBell } = jest.requireActual('../../InboxBell') as typeof import('../../InboxBell');
     const bellLabel = (count: number) => hosts(node => typeof node.props.accessibilityLabel === 'string'
       && node.props.accessibilityLabel.startsWith(`Obaveštenja, ${count} `))[0].props.accessibilityLabel as string;
     mockUnread = 0;
     await render(<InboxBell />);
     const label = bellLabel(0);
-    expect(flat(circle(label))).toMatchObject({ width: 44, height: 44, backgroundColor: sys.color.surface, borderColor: sys.color.line });
-    expect(glyph(label).type).toBe(Bell);
-    expect(glyph(label).props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
+    expect(flat(control(label))).toMatchObject({ width: 48, height: 48 });
+    expect(circle(label)).toBeUndefined();
+    const art = tree.root.findByType(Image);
+    expect(art.props.source).toBe(require('../../../../assets/illustrations/uskoci-notification-bell-v1.png'));
+    expect(flat(art)).toMatchObject({ width: 40, height: 40 });
+    expect(art.props).toMatchObject({ accessible: false, contentFit: 'contain', transition: 0 });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(0);
     await act(async () => tree.unmount());
     mockUnread = 3;
     await render(<InboxBell />);
     const spoken = bellLabel(3);
-    // The orange badge alone carries unread attention.
-    expect(glyph(spoken).props.color).toBe(sys.color.ink);
+    // The illustration does not invent an unread state; only the real count adds the badge.
+    expect(circle(spoken)).toBeUndefined();
+    expect(tree.root.findByType(Image).props.source).toBe(require('../../../../assets/illustrations/uskoci-notification-bell-v1.png'));
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;
@@ -305,7 +325,7 @@ describe('a chrome icon button drawn from the Glyph registry', () => {
     await act(async () => tree.update(<ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />));
     expect(glyph('Zatvori').type).toBe(X);
     expect(glyph('Zatvori').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.ink });
-    await act(async () => tree.update(<ScreenHeader title="Dogovori" onProfile={noop} />));
+    await act(async () => tree.update(<ScreenChrome variant="root" title="Dogovori" onProfile={noop} bell={null} />));
     expect(glyph('Moj profil').type).toBe(User);
   });
 

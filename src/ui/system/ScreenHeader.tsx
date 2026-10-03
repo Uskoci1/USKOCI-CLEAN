@@ -4,6 +4,7 @@ import { T } from '../Text';
 import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
 import { InboxBell } from '../InboxBell';
+import { ActualUserAvatar } from './ActualUserAvatar';
 import type { GlyphIcon, GlyphName } from './Glyph';
 import { chrome, ChromeIconButton, ScreenChrome } from './ScreenChrome';
 
@@ -23,10 +24,9 @@ export function HeaderIconButton({ label, hint, active = false, onPress, caption
 }
 
 /**
- * The one header of the three tabs (V41, owner 2026-09-23): the profile on the left, the USKOČI mark in the middle,
- * the inbox on the right, and nothing between them. It is `ScreenChrome`'s root bar; this wrapper hands it the bell.
- * The default section name is spoken with the mark; showTitle opts into visible title chrome. `right` holds at most one screen control,
- * drawn before the bell.
+ * Root navigation: the brand or section title leads, then the optional control, inbox and own profile.
+ * The authorized avatar is the last action. Direct ScreenChrome galleries retain their data-free fallback.
+ * The default section name is spoken with the mark; showTitle opts into a visible title.
  */
 type ScreenHeaderProps = { title: string; onProfile: () => void; right?: ReactNode;
   /** A visible section title instead of the brand mark. Only opt-in callers omit their duplicate content heading. */
@@ -35,7 +35,7 @@ type ScreenHeaderProps = { title: string; onProfile: () => void; right?: ReactNo
 
 export function ScreenHeader({ title, onProfile, right, showTitle = false }: ScreenHeaderProps) {
   if (showTitle) return <TitledRootHeader title={title} onProfile={onProfile} right={right} />;
-  return <ScreenChrome variant="root" title={title} onProfile={onProfile} right={right} bell={<InboxBell />} />;
+  return <ScreenChrome variant="root" title={title} onProfile={onProfile} right={right} bell={<InboxBell />} profileEntry={<ActualUserAvatar onPress={onProfile} />} />;
 }
 
 /** One in-flow title. Large text/narrow windows put it below the controls, with no clipping or font cap.
@@ -45,9 +45,8 @@ function TitledRootHeader({ title, onProfile, right }: ScreenHeaderProps) {
   const heading = <T variant="title" accessibilityRole="header" style={s.title}>{title}</T>;
   return <View style={s.header}>
     <View style={s.row}>
-      <ChromeIconButton label="Moj profil" glyph="profile" tone="green" onPress={onProfile} />
       {!stacked ? <View style={s.copy}>{heading}</View> : null}
-      <View style={s.actions}>{right}<InboxBell /></View>
+      <View style={s.actions}>{right}<InboxBell /><ActualUserAvatar onPress={onProfile} /></View>
     </View>
     {stacked ? <View style={s.stackedTitle}>{heading}</View> : null}
   </View>;
@@ -55,9 +54,9 @@ function TitledRootHeader({ title, onProfile, right }: ScreenHeaderProps) {
 
 const s = StyleSheet.create({
   header: { paddingHorizontal: chrome.paddingHorizontal, paddingVertical: chrome.paddingVertical },
-  row: { minHeight: chrome.control, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: chrome.gap },
-  copy: { flex: 1, minWidth: 0 },
+  row: { minHeight: chrome.control, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: chrome.gap },
+  copy: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 },
   title: { color: sys.color.ink },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 0 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm, flexShrink: 0, maxWidth: '100%' },
   stackedTitle: { paddingTop: sys.space.sm },
 });

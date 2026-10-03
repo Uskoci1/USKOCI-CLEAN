@@ -12,7 +12,7 @@ import { sys } from './tokens';
  * share one height, one control size, one icon size, one side padding and one title style, so moving from screen to
  * screen never shifts the arrow, the title or the first line of content.
  *
- * - `root`   — the four tabs: the profile on the left, the USKOČI mark centred on the screen, the inbox on the right.
+ * - `root`   — the root headers: the USKOČI mark on the left, existing controls and inbox, then the profile at far right.
  *              The tab bar already says which part of the app this is, so no section title is drawn; the section's
  *              name reaches a screen reader as the mark's label ("USKOČI, Dogovori").
  * - `detail` — a screen opened from somewhere: the arrow back, the content's name when the content does not already
@@ -114,7 +114,8 @@ type RootChrome = {
   variant: 'root';
   /** The section's name, said to a screen reader with the mark; never drawn. */ title: string;
   onProfile: () => void;
-  /** At most one screen control, drawn before the bell. */ right?: ReactNode;
+  /** ScreenHeader injects the account-scoped avatar; isolated galleries retain the profile glyph. */ profileEntry?: ReactNode;
+  /** At most one screen control, drawn before the bell and profile. */ right?: ReactNode;
   /**
    * The inbox bell. It is handed in by `ScreenHeader` rather than imported here: the detail and flow bars are used by
    * screens whose suites isolate the data layer, and the bell reads the inbox.
@@ -147,15 +148,15 @@ type FlowChrome = {
 export type ScreenChromeProps = RootChrome | DetailChrome | FlowChrome;
 
 export function ScreenChrome(props: ScreenChromeProps) {
-  if (props.variant === 'root') return <View style={s.bar}>
-    <ChromeIconButton label="Moj profil" glyph="profile" onPress={props.onProfile} />
-    {/* Centred on the screen, not between the two sides, so it never shifts when the right side holds two controls. */}
+  if (props.variant === 'root') return <View style={[s.bar, s.rootBar]}>
+    {/* In flow: a wider existing caption can wrap the actions below instead of covering the original mark. */}
     <View pointerEvents="none" style={s.brand}>
       <View accessible accessibilityRole="header" accessibilityLabel={`USKOČI, ${props.title}`}><BrandLockup width={112} /></View>
     </View>
     <View style={s.side}>
       {props.right}
       {props.bell}
+      {props.profileEntry ?? <ChromeIconButton label="Moj profil" glyph="profile" onPress={props.onProfile} />}
     </View>
   </View>;
 
@@ -244,8 +245,10 @@ const s = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFill, justifyContent: 'center' },
   title: { color: sys.color.ink },
   step: { fontVariant: ['tabular-nums'] },
-  brand: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingVertical: chrome.paddingVertical },
-  side: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  rootBar: { flexWrap: 'wrap', rowGap: sys.space.sm },
+  brand: { flexBasis: 112, flexGrow: 1, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' },
+  side: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm,
+    maxWidth: '100%', marginLeft: 'auto' },
   control: { width: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },
   // A captioned control keeps the touch HEIGHT and grows in width with its word.
   controlWide: { minWidth: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },

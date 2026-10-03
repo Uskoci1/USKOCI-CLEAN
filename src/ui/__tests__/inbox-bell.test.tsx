@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 // The bell on the three root screens (step 11a, 2026-09-24): its count sits in a fixed 20 px capsule, so the digits
@@ -12,13 +13,12 @@ jest.mock('../system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../Press', () => ({ Press: 'Press' }));
 jest.mock('../Text', () => ({ T: 'T' }));
 import { InboxBell } from '../InboxBell';
-import { ChromeIconButton } from '../system/ScreenChrome';
 
 let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<InboxBell />); }); };
 const badge = () => tree.root.findAllByType('T' as React.ElementType);
 const spoken = () => tree.root.findByType('Press' as React.ElementType).props.accessibilityLabel as string;
-const rotation = () => tree.root.findByType(ChromeIconButton).props.glyphStyle.transform[0].rotate.__getValue() as string;
+const rotation = () => tree.root.findByProps({ testID: 'inbox-bell-drawing' }).props.style.transform[0].rotate.__getValue() as string;
 const update = async () => { await act(async () => { tree.update(<InboxBell />); }); };
 
 beforeEach(() => { mockReduced = true; });
@@ -31,6 +31,15 @@ it('draws the count with digits that keep their size and line up', async () => {
   expect(text.props.maxFontSizeMultiplier).toBe(1);
   expect(text.props.style).toMatchObject({ fontVariant: ['tabular-nums'] });
   expect(spoken()).toBe('Obaveštenja, 7 nepročitanih');
+  const control = tree.root.findByType('Press' as React.ElementType);
+  expect(StyleSheet.flatten(control.props.style)).toMatchObject({ width: 48, height: 48 });
+  expect(control.props.hitSlop).toBe(0);
+  const art = tree.root.findByType(Image);
+  expect(art.props.source).toBe(require('../../../assets/illustrations/uskoci-notification-bell-v1.png'));
+  expect(StyleSheet.flatten(art.props.style)).toMatchObject({ width: 40, height: 40 });
+  expect(art.props).toMatchObject({ accessible: false, contentFit: 'contain', transition: 0 });
+  await act(async () => control.props.onPress());
+  expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith('/obavestenja');
 });
 
 it('caps the drawn count at "99+" while the label says the real number', async () => {

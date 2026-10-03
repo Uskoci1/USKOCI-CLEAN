@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T09:48:47Z",
-  "grana": "HEAD",
-  "head": "cb96d1ca",
-  "head_poruka": "Compose profile review and safety as connected open sections",
+  "osvezeno": "2026-10-03T10:28:22Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "a3da8787",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1719,6 +1719,12 @@
       "emulator": 37107154789,
       "ciRuntimeEquivalent": 37107512099
      }
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -1982,6 +1988,12 @@
      "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
      "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -2744,7 +2756,13 @@
      "open": "No offer accepted; whole flow and wide native layout not claimed.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     },
-    "comparison_large_a8e9_20261003": "Emulator1.3 actual comparison: full-width identity/status/long term readable; title wraps without overlap; restored1.15. comparison-emu-large. Bounded resilience only."
+    "comparison_large_a8e9_20261003": "Emulator1.3 actual comparison: full-width identity/status/long term readable; title wraps without overlap; restored1.15. comparison-emu-large. Bounded resilience only.",
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -3277,10 +3295,20 @@
      "scope": "759299f2 installed on HONOR and emulator with exact hash/UID receipts. Physical chat+keyboard/review and clean/dirty/discard notification settings inspected; original worker robot/profile entry viewed. Scoped visual PASS, not whole-app acceptance."
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -4887,7 +4915,13 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
     "round73": "P6 obuhvat: klijent čita celu listu (rpc_list_my_applications); straničeni čitač rpc_list_my_applications_page postoji na DEV-u (pkg023a) ali klijent nije povezan. Granica L7: obim po nalogu; povezivanje je red EX-04.",
-    "ex04": "S2 (round 75 + DEV 1.10.): serverski kandidat ex04b (rpc_list_my_applications_page: redosled kao puna lista kroz keyset (rank, sortAt, id), činjenice zadatka za karticu, tabovi ALL/ATTENTION/ACTIVE/HISTORY, četiri broja; potpis dobija p_before_rank) DOKAZAN na disposable lancu (run 36846103943, 21 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113629, ledger 217; stari 4-argumentni potpis uklonjen bez CASCADE; postflight problems []); na pravim DEV podacima isti redosled i nula razlika u poljima celog čitanja za 3 naloga sa prijavama; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (uključen SAMO u DEV workflow-u od bf48a5db), nativno HONOR 1.10. (ROUND_77): iste 4 prijave i tabovi 4/1/2/1, ceo termin (namerna razlika u tekstu), ciklus otvori-nazad 4 od 10 (prekinut dolaznim pozivom na telefonu vlasnika); granica strane NIJE dokazana. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+    "ex04": "S2 (round 75 + DEV 1.10.): serverski kandidat ex04b (rpc_list_my_applications_page: redosled kao puna lista kroz keyset (rank, sortAt, id), činjenice zadatka za karticu, tabovi ALL/ATTENTION/ACTIVE/HISTORY, četiri broja; potpis dobija p_before_rank) DOKAZAN na disposable lancu (run 36846103943, 21 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113629, ledger 217; stari 4-argumentni potpis uklonjen bez CASCADE; postflight problems []); na pravim DEV podacima isti redosled i nula razlika u poljima celog čitanja za 3 naloga sa prijavama; klijent iza EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED (uključen SAMO u DEV workflow-u od bf48a5db), nativno HONOR 1.10. (ROUND_77): iste 4 prijave i tabovi 4/1/2/1, ceo termin (namerna razlika u tekstu), ciklus otvori-nazad 4 od 10 (prekinut dolaznim pozivom na telefonu vlasnika); granica strane NIJE dokazana. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -5161,7 +5195,13 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
     "round73": "P6 obuhvat: lista Dogovora je već straničena (rpc_list_my_agreements_page); RC-03 (provere ocena po završenom Dogovoru) ostaje ublažen, ne zbirni (L10).",
-    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_list_my_agreements_page: svaka stavka dobija ratingDue, ista presuda kao rpc_get_my_agreement_review(...).eligible; samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera: stari put 150 čitanja za 150 Dogovora, novi nijedno) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949); na pravim DEV podacima ratingDue je logički boolean u svih 16 stavki i jednak autoritetu za sve završene Dogovore oba naloga koja ih imaju (po 4); paging/zadržavanje redova preko restarta nije dodato (kartica to i ne traži); nativno HONOR 1.10. (ROUND_77): Dogovori 5/5 isti skup, redosled i sadržaj, 0 čitanja ocena po Dogovoru; pozitivan put (ratingDue = true) NIJE proveren. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_list_my_agreements_page: svaka stavka dobija ratingDue, ista presuda kao rpc_get_my_agreement_review(...).eligible; samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera: stari put 150 čitanja za 150 Dogovora, novi nijedno) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949); na pravim DEV podacima ratingDue je logički boolean u svih 16 stavki i jednak autoritetu za sve završene Dogovore oba naloga koja ih imaju (po 4); paging/zadržavanje redova preko restarta nije dodato (kartica to i ne traži); nativno HONOR 1.10. (ROUND_77): Dogovori 5/5 isti skup, redosled i sadržaj, 0 čitanja ocena po Dogovoru; pozitivan put (ratingDue = true) NIJE proveren. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -5263,10 +5303,14 @@
      "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5442,6 +5486,12 @@
      "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
      "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -6458,7 +6508,13 @@
      "exact_transport": "OFF per canonical repository evidence",
      "device": "CURRENT ARTIFACT PENDING"
     },
-    "round73": "P6 obuhvat: Inbox koristi postojeće straničenje (rpc_list_inbox); sačuvano bez izmene."
+    "round73": "P6 obuhvat: Inbox koristi postojeće straničenje (rpc_list_inbox); sačuvano bez izmene.",
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -7248,10 +7304,20 @@
      "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -7361,10 +7427,20 @@
      "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -7461,10 +7537,20 @@
      "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -7563,6 +7649,12 @@
     "catalog27": {
      "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
      "status": "STILLS_NATIVE_OBSERVED_MOTION_PENDING"
+    },
+    "personal_header_composition_20261003": {
+     "state": "SOURCE composition; matching APK/native pending",
+     "scope": "Actual far-right avatar/material bell, larger Profile photo, Support topic disclosure, long application notes, stable Worker review, reduced-motion waiting, scoped Safety keyboard wrapper",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "Presentation and scoped existing readers only; no provider/backend/push/store acceptance. Emulator-only continuation requested by owner."
     }
    },
    "ukupno": "PROBLEM",
@@ -7861,10 +7953,14 @@
      }
     },
     "open_utility_composition_20261003": {
-     "state": "SOURCE reviewed; matching APK/native pending",
+     "state": "cb96/a3da BUILT/INSTALLED; bounded native results and Safety keyboard issue recorded",
      "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
+     "boundary": "Actual source identity differs only by generated docs. Safety keyboard occlusion observed; next source correction pending. No save/report/message. Phone subsequently unplugged by owner.",
+     "builds": {
+      "phone": 37114305714,
+      "emulator": 37114307273
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -9391,5 +9487,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37114307273,
+   "ime": "Build Android development APK",
+   "sha": "a3da8787",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:48:52Z"
+  },
+  {
+   "id": 37114305714,
+   "ime": "Build Android development APK",
+   "sha": "cb96d1ca",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:48:50Z"
+  },
+  {
+   "id": 37114291288,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "cb96d1ca",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:48:33Z"
+  },
+  {
+   "id": 37114291284,
+   "ime": "Control tracker refresh",
+   "sha": "cb96d1ca",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:48:33Z"
+  },
+  {
+   "id": 37114291283,
+   "ime": "P5 ready task and matching contract",
+   "sha": "cb96d1ca",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:48:33Z"
+  },
+  {
+   "id": 37112342867,
+   "ime": "P5 ready task and matching contract",
+   "sha": "4e5ef874",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:13:53Z"
+  },
+  {
+   "id": 37112340815,
+   "ime": "Build Android development APK",
+   "sha": "4e5ef874",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:13:50Z"
+  },
+  {
+   "id": 37112338160,
+   "ime": "Build Android development APK",
+   "sha": "4e5ef874",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:13:47Z"
+  },
+  {
+   "id": 37112336583,
+   "ime": "Control tracker refresh",
+   "sha": "4e5ef874",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:13:45Z"
+  },
+  {
+   "id": 37111638796,
+   "ime": "P5 ready task and matching contract",
+   "sha": "f120f42f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:01:17Z"
+  },
+  {
+   "id": 37111624843,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "f120f42f",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T09:01:04Z"
+  },
+  {
+   "id": 37110906093,
+   "ime": "P5 ready task and matching contract",
+   "sha": "77ec19dd",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T08:48:03Z"
+  }
+ ]
 }

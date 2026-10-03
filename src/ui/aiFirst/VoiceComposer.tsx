@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, AppState, Easing, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, Info, Microphone, StopCircle, Waveform, X } from 'phosphor-react-native';
+import { Check, HourglassMedium, Info, Microphone, StopCircle, Waveform, X } from 'phosphor-react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
@@ -65,6 +65,7 @@ const reviewing = (state: VoiceSnapshot, reader: boolean) => state.session ? sta
 /** The microphone keeps its gesture; the ordinary AI pill uses a practical 52 px target. */
 export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60 }) {
   const reader = useScreenReader();
+  const reduced = useReducedMotion();
   const gesture = useRef<string | null>(null), startY = useRef(0);
   const explicit = reader;
   const { phase } = p.state;
@@ -114,7 +115,11 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     onResponderMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) cancel(); }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
     <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, listening && s.micListening, waiting && s.micWaiting]}>
-      {waiting ? <ActivityIndicator size="small" color={sys.color.artRole.ai.front} />
+      {waiting ? reduced
+        ? <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <HourglassMedium size={glyphSize} color={sys.color.artRole.ai.front} />
+          </View>
+        : <ActivityIndicator size="small" color={sys.color.artRole.ai.front} />
         : active && review ? <StopCircle size={glyphSize} weight="fill" color={listening ? sys.color.onGreen : sys.color.ink} />
           : <Microphone size={glyphSize} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
     </View>

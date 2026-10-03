@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService, SAFETY_CATEGORIES, type SafetyCategory, type SafetyReportCommand, type SafetyReportReceipt } from '../../data/safetyClientService';
@@ -71,7 +71,9 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     confirmation.ask({ title: 'Blokirati korisnika?', message: blockConsequence, confirmLabel: 'Blokiraj korisnika',
       tone: 'danger', onConfirm: changeBlock });
   };
-  return <SettingsScreen title="Bezbednost" onBack={back}>
+  // Match SupportFrame: resize the existing settings scroll surface above the keyboard without rebuilding the form.
+  return <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <SettingsScreen title="Bezbednost" onBack={back}>
     {profileId && safetyTargetNameBuilt() ? <TargetName profileId={profileId} targetAccountId={p.targetAccountId} /> : null}
     <T variant="note" tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
     <View style={s.section}>
@@ -99,7 +101,8 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
         onPress={() => router.push('/podrska/novi')} />
     </View>
     {confirmation.sheet}
-  </SettingsScreen>;
+    </SettingsScreen>
+  </KeyboardAvoidingView>;
 }
 
 /** The name of the person this screen is about, from the server's answer for the profile they came from; nothing at all while it is unknown (the generic copy below stays). */
@@ -206,6 +209,7 @@ function PrivateReport(context: Context) {
 const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
 
 const s = StyleSheet.create({
+  screen: { flex: 1 },
   section: { gap: sys.space.md },
   separated: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
   field: { gap: sys.space.sm },

@@ -24,7 +24,8 @@
     "uskoci-task-launch-v2.png",
     "uskoci-discover-v2.png",
     "uskoci-messages-v2.png",
-    "uskoci-work-kit-v1.png"
+    "uskoci-work-kit-v1.png",
+    "uskoci-notification-bell-v1.png"
   ],
   "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
   "workProfileAsset": {
@@ -33,5 +34,15 @@
     "sha256": "726a20ff8c7148aa35a8c51578ac36e38145cb37b12b2a5fa13dfbea3902f701",
     "purpose": "Decorative work-profile entry, not evidence that an account owns tools or has verified skills.",
     "nativeAcceptance": "Inspected in actual Profile entry on b35a2901 phone37107152788/font1.15 and emulator37107154789/font1.0 and1.3; private composition-*-profile-* screenshots. Decorative only."
+  },
+  "notificationBellAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "original": "exec-86aa91d4-54c2-44a4-8be4-5457a520409d.png",
+    "sha256": "0432c7365c785922fc69efaaed783f73837522fba78627ce03a7215594417744",
+    "purpose": "Decorative notification bell. The actual unread badge and count remain separate live UI, never baked into artwork.",
+    "reference": "uskoci-task-launch-v2.png, material and lighting only",
+    "nativeAcceptance": "SOURCE asset viewed; matching APK/native inspection pending.",
+    "prompt": "Create one new original production UI illustration asset for the USKOČI mobile marketplace: a beautiful small three-dimensional NOTIFICATION BELL, isolated on truly transparent background. Reference image is STYLE AND MATERIAL REFERENCE ONLY: match its crafted premium physical materials, precise rounded edges, soft studio light from upper left, subtle realistic surface texture and excellent quality. DO NOT include the reference's pin, paper, pencil, lettering or any other object. One compact elegant upright bell with a warm polished pale silver/pearl enamel dome, a narrow subtle brushed-metal lower rim, and a small warm orange clapper visible underneath. Very slight three-quarter view, clean easily recognized bell silhouette readable at 32–40 dp, nearly front-facing; simple broad forms, no fine filigree. Tiny top loop integrated into the bell. Neutral white/silver main material keeps orange unread-count UI separate; no red notification dot, no badge, no counter, no text, no logo, no surround tile, no enclosing circle, no scene. Soft contact occlusion contained immediately under the bell, no huge cast shadow. Object fills about 82% of square canvas, centered, 1024 square, natural alpha edges. Consumer app craft, understated tactile depth, not a plastic toy, not a flat icon, not neon, not glass, not cute character."
   }
 }

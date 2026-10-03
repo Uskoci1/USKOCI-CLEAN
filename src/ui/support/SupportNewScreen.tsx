@@ -12,7 +12,7 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
 import { sys } from '../system/tokens';
-import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportTime } from './SupportPresentation';
+import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, SupportTopicDisclosure, supportLabel, supportTime } from './SupportPresentation';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
 import { supportMessageShown, supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
@@ -91,6 +91,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const current = () => alive.current && parentCurrent();
   const [topic, setTopic] = useState<CreateTopic>(initialReference?.kind === 'TASK_REVIEW' ? 'PUBLICATION_REVIEW'
     : initialReference?.kind === 'AGREEMENT' ? 'COLLABORATION' : 'TECHNICAL');
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
   const [context, setContext] = useState<SupportReference | null>(initialReference);
   const [selectedEvidence, setSelectedEvidence] = useState<SupportReference | null>(
     initialReference && ['AGREEMENT_MESSAGE', 'GROUP_MESSAGE'].includes(initialReference.kind) ? initialReference : null);
@@ -186,13 +187,18 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       </> : supportMessageShown(state) ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     <View style={hideForm ? s.hidden : s.form}>
       <SupportPrivacy />
-      <SettingsGroup title="Tema zahteva"><View accessibilityRole="radiogroup" accessibilityLabel="Tema zahteva">
+      <SettingsGroup title="Tema zahteva">
+        <SupportTopicDisclosure selectedLabel={supportLabel(topic)} expanded={topicsExpanded} disabled={disabled}
+          onToggle={() => { if (current() && !disabled) setTopicsExpanded(open => !open); }}>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Tema zahteva">
         {(initialReference?.kind === 'TASK_REVIEW' ? ['PUBLICATION_REVIEW' as const, ...topics] : topics).map((value, index, all) =>
           <SupportChoiceRow key={value} kind="radio" label={supportLabel(value)} selected={topic === value} last={index === all.length - 1} disabled={disabled}
-            onPress={() => { if (current() && !disabled) { setTopic(value); setChoices(null);
+            onPress={() => { if (current() && !disabled) { setTopic(value); setTopicsExpanded(false); setChoices(null);
               if ((value === 'COLLABORATION' || value === 'NO_SHOW') && context?.kind !== 'AGREEMENT') setContext(null);
               else if (value === 'PUBLICATION_REVIEW') setContext(initialReference); } }} />)}
-      </View></SettingsGroup>
+        </View>
+        </SupportTopicDisclosure>
+      </SettingsGroup>
       {requiresAgreement ? <SettingsGroup title="Dogovor na koji se zahtev odnosi"><View style={s.inCard}>
         {context?.kind === 'AGREEMENT' ? <T variant="bodyStrong">{contextTitle ?? 'Izabran Dogovor'}</T>
           : <T tone="muted">Izaberi jedan od svojih Dogovora.</T>}

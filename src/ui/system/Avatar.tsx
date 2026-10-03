@@ -4,16 +4,18 @@ import { T } from '../Text';
 import { FactArt } from './FactArt';
 import { sys } from './tokens';
 
-/** Row (32), list/bar (40), compact identity (56), and the profile passport (72). */
-export type AvatarSize = 32 | 40 | 56 | 72;
+/** Row (32), list (40), root photo (48), compact identity (56), and profile portraits (72/96). */
+export type AvatarSize = 32 | 40 | 48 | 56 | 72 | 96;
 
 const LETTERS: Record<AvatarSize, TextStyle> = {
   32: { fontSize: 12, lineHeight: 16 },
   40: { fontSize: 15, lineHeight: 20 },
+  48: { fontSize: 18, lineHeight: 24 },
   56: { fontSize: 20, lineHeight: 26 },
   72: { fontSize: 26, lineHeight: 32 },
+  96: { fontSize: 34, lineHeight: 42 },
 };
-const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 56: 32, 72: 40 };
+const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 48: 28, 56: 32, 72: 40, 96: 52 };
 
 /**
  * The one stand-in for a person's photo (2026-09-24): a round green-soft disc with their initials, or a drawn person when

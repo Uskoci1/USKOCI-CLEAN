@@ -10,6 +10,7 @@ import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { TurningCaret } from '../system/Disclosure';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { cardCompact, field, inset, sys } from '../system/tokens';
@@ -162,6 +163,23 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
   </Press>;
 }
 
+/** The selected topic stays visible; its existing radio choices open only on explicit request. */
+export function SupportTopicDisclosure({ selectedLabel, expanded, disabled, onToggle, children }: {
+  selectedLabel: string; expanded: boolean; disabled: boolean; onToggle: () => void; children: ReactNode;
+}) {
+  return <View>
+    <Press accessibilityRole="button" accessibilityLabel="Tema zahteva" accessibilityValue={{ text: selectedLabel }}
+      accessibilityHint={expanded ? 'Zatvori izbor teme.' : 'Prikaži teme zahteva.'}
+      accessibilityState={{ expanded, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
+      onPress={() => { if (!disabled) onToggle(); }}
+      style={[supportStyles.topicToggle, expanded && supportStyles.rowLine, disabled && supportStyles.faded]}>
+      <T variant="bodyStrong" style={supportStyles.grow}>{selectedLabel}</T>
+      <TurningCaret open={expanded} />
+    </Press>
+    {expanded ? children : null}
+  </View>;
+}
+
 /**
  * One choice among several: a radio (one topic, one outcome) or a checkbox (which evidence). The control is drawn, the
  * state is spoken, and the whole row is the touch target (at least 56 high).
@@ -272,6 +290,7 @@ export const supportStyles = StyleSheet.create({
   caseMeta: { alignItems: 'flex-start', gap: sys.space.xs },
   caseEnd: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   unread: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
+  topicToggle: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   choice: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   choiceCopy: { flex: 1, minWidth: 0, gap: 2 },
   radio: { width: 22, height: 22, borderRadius: sys.radius.pill, borderWidth: 2, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },

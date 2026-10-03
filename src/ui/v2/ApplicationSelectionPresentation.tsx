@@ -362,10 +362,10 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
             <T variant="bodyStrong" style={s.ink}>{time ?? need.vremeTekst}</T></View>
         </View>
       </View>
-      <View style={s.offerMessage}>
+      {message ? <View style={s.offerMessage}>
         <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Poruka</T>
-        {message ? <T selectable variant="body" style={s.ink}>{candidate.napomena}</T> : <T variant="body" tone="muted">Bez poruke.</T>}
-      </View>
+        <T selectable variant="body" style={s.ink}>{candidate.napomena}</T>
+      </View> : <T variant="note" tone="muted">Bez poruke.</T>}
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
           owner as labels; what the applicant wants to say is in the message above. */}
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>

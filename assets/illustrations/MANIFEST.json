@@ -18,5 +18,10 @@
     "file": "uskoci-work-kit-v1.png",
     "sha256": "726a20ff8c7148aa35a8c51578ac36e38145cb37b12b2a5fa13dfbea3902f701",
     "bytes": 2073425
+  },
+  {
+    "file": "uskoci-notification-bell-v1.png",
+    "sha256": "0432c7365c785922fc69efaaed783f73837522fba78627ce03a7215594417744",
+    "bytes": 1044978
   }
 ]

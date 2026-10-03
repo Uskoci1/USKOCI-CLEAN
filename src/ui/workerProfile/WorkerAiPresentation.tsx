@@ -47,11 +47,6 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       </View>
       <DisclosureCaret size={20} color={sys.color.muted}/>
     </Press>
-    {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
-        <PreviewFact art="users">{`${team} · ${availability}`}</PreviewFact>
-        <PreviewFact art="clock">{schedule}</PreviewFact>
-      </View>:null}
       {showReview&&!reviewInFooter?<View style={s.reviewAction}>
         <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
           accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
@@ -61,6 +56,11 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
           <ReviewCue disabled={disabled}/>
         </Press>
         {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
+      </View>:null}
+    {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
+        <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
+        <PreviewFact art="users">{`${team} · ${availability}`}</PreviewFact>
+        <PreviewFact art="clock">{schedule}</PreviewFact>
       </View>:null}
   </View>;
 }

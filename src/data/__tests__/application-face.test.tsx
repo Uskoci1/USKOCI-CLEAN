@@ -171,10 +171,10 @@ describe('my offer', () => {
     }
   });
 
-  it('the people follow Serbian counts, and my message is shown in quotes in two lines at most', async () => {
+  it('the people follow Serbian counts, and a short message stays complete in quotes', async () => {
     expect(offerPeople(1)).toBe('Dolazi 1 osoba'); expect(offerPeople(3)).toBe('Dolaze 3 osobe'); expect(offerPeople(12)).toBe('Dolazi 12 osoba');
     await render(<ApplicationCard row={row({ napomena: '  Donosim trake.  ' })} {...handlers()} />);
-    expect(textNode('„Donosim trake.“').props.numberOfLines).toBe(2);
+    expect(textNode('„Donosim trake.“').props.numberOfLines).toBeUndefined();
     await render(<ApplicationCard row={row({ napomena: '   ' })} {...handlers()} />);
     expect(texts().some(text => text.startsWith('„'))).toBe(false);
   });
@@ -220,4 +220,52 @@ it('is heard once: the command name, then status, place, time, the offer, the pe
   expect(presses()[0].props.accessibilityValue).toEqual({ text:
     // Verify r4b item A: a chosen offer says the people it offered ("2 osobe"), not "Dolaze 2 osobe".
     'Izabrana, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.' });
+});
+
+
+describe('reading my complete application message', () => {
+  const note = 'Poruka sa stvarnim uslovima prijave. '.repeat(8);
+  const messageNode = () => textNode(`„${note.trim()}“`);
+  const toggle = () => presses().find(node => /Prikaži celu poruku|Prikaži manje/.test(node.props.accessibilityLabel))!;
+
+  it('expands and collapses without opening the task or running an application command', async () => {
+    const callbacks = handlers();
+    await render(<ApplicationCard row={row({ napomena: note })} {...callbacks} />);
+    const body = presses()[0], control = toggle();
+    expect(messageNode().props.numberOfLines).toBe(2);
+    expect(control.parent).toBe(body.parent);
+    expect(body.findAll(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
+    expect(style(control).minHeight).toBeGreaterThanOrEqual(48);
+    await act(async () => control.props.onPress());
+    expect(messageNode().props.numberOfLines).toBeUndefined();
+    expect(toggle().props.accessibilityState.expanded).toBe(true);
+    await act(async () => toggle().props.onPress());
+    expect(messageNode().props.numberOfLines).toBe(2);
+    for (const callback of Object.values(callbacks)) expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('retires expansion and captured callbacks across a revision change and return', async () => {
+    const callbacks = handlers(), first = row({ napomena: note });
+    await render(<ApplicationCard row={first} {...callbacks} />);
+    const oldToggle = toggle().props.onPress;
+    await act(async () => oldToggle());
+    await act(async () => tree.update(<ApplicationCard row={{ ...first, prijavaVerzija: 2 }} {...callbacks} />));
+    expect(messageNode().props.numberOfLines).toBe(2);
+    await act(async () => tree.update(<ApplicationCard row={first} {...callbacks} />));
+    await act(async () => oldToggle());
+    expect(messageNode().props.numberOfLines).toBe(2);
+    await act(async () => toggle().props.onPress());
+    expect(messageNode().props.numberOfLines).toBeUndefined();
+  });
+
+  it('a retained toggle obeys the current disabled state', async () => {
+    const callbacks = handlers(), application = row({ napomena: note });
+    await render(<ApplicationCard row={application} {...callbacks} />);
+    const oldToggle = toggle().props.onPress;
+    await act(async () => tree.update(<ApplicationCard row={application} {...callbacks} disabled />));
+    expect(toggle().props.accessibilityState.disabled).toBe(true);
+    await act(async () => oldToggle());
+    expect(messageNode().props.numberOfLines).toBe(2);
+    for (const callback of Object.values(callbacks)) expect(callback).not.toHaveBeenCalled();
+  });
 });

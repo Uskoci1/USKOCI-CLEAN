@@ -13,7 +13,7 @@ import { WorkProfileArt } from './WorkProfileArt';
 import { V2Action } from '../v2/V2Action';
 
 /** The identity passport reserves the same size for a real photo, initials and unavailable identity. */
-export const PROFILE_AVATAR = 72;
+export const PROFILE_AVATAR = 96;
 /** The camera mark sits on the photo's edge at a size that leaves the face visible. */
 const BADGE = { width: 24, height: 24, right: -2, bottom: -2 } as const;
 

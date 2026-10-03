@@ -57,6 +57,8 @@ const render = async () => { await act(async () => { tree = create(element()); }
 const update = async () => { await act(async () => tree.update(element())); };
 const action = (label: string) => tree.root.findByProps({ label }).props;
 const actions = (label: string) => tree.root.findAllByProps({ label });
+const hostPress = (label: string) => tree.root.find(node => node.type === ('Press' as React.ElementType)
+  && node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label).props;
 const field = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props;
 const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(n => n.children.filter(x => typeof x === 'string')).join(' ');
 async function type(label: string, value: string) { await act(async () => field(label).onChangeText(value)); }
@@ -86,7 +88,7 @@ it('uses a private create form with optional outcome, scalar limits and no safet
   expect(mockService.prepare).not.toHaveBeenCalled(); expect(actions('Bezbednost')).toHaveLength(0);
 });
 it('a topic that needs a Dogovor says so under the grey send button until one is chosen', async () => {
-  await render(); await act(async () => action('Prijava nedolaska').onPress());
+  await render(); await act(async () => hostPress('Tema zahteva').onPress()); await act(async () => action('Prijava nedolaska').onPress());
   await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Nisam našao saradnika.');
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(action('Pošalji privatni zahtev').reason).toContain('Izaberi Dogovor iznad');
   await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
@@ -99,7 +101,7 @@ it('does not submit a retained button after the visible draft changes', async ()
   await act(async () => action('Pošalji privatni zahtev').onPress()); expect(mockService.prepare.mock.calls[0][3].body).toBe('Prikazana nova verzija');
 });
 it('selects a current owned Agreement and serializes only its id and revision on an explicit send', async () => {
-  await render(); await act(async () => action('Prijava nedolaska').onPress());
+  await render(); await act(async () => hostPress('Tema zahteva').onPress()); await act(async () => action('Prijava nedolaska').onPress());
   await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Nisam našao saradnika.');
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(mockAgreements).not.toHaveBeenCalled();
   await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
@@ -110,7 +112,7 @@ it('selects a current owned Agreement and serializes only its id and revision on
 });
 it('preserves only the selected message as evidence when its request is attached to a current Agreement', async () => {
   reference = { kind: 'AGREEMENT_MESSAGE', id: E, revision: 2 }; await render();
-  await act(async () => action('Prijava nedolaska').onPress()); await act(async () => action('Izaberi Dogovor').onPress());
+  await act(async () => hostPress('Tema zahteva').onPress()); await act(async () => action('Prijava nedolaska').onPress()); await act(async () => action('Izaberi Dogovor').onPress());
   await act(async () => action('Stvarni sopstveni Dogovor').onPress());
   await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Pogledaj izabranu poruku.');
   await act(async () => action('Pošalji privatni zahtev').onPress());
@@ -168,7 +170,10 @@ it.each(['account', 'account ABA', 'blur/focus', 'context'] as const)('a reused 
   for (const label of ['Kratak naslov', 'Opis zahteva', 'Željeni ishod']) expect(field(label).value).toBe('');
   expect(actions('Stvarni sopstveni Dogovor')).toHaveLength(0);
   expect(action('Pošalji privatni zahtev').disabled).toBe(true);
-  if (change === 'context') expect(action('Pregled odluke o objavi').selected).toBe(true);
+  if (change === 'context') {
+    await act(async () => hostPress('Tema zahteva').onPress());
+    expect(action('Pregled odluke o objavi').selected).toBe(true);
+  }
 });
 it('does not expose a previous account case from a late detail read', async () => {
   screen = 'DETAIL'; const held = deferred(); mockService.detail.mockReturnValueOnce(held.promise); await render();
@@ -277,8 +282,15 @@ it('Back with typed words asks first; keeping them keeps them, and an empty form
 });
 it('the topics are one radio group: the chosen one is said as checked, never by a prefix', async () => {
   await render();
+  expect(hostPress('Tema zahteva')).toMatchObject({ accessibilityState: { expanded: false }, accessibilityValue: { text: 'Tehnička pomoć' } });
+  expect(tree.root.findAllByProps({ accessibilityRole: 'radiogroup' })).toHaveLength(0);
+  await act(async () => hostPress('Tema zahteva').onPress());
+  expect(hostPress('Tema zahteva').accessibilityState.expanded).toBe(true);
   expect(action('Tehnička pomoć')).toMatchObject({ kind: 'radio', selected: true });
   await act(async () => action('Drugo').onPress());
+  expect(hostPress('Tema zahteva')).toMatchObject({ accessibilityState: { expanded: false }, accessibilityValue: { text: 'Drugo' } });
+  expect(tree.root.findAllByProps({ accessibilityRole: 'radiogroup' })).toHaveLength(0);
+  await act(async () => hostPress('Tema zahteva').onPress());
   expect(action('Drugo').selected).toBe(true); expect(action('Tehnička pomoć').selected).toBe(false);
   expect(text()).not.toContain('Izabrano:');
 });
@@ -333,7 +345,7 @@ it('Android Back with typed words asks first; an empty form lets the system Back
   expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
 });
 it('leaving for export and closure with typed words asks first, and goes once confirmed', async () => {
-  await render(); await act(async () => action('Privatnost i prava').onPress()); await type('Opis zahteva', 'Nesačuvan tekst');
+  await render(); await act(async () => hostPress('Tema zahteva').onPress()); await act(async () => action('Privatnost i prava').onPress()); await type('Opis zahteva', 'Nesačuvan tekst');
   await act(async () => action('Otvori izvoz i zatvaranje naloga').onPress());
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(1);
   await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
@@ -372,6 +384,7 @@ it('a request opened from a Dogovor message says once what it attaches, and keep
 });
 it('the topics and the decision are each one radio group for a screen reader', async () => {
   await render();
+  await act(async () => hostPress('Tema zahteva').onPress());
   const group = tree.root.findByProps({ accessibilityRole: 'radiogroup' });
   expect(group.props.accessibilityLabel).toBe('Tema zahteva'); expect(group.findAllByProps({ kind: 'radio' }).length).toBeGreaterThan(5);
 });

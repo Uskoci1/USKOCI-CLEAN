@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { memo, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
@@ -26,7 +26,7 @@ import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceSty
  *      or the word when there is no amount;
  *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people, while the offer
  *      is open; only "2 osobe" once it is settled: chosen, withdrawn or closed);
- *   7. my message to the requester, when I wrote one, in two lines at most;
+ *   7. my message to the requester; a long note has a separate read-only control to open its complete text;
  *   8. the foot: at most ONE action, the one this state allows, as a quiet row link (never a button inside the card):
  *      Izabrana → "Otvori Dogovor", Poslata (and every open state the server lets me withdraw) → "Povuci prijavu" (a
  *      quiet ink link; the danger colour is kept for the question it opens), Potrebna nova provera → "Pregledaj izmene
@@ -151,7 +151,7 @@ export function OfferRow({ value, places, large, settled = false }: { value: App
  * the screen's fresh per-render handlers (which the card must keep: a handle captured under one account revision must not
  * act under the next) re-render the thin interactive shell and not this text.
  */
-export const ApplicationSummary = memo(function ApplicationSummary({ row, large }: { row: MojaPrijavaProjekcija; large: boolean }) {
+export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false }: { row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean }) {
   const status = applicationStatus(row.stanje);
   const note = row.napomena?.trim();
   return <>
@@ -163,7 +163,7 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large 
     </View>
     <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} settled={offerSettled(row.stanje)} />
     {/* The only place my message to the requester can be read again; my words, so in quotes. */}
-    {note ? <CardFact art={<FactArt kind="chat" size={24} cut="art" tone="quiet" />} text={`„${note}“`} lines={2} /> : null}
+    {note ? <CardFact art={<FactArt kind="chat" size={24} cut="art" tone="quiet" />} text={`„${note}“`} lines={noteCollapsed ? 2 : 0} /> : null}
   </>;
 });
 
@@ -189,6 +189,25 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
   const foot = action ? FOOT[action] : null;
   const onFoot = action === 'agreement' ? onAgreement : action === 'withdraw' ? onWithdraw : onReview;
 
+  const note = row.napomena?.trim() ?? '';
+  // A conservative text rule, not measured line count: short notes are never clipped. Every clipped note has a control.
+  const longNote = note.length > 80 || /[\r\n]/.test(note);
+  const noteIdentity = [row.prijavaId, row.potrebaId, row.potrebaRevizija, row.prijavaRevizija, row.prijavaVerzija, row.stanje].join(':');
+  const noteScope = useRef({ identity: noteIdentity, note, disabled });
+  if (noteScope.current.identity !== noteIdentity || noteScope.current.note !== note) {
+    noteScope.current = { identity: noteIdentity, note, disabled };
+  }
+  const noteOwner = noteScope.current;
+  noteOwner.disabled = disabled;
+  const [openNote, setOpenNote] = useState<typeof noteOwner | null>(null);
+  const noteExpanded = openNote === noteOwner;
+  const toggleNote = () => {
+    // Retired callbacks cannot reopen a replacement row, including identity A -> B -> A.
+    if (noteScope.current !== noteOwner || noteOwner.disabled) return;
+    setOpenNote(current => current === noteOwner ? null : noteOwner);
+  };
+  const noteLabel = noteExpanded ? 'Prikaži manje' : 'Prikaži celu poruku';
+
   const scale = useSharedValue(1);
   const lift = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
   const give = () => { if (!reduced) scale.set(withTiming(CARD_PRESS_SCALE, { duration: sys.motion.press, easing: EASE_OUT })); };
@@ -198,9 +217,15 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row) }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={s.body}>
-      <ApplicationSummary row={row} large={large} />
+      <ApplicationSummary row={row} large={large} noteCollapsed={longNote && !noteExpanded} />
     </Press>
-    {/* No hit slop: the hairline is the border between the two targets, and a touch just above it opens the task. */}
+    {/* A read-only sibling, never a nested press inside the task destination or the application command. */}
+    {longNote ? <Press accessibilityRole="button" accessibilityLabel={noteLabel}
+      accessibilityHint={`Poruka uz prijavu: ${title}`} accessibilityState={{ expanded: noteExpanded, disabled }}
+      disabled={disabled} onPress={toggleNote} haptic="select" scaleTo={1} hitSlop={0} style={s.noteToggle}>
+      <T variant="note" tone={disabled ? 'muted' : 'ink'}>{noteLabel}</T>
+    </Press> : null}
+    {/* No hit slop: the hairline is the border between reading controls and the application command. */}
     {foot ? <Press accessibilityRole="button" accessibilityLabel={`${foot.spoken}: ${title}`} accessibilityHint={foot.hint}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onFoot} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       hitSlop={0} style={foot.tone === 'waiting' ? faceStyles.ownerFoot : faceStyles.footLink}>
@@ -217,6 +242,7 @@ const s = StyleSheet.create({
   card: { ...cardCompact, padding: 0 },
   body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
   facts: { gap: 4 },
+  noteToggle: { minHeight: 48, paddingHorizontal: 16, paddingVertical: sys.space.sm, justifyContent: 'center' },
   // My offer sits a step apart from the task's facts: it is the part of the card that is mine.
   title: { fontSize: 18, lineHeight: 24 },
   offer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.md, marginVertical: sys.space.xs },
