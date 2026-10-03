@@ -78,9 +78,9 @@ export function TaskDecisionSummary({ need, price }: {
       <View accessible accessibilityLabel={`Potrebno: ${people}, ${capacity.spoken}`}
         style={[s.capacityTerm, stackTerms && s.termStacked]}>
         <FactArt kind="users" size={24} cut="art" role="people" />
-        <View style={s.copy}>
+        <View style={[s.copy, s.capacityInline]}>
           <T style={s.capacityCount}>{people}</T>
-          <T variant="meta" tone="muted">{capacity.text} popunjeno</T>
+          <T variant="meta" tone="muted" style={s.capacityFilled}>{capacity.text} popunjeno</T>
         </View>
       </View>
     </View>
@@ -138,13 +138,15 @@ const s = StyleSheet.create({
   amount: { ...sys.type.priceLarge, color: sys.color.money },
   amountCompact: { ...sys.type.priceSmall },
   priceWords: { ...sys.type.bodyStrong, color: sys.color.ink },
-  summary: { gap: sys.space.lg },
+  summary: { gap: sys.space.base },
   terms: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: sys.space.md, rowGap: sys.space.md },
   termsStacked: { flexDirection: 'column' },
   priceSlot: { flexBasis: 176, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
   capacityTerm: { flexBasis: 100, flexGrow: 0, flexShrink: 1, maxWidth: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
   termStacked: { flexBasis: 'auto', flexGrow: 0, width: '100%' },
-  capacityCount: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  capacityInline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: 2 },
+  capacityCount: { ...sys.type.bodyStrong, color: sys.color.ink, fontVariant: ['tabular-nums'], maxWidth: '100%', flexShrink: 1 },
+  capacityFilled: { maxWidth: '100%', flexShrink: 1 },
   logistics: { gap: sys.space.sm },
   place: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   planningFact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },

@@ -78,16 +78,16 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
 }
 
 /** The same opt-in review mode stays explicit beside the microphone, including its off state. */
-export function AgreementVoicePreference({ voice, writable }: { voice: AgreementVoiceController; writable: boolean }) {
+export function AgreementVoicePreference({ voice, writable, compact = false }: { voice: AgreementVoiceController; writable: boolean; compact?: boolean }) {
   if (voice.recording.phase !== 'idle' || !writable || voice.screenReader) return null;
   return <Press accessibilityRole="checkbox" accessibilityLabel="Pregledaj snimak pre slanja"
     accessibilityState={{ checked: voice.reviewFirst }}
-    onPress={() => voice.setReviewFirst(!voice.reviewFirst)} style={s.preference}>
+    onPress={() => voice.setReviewFirst(!voice.reviewFirst)} style={[s.preference, compact && s.preferenceCompact]}>
     <View accessible={false} style={[s.preferenceMark, voice.reviewFirst && s.preferenceMarkChecked]}>
       {voice.reviewFirst ? <Glyph name="check" size={16} tone="ink" /> : null}
     </View>
-    <T variant="meta" tone="muted" style={s.preferenceText}>
-      Pregled: {voice.reviewFirst ? 'uključen' : 'isključen'}
+    <T variant="meta" tone="muted" style={[s.preferenceText, compact && s.preferenceTextCompact]}>
+      {compact ? 'Pregled' : `Pregled: ${voice.reviewFirst ? 'uključen' : 'isključen'}`}
     </T>
   </Press>;
 }
@@ -172,7 +172,9 @@ const s = StyleSheet.create({
   message: { minWidth: 180, gap: 6, backgroundColor: sys.color.surface, borderRadius: 18, padding: 8 },
   play: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
   preference: { minHeight: 48, flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, paddingVertical: 4 },
+  preferenceCompact: { flexDirection: 'column', justifyContent: 'center', gap: 0, paddingHorizontal: 0, paddingVertical: 0 },
   preferenceText: { flex: 1, minWidth: 0 },
+  preferenceTextCompact: { flex: 0, textAlign: 'center', maxWidth: '100%' },
   preferenceMark: { width: 20, height: 20, flexShrink: 0, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   preferenceMarkChecked: { backgroundColor: sys.color.control, borderColor: sys.color.ink },
   meter: { width: 40, height: 6, borderRadius: 3, backgroundColor: sys.color.control, overflow: 'hidden' },

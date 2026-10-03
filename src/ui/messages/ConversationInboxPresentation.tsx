@@ -146,7 +146,7 @@ const ConversationRow = memo(function ConversationRow({ item, moment, stacked, d
         <T variant="bodyStrong" style={s.name}>{title}</T>
         {moment ? <T variant="meta" tone="muted" style={s.time}>{moment.sat}</T> : null}
       </View>
-      <T variant="meta" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
+      <T variant="note" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
       <View style={s.previewRow}>
         <T variant="note" tone="ink" numberOfLines={stacked ? undefined : 2} style={s.preview}>{preview}</T>
         {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
@@ -174,7 +174,7 @@ const s = StyleSheet.create({
   name: { flexShrink: 1, flexGrow: 1, minWidth: 0, color: sys.color.ink },
   time: { flexShrink: 0, fontVariant: ['tabular-nums'] },
   previewRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: sys.space.sm },
-  preview: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 },
+  preview: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0, fontWeight: '400' },
   unread: { minWidth: 24, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.ink },
   unreadText: { color: sys.color.surface, textAlign: 'center', fontVariant: ['tabular-nums'] },

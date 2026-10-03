@@ -11,6 +11,7 @@ import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
+import { useLayoutClass } from '../system/textScale';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
@@ -87,15 +88,15 @@ export function AgreementPersonBar({ person, back, right }: { person: UcesnikPro
  * It is heard as one sentence, "Termin: 24. sep · 17:00–19:00, Po vremenu u Srbiji". An amount wears the money colour
  * with its basis beside it; a word about money ("Iznos nije sačuvan") stays ink and has no basis.
  */
-export function AgreementFact({ art, label, value, note, basis, money = false, labelVisible = false, prominent = false }: {
+export function AgreementFact({ art, label, value, note, basis, money = false, labelVisible = false, prominent = false, supporting = false }: {
   art: FactArtKind; label: string; value: string; note?: string | null; basis?: string | null; money?: boolean;
-  labelVisible?: boolean; prominent?: boolean;
+  labelVisible?: boolean; prominent?: boolean; supporting?: boolean;
 }) {
   return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
     <View style={[s.factArt, labelVisible && s.labeledArt]}><FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} /></View>
     <View style={s.factCopy}>
       {labelVisible ? <T variant="meta" tone="muted">{label}</T> : null}
-      <T style={[money ? s.factMoney : s.factValue, prominent && s.prominentValue]}>{value}{money && basis ? <T style={s.factBasis}>{` ${basis}`}</T> : null}</T>
+      <T style={[money ? s.factMoney : s.factValue, supporting && s.supportingValue, prominent && s.prominentValue]}>{value}{money && basis ? <T style={s.factBasis}>{` ${basis}`}</T> : null}</T>
       {note ? <T variant="meta" tone="muted">{note}</T> : null}
     </View>
   </View>;
@@ -140,6 +141,7 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, 
 
 /** Accepted facts remain a readable record, separate from the source task's current detail. */
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
+  const { stacked } = useLayoutClass();
   // The overview states the accepted count even for one person; compact chat can omit that repeated fact.
   const people = compact ? agreementPeople(a) : osoba(a.pokrivenost.popunjeno);
   const scope = a.prihvacenObim;
@@ -147,13 +149,18 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
   const facts = <View style={compact ? s.facts : s.acceptedDetails}>
     {compact ? <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} /> : null}
-    <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} labelVisible={!compact} />
+    <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} labelVisible={!compact} supporting={!compact} />
   </View>;
-  const price = <View style={compact ? s.acceptedPrice : undefined}>
-    <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA}
-      basis={compact && amount ? 'ukupno' : null} money={/\d/.test(amount)} labelVisible={!compact} prominent={!compact && /\d/.test(amount)} />
-    {people ? <AgreementFact art="users" label={compact ? 'Ljudi' : 'Dogovoreni broj osoba'} value={people} /> : null}
-  </View>;
+  const amountFact = <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA}
+    basis={compact && amount ? 'ukupno' : null} money={/\d/.test(amount)} labelVisible={!compact} prominent={!compact && /\d/.test(amount)} />;
+  const peopleFact = people ? <AgreementFact art="users" label={compact ? 'Ljudi' : 'Dogovoreni broj osoba'} value={people} supporting={!compact} /> : null;
+  // The accepted total leads. Missing amounts and large text keep a full-width record; no value is shortened.
+  const stackPrice = stacked || !/\d/.test(amount);
+  const price = compact ? <View style={s.acceptedPrice}>{amountFact}{peopleFact}</View>
+    : <View style={[s.overviewPrice, stackPrice && s.overviewPriceStacked]}>
+      <View style={[s.overviewAmount, stackPrice && s.overviewTermStacked]}>{amountFact}</View>
+      {peopleFact ? <View style={[s.overviewPeople, stackPrice && s.overviewTermStacked]}>{peopleFact}</View> : null}
+    </View>;
   return <View style={s.terms}>
     <View style={s.termsHeading}>
       <T accessibilityRole="header" variant={compact ? 'bodyStrong' : 'heading'} style={s.ink}>Dogovoreni uslovi</T>
@@ -222,6 +229,11 @@ const s = StyleSheet.create({
   acceptedTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
   facts: { gap: 4 },
   acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
+  overviewPrice: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: sys.space.md, rowGap: sys.space.xs },
+  overviewPriceStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  overviewAmount: { flexBasis: 176, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
+  overviewPeople: { flexBasis: 100, flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
+  overviewTermStacked: { flexBasis: 'auto', flexGrow: 0, width: '100%' },
   acceptedDetails: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
   acceptedScope: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
@@ -231,6 +243,7 @@ const s = StyleSheet.create({
   factCopy: { flex: 1, minWidth: 0 },
   factValue: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: sys.color.ink },
   factMoney: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
+  supportingValue: { ...sys.type.copy, color: sys.color.ink },
   prominentValue: { ...sys.type.title },
   factBasis: { fontSize: 14, lineHeight: 22, fontWeight: '500', color: sys.color.muted },
   people: { borderTopWidth: 1, borderTopColor: sys.color.line },

@@ -19,7 +19,7 @@ CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores
 ## Current checkpoint — visual composition, 2026-10-03
 
 Owner prioritizes the complete visual product and permits recomposition. Continue the existing Expo application and the one62-row registry.
-Read [the current native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md) for exact installed builds and scope. Both devices last verified e444; the following navigation/Home/profile/Discovery composition batch is source work until its matching APK screenshots are recorded there. Use white/ink hierarchy, original material artwork selectively, regular functional glyphs and scalable text. Keep actual business facts, backend authority and state guards.
+Read [the current native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md) for exact installed builds and scope. Both devices now verify b35a2901. Home/Profile/work-profile/Discovery/filter were inspected on HONOR1.15 and emulator1.0/1.3 within the linked receipt; it is bounded visual acceptance, not whole-app completion. The next Agreement/chat/preferences/clean-profile-footer batch remains source work pending its matching APK. Use white/ink hierarchy, original material artwork selectively, regular functional glyphs and scalable text. Keep actual business facts, backend authority and state guards.
 
 ## Historical checkpoint — finalization Round31
 

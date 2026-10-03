@@ -13,7 +13,7 @@ import { Press } from './Press';
 import { FactArt } from './system/FactArt';
 import { plural } from './system/plural';
 import { sys } from './system/tokens';
-import { useTextScale } from './system/textScale';
+import { useLayoutClass, useTextScale } from './system/textScale';
 import { T } from './Text';
 import { withInter } from './interFont';
 import { positiveInteger, uuid } from '../data/serverReceipt';
@@ -162,6 +162,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   hasOlder = false, hasNewer = false, loadingOlder = false, loadingNewer = false, historyError = false,
   historyErrorDirection, onLoadOlder, onLoadNewer, onShowLatest, onDisplayedMessageIds }: Props & { voice?: AgreementVoiceController }) {
   const textScale = useTextScale();
+  const { stacked: stackedComposer } = useLayoutClass();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
   // The photo tools stay behind the pill's "+" until asked for, or while a photo is chosen, prepared or explained.
@@ -324,6 +325,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const voiceBusy = !!voice && voice.recording.phase !== 'idle';
   const hideEmptyTextForVoiceReview = voice?.recording.phase === 'review' && state.draft.length === 0;
   const length = Array.from(state.draft.trim()).length;
+  // Presentation follows the draft, never transient send eligibility. A held mic retains its responder host/slot.
+  const holdingVoice = voice?.recording.phase === 'requesting' || voice?.recording.phase === 'recording';
+  const hasMessageDraft = length > 0 || state.capturing || !!photos?.hasSelection || !!photos?.ready || !!photos?.items?.length;
+  const showMic = !!voice && (holdingVoice || !hasMessageDraft);
+  const inlineTools = !stackedComposer && !hideEmptyTextForVoiceReview;
+  const reserveReview = !!voice && !voice.screenReader;
   const canSend = ready && writable && !voiceBusy && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
   const settleSend = async (owner: Outbox, photoAgreementId?: string) => {
@@ -584,40 +591,49 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </Press>
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
-        <View style={[s.pill, focused && s.pillFocused, hideEmptyTextForVoiceReview && { display: 'none' }]}
-          accessibilityElementsHidden={hideEmptyTextForVoiceReview}
-          importantForAccessibility={hideEmptyTextForVoiceReview ? 'no-hide-descendants' : 'auto'}>
-          <View style={s.writingRow}>
+        <View style={[s.pill, focused && s.pillFocused]}>
+          <View style={[s.writingRow, inlineTools && photos && s.writingWithPhoto,
+            inlineTools && reserveReview && s.writingWithReview, hideEmptyTextForVoiceReview && s.hidden]}
+            accessibilityElementsHidden={hideEmptyTextForVoiceReview}
+            importantForAccessibility={hideEmptyTextForVoiceReview ? 'no-hide-descendants' : 'auto'}>
             <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
               accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
               onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
               // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
               // line plus padding, which clipped the first line while the caret scrolled to the last one.
-              scrollEnabled style={[s.input, s.writingInput, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
+              scrollEnabled style={[s.input, s.writingInput, inlineTools && s.inputInline, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
                 compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
+            <View style={[s.commandSlot, !inlineTools && showMic && s.hidden]}>
             <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
-              accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={s.sendArea}>
+              accessibilityElementsHidden={showMic} importantForAccessibility={showMic ? 'no-hide-descendants' : 'auto'}
+              accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={[s.sendArea, showMic && s.hidden]}>
               <View style={[s.send, canSend && s.sendReady]}>
                 {state.capturing ? <ActivityIndicator color={sys.color.muted} />
                   : <PaperPlaneTilt size={22} color={canSend ? sys.color.onGreen : sys.color.muted} weight="fill" />}
               </View>
             </Press>
+            </View>
           </View>
-        </View>
-        {photos || voice ? <View style={s.toolbar}>
+        {photos || voice ? <View pointerEvents="box-none" style={[s.toolbar, inlineTools && s.toolbarInline]}>
           {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
             accessibilityHint={forcedWhy}
             accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
             onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
-            style={[s.tool, textScale < 1.3 && s.toolInline]}>
+            style={[s.tool, inlineTools && s.toolInline]}>
             {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
-            {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
+            {!inlineTools ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
           </Press> : null}
-          {voice ? <View style={s.voiceTools}>
-            <AgreementVoiceMic voice={voice} />
-            <AgreementVoicePreference voice={voice} writable={writable && !terminal} />
+          {voice ? <View pointerEvents="box-none" style={[s.voiceTools, inlineTools && s.voiceToolsInline]}>
+            <View pointerEvents={showMic ? 'auto' : 'none'} style={[s.micSlot, !inlineTools && !showMic && s.hidden]}
+              accessibilityElementsHidden={!showMic} importantForAccessibility={!showMic ? 'no-hide-descendants' : 'auto'}>
+              <View style={!showMic ? s.hidden : undefined}><AgreementVoiceMic voice={voice} /></View>
+            </View>
+            <View style={[s.preferenceSlot, inlineTools && s.preferenceInline, !reserveReview && s.hidden]}>
+              <AgreementVoicePreference voice={voice} writable={writable && !terminal} compact={inlineTools} />
+            </View>
           </View> : null}
         </View> : null}
+        </View>
       </View> : null}
     </View>
   );
@@ -661,8 +677,8 @@ const s = StyleSheet.create({
   photoSummary: { minHeight: 48, minWidth: 48, alignSelf: 'flex-end', justifyContent: 'center' },
   time: { alignSelf: 'flex-end', fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
   timeFailed: { color: sys.color.danger },
-  // Writing has its own broad row. Optional tools wrap below it without replacing the input,
-  // its selection, or the photo tray when the keyboard or text scale changes.
+  // One stable surface: ordinary tools share the writing line; large text gets an internal second row.
+  // Only styles change. The native input and held mic keep their React position across draft/keyboard changes.
   composerArea: { flexShrink: 0, gap: 4, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, backgroundColor: sys.conversation.ground },
   composerCompact: { paddingTop: 4, paddingBottom: 8 },
   details: { gap: sys.space.sm, paddingTop: sys.space.sm },
@@ -670,10 +686,20 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: sys.conversation.edge, backgroundColor: sys.conversation.surface },
   writingRow: { flexDirection: 'row', alignItems: 'flex-end' },
   writingInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
+  inputInline: { paddingHorizontal: 4 },
+  writingWithPhoto: { paddingLeft: COMMAND + sys.space.xs },
+  writingWithReview: { paddingRight: 64 + sys.space.xs },
+  hidden: { display: 'none' },
+  commandSlot: { width: COMMAND, height: COMMAND, flexShrink: 0 },
+  micSlot: { width: COMMAND, height: COMMAND, flexShrink: 0 },
+  preferenceSlot: { flex: 1, minWidth: 0 },
+  preferenceInline: { flex: 0, width: 64 },
   toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
   pillFocused: { borderColor: sys.color.ink },
-  toolbar: { minHeight: COMMAND, paddingHorizontal: sys.space.sm, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  toolbar: { minHeight: COMMAND, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  toolbarInline: { position: 'absolute', left: sys.space.sm, right: sys.space.sm, bottom: sys.space.xs, flexWrap: 'nowrap', justifyContent: 'space-between', gap: 0 },
   voiceTools: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  voiceToolsInline: { flex: 0, marginLeft: 'auto' },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
   toolLabel: { flexShrink: 1, color: sys.color.ink },

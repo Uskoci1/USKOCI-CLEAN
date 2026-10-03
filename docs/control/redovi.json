@@ -64,9 +64,14 @@
         "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_home_attention dopunjen na mestu: ratings {due, dueAgreementId}, ista presuda kao rpc_get_my_agreement_review(...).eligible, samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949, ledger 219; postflight problems []); na pravim DEV podacima ratings.due = broj prema autoritetu (0 i 1) i dueAgreementId je taj Dogovor; klijent koristi zbirni odgovor kad ga server šalje, inače stari put (bez flaga); nativno HONOR 1.10. (ROUND_77): Početna bez regresije prikaza, 0 čitanja ocena po Dogovoru (naspram +24 u starom buildu), pozitivan put (Dogovor za ocenu) NIJE proveren. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
         "visual_composition_20261003": {
           "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
-          "state": "SOURCE; matching APK/native review pending",
+          "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim.",
+          "builds": {
+            "phone": 37107152788,
+            "emulator": 37107154789,
+            "ciRuntimeEquivalent": 37107512099
+          }
         }
       }
     },
@@ -1143,9 +1148,20 @@
         "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json",
         "visual_composition_20261003": {
           "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
-          "state": "SOURCE; matching APK/native review pending",
+          "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim.",
+          "builds": {
+            "phone": 37107152788,
+            "emulator": 37107154789,
+            "ciRuntimeEquivalent": 37107512099
+          }
+        },
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
         }
       }
     },
@@ -1662,9 +1678,14 @@
         },
         "visual_composition_20261003": {
           "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
-          "state": "SOURCE; matching APK/native review pending",
+          "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim.",
+          "builds": {
+            "phone": 37107152788,
+            "emulator": 37107154789,
+            "ciRuntimeEquivalent": 37107512099
+          }
         }
       }
     },
@@ -2019,9 +2040,14 @@
         },
         "visual_composition_20261003": {
           "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
-          "state": "SOURCE; matching APK/native review pending",
+          "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim.",
+          "builds": {
+            "phone": 37107152788,
+            "emulator": 37107154789,
+            "ciRuntimeEquivalent": 37107512099
+          }
         }
       }
     },
@@ -2078,6 +2104,12 @@
           "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "scope": "f305 HONOR: Discovery cluster -> selected pin/peek -> task detail -> Back preserved the visible viewport, selected pin and peek. Bounded observed case; all-filter/cold-return/performance acceptance remains separate."
+        },
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
         }
       }
     },
@@ -2517,7 +2549,13 @@
         "test": "Round12: tipovi čisti; 11 različitih ciljanih grupa / 317 testova prolazi. Tačan opseg i početni nalazi: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json Round16: stvarne Agreement rute2grupe/131testPASS; TypeScriptPASS. Nije puna push dostava ni uređaj.",
         "device_proof": "APK36330066989 / dfe2836e / sha197df5a5 installed emulator-5556 with -r. Map/pin/card/back, AI ready+keyboard and recovery, Agreement overview/chat inspected in inert local scenes. Calendar last-week overflow reproduced; new source fix awaits consolidated APK. No real E2E/provider/phone/scale acceptance.",
         "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md",
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
+        }
       }
     },
     {
@@ -2640,6 +2678,12 @@
           "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
           "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
         }
       }
     },
@@ -3260,7 +3304,13 @@
           "exact_transport": "OFF per canonical repository evidence",
           "device": "CURRENT ARTIFACT PENDING"
         },
-        "source_finishing_20261002": "Notification settings separate OS permission, current device, role preference and transport status; existing guards/opt-in retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Notification settings separate OS permission, current device, role preference and transport status; existing guards/opt-in retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
+        }
       }
     },
     {
@@ -3679,9 +3729,20 @@
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
         "visual_composition_20261003": {
           "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
-          "state": "SOURCE; matching APK/native review pending",
+          "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+          "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim.",
+          "builds": {
+            "phone": 37107152788,
+            "emulator": 37107154789,
+            "ciRuntimeEquivalent": 37107512099
+          }
+        },
+        "connected_composition_20261003": {
+          "state": "SOURCE; final integrated checks and matching APK/native pending",
+          "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No server/provider/data mutation or whole-app acceptance."
         }
       }
     },

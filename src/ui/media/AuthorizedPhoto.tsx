@@ -28,6 +28,7 @@ type PhotoState = { attempt: PhotoAttempt; uri: string | null } | null;
 export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; caseId?: string; agreementId?: string; messageId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover';
   /** Only a loaded image can open its viewer; failure recovery stays a separate target. */
   open?: { label: string; hint?: string; onPress: () => void };
+  /** Optional decorative identity while authorization/image data is pending; never a retained photo. */ pending?: ReactNode;
   /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode }) {
   const { user, accountRevision } = useSesija();
   const binding = `${user?.id}:${accountRevision}:${p.assetId}:${p.needId ?? ''}:${p.profileId ?? ''}:${p.caseId ?? ''}:${p.agreementId ?? ''}:${p.messageId ?? ''}`;
@@ -90,6 +91,9 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
         <FactArt kind="photo" size={24} muted />
         <T variant="note" style={{ color: sys.color.green, textAlign: 'center' }}>Pokušaj ponovo</T>
       </Press>
-        : <ActivityIndicator size="small" accessibilityLabel="Učitavanje fotografije" color={sys.color.green} />}
+        : p.pending ? <View accessible accessibilityLabel="Učitavanje fotografije" accessibilityState={{ busy: true }}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{p.pending}</View>
+        </View> : <ActivityIndicator size="small" accessibilityLabel="Učitavanje fotografije" color={sys.color.green} />}
   </View>;
 }

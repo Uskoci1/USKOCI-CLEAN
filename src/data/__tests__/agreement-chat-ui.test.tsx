@@ -632,20 +632,22 @@ describe('D03 actual message component', () => {
       expect(mine.map(node => flat(node.props.style).color)).toEqual([sys.conversation.onUser, sys.conversation.onUser]);
       expect(texts()).not.toContain('Povuci naniže');
     });
-    it('gives the multiline draft a broad row with send, separate from optional media tools', async () => {
+    it('keeps the multiline draft and reserved send target in one stable writing row', async () => {
       await render();
       const send = button('Pošalji poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
       expect(circle(send).backgroundColor).toBe(sys.color.ink); expect(flat(send.props.style).opacity).toBeUndefined();
-      const writingRow = send.parent!;
+      const commandSlot = send.parent!;
+      const writingRow = commandSlot.parent!;
       const pill = writingRow.parent!;
+      expect(flat(commandSlot.props.style)).toMatchObject({ width: 48, height: 48, flexShrink: 0 });
       expect(flat(writingRow.props.style)).toMatchObject({ flexDirection: 'row' });
       expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.control });
       const input = pill.findByProps({ accessibilityLabel: 'Napiši poruku' });
       expect(input.props.multiline).toBe(true);
       expect(input.parent).toBe(writingRow);
-      expect(writingRow.children.indexOf(input)).toBeLessThan(writingRow.children.indexOf(send));
+      expect(writingRow.children.indexOf(input)).toBeLessThan(writingRow.children.indexOf(commandSlot));
       expect(flat(input.props.style)).toMatchObject({ flex: 1 });
       await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '' }} />));
       expect(button('Pošalji poruku').props.disabled).toBe(true);

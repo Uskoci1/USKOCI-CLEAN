@@ -136,6 +136,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const status = profile?.stanje ?? null;
   const firstSave = profile === null;
   const localDirty = !!draft && JSON.stringify(draft.value) !== JSON.stringify(draft.initial);
+  const showFooter = (status !== 'ACTIVE' && status !== 'SUSPENDED') || localDirty || !!pending || transportBusy
+    || editor.busy || editor.loading || editor.uncertain || !!editor.error || !!validation || !!message;
   const value = draft?.value;
   const basicsReady = !!value && value.ime.trim().length >= 2 && value.vestine.length > 0;
   const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
@@ -164,7 +166,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     router.push('/profil/razgovor');
   };
   // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
-  return <WorkerProfileFrame back={back} footer={visible ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
+  return <WorkerProfileFrame back={back} footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
     {pending && (editor.uncertain || editor.error) ? <V2Action tone="neutral" label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
       : <V2Action tone="neutral" label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}

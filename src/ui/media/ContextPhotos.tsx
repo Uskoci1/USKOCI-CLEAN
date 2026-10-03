@@ -135,7 +135,10 @@ export function ProfilePhoto({ profileId, fallback, size, initial }: { profileId
       : <FactArt kind="person" size={size ? Math.round(size / 2.2) : 40} />}
   </View>;
   if (photo) return <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija"
-    contentFit={size ? 'cover' : 'contain'} style={box} unavailable={size ? standIn : undefined} />;
-  if (editor.loading) return <View accessibilityLabel="Učitavamo fotografiju" style={[box, { backgroundColor: sys.color.skeleton }]} />;
+    contentFit={size ? 'cover' : 'contain'} style={box} pending={standIn} unavailable={size ? standIn : undefined} />;
+  if (editor.loading) return <View accessible accessibilityLabel="Učitavanje fotografije" accessibilityState={{ busy: true }}
+    style={[box, { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{standIn}</View>
+  </View>;
   return standIn;
 }

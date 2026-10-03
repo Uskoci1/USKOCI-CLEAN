@@ -63,6 +63,20 @@ it('keeps regular profile fields and the bold capacity input on their bundled In
   expect(capacity.fontWeight).toBeUndefined();
 });
 
+it.each(['ACTIVE', 'SUSPENDED'])('a clean %s profile has no save footer, while editing and validation retain it', async stanje => {
+  mockRead.mockResolvedValue({ ...profile, stanje }); await render();
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
+  input('Ime na radnom profilu', 'Novo ime');
+  expect(control('Sačuvaj izmene')).toBeTruthy();
+  input('Ime na radnom profilu', profile.ime);
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
+  input('Nova stavka: Alat i oprema', 'Merdevine'); click('Sačuvaj izmene');
+  expect(texts()).toContain('još nije dodata');
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+
 it('a successfully absent profile starts with truthful empty values and the primary action saves the first draft before activation', async () => {
   mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
   expect(texts()).toContain('Status „Mogu odmah“ je isključen'); expect(texts()).toContain('Nije podešeno');
@@ -94,10 +108,12 @@ it('sends only edited fields and confirms success only after matching server rea
   act(() => { save(); save(); }); expect(mockWrite).toHaveBeenCalledTimes(1);
   expect(mockWrite).toHaveBeenCalledWith({ ime: 'Ana Petrović', zavrsi: false });
   expect(texts()).not.toContain('Izmene profila su sačuvane');
+  expect(control('Čuvamo profil…').props.disabled).toBe(true);
   mockRead.mockResolvedValue({ ...profile, ime: 'Ana Petrović', grad: 'Zemun' });
   await act(async () => finish({ ok: true, podatak: null }));
   expect(texts()).toContain('Izmene profila su sačuvane i proverene');
   expect(texts()).toContain('Zemun · 20 km');
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
   expect(mockRouter.back).not.toHaveBeenCalled();
 });
 it('activation remains unconfirmed while the server still reports DRAFT and never navigates on transport success alone', async () => {
@@ -131,6 +147,7 @@ it('unknown outcome preserves the immutable command and requires readback before
   click('Sačuvaj izmene'); await settle(); act(() => { oldSave(); oldInput('Kasniji tekst'); });
   expect(mockWrite).toHaveBeenCalledTimes(1); expect(control('Ime na radnom profilu').props.value).toBe('Novo ime');
   expect(control('Ime na radnom profilu').props.editable).toBe(false); expect(texts()).not.toContain('raw upstream');
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
   click('Pogledaj sačuvani profil'); await settle(); act(() => oldSave()); expect(mockWrite).toHaveBeenCalledTimes(1);
   click('Ponovi isto čuvanje'); await settle(); expect(mockWrite).toHaveBeenCalledTimes(2);
   expect(mockWrite.mock.calls[1][0]).toEqual(mockWrite.mock.calls[0][0]);
@@ -313,8 +330,9 @@ describe('quick picks', () => {
     expect(tile.props.accessibilityState).toEqual({ checked: false, disabled: true });
     act(() => tile.props.onPress());
     expect(control('Nova stavka: Vozila').props.editable).toBe(false); expect(texts()).toContain('Najviše 50 stavki.');
-    click('Sačuvaj izmene'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
@@ -361,11 +379,13 @@ describe('activation checklist', () => {
   it('says a complete draft is ready', async () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
     expect(texts()).toContain('Sve je spremno za aktivaciju.'); expect(control('Proveri i aktiviraj profil')).toBeTruthy();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
   });
   // Review of step 9 (2026-09-24): the three checks passed while the primary still had to load the capacity revision.
   it('says ready only when the primary is the activation itself', async () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', capacityRevision: undefined }); await render();
     expect(control('Učitaj kapacitet profila')).toBeTruthy();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
     expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
     expect(texts()).toContain('Kapacitet profila još nije učitan.'); expect(texts()).not.toContain('Sačuvaj profil da bi se broj ljudi potvrdio.');
     await act(async () => tree.unmount());

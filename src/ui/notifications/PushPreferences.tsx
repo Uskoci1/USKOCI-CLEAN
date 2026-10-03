@@ -184,7 +184,7 @@ export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role
 const CATEGORY_HELP = {
  opportunities: 'Kad se pojavi zadatak koji ti može odgovarati.',
  responses: { REQUESTER: 'Nove i izmenjene prijave i pitanja o tvojim zadacima.',
-  WORKER: 'Šta se desilo sa tvojom prijavom, izmene zadatka i odgovori na tvoja pitanja.' } as Record<NotificationRole, string>,
+  WORKER: 'Promene tvoje prijave i zadatka, odgovori na tvoja pitanja.' } as Record<NotificationRole, string>,
 };
 const PRIVACY = 'Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.';
 const SAVE_FIRST = 'Prvo sačuvaj izmene kategorija i tihih sati.';
@@ -228,8 +228,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  const { settings, native, enabled, registered, readiness } = data;
  const zone = fixedZone === undefined ? deviceZone() : fixedZone;
  const phone = phoneStatus(native, enabled, registered, FOR_SET[role]);
- // The phone's own actions, in the order they are needed; the first one says why they wait (an unconfirmed state, or a
- // change that is not saved yet).
+ // Keep the same capability/role-scoped commands; presentation below gives the next step priority.
  const phoneActions: { label: string; kind: 'secondary' | 'quiet'; onPress: () => void; working?: Working; guarded: boolean }[] = [];
  // A device that cannot receive notifications at all (the emulator) or a build without them has no phone action: next to
  // "Nije dostupno na ovom uređaju" a switch-off button contradicted the headline.
@@ -248,7 +247,10 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  if (enabled && deviceKnowsPush) phoneActions.push({ label: `Isključi za ${FOR_SET[role].toLocaleLowerCase('sr-Latn-RS')}`, kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
  // Reading again is offered only where it can change something, and not beside "Proveri stanje", which already does it.
  if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
- const firstGuarded = phoneActions.findIndex(action => action.guarded);
+ // A denied permission already has its immediate SystemSettingsAction. Otherwise connect/enable leads,
+ // or the connected set can be switched off directly. Refresh and the remaining command stay nearby.
+ const primaryPhoneAction = native === 'DENIED' ? null : phoneActions.find(action => action.working !== 'read') ?? null;
+ const secondaryPhoneActions = phoneActions.filter(action => action !== primaryPhoneAction);
  // While the state is unconfirmed the alert and "Proveri stanje" stand directly above the phone buttons, and Save says
  // "Prvo proveri stanje." already; a second copy here was spoken twice in a row.
  const waitReason = dirty && !error ? SAVE_FIRST : null;
@@ -280,20 +282,27 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
      </View>
     </View>
     {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
-    <View style={styles.phoneActions}>
-     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
-      compact={action.kind === 'quiet'} tone={action.kind === 'quiet' ? 'neutral' : 'brand'}
-      style={action.kind === 'quiet' ? styles.phoneQuiet : styles.phoneConnect}
-      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
-      reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
-    </View>
+    {primaryPhoneAction ? <V2Action label={primaryPhoneAction.label} kind={primaryPhoneAction.kind} onPress={primaryPhoneAction.onPress}
+     compact={primaryPhoneAction.kind === 'quiet'} tone="neutral" style={styles.phoneConnect}
+     loading={!!primaryPhoneAction.working && working === primaryPhoneAction.working}
+     disabled={primaryPhoneAction.guarded ? locked || dirty : false} reason={waitReason} /> : null}
+    {/* A closed disclosure must never hide why its commands are waiting. The error recovery above is always visible. */}
+    {!primaryPhoneAction && secondaryPhoneActions.length > 0 && waitReason ? <T variant="note" tone="muted">{waitReason}</T> : null}
+    {secondaryPhoneActions.length > 0 ? <Disclosure label="Upravljanje telefonom">
+     <View style={styles.phoneActions}>
+      {secondaryPhoneActions.map(action => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
+       compact tone="neutral" style={styles.phoneQuiet}
+       loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
+       reason={action.guarded ? null : undefined} />)}
+     </View>
+    </Disclosure> : null}
    </View>
 
    {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
        the block is not faded a second time on top of that. The phone's state and the footer are not touched. */}
    <View style={styles.groups}>
     <SettingsGroup>
-     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Spisak ostaje sačuvan i kada ih isključiš."
+     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Isključivanje ne briše spisak obaveštenja."
       value={settings.in_app_enabled} disabled={locked} onChange={value => onEdit('in_app_enabled', value)} last />
     </SettingsGroup>
     {/* The note covers every category, so it stands under the first of them, not under the last. */}
@@ -310,7 +319,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       value={settings.execution_enabled} disabled={locked} onChange={value => onEdit('execution_enabled', value)} last />
     </SettingsGroup>
     <SettingsGroup title="Ostalo">
-     <SettingsSwitchRow label="Oporavak" help="Kad neka radnja ostane nedovršena i treba je proveriti."
+     <SettingsSwitchRow label="Oporavak" help="Nedovršene radnje koje treba proveriti."
       value={settings.recovery_enabled} disabled={locked} onChange={value => onEdit('recovery_enabled', value)} />
      <SettingsSwitchRow label="Nalog i ostalo" help="Obaveštenja o tvom nalogu i bezbednosti."
       value={settings.account_enabled} disabled={locked} onChange={value => onEdit('account_enabled', value)} last />
@@ -409,10 +418,10 @@ const styles = StyleSheet.create({
  ink: { color: sys.color.ink },
  phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
  phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
- phoneActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
- phoneQuiet: { flexGrow: 1, flexShrink: 1, flexBasis: 128, paddingHorizontal: 4 },
+ phoneActions: { gap: 4 },
+ phoneQuiet: { alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 0 },
  phoneConnect: { width: '100%' },
- phoneTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
+ phoneTitle: { ...sys.type.bodyStrong, fontWeight: '500', color: sys.color.ink },
  groups: { gap: 24 },
  checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },
  times: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },

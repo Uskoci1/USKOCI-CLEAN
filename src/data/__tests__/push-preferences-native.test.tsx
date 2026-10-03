@@ -28,6 +28,11 @@ let tree: Renderer.ReactTestRenderer;
 const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
 const button = (label: string) => tree.root.findAllByType('Button' as never).find(x => x.props.label === label)!;
 const control = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+const openPhoneManagement = async () => {
+ expect(control('Upravljanje telefonom').props.accessibilityState.expanded).toBe(false);
+ await act(async () => { control('Upravljanje telefonom').props.onPress(); });
+ expect(control('Upravljanje telefonom').props.accessibilityState.expanded).toBe(true);
+};
 async function mount(role: 'REQUESTER' | 'WORKER' = 'REQUESTER', onDirtyChange?: (dirty: boolean) => void) {
  await act(async () => { tree = Renderer.create(<PushPreferences role={role} onDirtyChange={onDirtyChange} />); await flush(); });
 }
@@ -113,6 +118,7 @@ it('role switch makes retained old action inert', async () => {
 });
 it('disable uses displayed revision and preserves all other settings', async () => {
  mockRead.mockResolvedValue({ ...preferences, settings: { ...preferences.settings, push_enabled: true } }); await mount();
+ await openPhoneManagement();
  await act(async () => { button('Isključi za moje zadatke').props.onPress(); await flush(); }); expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...preferences.settings, push_enabled: false }, 2); expect(mockSet).not.toHaveBeenCalled();
 });
 const screenText = () => tree.root.findAllByType('Text' as never).map(x => x.props.children).flat().join(' ');
@@ -344,10 +350,11 @@ it('a phone that refuses notifications keeps the switch-off for a set that is on
  expect(screenText()).toContain('Telefon ne dozvoljava obaveštenja');
  await toggleDetails();
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
+ await openPhoneManagement();
  expect(button('Isključi za moje zadatke')).toBeDefined();
 });
 it('an unconfirmed state offers one re-read, and says "Prvo proveri stanje." once, on Save', async () => {
- await mount(); act(() => control('Dogovor i poruke').props.onPress());
+ await mount(); await openPhoneManagement(); act(() => control('Dogovor i poruke').props.onPress());
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Proveri stanje').props.disabled).toBe(false);
@@ -370,7 +377,7 @@ it('after an unconfirmed save the route is not told the changes are unsaved, so 
 });
 // Round 5c (2026-09-24): a reason that disappears while a command runs comes back afterwards and is spoken again.
 it('a clean phone refresh does not introduce a Save action or repeat an irrelevant announcement', async () => {
- await mount();
+ await mount(); await openPhoneManagement();
  expect(button('Sačuvaj podešavanja')).toBeUndefined();
  let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Osveži stanje').props.onPress(); await flush(); });
@@ -385,7 +392,7 @@ it('a clean phone refresh does not introduce a Save action or repeat an irreleva
  expect(button('Sačuvaj podešavanja').props.reason).toBeNull();
 });
 it('a retained press that is refused while another command runs does not take that command\'s spinner', async () => {
- await mount();
+ await mount(); await openPhoneManagement();
  const refresh = button('Osveži stanje').props.onPress;
  act(() => control('Dogovor i poruke').props.onPress());
  let answer!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
