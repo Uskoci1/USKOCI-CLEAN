@@ -148,12 +148,12 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
   });
 
   // Existing layout contract: actual icon host + measured label + preserved system navigation clearance.
-  it('makes the bar exactly as high as the icon and the label need: 64 at ordinary text, 67 on the owner\'s phone at 1.15, 70 at 1.3', () => {
+  it('makes the bar exactly as high as the icon and the label need: 61 at ordinary text, 64 on the owner\'s phone at 1.15, 67 at 1.3', () => {
     const height = (fontScale: number, width = 390) => configuration(0, fontScale, width).options.tabBarStyle;
-    expect(height(1).height).toBe(tabBarHeight(sys.type.tab.lineHeight, height(1).padding));
-    expect(height(1).height).toBe(64);
-    expect(height(1.15, 361).height).toBe(67); // the owner's phone: 361 dp at font scale 1.15
-    expect(height(1.3, 361).height).toBe(70);
+    expect(height(1).height).toBe(tabBarHeight(sys.type.navLabel.lineHeight, height(1).padding));
+    expect(height(1).height).toBe(61);
+    expect(height(1.15, 361).height).toBe(64); // the owner's phone: 361 dp at font scale 1.15
+    expect(height(1.3, 361).height).toBe(67);
     expect(height(1.15, 361).height - 2 * height(1.15, 361).padding).toBeGreaterThanOrEqual(48);
   });
 
@@ -181,7 +181,7 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
   describe.each(WIDTHS.flatMap(width => SCALES.map(scale => [width, scale] as const)))('at %i dp and text %f', (width, scale) => {
     it('is as high as the icon and one line of the label need, whatever the width, and the 48 px control stays whole', () => {
       const { options } = configuration(0, scale, width);
-      expect(options.tabBarStyle.height).toBe(tabBarHeight(sys.type.tab.lineHeight * scale, options.tabBarStyle.padding));
+      expect(options.tabBarStyle.height).toBe(tabBarHeight(sys.type.navLabel.lineHeight * scale, options.tabBarStyle.padding));
       expect(options.tabBarStyle.height - 2 * options.tabBarStyle.padding).toBeGreaterThanOrEqual(48);
       // The Zadaci sheet and every screen above the bar are sized by what is left: the bar never takes more than the 3 tabs need.
       expect(options.tabBarStyle.height).toBeLessThanOrEqual(80);
@@ -195,7 +195,7 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
       const side: number = StyleSheet.flatten(tabs[0].tabBarButton({ children: null }).props.style).paddingHorizontal;
       const rooms = flexes.map(flex => inner * flex / flexes.reduce((sum, value) => sum + value, 0) - 2 * side);
       // Room to spare, not a hair: the estimate is of one font on one machine.
-      const tooTight = ['Početna', 'Zadaci', 'Dogovori'].map((title, index) => ({ title, spare: Math.floor(rooms[index] - textWidth(title, sys.type.tab.fontSize * scale)) }))
+      const tooTight = ['Početna', 'Zadaci', 'Dogovori'].map((title, index) => ({ title, spare: Math.floor(rooms[index] - textWidth(title, sys.type.navLabel.fontSize * scale)) }))
         .filter(({ spare }) => spare < 12);
       expect(tooTight).toEqual([]);
     });

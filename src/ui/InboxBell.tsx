@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Bell } from 'phosphor-react-native';
 import { useInbox } from '../hooks/useInbox';
 import { useReducedMotion } from './system/motion';
 import { ChromeIconButton } from './system/ScreenChrome';
@@ -42,9 +41,8 @@ export function InboxBell() {
     return () => { run.stop(); swing.setValue(0); };
   }, [count, reduced, swing]);
   const rotate = swing.interpolate({ inputRange: [0, 0.22, 0.48, 0.72, 1], outputRange: ['0deg', '-12deg', '9deg', '-5deg', '0deg'] });
-  // The chrome's one icon button with a green glyph (round-1 critique B1): the bell used to turn orange while something
-  // was unread, which spent the screen's one orange accent on the header. The count keeps the orange badge.
-  return <ChromeIconButton label={spoken} icon={Bell} tone="green" glyphStyle={{ transform: [{ rotate }] }}
+  // Neutral navigation; only the actual unread count takes the attention accent.
+  return <ChromeIconButton label={spoken} glyph="notifications" glyphStyle={{ transform: [{ rotate }] }}
     onPress={() => router.push('/obavestenja')}>
     {count != null && count > 0 && <View style={s.badge}>
       <T variant="label" maxFontSizeMultiplier={1} style={s.badgeText}>{count > 99 ? '99+' : count}</T>

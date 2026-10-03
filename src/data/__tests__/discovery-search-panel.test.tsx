@@ -353,12 +353,12 @@ test('a chosen chip has a neutral well, ink edge and words, and a confirmation t
   start = 'kada'; await render();
   await choose('Sutra');
   const chip = radio('Sutra')[0], style = StyleSheet.flatten(chip.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.ink });
+  expect(style).toMatchObject({ backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.ink });
   expect(style.backgroundColor).not.toBe(sys.color.green);
-  expect(chip.findByType('Check' as React.ElementType).props.color).toBe(sys.color.green);
+  expect(chip.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
   expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
   const free = StyleSheet.flatten(radio('Danas')[0].props.style);
-  // The free chip's 1 px edge plus its padding is the chosen chip's 2 px edge plus its padding: the words do not move.
+  // Selected and free chips keep the same inset; the selection border does not move their words.
   expect(Number(free.borderWidth) + Number(free.paddingHorizontal)).toBe(Number(style.borderWidth) + Number(style.paddingHorizontal));
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
   await act(async () => dayCell(26).props.onPress());
@@ -378,7 +378,7 @@ test('at large text place and condition labels can wrap, and the chosen circle n
   const [label, value] = place().findAllByType('T' as React.ElementType);
   expect(label.parent).toBe(value.parent);
   expect(StyleSheet.flatten(value.parent!.props.style)).toMatchObject({ flex: 1, minWidth: 0 });
-  expect(value.props.numberOfLines).toBe(3);
+  expect(value.props.numberOfLines).toBeUndefined();
   const chip = radio('Narednih 7 dana')[0];
   expect(StyleSheet.flatten(chip.props.style).maxWidth).toBe('100%');
   expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).flexShrink).toBe(1);

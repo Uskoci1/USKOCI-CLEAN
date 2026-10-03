@@ -12,7 +12,7 @@ import { sys } from './tokens';
  * share one height, one control size, one icon size, one side padding and one title style, so moving from screen to
  * screen never shifts the arrow, the title or the first line of content.
  *
- * - `root`   — the three tabs: the profile on the left, the USKOČI mark centred on the screen, the inbox on the right.
+ * - `root`   — the four tabs: the profile on the left, the USKOČI mark centred on the screen, the inbox on the right.
  *              The tab bar already says which part of the app this is, so no section title is drawn; the section's
  *              name reaches a screen reader as the mark's label ("USKOČI, Dogovori").
  * - `detail` — a screen opened from somewhere: the arrow back, the content's name when the content does not already
@@ -33,7 +33,7 @@ export const chrome = {
   control: 48,
   /** The circle drawn inside that area. */
   circle: 44,
-  /** The glyph in a bare circle: the chrome size of the Glyph registry, bold (wave 2, item 2.3: was 22 regular). */
+  /** The glyph in a bare circle: the chrome size of the Glyph registry. */
   icon: 24,
   /** The glyph beside a word, in a captioned pill: the row size of the Glyph registry. */
   captionIcon: 20,
@@ -57,7 +57,7 @@ type ChromeIconButtonProps = ChromeArt & {
   label: string; hint?: string;
   /** Set for a toggle (search, filters): shown by weight and colour together, and spoken as selected. */ active?: boolean;
   disabled?: boolean; onPress: () => void;
-  /** Green for the root bar's profile and bell; ink everywhere else. */ tone?: 'ink' | 'green';
+  /** Ink for navigation; green is available for a meaningful selected/action state. */ tone?: 'ink' | 'green';
   /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
   /**
    * A word beside the glyph, for a command nobody can guess from a drawing (Filteri, Raspored). It is the NAME OF THE CONTROL, never a line
@@ -78,14 +78,14 @@ type ChromeIconButtonProps = ChromeArt & {
 
 /**
  * The one icon button of the chrome (round-1 critique B2: five icon-button shapes became one). A 44 px white circle with
- * the hairline inside a 48 px touch area, and a 24 px bold glyph in ink (wave 2, item 2.3: it was a 22 px regular line that stood
- * thin beside the 700-weight title). The arrow back, the X, "···", the profile, the bell, search, filters, the Dogovori calendar
+ * the hairline inside a 48 px touch area, and a 24 px regular glyph in ink. Short marks keep the registry
+ * weight for legibility. The arrow back, the X, "···", the profile, the bell, search, filters, the Dogovori calendar
  * and the week arrows all draw it.
  * - `active` (a toggle: search, filters) is weight and colour together, a neutral well and the filled green glyph,
  *   and is spoken as selected.
  * - `disabled` draws the glyph muted. The control is never faded: a faded ghost reads as broken, not as "not now".
- * - `tone="green"` is for the root bar's own two, the profile and the bell (critique B1: orange is the screen's one
- *   accent, so the bell's glyph is green and only its unread count keeps the orange badge).
+ * - `tone="green"` is reserved for a meaningful action; root profile and bell remain neutral, with the actual
+ *   unread count alone taking the attention accent.
  * - `quiet` drops the circle for a control that ends a row of its own content (the calendar at the end of a tab row).
  * - `caption` turns the circle into a pill with a word beside the glyph (see the prop).
  */
@@ -95,8 +95,8 @@ export function ChromeIconButton(props: ChromeIconButtonProps) {
   const glyphTone = disabled ? 'muted' : active || tone === 'green' ? 'green' : 'ink';
   const size = caption ? chrome.captionIcon : chrome.icon;
   const drawing = props.glyph !== undefined
-    ? <Glyph name={props.glyph} size={size} tone={glyphTone} on={active} strong />
-    : <props.icon size={size} color={GLYPH_COLOUR[glyphTone]} weight={active ? 'fill' : 'bold'} />;
+    ? <Glyph name={props.glyph} size={size} tone={glyphTone} on={active} />
+    : <props.icon size={size} color={GLYPH_COLOUR[glyphTone]} weight={active ? 'fill' : 'regular'} />;
   // The Press is the 48 px touch area itself, so the hit is exactly that; neighbours 8 px apart do not overlap.
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}
     // A toggle speaks whether it is on; a plain control speaks only whether it can be pressed.
@@ -148,7 +148,7 @@ export type ScreenChromeProps = RootChrome | DetailChrome | FlowChrome;
 
 export function ScreenChrome(props: ScreenChromeProps) {
   if (props.variant === 'root') return <View style={s.bar}>
-    <ChromeIconButton label="Moj profil" glyph="profile" tone="green" onPress={props.onProfile} />
+    <ChromeIconButton label="Moj profil" glyph="profile" onPress={props.onProfile} />
     {/* Centred on the screen, not between the two sides, so it never shifts when the right side holds two controls. */}
     <View pointerEvents="none" style={s.brand}>
       <View accessible accessibilityRole="header" accessibilityLabel={`USKOČI, ${props.title}`}><BrandLockup width={112} /></View>

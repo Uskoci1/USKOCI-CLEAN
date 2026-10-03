@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type TextProps, type ViewStyle } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { FactArt, type FactArtKind } from './FactArt';
+import { Glyph, type GlyphName } from './Glyph';
 import { useReducedMotion } from './motion';
 import { useTextScale } from './textScale';
 import { sys } from './tokens';
 
 /**
- * Quiet navigation chrome. Illustrations remain in content; a tab keeps the same small silhouette
- * in both states. The selected marker and ink label establish location without a second filled card.
+ * Quiet navigation chrome. Illustrations remain in content; a tab keeps the same open line drawing
+ * in both states. The selected marker and label establish location without a second filled card.
  * Existing native-driver selection transitions, measured labels and accessibility semantics remain.
  */
 export const TAB_ICON = 24;
@@ -21,6 +21,8 @@ export const TAB_INDICATOR = { width: 18, height: 2 } as const;
 export const TAB_POP = 1.04;
 export const TAB_BAR_PADDING = 0;
 export const TAB_CAPSULE = 0;
+type TabKind = 'home' | 'map' | 'agreements' | 'chat';
+const TAB_GLYPH: Record<TabKind, GlyphName> = { home: 'home', map: 'map', agreements: 'agreements', chat: 'messages' };
 
 /** Full-width surface; the navigator owns safe-area space and outer placement. */
 export const tabBarSurface = {
@@ -72,12 +74,11 @@ export function TabCapsule({ selected, radius }: { selected: boolean; radius: nu
 }
 
 /**
- * The same silhouette in quiet and brand tones, cross-fading over the toggle token.
+ * The same outline in muted and brand tones, cross-fading over the toggle token.
  * A small selection response runs only on a rising selection, never on initial display or deselection.
  */
-export function TabGlyph({ kind, selected }: { kind: FactArtKind; selected: boolean }) {
-  // Agreements are the agreed terms; a document silhouette stays distinct from the new conversation tab.
-  const markKind = kind === 'agreements' ? 'document' : kind;
+export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean }) {
+  const name = TAB_GLYPH[kind];
   const reduced = useReducedMotion();
   const sticker = useSelection(selected);
   const mark = useMemo(() => sticker.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), [sticker]);
@@ -97,23 +98,23 @@ export function TabGlyph({ kind, selected }: { kind: FactArtKind; selected: bool
   }, [selected, reduced, pop]);
   return <Animated.View testID="tab-glyph" style={[s.glyph, { transform: [{ scale: pop }] }]}>
     <Animated.View testID="tab-glyph-mark" style={[s.layer, { opacity: mark }]}>
-      <FactArt kind={markKind} size={TAB_ICON} cut="mark" tone="quiet" />
+      <Glyph name={name} size={TAB_ICON} tone="muted" />
     </Animated.View>
     <Animated.View testID="tab-glyph-art" style={[s.layer, { opacity: sticker }]}>
-      <FactArt kind={markKind} size={TAB_ICON} cut="mark" tone="brand" />
+      <Glyph name={name} size={TAB_ICON} tone="green" />
     </Animated.View>
   </Animated.View>;
 }
 
 /**
- * The name under the picture: the `tab` variant, ink when chosen and muted at rest. Never shrunk and never cut; the person's
+ * The name under the picture: the `navLabel` variant, green when chosen and muted at rest. Never shrunk and never cut; the person's
  * text size decides, and `onTextLayout` hands the measured lines on so the bar's height can follow.
  */
 export function TabLabel({ children, selected, onTextLayout }: { children: ReactNode; selected: boolean; onTextLayout?: TextProps['onTextLayout'] }) {
-  return <T variant="tab" tone={selected ? 'ink' : 'muted'} onTextLayout={onTextLayout} style={s.label}>{children}</T>;
+  return <T variant="navLabel" tone={selected ? 'green' : 'muted'} onTextLayout={onTextLayout} style={s.label}>{children}</T>;
 }
 
-const PREVIEW: readonly { kind: FactArtKind; title: string }[] = [
+const PREVIEW: readonly { kind: TabKind; title: string }[] = [
   { kind: 'home', title: 'Početna' }, { kind: 'map', title: 'Zadaci' }, { kind: 'agreements', title: 'Dogovori' },
   { kind: 'chat', title: 'Poruke' },
 ];
@@ -126,7 +127,7 @@ const PREVIEW: readonly { kind: FactArtKind; title: string }[] = [
  */
 export function TabBarPreview() {
   const [chosen, setChosen] = useState(0);
-  const labelHeight = sys.type.tab.lineHeight * useTextScale();
+  const labelHeight = sys.type.navLabel.lineHeight * useTextScale();
   return <View style={[tabBarSurface, s.preview, { height: tabBarHeight(labelHeight, TAB_BAR_PADDING) }]}>
     {PREVIEW.map((tab, index) => <Press key={tab.kind} accessibilityRole="tab" accessibilityLabel={tab.title}
       accessibilityState={{ selected: chosen === index }} onPress={() => setChosen(index)} haptic="none" scaleTo={1}

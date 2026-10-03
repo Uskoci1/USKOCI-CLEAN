@@ -86,7 +86,7 @@ const TOOLS_ESTIMATE = sys.space.md + 56 + sys.space.sm + 48;
 /** The room the row of quick chips takes before the bar has measured it: one row of chips and the gap above it. */
 const CHIPS_ROOM_ESTIMATE = sys.space.sm + 48;
 /** The sheet's top line before it has been measured: the grab bar and one line of count. */
-const PEEK_ESTIMATE = 76;
+const PEEK_ESTIMATE = 68;
 /**
  * While a pin's card covers the bottom of the map, the list sheet sinks to this sliver behind it (Discovery V47): its top
  * line is not a second strip under the card. Closing the card brings the top line back.
@@ -1084,7 +1084,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const spoken = collectionWords ?? `${line.words}${line.extra}`;
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
-  const count = <T variant="bodyStrong" style={s.count}>
+  const count = <T variant="note" style={s.count}>
     {collectionWords ?? (loading || error ? line.words : exactListed ? zadataka(exactListed) : 'Nema zadataka')}
   </T>;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
@@ -1252,18 +1252,18 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
-  grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: sys.space.sm, backgroundColor: sys.color.lineStrong },
+  grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: 0, backgroundColor: sys.color.lineStrong },
   // The honest count, centred on the sheet's top line: a button while the list can still go higher.
   countRow: { minHeight: 48, paddingVertical: sys.space.sm, justifyContent: 'center', borderRadius: sys.radius.control },
-  count: { color: sys.color.ink, textAlign: 'center' },
+  count: { color: sys.color.ink, textAlign: 'center', fontWeight: '600' },
   applied: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: sys.space.sm, paddingBottom: sys.space.xs },
   // 40 high and 4 more above and under it: 48 to a finger, and two rows of chips 8 apart never share a touch.
   appliedChip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, maxWidth: '100%', paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft },
   appliedText: { fontWeight: '600', color: sys.color.green, flexShrink: 1 },
-  list: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, flexGrow: 1 },
+  list: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl, flexGrow: 1 },
   // The pill is 48 high and 16 above the bottom: the list's end keeps 80 clear under it.
-  listUnderPill: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.base, paddingBottom: sys.space.huge + sys.space.xxl, flexGrow: 1 },
+  listUnderPill: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge + sys.space.xxl, flexGrow: 1 },
   empty: { flex: 1, paddingVertical: sys.space.sm },
   undated: { paddingTop: sys.space.base, textAlign: 'center' },
   // The quiet heading of the tasks without a point: the list's own words, never a card.

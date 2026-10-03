@@ -1,5 +1,7 @@
 # USKOČI icon system
 
+Current refinement (2026-10-03): persistent navigation and root chrome use the shared Glyph outline family; illustrations remain in content. Original local launch/map/messages artwork is joined by the work-profile tool tote, recorded in assets/illustrations/PROVENANCE.json. These decorative objects are not proof of account skills or equipment. Existing small fact/status semantics remain. The historical wave record below explains its original scope; matching native acceptance is recorded in the current UI/UX report.
+
 UI/UX pass, 2026-10-02, wave 1 item 1.3 (audits ICO-01 to ICO-04, Z8, I1, F01, MZ-I1, DG-F01, HP-02). The owner's complaint
 was "generic look, poor icons"; the audit found no icon rules at all, five drawing dialects on one screen, a sticker finish
 that is busy at the 16 to 20 dp a card row uses, hue that alternated orange and green by kind, ticks on terms that nobody

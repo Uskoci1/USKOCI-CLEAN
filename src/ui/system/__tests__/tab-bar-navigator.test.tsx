@@ -14,8 +14,8 @@ jest.mock('expo-linking', () => ({ ...jest.requireActual('expo-linking'), create
   resolveScheme: () => 'uskoci', addEventListener: () => ({ remove() {} }) }));
 jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.fn(), notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
-// The pictures are tested on their own; the bar only has to ask for the right cut and tone.
-jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
+// The registry is tested separately; this suite follows the requested outline and tone.
+jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
 
 import * as Haptics from 'expo-haptics';
 import { readdirSync, statSync } from 'node:fs';
@@ -60,7 +60,7 @@ describe('the three tabs as the navigator draws them', () => {
     // The label is the `tab` variant (14 on 20, 600), in the navigator's own order: Početna, Zadaci, Dogovori.
     const words = tree.root.findAllByType(Text).filter(node => labels.includes(String(node.props.children)));
     expect(words.map(node => node.props.children)).toEqual(labels);
-    for (const word of words) expect(flat(word)).toMatchObject({ fontSize: sys.type.tab.fontSize, lineHeight: sys.type.tab.lineHeight, fontFamily: 'Inter-SemiBold' });
+    for (const word of words) expect(flat(word)).toMatchObject({ fontSize: sys.type.navLabel.fontSize, lineHeight: sys.type.navLabel.lineHeight, fontFamily: 'Inter-Medium' });
     // The capsule is a child of each tab's button, drawn before the icon and the label (so they stand on it).
     for (const label of labels) {
       const inside = tab(label)!.findAll(node => typeof node.type === 'string' && ['tab-capsule', 'tab-glyph'].includes(node.props.testID));
@@ -68,7 +68,7 @@ describe('the three tabs as the navigator draws them', () => {
     }
   });
 
-  it('draws the chosen tab with its capsule shown, its brand mark shown and its label in ink, and the others at rest, from the first frame', async () => {
+  it('draws the chosen tab with its capsule shown, its brand mark shown and its label in green, and the others at rest, from the first frame', async () => {
     await opened('/');
     const capsuleOpacity = hosts('tab-capsule').map(node => flat(node).opacity);
     expect(capsuleOpacity).toEqual([1, 0, 0]);
@@ -77,19 +77,19 @@ describe('the three tabs as the navigator draws them', () => {
     expect(art).toEqual([1, 1, 0, 0, 0, 0]);
     expect(mark).toEqual([0, 0, 1, 1, 1, 1]);
     const words = tree.root.findAllByType(Text).filter(node => labels.includes(String(node.props.children)));
-    expect(words.map(node => flat(node).color)).toEqual([sys.color.ink, sys.color.muted, sys.color.muted]);
+    expect(words.map(node => flat(node).color)).toEqual([sys.color.green, sys.color.muted, sys.color.muted]);
     // Nothing moved to get there.
     expect(tab('Početna')!.props.accessibilityState).toEqual({ selected: true });
   });
 
-  it('draws each tab in the same 24dp mark family with quiet and brand layers', async () => {
+  it('draws each tab in the same 24dp outline family with muted and green layers', async () => {
     await opened('/');
-    const pictures = tree.root.findAll(node => node.type === ('FactArt' as unknown));
+    const pictures = tree.root.findAll(node => node.type === ('Glyph' as unknown));
     expect(pictures).toHaveLength(12);
-    for (const picture of pictures) expect(picture.props).toMatchObject({ size: TAB_ICON, cut: 'mark' });
-    expect(pictures.filter(node => node.props.tone === 'quiet')).toHaveLength(6);
-    expect(pictures.filter(node => node.props.tone === 'brand')).toHaveLength(6);
-    expect(['home', 'map', 'document'].map(kind => pictures.filter(node => node.props.kind === kind).length)).toEqual([4, 4, 4]);
+    for (const picture of pictures) expect(picture.props).toMatchObject({ size: TAB_ICON });
+    expect(pictures.filter(node => node.props.tone === 'muted')).toHaveLength(6);
+    expect(pictures.filter(node => node.props.tone === 'green')).toHaveLength(6);
+    expect(['home', 'map', 'agreements'].map(name => pictures.filter(node => node.props.name === name).length)).toEqual([4, 4, 4]);
   });
 });
 

@@ -142,7 +142,7 @@ export default function TabLayout() {
   const measureKey = `${width}:${fontScale}`;
   const currentMeasureKey = useRef(measureKey); currentMeasureKey.current = measureKey;
   const [labelMetrics, setLabelMetrics] = useState<{ key: string; heights: Partial<Record<Primary, number>> }>({ key: '', heights: {} });
-  const labelHeight = Math.max(sys.type.tab.lineHeight * fontScale,
+  const labelHeight = Math.max(sys.type.navLabel.lineHeight * fontScale,
     ...(labelMetrics.key === measureKey ? Object.values(labelMetrics.heights) : []));
   const rememberLabelHeight = (name: string, height: number) => {
     if (!isPrimary(name) || currentMeasureKey.current !== measureKey || !Number.isFinite(height) || height <= 0) return;

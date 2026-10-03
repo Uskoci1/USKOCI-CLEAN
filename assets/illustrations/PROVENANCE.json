@@ -13,13 +13,25 @@
       [
         "messages",
         "Original premium production 3D illustration for USKOČI local-help marketplace empty conversation. Two softly rounded overlapping communication panels with short speech tails: front warm porcelain-white panel with two tiny inset blue horizontal message marks, rear rich clear sky-blue satin enamel panel. Slight asymmetrical but balanced arrangement, visible generous edge thickness and curved side planes, subtle fine ceramic surface texture, realistic material shading and ambient contact occlusion, soft directional studio light upper left. Frontal three-quarter view 20 degrees above, mature crafted consumer app illustration, quiet elegance. Strong readable compact silhouette at 96px. Isolated on genuinely transparent background with 12% margin, square composition. Original art. No words, letters, people, logo, UI, background tile, fake checkmark, purple, neon, toy clay style or excessive shine."
+      ],
+      [
+        "work-profile",
+        "Original premium 3D USKOCI work-profile illustration: warm-white canvas tool tote, orange screwdriver, silver wrench and jade-green work gloves. Three-quarter camera, fine canvas and metal material, soft upper-left studio light, alpha transparency and contact shadow. Clear small silhouette, no text/logo/checkmark/UI. Generated with built-in image_gen on 2026-10-03."
       ]
     ]
   },
   "files": [
     "uskoci-task-launch-v2.png",
     "uskoci-discover-v2.png",
-    "uskoci-messages-v2.png"
+    "uskoci-messages-v2.png",
+    "uskoci-work-kit-v1.png"
   ],
-  "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved."
+  "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
+  "workProfileAsset": {
+    "date": "2026-10-03",
+    "original": "exec-8ebecda4-d129-41e2-a7ba-4d2648320ed2.png",
+    "sha256": "726a20ff8c7148aa35a8c51578ac36e38145cb37b12b2a5fa13dfbea3902f701",
+    "purpose": "Decorative work-profile entry, not evidence that an account owns tools or has verified skills.",
+    "nativeAcceptance": "Pending matching APK screenshot."
+  }
 }

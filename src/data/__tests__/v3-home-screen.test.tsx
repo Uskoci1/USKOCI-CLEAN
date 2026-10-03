@@ -169,7 +169,7 @@ it.each([[390, 1], [320, 2]])('separates the real attention task from its action
   await render();
   const attention = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Zadatak je izmenjen'))[0];
   const facts = attention.findAll(node => String(node.type) === 'T');
-  expect(facts.map(node => node.props.children)).toEqual(['Zadatak je izmenjen', taskTitle, 'Pregledaj izmene pre odluke o prijavi.']);
+  expect(facts.map(node => node.props.children)).toEqual([taskTitle, 'Zadatak je izmenjen', 'Pregledaj izmene pre odluke o prijavi.']);
   expect(attention.props.accessibilityLabel).toBe(`Zadatak je izmenjen. ${taskTitle}. Pregledaj izmene pre odluke o prijavi.`);
   expect(text().split(taskTitle)).toHaveLength(2);
   for (const fact of facts) {

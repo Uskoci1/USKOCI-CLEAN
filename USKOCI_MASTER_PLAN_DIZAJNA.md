@@ -16,7 +16,12 @@ CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores
 
 # USKOČI — glavni plan dizajna (UI/UX nastavak)
 
-## Current checkpoint — finalization Round31
+## Current checkpoint — visual composition, 2026-10-03
+
+Owner prioritizes the complete visual product and permits recomposition. Continue the existing Expo application and the one62-row registry.
+Read [the current native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md) for exact installed builds and scope. Both devices last verified e444; the following navigation/Home/profile/Discovery composition batch is source work until its matching APK screenshots are recorded there. Use white/ink hierarchy, original material artwork selectively, regular functional glyphs and scalable text. Keep actual business facts, backend authority and state guards.
+
+## Historical checkpoint — finalization Round31
 
 Canonical branch: `work/uskoci-ui-unification-20260924`. Latest pushed client source: `10739a440611fc32e3bd6d9ee6dd66a5479e091b`.
 Start with [AGENTS.md](AGENTS.md), [Round31](docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md)

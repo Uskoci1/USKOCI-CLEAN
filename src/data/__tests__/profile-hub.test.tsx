@@ -240,7 +240,7 @@ describe('real profile hub', () => {
   it('edits the name through its one row, with no second edit control beside it', async () => {
     await render();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi ime na profilu' })).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ label: 'Ime na profilu' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Izmeni ime' }).props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podaci']]);
   });
 

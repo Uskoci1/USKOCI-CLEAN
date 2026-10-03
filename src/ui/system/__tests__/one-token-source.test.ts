@@ -380,7 +380,6 @@ const WINDOW_WIDTH_READERS = new Set([
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
   'src/ui/home/HomePresentation.tsx', // 340 and 375
   'src/ui/notifications/PushPreferences.tsx', // 360
-  'src/ui/profile/ProfileHubPresentation.tsx', // 360
   'src/ui/referenceEntry/ReferenceEntryHero.tsx', // LOCKED entry
   'src/ui/reviews/AgreementReviewPresentation.tsx',
   'src/ui/system/PickerTile.tsx', // 360

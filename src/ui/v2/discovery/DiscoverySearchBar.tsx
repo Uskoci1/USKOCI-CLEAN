@@ -104,12 +104,12 @@ export function DiscoverySearchBar({ where, conditions, conditionCount, chips, c
       accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
       haptic="select" scaleTo={0.97} hitSlop={0} onPress={nearby.onPress} style={[s.chip, s.nearby]}>
       {nearby.busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <Crosshair size={18} color={sys.color.ink} />}
-      <T variant="note" style={s.chipText} numberOfLines={1}>U blizini</T>
+      <T variant="meta" style={s.chipText} numberOfLines={1}>U blizini</T>
     </Press> : null}
     {chips.map(chip => <Press key={chip.key} accessibilityRole="button" accessibilityLabel={chip.label} accessibilityState={{ selected: chip.selected }}
       haptic="select" scaleTo={0.97} hitSlop={0} onPress={chip.onPress} style={[s.chip, chip.selected && s.chipOn]}>
       {chip.selected ? <Check size={16} weight="bold" color={sys.color.ink} /> : null}
-      <T variant="note" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
+      <T variant="meta" style={[s.chipText, chip.selected && s.chipTextOn]} numberOfLines={1}>{chip.label}</T>
     </Press>)}
   </ScrollView> : null;
   return <View pointerEvents="box-none" style={s.bar} onLayout={measure}>

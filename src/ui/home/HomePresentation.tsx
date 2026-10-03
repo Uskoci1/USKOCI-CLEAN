@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight } from 'phosphor-react-native';
+import { Glyph } from '../system/Glyph';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -53,7 +53,7 @@ function StartActions({ compact, onPublish, onEarn }: {
       <HomeLaunchArt kind="discover" compact />
       <View style={s.rowCopy}><T variant="bodyStrong">Uskoči i zaradi</T>
         <T variant="note" tone="muted">Pronađi posao koji ti odgovara</T></View>
-      <CaretRight size={18} color={sys.color.ink} />
+      <Glyph name="caret-right" tone="muted" />
     </Press>
   </View>;
 }
@@ -74,12 +74,12 @@ function AttentionRow({ row, onOpen, last = false }: {
       <View style={s.attentionDot} />
     </View>
     <View style={s.rowCopy}>
-      <T variant={compactCandidates ? 'meta' : taskTitle ? 'note' : 'bodyStrong'} style={taskTitle ? s.attentionAction : undefined}>
+      {taskTitle ? <T variant="bodyStrong">{taskTitle}</T> : null}
+      <T variant={taskTitle ? 'meta' : 'bodyStrong'} tone={taskTitle ? 'muted' : 'ink'}>
         {compactCandidates ? `${readableTitle(row.title)} · ${row.detail}` : readableTitle(row.title)}</T>
-      {taskTitle ? <T variant={compactCandidates ? 'body' : 'bodyStrong'}>{taskTitle}</T> : null}
       {!compactCandidates ? <T variant="note" tone="muted">{row.detail}</T> : null}
     </View>
-    <View style={s.rowDirection}><CaretRight size={18} color={sys.color.ink} /></View>
+    <View style={s.rowDirection}><Glyph name="caret-right" tone="muted" /></View>
   </Press>;
 }
 
@@ -92,7 +92,7 @@ function AppointmentCard({ row, onOpen }: {
     accessibilityHint="Otvara Dogovor." haptic="select" scaleTo={0.99} onPress={() => onOpen(row.target)} style={s.appointment}>
     <View style={s.appointmentHead}>
       <T variant="cardTitle" style={s.appointmentTitle}>{readableTitle(row.title)}</T>
-      <View style={s.appointmentDirection}><CaretRight size={20} color={sys.color.green} /></View>
+      <View style={s.appointmentDirection}><Glyph name="caret-right" tone="muted" /></View>
     </View>
     {appointment ? <>
       {appointment.timeText ? <View style={s.appointmentWhen}>
@@ -118,7 +118,7 @@ function MineRow({ art, title, detail, onPress, last = false }: {
       <T variant="bodyStrong">{title}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
     </View>
-    <CaretRight size={18} color={sys.color.muted} />
+    <Glyph name="caret-right" tone="muted" />
   </Press>;
 }
 
@@ -213,14 +213,14 @@ export function HomePresentation(p: HomePresentationProps) {
           <FactArt kind="star" size={24} />
           <View style={{ flex: 1 }}><T variant="note" style={s.ratingsDueText}>Proveri ocene</T>
             <T variant="meta" tone="muted">Nisu svi podaci o ocenama učitani.</T></View>
-          <CaretRight size={18} color={sys.color.muted} />
+          <Glyph name="caret-right" tone="muted" />
         </Press> : home.ratingsDue > 0 ? <Press accessibilityRole="button" haptic="select" style={s.ratingsDue}
           onPress={() => p.onRatings(home.ratingDueAgreementId)}
           accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'}>
           <FactArt kind="star" size={24} />
           <T variant="note" style={s.ratingsDueText}>{oceniDogovore(home.ratingsDue)}</T>
-          <CaretRight size={18} color={sys.color.muted} />
+          <Glyph name="caret-right" tone="muted" />
         </Press> : null}
       </Section> : null}
 
@@ -250,7 +250,7 @@ const s = StyleSheet.create({
   // A rating is still a real pending action, but its illustration and words carry the accent, not a tinted band.
   ratingsDue: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 52, marginTop: sys.space.sm,
     paddingVertical: sys.space.md, backgroundColor: sys.color.surface },
-  ratingsDueText: { flex: 1, color: sys.color.ink, fontWeight: '600' },
+  ratingsDueText: { flex: 1, color: sys.color.ink, fontWeight: '500' },
   canvas: { flex: 1, backgroundColor: sys.color.ground },
   // The bottom padding leaves air between the last row and the inset tab bar below the list when it is scrolled to its end.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
@@ -265,15 +265,14 @@ const s = StyleSheet.create({
   discoverEntry: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
     paddingVertical: sys.space.md, paddingHorizontal: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  // Attention is an open inbox: the action comes first, the exact subject/reason is never truncated.
+  // Attention is an open inbox: the subject leads, with the exact action/reason below, never truncated.
   attention: { backgroundColor: sys.color.surface },
-  attentionAction: { color: sys.color.green, fontWeight: '600' },
   section: { marginTop: sys.space.lg },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 28, marginBottom: sys.space.md },
   sectionTitle: { ...sys.type.heading, color: sys.color.ink },
   counter: { minWidth: 28, minHeight: 28, paddingHorizontal: sys.space.xs,
     backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
-  link: { color: sys.color.ink, fontSize: 18, lineHeight: 24, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  link: { color: sys.color.muted, ...sys.type.meta, fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64, paddingVertical: sys.space.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   lastRow: { borderBottomWidth: 0 },

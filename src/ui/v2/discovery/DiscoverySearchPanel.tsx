@@ -14,7 +14,7 @@ import { TurningCaret } from '../../system/Disclosure';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { osoba, zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
-import { CHIP_CHOSEN_INSET, brandAction, chipChosen, fieldBox, sys } from '../../system/tokens';
+import { brandAction, fieldBox, sys } from '../../system/tokens';
 import { V2Action } from '../V2Action';
 import { DateRangeGrid } from './DateRangeGrid';
 import { CLEAR_ALL, PRICE, WHEN, WHERE, said, undatedWords, whenWords, whereWords } from './discoveryWords';
@@ -45,7 +45,7 @@ const ANYWHERE = { query: '', place: null, area: null, pinPlace: null } as const
 
 export type SearchStep = 'gde' | 'kada' | 'kako' | 'koliko' | 'cena';
 
-/** A floating group owns only disclosure. All choices remain in the parent draft when its editor is closed. */
+/** A section owns only disclosure. All choices remain in the parent draft when its editor is closed. */
 function SearchGroup({ step, label, summary, art, open, large, onToggle, onPosition, onBodyPosition, children }: {
   step: SearchStep; label: string; summary: string; art: FactArtKind; open: boolean; large: boolean;
   onToggle: (step: SearchStep) => void;
@@ -60,10 +60,10 @@ function SearchGroup({ step, label, summary, art, open, large, onToggle, onPosit
     <Press testID={step === 'gde' ? 'search-place-toggle' : `search-${step}-toggle`} accessibilityRole="button"
       accessibilityLabel={label} accessibilityValue={{ text: summary }} accessibilityState={{ expanded: open }}
       onPress={() => onToggle(step)} haptic="select" hitSlop={0} scaleTo={0.99} style={s.groupHeader}>
-      <FactArt kind={art} size={32} cut="art" />
-      <View style={s.groupCopy}>
-        <T variant={open ? 'bodyStrong' : 'note'} tone={open ? 'ink' : 'muted'}>{label}</T>
-        {!open ? <T variant="bodyStrong" numberOfLines={large ? 3 : 2}>{summary}</T> : null}
+      {open ? <FactArt kind={art} size={28} cut="art" /> : null}
+      <View style={[s.groupCopy, !open && s.groupSummary, !open && large && s.groupSummaryStacked]}>
+        <T variant={open ? 'bodyStrong' : 'note'} tone={open ? 'ink' : 'muted'} style={s.groupLabel}>{label}</T>
+        {!open ? <T variant="copy" style={[s.summaryValue, large && s.summaryValueStacked]}>{summary}</T> : null}
       </View>
       <TurningCaret open={open} />
     </Press>
@@ -123,18 +123,18 @@ function useReducedTransparency(): boolean {
   return opaque;
 }
 
-/** One set of choices, one of which is chosen (a radio group to a screen reader), in the shared chosen-chip look. */
-function Choice<K extends string>({ label, options, value, onChange }: {
-  label: string; options: readonly (readonly [K, string])[]; value: K | null; onChange: (value: K) => void;
+/** One set of choices, one of which is chosen (a radio group to a screen reader), with a quiet selected state. */
+function Choice<K extends string>({ label, options, value, compact = false, onChange }: {
+  label: string; options: readonly (readonly [K, string])[]; value: K | null; compact?: boolean; onChange: (value: K) => void;
 }) {
   return <View accessibilityRole="radiogroup" accessibilityLabel={label} style={s.chips}>
     {options.map(([key, words]) => {
       const checked = key === value;
-      // 44 high and 4 more above and under it: 52 to a finger, and rows 8 apart never share a touch.
+      // The 48 dp minimum and existing hit slop remain; text can wrap at larger system scales.
       return <Press key={key} accessibilityRole="radio" accessibilityLabel={words} accessibilityState={{ checked }} aria-checked={checked}
         haptic="select" scaleTo={0.97} hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }} onPress={() => onChange(key)} style={[s.chip, checked && s.chipOn]}>
-        {checked ? <Check size={16} weight="bold" color={sys.color.green} /> : null}
-        <T variant="copy" style={[s.chipText, checked && s.chipTextOn]}>{words}</T>
+        {checked ? <Check size={16} weight="bold" color={sys.color.ink} /> : null}
+        <T variant={compact ? 'note' : 'copy'} style={[s.chipText, checked && s.chipTextOn]}>{words}</T>
       </Press>;
     })}
   </View>;
@@ -385,7 +385,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
               </View>
             </SearchGroup>
             <SearchGroup {...groupProps('kada')} label="Kada" summary={whenWords(draft, now)} art="calendar">
-              <Choice label="Kada" options={WHEN} value={draft.dates ? null : draft.when}
+              <Choice compact label="Kada" options={WHEN} value={draft.dates ? null : draft.when}
                 onChange={when => { setRangeStart(null); edit({ when, dates: null }); }} />
               <Press testID="search-date-toggle" accessibilityRole="button" accessibilityLabel="Datumi"
                 accessibilityValue={{ text: draft.dates ? whenWords(draft, now) : 'Izaberi datume' }} accessibilityState={{ expanded: datesOpen }}
@@ -419,7 +419,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
             </SearchGroup>
           </ScrollView>
           <View testID="search-actions" style={[s.footer, stackedActions && s.footerStacked]}>
-            <V2Action label={CLEAR_ALL} accessibilityLabel="Obriši sve uslove pretrage" kind="quiet" onPress={clearAll} />
+            <V2Action label={CLEAR_ALL} accessibilityLabel="Obriši sve uslove pretrage" kind="quiet" tone="neutral" compact style={s.reset} onPress={clearAll} />
             <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
               <V2Action label={show.label} disabled={show.disabled} onPress={() => { onApply(draft); close(); }} style={brandAction} />
             </View>
@@ -439,12 +439,18 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   top: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm,
     paddingBottom: sys.space.md },
-  sections: { paddingHorizontal: sys.space.base, paddingTop: sys.space.xs, paddingBottom: sys.space.base },
+  sections: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.base },
   group: { backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
-    paddingHorizontal: sys.space.base, paddingVertical: sys.space.base },
+  groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 64,
+    paddingVertical: sys.space.base },
   groupCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  groupBody: { paddingHorizontal: sys.space.base, paddingBottom: sys.space.base, gap: sys.space.md },
+  // Short summaries share a reading line; long values and enlarged text retain their full content.
+  groupSummary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.md },
+  groupSummaryStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  groupLabel: { flexShrink: 1 },
+  summaryValue: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', minWidth: 0, maxWidth: '100%', textAlign: 'right', fontWeight: '500' },
+  summaryValueStacked: { flexGrow: 0, textAlign: 'left' },
+  groupBody: { paddingBottom: sys.space.lg, gap: sys.space.md },
   placeEditor: { gap: sys.space.md },
   dateToggle: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: sys.touch.min,
     paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
@@ -462,12 +468,11 @@ const s = StyleSheet.create({
   suggestionOn: { backgroundColor: sys.color.greenSoft },
   well: { width: sys.space.xxl, height: sys.space.xxl, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
-  // A condition: the strong hairline when free; chosen, the shared look (neutral well, green edge, green
-  // words and a tick), the same as over the map. Never the green fill: that is the one primary action's.
-  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: sys.touch.min, maxWidth: '100%', paddingHorizontal: sys.space.base,
+  // Selection uses a quiet neutral well, ink outline and check; green belongs to the apply action.
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 48, maxWidth: '100%', paddingHorizontal: sys.space.md,
     paddingVertical: sys.space.sm, borderRadius: sys.radius.control,
     borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
-  chipOn: { ...chipChosen, borderColor: sys.color.ink, paddingHorizontal: sys.space.base - CHIP_CHOSEN_INSET },
+  chipOn: { backgroundColor: sys.color.wash, borderColor: sys.color.ink },
   chipText: { fontWeight: '500', color: sys.color.ink, flexShrink: 1 },
   chipTextOn: { color: sys.color.ink, fontWeight: '600' },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm, width: sys.space.huge * 4 },
@@ -475,10 +480,11 @@ const s = StyleSheet.create({
   step: { width: sys.touch.min, height: sys.touch.min, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
     alignItems: 'center', justifyContent: 'center' },
   stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0, textAlign: 'center' },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.md,
+  reset: { paddingHorizontal: 0, flexShrink: 1, alignSelf: 'flex-start' },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md,
     paddingBottom: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
   // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into
-  // a column of letters. Each action gets the full width; no vertical flex growth may squeeze out the filter cards.
+  // a column of letters. The primary gets the full width; reset stays a quiet link with a 48 dp touch target.
   footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },
   showStacked: { flex: 0, width: '100%' },
 });

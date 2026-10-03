@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SignOut, Camera } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
+import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { floating, sys } from '../system/tokens';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { BuildIdentity } from '../BuildIdentity';
 import { Avatar } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
+import { WorkProfileArt } from './WorkProfileArt';
 import { V2Action } from '../v2/V2Action';
 
 /** The identity passport reserves the same size for a real photo, initials and unavailable identity. */
@@ -30,19 +31,21 @@ export type ProfileHubIdentity =
       /** The rating line under the name, or nothing. */ reputation: ReactNode };
 
 /**
- * Identity leads in one raised passport; its edit action is subordinate. Reputation keeps full width because it can
+ * Identity leads in one compact raised passport; its edit action sits with the name. Reputation keeps full width because it can
  * include actual review comments, loading and recovery. Independent work facts follow before setup and utilities.
  * The route still owns reads, navigation admission and logout. This view never substitutes unavailable facts.
  */
 export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, busy, open, onBack, onLogout, logoutError, stacked: forced }: {
   identity: ProfileHubIdentity; capabilityDetail?: string; workArea?: string; workSummary?: ReactNode; busy: boolean;
   open: (path: ProfileHubPath) => void; onBack: () => void; onLogout: () => void; logoutError: boolean;
-  /** Compact passport insets for the design gallery or narrow/large-text layouts. Identity always stacks. */ stacked?: boolean;
+  /** Stacked identity for the design gallery or narrow/large-text layouts. */ stacked?: boolean;
 }) {
-  const { width } = useWindowDimensions(), textScale = useTextScale();
-  const compact = forced ?? (width < 360 || textScale >= 1.3);
+  const { stacked } = useLayoutClass();
+  const compact = forced ?? stacked;
   const row = s.identity;
   const copy = s.copy;
+  const editName = <V2Action label="Izmeni ime" kind="quiet" tone="neutral" compact disabled={busy}
+    onPress={() => open('/profil/podaci')} />;
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>
     <View style={[s.identitySection, compact && s.identityCompact]}>
       {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
@@ -61,6 +64,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
         </View>
       </View> : <View key="ready" testID="profile-identity" accessible={false}
         accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={row}>
+        <View style={[s.readyIdentity, compact && s.readyIdentityStacked]}>
         {/* The photo itself opens the photo screen; the small camera badge says so without a second control. */}
         <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
           disabled={!identity.photoReady || busy} accessibilityState={{ disabled: !identity.photoReady || busy }} onPress={identity.openPhoto}
@@ -68,30 +72,30 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
           {identity.photo}
           {identity.photoReady ? <View style={[styles.avatarBadge, BADGE]}><Camera size={14} color={sys.color.ink} /></View> : null}
         </Press>
-        <View style={copy}>
-          {identity.name ? <T variant="title" accessibilityRole="header" style={s.name}>{identity.name}</T>
-            : <T variant="title" tone="muted" accessibilityRole="header" style={s.name}>Ime još nije uneto</T>}
-          {identity.place ? <View style={[styles.identityCity, s.city]}><FactArt kind="pin" size={18} />
-            <T variant="copy" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
+        <View style={[copy, s.readyCopy, compact && s.readyCopyStacked]}>
+          {identity.name ? <T variant="title" accessibilityRole="header" style={[s.name, compact && s.nameStacked]}>{identity.name}</T>
+            : <T variant="title" tone="muted" accessibilityRole="header" style={[s.name, compact && s.nameStacked]}>Ime još nije uneto</T>}
+          {identity.place ? <View style={[styles.identityCity, s.city, compact && s.cityStacked]}><FactArt kind="pin" size={18} cut="art" />
+            <T variant="note" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
+          <View style={[s.editName, !compact && s.editNameInline]}>{editName}</View>
+        </View>
         </View>
         {identity.reputation ? <View style={s.reputation}>{identity.reputation}</View> : null}
       </View>}
-      <View style={s.editName}>
-        <V2Action label="Ime na profilu" kind="quiet" tone="neutral" compact disabled={busy} onPress={() => open('/profil/podaci')} />
-      </View>
+      {identity.state !== 'ready' ? <View style={s.editName}>{editName}</View> : null}
     </View>
 
     {workSummary}
 
     <SettingsGroup title="Kako mogu da uskočim">
       {/* The one fact that decides whether a task is ever offered to you is whether this part is set up and active. */}
-      <SettingsRow label="Veštine, alat i tim" detail={capabilityDetail} icon={<FactArt kind="users" size={26} />} disabled={busy}
+      <ProfileUtilityRow label="Veštine, alat i tim" detail={capabilityDetail} art="users" featured disabled={busy}
         onPress={() => open('/profil/radnik')} />
-      <SettingsRow label="Područje rada" detail={workArea} icon={<FactArt kind="pin" size={26} />} disabled={busy}
+      <ProfileUtilityRow label="Područje rada" detail={workArea} art="pin" disabled={busy}
         onPress={() => open('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" detail="Kada mogu da radim" icon={<FactArt kind="clock" size={26} />} disabled={busy}
+      <ProfileUtilityRow label="Dostupnost" detail="Kada mogu da radim" art="clock" disabled={busy}
         onPress={() => open('/profil/dostupnost')} />
-      <SettingsRow label="Kalendar obaveza" detail="Dogovoreni termini" icon={<FactArt kind="calendar" size={26} />} disabled={busy} last
+      <ProfileUtilityRow label="Kalendar obaveza" detail="Dogovoreni termini" art="calendar" disabled={busy} last
         onPress={() => open('/raspored')} />
     </SettingsGroup>
     <SettingsGroup title="Nalog i pomoć">
@@ -124,15 +128,15 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
 }
 
 /** Quieter account utilities preserve the same labels, hints, disabled treatment and completion-time handlers. */
-function ProfileUtilityRow({ label, detail, art, disabled, last = false, onPress }: {
-  label: string; detail?: string; art?: FactArtKind; disabled: boolean; last?: boolean; onPress: () => void;
+function ProfileUtilityRow({ label, detail, art, disabled, last = false, featured = false, onPress }: {
+  label: string; detail?: string; art?: FactArtKind; disabled: boolean; last?: boolean; featured?: boolean; onPress: () => void;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail} disabled={disabled}
     accessibilityState={{ disabled }} onPress={onPress} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
-    style={[s.utility, last && s.utilityLast]}>
-    {art ? <View style={s.utilityArt}><FactArt kind={art} size={24} cut="art" muted={disabled} /></View> : null}
+    style={[s.utility, featured && s.workEntry, last && s.utilityLast]}>
+    {featured ? <WorkProfileArt /> : art ? <View style={s.utilityArt}><FactArt kind={art} size={28} cut="art" muted={disabled} /></View> : null}
     <View style={s.utilityCopy}>
-      <T variant="body" tone={disabled ? 'muted' : 'ink'}>{label}</T>
+      <T variant={featured ? "bodyStrong" : "body"} tone={disabled ? 'muted' : 'ink'}>{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
     </View>
     <Glyph name="caret-right" size={20} tone="muted" />
@@ -144,18 +148,26 @@ const s = StyleSheet.create({
     paddingHorizontal: sys.space.lg, paddingTop: sys.space.lg, paddingBottom: sys.space.base, gap: sys.space.md },
   identityCompact: { paddingHorizontal: sys.space.base },
   identity: { flexDirection: 'column', alignItems: 'center', gap: sys.space.md },
+  readyIdentity: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
+  readyIdentityStacked: { flexDirection: 'column' },
+  readyCopy: { flex: 1, alignItems: 'flex-start', alignSelf: 'auto' },
+  readyCopyStacked: { flex: 0, alignItems: 'center', alignSelf: 'stretch' },
   copy: { alignSelf: 'stretch', minWidth: 0, alignItems: 'center', gap: sys.space.xs },
-  city: { justifyContent: 'center', maxWidth: '100%' },
+  city: { justifyContent: 'flex-start', maxWidth: '100%' },
+  cityStacked: { justifyContent: 'center' },
   // Do not center or constrain the supplied node's children: it can contain full review comments and retry actions.
   reputation: { alignSelf: 'stretch', minWidth: 0 },
   editName: { alignSelf: 'center', maxWidth: '100%' },
+  editNameInline: { alignSelf: 'flex-start' },
   shrink: { flexShrink: 1 },
   retry: { alignSelf: 'center', marginTop: sys.space.xs },
-  name: { ...sys.type.pageTitle, textAlign: 'center', alignSelf: 'stretch', letterSpacing: -0.5 },
+  name: { ...sys.type.cardTitle, textAlign: 'left', alignSelf: 'stretch' },
+  nameStacked: { textAlign: 'center' },
   skeletonDisc: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill, backgroundColor: sys.color.skeleton },
   utility: { minHeight: 56, paddingVertical: sys.space.md, flexDirection: 'row', gap: sys.space.md,
     alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   utilityLast: { borderBottomWidth: 0 },
-  utilityArt: { width: 32, alignItems: 'center' },
+  utilityArt: { width: 36, alignItems: 'center' },
+  workEntry: { paddingVertical: sys.space.base },
   utilityCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

@@ -1,6 +1,7 @@
 import {
   ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, ArrowUp, ArrowUpRight, ArrowsOutSimple, CalendarBlank, Camera, CaretDown, CaretLeft,
   CaretRight, CaretUp, Check, DotsThree, Eye, EyeSlash, Image, Info, MagnifyingGlass, MapTrifold, Microphone, Minus, PaperPlaneTilt, Plus,
+  Bell, ChatCircle, Handshake, HouseSimple,
   SlidersHorizontal, Trash, User, Waveform, X, type Icon, type IconWeight,
 } from 'phosphor-react-native';
 import { sys } from './tokens';
@@ -23,27 +24,23 @@ import { sys } from './tokens';
  *           onGreen (on the one green primary action) and danger (a destructive one). A chevron is muted everywhere unless the
  *           whole row is the green action.
  *   weight  bold at 16 and below, because a hairline stroke dies at that size, and for check, close, plus and minus at any size,
- *           because they are short marks that read thin; regular at 20 and 24; fill only for an on-state (`on`). The chrome asks
- *           for bold at 24 (`strong`) to stand beside its 700-weight title; that is the one exception, and it is a flag, not a
- *           free choice of weight (the owner asked for stronger type, not larger; to be judged on the phone before it is locked).
+ *           because they are short marks that read thin; regular at 20 and 24; fill only for an on-state (`on`).
+ *           Persistent tabs keep the regular outline in both states; their marker and color carry selection.
+ *           `strong` remains available to existing compact controls, not as the chrome default.
  *
- * The registry is CLOSED on purpose: a new control gets a new name here, with a drawing no other name already has (`glyph.test.tsx`
- * holds the list tight and no two names share a drawing; for the compiler an unknown name, a size off the ladder, a tone outside the
- * five or a weight of a caller's own is an error). It has 30 names: the 28 the plan listed (audit ICO-08) and `profile` and `calendar`,
- * which the chrome's own profile control and the Dogovori schedule control ("Raspored") need and no other name draws. The icons that
- * are left of the 47 the screens import (the bell, a chat bubble, a gear, a lightning bolt...) are decided by the wave that migrates
- * the file that draws them: many of them are facts, which belong to `FactArt`, not controls.
+ * The registry is closed for TypeScript and checked for unique drawings. Root navigation adds home, agreements,
+ * messages and notifications here instead of importing a second icon family in each screen.
  *
  * HOW TO CONTINUE (for whoever picks this up with no memory of the session). Proof level: SOURCE and jest only. A file is migrated
  * by replacing its Phosphor imports with `<Glyph name="..." />` (or `glyph="..."` on `ChromeIconButton` / `HeaderIconButton`); the
  * change that does it deletes that file's line from `PHOSPHOR_IMPORTERS` in `src/ui/system/__tests__/glyph-import-guard.test.ts` and
  * lowers the size pinned there (63 at the end of wave 2): the guard fails both ways, so a stale line cannot stay. A control that
  * nobody can guess from a drawing (Filteri, Raspored) takes a `caption` on the chrome button, and its spoken `label` contains that
- * word. The chrome draws bold 24 through `strong`, the one door to a weight; nothing else picks one.
+ * word. Chrome uses the registry weight; call sites never pick a weight directly.
  */
 export const GLYPH_NAMES = ['back', 'close', 'caret-right', 'caret-left', 'caret-down', 'caret-up', 'plus', 'minus', 'check', 'send',
   'search', 'filters', 'more', 'mic', 'wave', 'arrow-right', 'arrow-up', 'arrow-up-right', 'refresh', 'trash', 'camera', 'image', 'eye',
-  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar'] as const;
+  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications'] as const;
 export type GlyphName = (typeof GLYPH_NAMES)[number];
 
 /** In-text, row or beside a word, chrome. */
@@ -67,6 +64,7 @@ const REGISTRY: Record<GlyphName, Icon> = {
   mic: Microphone, wave: Waveform, 'arrow-right': ArrowRight, 'arrow-up': ArrowUp, 'arrow-up-right': ArrowUpRight, refresh: ArrowClockwise,
   trash: Trash, camera: Camera, image: Image, eye: Eye, 'eye-off': EyeSlash, external: ArrowSquareOut, expand: ArrowsOutSimple, info: Info,
   map: MapTrifold, profile: User, calendar: CalendarBlank,
+  home: HouseSimple, agreements: Handshake, messages: ChatCircle, notifications: Bell,
 };
 
 /** The short marks that read thin at any size. */

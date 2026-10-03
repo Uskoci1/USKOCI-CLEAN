@@ -1,5 +1,5 @@
 import { createContext, isValidElement, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { Minus, Plus, X } from 'phosphor-react-native';
+import { CaretRight, Minus, Plus, X } from 'phosphor-react-native';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
@@ -16,6 +16,7 @@ import { StateView } from '../system/StateView';
 import { plural } from '../system/plural';
 import { sys, field } from '../system/tokens';
 import { useLayoutClass } from '../system/textScale';
+import { ConversationArt } from '../system/ConversationArt';
 import { SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import { hasTerm, toggleTerm, type WorkerDraft } from './workerProfileDraft';
@@ -118,7 +119,7 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
 }
 
 function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}><FactArt kind={art} size={24} cut="art" /><T variant="heading" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
+  return <View style={s.head}><FactArt kind={art} size={28} cut="art" /><T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
@@ -218,7 +219,7 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   navigate: (path: WorkerNavigation) => void;
 }) {
   if (status === 'ACTIVE') return <View style={s.activeLine}>
-    <FactArt kind="check" size={20} /><T variant="bodyStrong" style={[s.grow, s.ink]}>Profil je aktivan</T>
+    <FactArt kind="check" size={20} /><T variant="note" style={[s.grow, s.ink]}>Profil je aktivan</T>
   </View>;
   // Moderation wording stays the owner's until one word is chosen ("suspendovan" here, "obustavljen" on the hub).
   if (status === 'SUSPENDED') return <View style={[s.status, s.suspended]}>
@@ -272,10 +273,16 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const grad = draft.grad.trim();
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Nije podešeno';
   return <View style={s.form}>
-    <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
-    {openConversation ? <View style={s.rows}>
-      <SettingsRow label="Uredi profil kroz razgovor" icon={<FactArt kind="chat" size={24} cut="art" />} disabled={disabled} last onPress={openConversation} />
-    </View> : null}
+    <View style={s.intro}>
+      <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
+      {openConversation ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
+        accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
+        style={s.conversationEntry}>
+        <ConversationArt size={44} />
+        <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.grow}>Uredi profil kroz razgovor</T>
+        <CaretRight size={20} color={sys.color.muted} />
+      </Press> : null}
+    </View>
     <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
     <TermsPicker label="Veštine i usluge" art="tasks" group="usluge" placeholder="Dodaj veštinu" quickLabel="Brzi izbor veština" quickOpen={skillsOpen}
       values={draft.vestine} pending={draft.newSkill} setPending={newSkill => patch({ newSkill })}
@@ -315,6 +322,9 @@ const s = StyleSheet.create({
   footerTyping: { paddingVertical: 0, borderTopWidth: 0, gap: 0 },
   answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
   form: { gap: sys.space.xxl },
+  intro: { gap: sys.space.sm },
+  conversationEntry: { minHeight: 64, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', gap: sys.space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Activation requirements are an open reading section; suspension keeps its meaningful warning surface.
@@ -333,7 +343,7 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
-  chipText: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 },
+  chipText: { color: sys.color.ink, fontWeight: '500', flexShrink: 1 },
   addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addRowStacked: { flexDirection: 'column', alignItems: 'stretch' },
   addInputStacked: { alignSelf: 'stretch' },

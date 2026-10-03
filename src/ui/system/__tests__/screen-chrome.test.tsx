@@ -94,15 +94,15 @@ describe('root', () => {
     await act(async () => tree.update(<HeaderIconButton label="Pretraga" icon={MagnifyingGlass} onPress={noop} />));
     expect(press('Pretraga').props.accessibilityState).toEqual({ selected: false });
     expect(flat(circle('Pretraga')).backgroundColor).toBe(sys.color.surface);
-    // Wave 2, item 2.3 (ON PURPOSE): a chrome glyph is bold 24 beside the 700-weight title, no longer regular 22; `fill` is still only the on-state.
-    expect(glyph('Pretraga').props).toMatchObject({ weight: 'bold', color: sys.color.ink });
+    // Wave 2, item 2.3 (ON PURPOSE): a chrome glyph is regular24, with short marks handled by the registry; `fill` is still only the on-state.
+    expect(glyph('Pretraga').props).toMatchObject({ weight: 'regular', color: sys.color.ink });
   });
 
-  it('draws the profile as the same circle with a green glyph, and nothing else between it, the mark and the bell', async () => {
+  it('draws the profile as the same circle with a neutral glyph, and nothing else between it, the mark and the bell', async () => {
     await render(<ScreenHeader title="Dogovori" onProfile={noop} />);
     expect(flat(circle('Moj profil'))).toMatchObject({ width: chrome.circle, height: chrome.circle, backgroundColor: sys.color.surface });
     expect(glyph('Moj profil').type).toBe(User);
-    expect(glyph('Moj profil').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.green });
+    expect(glyph('Moj profil').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
     const buttons = hosts(node => node.props.accessibilityRole === 'button');
     expect([...new Set(buttons.map(node => node.props.accessibilityLabel))]).toEqual(['Moj profil']);
     expect(tree.root.findAllByType('Bell' as React.ElementType)).toHaveLength(1);
@@ -110,9 +110,9 @@ describe('root', () => {
 });
 
 // Round-1 critique B2: five icon-button shapes (a square well, a round well, a green avatar, a round bell, the week's
-// bordered arrows) became one. B1: the bell's glyph is green; only its unread count keeps the orange.
+// bordered arrows) became one. The bell is neutral; only its unread count keeps the orange.
 describe('the one chrome icon button', () => {
-  it('is a 44 px white circle with the hairline inside an exact 48 px touch area, with a 24 px bold glyph in ink (wave 2, item 2.3: was 22 regular)', async () => {
+  it('is a 44 px white circle with the hairline inside an exact 48 px touch area, with a 24 px regular glyph in ink', async () => {
     const back = jest.fn();
     await render(<DetailTopBar title="Kalendar obaveza" onBack={back} />);
     expect(flat(control('Nazad'))).toMatchObject({ width: 48, height: 48 });
@@ -120,7 +120,7 @@ describe('the one chrome icon button', () => {
     expect(flat(circle('Nazad'))).toMatchObject({ width: 44, height: 44, borderRadius: sys.radius.pill,
       backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line });
     expect(glyph('Nazad').type).toBe(ArrowLeft);
-    expect(glyph('Nazad').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.ink });
+    expect(glyph('Nazad').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
     await act(async () => press('Nazad').props.onPress());
     expect(back).toHaveBeenCalledTimes(1);
   });
@@ -138,11 +138,11 @@ describe('the one chrome icon button', () => {
     await render(<ChromeIconButton quiet label="Kalendar obaveza" icon={CalendarBlank} onPress={noop} />);
     expect(flat(control('Kalendar obaveza'))).toMatchObject({ width: 48, height: 48 });
     expect(flat(circle('Kalendar obaveza'))).toMatchObject({ backgroundColor: 'transparent', borderColor: 'transparent' });
-    expect(glyph('Kalendar obaveza').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.ink });
+    expect(glyph('Kalendar obaveza').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
     expect(press('Kalendar obaveza').props.accessibilityState).toEqual({ disabled: false });
   });
 
-  it('draws the bell green in the same circle; an unread count keeps the orange badge', async () => {
+  it('draws the bell in neutral ink in the same circle; an unread count keeps the orange badge', async () => {
     const { InboxBell } = jest.requireActual('../../InboxBell') as typeof import('../../InboxBell');
     const bellLabel = (count: number) => hosts(node => typeof node.props.accessibilityLabel === 'string'
       && node.props.accessibilityLabel.startsWith(`Obaveštenja, ${count} `))[0].props.accessibilityLabel as string;
@@ -151,14 +151,14 @@ describe('the one chrome icon button', () => {
     const label = bellLabel(0);
     expect(flat(circle(label))).toMatchObject({ width: 44, height: 44, backgroundColor: sys.color.surface, borderColor: sys.color.line });
     expect(glyph(label).type).toBe(Bell);
-    expect(glyph(label).props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.green });
+    expect(glyph(label).props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(0);
     await act(async () => tree.unmount());
     mockUnread = 3;
     await render(<InboxBell />);
     const spoken = bellLabel(3);
-    // Still green with something unread: the orange is the badge alone.
-    expect(glyph(spoken).props.color).toBe(sys.color.green);
+    // The orange badge alone carries unread attention.
+    expect(glyph(spoken).props.color).toBe(sys.color.ink);
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;
@@ -276,10 +276,10 @@ describe('flow', () => {
 const glyphAt = (label: string, size: number) => press(label).findAll(node => node.props.size === size && node.props.weight !== undefined)[0];
 
 describe('a chrome icon button drawn from the Glyph registry', () => {
-  it('draws the named glyph at 24, bold, in ink inside the same circle and the same 48 px touch area as a Phosphor icon', async () => {
+  it('draws the named glyph at 24, regular, in ink inside the same circle and the same 48 px touch area as a Phosphor icon', async () => {
     await render(<ChromeIconButton label="Filteri" glyph="filters" onPress={noop} />);
     expect(glyph('Filteri').type).toBe(SlidersHorizontal);
-    expect(glyph('Filteri').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.ink });
+    expect(glyph('Filteri').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
     expect(flat(control('Filteri'))).toMatchObject({ width: 48, height: 48 });
     expect(flat(circle('Filteri'))).toMatchObject({ width: 44, height: 44, borderRadius: sys.radius.pill });
     expect(press('Filteri').props.hitSlop).toBe(0);
@@ -292,7 +292,7 @@ describe('a chrome icon button drawn from the Glyph registry', () => {
     expect(press('Filteri').props.accessibilityState).toEqual({ selected: true });
   });
 
-  it("draws a disabled glyph muted and the root bar's own two green, exactly as a Phosphor icon is", async () => {
+  it("draws a disabled glyph muted and an explicit action green, exactly as a Phosphor icon is", async () => {
     await render(<ChromeIconButton label="Filteri" glyph="filters" disabled onPress={noop} />);
     expect(glyph('Filteri').props.color).toBe(sys.color.muted);
     await act(async () => tree.update(<ChromeIconButton label="Filteri" glyph="filters" tone="green" onPress={noop} />));
@@ -330,7 +330,7 @@ describe('a captioned control: a word beside the glyph for a command nobody can 
     expect(flat(control(FILTERS)).width).toBeUndefined();
     expect(press(FILTERS).props.hitSlop).toBe(0);
     expect(glyphAt(FILTERS, 20).type).toBe(SlidersHorizontal);
-    expect(glyphAt(FILTERS, 20).props).toMatchObject({ weight: 'bold', color: sys.color.ink });
+    expect(glyphAt(FILTERS, 20).props).toMatchObject({ weight: 'regular', color: sys.color.ink });
     const word = tree.root.findAllByType(Text)[0];
     expect(flat(word)).toMatchObject({ fontSize: sys.type.meta.fontSize, lineHeight: sys.type.meta.lineHeight, color: sys.color.ink });
     // Never under 12, and one line: a wrapped caption would make the pill taller than its touch area.

@@ -6,8 +6,8 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 let mockReduced = false;
 jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
-// The pictures are tested on their own (`fact-art.test.tsx`); here the tab only has to ask for the right cut and tone.
-jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
+// The registry is tested separately; the tab must request the right outline and tone.
+jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
 
 import { Press } from '../../Press';
 import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
@@ -21,7 +21,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllM
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const byId = (testID: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === testID)[0];
-const pictures = () => tree.root.findAll(node => node.type === ('FactArt' as unknown));
+const pictures = () => tree.root.findAll(node => node.type === ('Glyph' as unknown));
 const layer = (cut: 'mark' | 'art') => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === `tab-glyph-${cut}`)[0];
 const easeOut = Easing.bezier(...sys.motion.easeOut);
 
@@ -40,16 +40,16 @@ describe('the numbers the bar is built from', () => {
 
   it('makes the bar as high as the icon, the gap, the tab padding, the bar padding and the label actually need', () => {
     // Actual 28dp icon host + 3gap + 7top + 5bottom + 1hairline + scalable label.
-    expect(tabBarHeight(sys.type.tab.lineHeight, TAB_BAR_PADDING)).toBe(64);
-    expect(tabBarHeight(sys.type.tab.lineHeight * 1.15, TAB_BAR_PADDING)).toBe(67);
-    expect(tabBarHeight(sys.type.tab.lineHeight * 1.3, TAB_BAR_PADDING)).toBe(70);
+    expect(tabBarHeight(sys.type.navLabel.lineHeight, TAB_BAR_PADDING)).toBe(61);
+    expect(tabBarHeight(sys.type.navLabel.lineHeight * 1.15, TAB_BAR_PADDING)).toBe(64);
+    expect(tabBarHeight(sys.type.navLabel.lineHeight * 1.3, TAB_BAR_PADDING)).toBe(67);
     // A two-line label at a large text size makes the bar grow with it; nothing is clipped.
     expect(tabBarHeight(64, TAB_BAR_PADDING)).toBe(108);
     // Minimum target stays whole, and every height rounds up to a whole dp.
     expect(tabBarHeight(0, TAB_BAR_PADDING)).toBe(56);
     expect(Number.isInteger(tabBarHeight(23.4, TAB_BAR_PADDING))).toBe(true);
     // The 48 px control stays whole inside it.
-    expect(tabBarHeight(sys.type.tab.lineHeight, TAB_BAR_PADDING) - 2 * TAB_BAR_PADDING).toBeGreaterThanOrEqual(48);
+    expect(tabBarHeight(sys.type.navLabel.lineHeight, TAB_BAR_PADDING) - 2 * TAB_BAR_PADDING).toBeGreaterThanOrEqual(48);
   });
 });
 
@@ -108,11 +108,11 @@ describe('the capsule of the chosen tab', () => {
 });
 
 describe('the icon of a tab', () => {
-  it('draws the same 24dp mark silhouette in quiet and brand tones', async () => {
+  it('draws the same 24dp outline in muted and green tones', async () => {
     await render(<TabGlyph kind="home" selected={false} />);
     expect(pictures().map(node => node.props)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: 'home', size: TAB_ICON, cut: 'mark', tone: 'quiet' }),
-      expect.objectContaining({ kind: 'home', size: TAB_ICON, cut: 'mark', tone: 'brand' }),
+      expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'muted' }),
+      expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'green' }),
     ]));
     expect(pictures()).toHaveLength(2);
     expect(TAB_ICON).toBe(24);
@@ -175,16 +175,16 @@ describe('the icon of a tab', () => {
 });
 
 describe('the label of a tab', () => {
-  it('is the tab type variant (14 on 20, 600), never the 12 on 16 label, in muted at rest and in ink when chosen', async () => {
+  it('uses the scalable navLabel role independently of content segments', async () => {
     await render(<TabLabel selected={false}>Zadaci</TabLabel>);
     const text = () => tree.root.findAllByType(Text)[0];
-    expect(flat(text())).toMatchObject({ fontSize: sys.type.tab.fontSize, lineHeight: sys.type.tab.lineHeight, color: sys.color.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
-    expect([sys.type.tab.fontSize, sys.type.tab.lineHeight, sys.type.tab.fontWeight]).toEqual([14, 20, '600']);
-    // The weight is chosen by the font file: 600 is Inter SemiBold (the old label was 700 Bold).
-    expect(flat(text()).fontFamily).toBe('Inter-SemiBold');
+    expect(flat(text())).toMatchObject({ fontSize: sys.type.navLabel.fontSize, lineHeight: sys.type.navLabel.lineHeight, color: sys.color.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
+    expect([sys.type.navLabel.fontSize, sys.type.navLabel.lineHeight, sys.type.navLabel.fontWeight]).toEqual([12, 17, '500']);
+    // Persistent navigation uses the medium Inter face; content segments keep their own role.
+    expect(flat(text()).fontFamily).toBe('Inter-Medium');
     expect(flat(text()).letterSpacing).toBeUndefined(); // the 0.6 of the old label variant is gone with the variant
     await act(async () => tree.update(<TabLabel selected>Zadaci</TabLabel>));
-    expect(flat(text()).color).toBe(sys.color.ink);
+    expect(flat(text()).color).toBe(sys.color.green);
     // It is never shrunk or cut: the person's text size decides.
     expect(text().props.numberOfLines).toBeUndefined();
     expect(text().props.adjustsFontSizeToFit).toBeUndefined();

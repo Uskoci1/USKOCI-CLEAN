@@ -418,7 +418,7 @@ const s = StyleSheet.create({
   briefTitle: { color: sys.color.ink },
   briefTerms: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, flexShrink: 0 },
   briefValue: { flexShrink: 1, minWidth: 0 },
-  title: { fontSize: TITLE_SIZE, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3, color: sys.color.ink },
+  title: { fontSize: TITLE_SIZE, lineHeight: 26, fontWeight: sys.type.cardTitle.fontWeight, letterSpacing: -0.3, color: sys.color.ink },
   titleSide: { flex: 1, minWidth: 0 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   valueWrap: { flexShrink: 1, maxWidth: '100%' },

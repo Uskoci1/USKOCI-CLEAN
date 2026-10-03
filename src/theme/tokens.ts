@@ -131,6 +131,8 @@ export const type = {
   speech: { fontSize: 16, lineHeight: 26, fontWeight: '400' as const },
   /** A tab or segment label. */
   tab: { fontSize: 14, lineHeight: 20, fontWeight: '600' as const },
+  /** Persistent navigation labels stay quieter than the content and still follow the system text size. */
+  navLabel: { fontSize: 12, lineHeight: 17, fontWeight: '500' as const },
 } as const;
 
 /**

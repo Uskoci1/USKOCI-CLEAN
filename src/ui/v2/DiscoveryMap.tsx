@@ -590,7 +590,6 @@ const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundCo
   attribution: { position: 'absolute', bottom: GAP, left: sys.space.base, right: sys.space.base,
     minHeight: 48 },
   creditLink: { alignSelf: 'flex-start', maxWidth: '100%', minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: sys.space.xs },
-  credit: { fontWeight: '500', letterSpacing: 0, color: sys.color.ink, backgroundColor: sys.color.veil,
-    flexShrink: 1, borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1,
-    textShadowColor: sys.color.surface, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } },
+  credit: { fontWeight: '400', letterSpacing: 0, color: sys.color.muted, backgroundColor: sys.color.surface,
+    flexShrink: 1, borderRadius: 3, paddingHorizontal: 3, paddingVertical: 1 },
 });

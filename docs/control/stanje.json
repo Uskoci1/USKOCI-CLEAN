@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T04:15:20Z",
+  "osvezeno": "2026-10-03T07:40:32Z",
   "grana": "HEAD",
-  "head": "1c0af25e",
-  "head_poruka": "docs(ui): record compact native and duplex compiler proofs",
+  "head": "fcb28103",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1708,7 +1708,13 @@
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P6_RATINGS_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
     "device": "Novi Home retry nije u instaliranom f526a736; native još čeka.",
     "round73": "P6 obuhvat: zbirni rpc_home_attention postoji i klijent ga koristi; provere ocena (RC-03) su ublažene (4 paralelne, rok 4 s), ali broj i dalje zavisi od stranica Dogovora. Granica ugovora: zbirna projekcija ocena je P2 paket.",
-    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_home_attention dopunjen na mestu: ratings {due, dueAgreementId}, ista presuda kao rpc_get_my_agreement_review(...).eligible, samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949, ledger 219; postflight problems []); na pravim DEV podacima ratings.due = broj prema autoritetu (0 i 1) i dueAgreementId je taj Dogovor; klijent koristi zbirni odgovor kad ga server šalje, inače stari put (bez flaga); nativno HONOR 1.10. (ROUND_77): Početna bez regresije prikaza, 0 čitanja ocena po Dogovoru (naspram +24 u starom buildu), pozitivan put (Dogovor za ocenu) NIJE proveren. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md"
+    "ex04": "S3 (round 76 + DEV 1.10.): serverski kandidat ex04c (rpc_home_attention dopunjen na mestu: ratings {due, dueAgreementId}, ista presuda kao rpc_get_my_agreement_review(...).eligible, samo dodati ključevi) DOKAZAN na disposable lancu (run 36846103770, 18 provera) i PRIMENJEN NA DEV 1.10. (migracija 20261001113949, ledger 219; postflight problems []); na pravim DEV podacima ratings.due = broj prema autoritetu (0 i 1) i dueAgreementId je taj Dogovor; klijent koristi zbirni odgovor kad ga server šalje, inače stari put (bez flaga); nativno HONOR 1.10. (ROUND_77): Početna bez regresije prikaza, 0 čitanja ocena po Dogovoru (naspram +24 u starom buildu), pozitivan put (Dogovor za ocenu) NIJE proveren. docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
+    "visual_composition_20261003": {
+     "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
+     "state": "SOURCE; matching APK/native review pending",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3360,7 +3366,13 @@
     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
     "status": "APPLIED / CLIENT WIRED / NATIVE PENDING",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_CLIENT_INTEGRATION.md",
-    "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json"
+    "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json",
+    "visual_composition_20261003": {
+     "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
+     "state": "SOURCE; matching APK/native review pending",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3962,6 +3974,12 @@
     "codex_ci_20261002": {
      "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
      "scope": "CI DISPOSABLE FINDINGS / F5-F12 CONFIRMED IN CHAIN / NOT FIXED"
+    },
+    "visual_composition_20261003": {
+     "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
+     "state": "SOURCE; matching APK/native review pending",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
     }
    },
    "ukupno": "PROBLEM",
@@ -4349,6 +4367,12 @@
      ],
      "serverSide": "toplo tačno čitanje ~25 ms; prvi poziv u novom backend-u ~260 ms; gateway upstream za tačno čitanje p50 ~210–250 ms; pg_stat_statements: 499 poziva, srednje 121,6 ms",
      "finding": "B24: jedna PostgREST sesija na DEV-u ponavlja MEDIA_VERSION_CONFLICT (40001) ~100 zapisa i ~470 rollback-ova u sekundi; hipoteza (neprovereno): neograničen retry 40001 u PostgREST-u"
+    },
+    "visual_composition_20261003": {
+     "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
+     "state": "SOURCE; matching APK/native review pending",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
     }
    },
    "ukupno": "PROBLEM",
@@ -7080,7 +7104,13 @@
     "test": "Profile34/34 PASS; integrated TypeScript PASS.",
     "device_proof": "Round19APK36335552115/f04e6b11 na emulatoru: učitan profil izlaže ime/sliku/radnje bez stare oznake Učitavamo profil. Bez izmene profila; fizički telefon nije potvrđen.",
     "status": "OTVORENO / PREGLED KODA I VEZA 28.09, BEZ NOVOG DOKAZA NA UREĐAJU",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_19_DEEP_SETTINGS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
+    "visual_composition_20261003": {
+     "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
+     "state": "SOURCE; matching APK/native review pending",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No backend/provider/data mutation. Prior phone evidence remains historical; no whole-flow completion claim."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -9169,5 +9199,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37095912881,
+   "ime": "Control tracker refresh",
+   "sha": "1c0af25e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T04:15:06Z"
+  },
+  {
+   "id": 37094736208,
+   "ime": "Build Android development APK",
+   "sha": "e444eabe",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:54:19Z"
+  },
+  {
+   "id": 37094734400,
+   "ime": "Build Android development APK",
+   "sha": "e444eabe",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:54:17Z"
+  },
+  {
+   "id": 37094720754,
+   "ime": "P5 ready task and matching contract",
+   "sha": "e444eabe",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:54:02Z"
+  },
+  {
+   "id": 37094451754,
+   "ime": "Control tracker refresh",
+   "sha": "a4991701",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:49:00Z"
+  },
+  {
+   "id": 37092877544,
+   "ime": "Build Android development APK",
+   "sha": "6d4ce57c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:20:36Z"
+  },
+  {
+   "id": 37092875712,
+   "ime": "Build Android development APK",
+   "sha": "6d4ce57c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:20:34Z"
+  },
+  {
+   "id": 37092866585,
+   "ime": "Control tracker refresh",
+   "sha": "6d4ce57c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:20:25Z"
+  },
+  {
+   "id": 37092866560,
+   "ime": "P5 ready task and matching contract",
+   "sha": "6d4ce57c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:20:25Z"
+  },
+  {
+   "id": 37092200238,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "4549a912",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:08:30Z"
+  },
+  {
+   "id": 37091641537,
+   "ime": "Build Android development APK",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:40Z"
+  },
+  {
+   "id": 37091639346,
+   "ime": "Build Android development APK",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:38Z"
+  }
+ ]
 }
