@@ -136,8 +136,8 @@ export type CandidatesPaging = { total: number | null; hasMore: boolean; loading
 
 /**
  * Candidates of one Task (owner's step 7, 2026-09-24): the offers as person-first cards (`CandidateFace`), or side by
- * side for a fast decision (owner decision 3, TARG-034). Two columns only while they fit: a phone at least 360 wide and a
- * text size under the owner's Large (read rounded, since Android hands Large over as 1.2999999523). Every list row gives
+ * side for a fast decision (owner decision 3, TARG-034). Two columns only while each has at least 200 dp after the list's
+ * padding and gap, and text is under Large (read rounded, since Android hands Large over as 1.2999999523). Every row gives
  * identity and terms their own width. An offer opens as a sheet over this list, so the list is still where the person
  * left it when they close it.
  */
@@ -167,9 +167,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const phoneScale = useTextScale();
   const textScale = forcedScale ?? phoneScale;
   const large = textScale >= 1.3, narrow = width < 360;
-  const columns = compare && !narrow && !large ? 2 : 1;
   // Two columns share the list's width less its side padding and the gap between them.
-  const columnWidth = columns === 2 ? Math.floor((width - 2 * LIST_PADDING - sys.space.md) / 2) : null;
+  const availableColumnWidth = Math.floor((width - 2 * LIST_PADDING - sys.space.md) / 2);
+  const columns = compare && !large && availableColumnWidth >= 200 ? 2 : 1;
+  const columnWidth = columns === 2 ? availableColumnWidth : null;
   // A new offer arriving is the news this screen exists to carry, so it is the one thing that moves.
   // The list that was already there settles silently, and switching to the comparison and back is
   // not an arrival either — `seen` belongs to this component, not to the FlatList it remounts.

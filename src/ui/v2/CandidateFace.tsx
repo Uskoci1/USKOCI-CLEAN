@@ -186,20 +186,22 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
 });
 
 /**
- * The height of a comparison column's person part at its fullest: the 40 px picture, a three-line name and a two-line
- * rating with the two gaps between them, the text part at the rounded text scale. Two columns side by side hold their
+ * The height of a comparison column's person part at its fullest: the 40 px picture, a three-line name, a two-line
+ * exceptional state and a two-line rating with the three gaps between them, at the rounded text scale. The status
+ * belongs before the terms; both aligned columns reserve its two lines so a long name cannot shift just one price.
+ * Two columns side by side hold their
  * person to it, so their cells line up whatever the names (review r4 rk item 6: a fixed 132 was shorter than a three-line
  * name beside the picture, and the columns slipped).
  */
 export function compareIdentityHeight(scale: number): number {
-  const text = 3 * sys.type.cardTitleCompact.lineHeight! + 2 * TRUST_LINE;
-  return Math.ceil(40 + 2 * COMPARE_IDENTITY_GAP + text * scale);
+  const text = 3 * sys.type.cardTitleCompact.lineHeight! + 2 * sys.type.label.lineHeight! + 2 * TRUST_LINE;
+  return Math.ceil(40 + 3 * COMPARE_IDENTITY_GAP + text * scale);
 }
 const TRUST_LINE = 20, COMPARE_IDENTITY_GAP = 6;
 
 /**
- * An offer as a comparison column: the same person on top, then the same three cells in the same order in every column —
- * the total, the people, the time — followed by the state and complete message. `aligned` holds the person's part to
+ * An offer as a comparison column: the person and actual exceptional state on top, then the same three cells in every
+ * column — the total, the people, the time — followed by the complete message. `aligned` holds the person's part to
  * one height when two columns stand side by side.
  */
 export const CandidateCompareCard = memo(function CandidateCompareCard({ candidate: k, timezone, fallbackTime, onOpen, photo, aligned }: {
@@ -213,6 +215,7 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
     <View style={[s.compareIdentity, aligned && { minHeight: compareIdentityHeight(scale) }]}>
       <CandidateAvatar candidate={k} size={40} photo={photo} />
       <T style={s.compareName} numberOfLines={3}>{k.ime}</T>
+      {status ? <CandidateStatusLine status={status} /> : null}
       <CandidateTrustLine candidate={k} />
     </View>
     <View style={s.cell}><T variant="label" tone="muted">Ukupno</T>
@@ -221,7 +224,6 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
         : <T style={[valueStyles.valueWord, valueStyles.alignStart]}>{UNPRICED}</T>}</View>
     <View style={s.cell}><T variant="label" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
     <View style={s.cell}><T variant="label" tone="muted">Termin</T><T variant="meta" style={s.ink}>{time ?? fallbackTime}</T></View>
-    {status ? <CandidateStatusLine status={status} /> : null}
     {k.napomena?.trim() ? <View style={s.cell}><T variant="label" tone="muted">Poruka</T><T style={s.compareMessage}>{k.napomena.trim()}</T></View> : null}
   </Press>;
 });

@@ -7,7 +7,7 @@ import { sys } from '../../ui/system/tokens';
 /**
  * Incoming applications and choosing a candidate (owner's step 7, 2026-09-24). An offer is chosen as a person first, so
  * its card leads with the person — their picture, name and the rating with the count it stands on — beside the total it
- * asks; nothing on it is invented. Two offers are compared side by side only while two columns fit (a 360 dp phone and a
+ * asks; nothing on it is invented. Two offers are compared side by side only while each column has at least 200 dp and a
  * text size under Large, read rounded because Android hands Large over as 1.2999999523). The offer and the public
  * profile are sheets of the one sheet engine, and the profile keeps its report-or-block entry.
  */
@@ -152,22 +152,25 @@ describe('the candidate row', () => {
 });
 
 // Review r4 rk item 6: two columns hold their person part to the height of the fullest one (the 40 px picture, a
-// three-line name, a two-line rating and the gaps), at the text size in use; a fixed 132 was shorter than that.
-it('holds a comparison column’s person part to the height of a three-line name and a two-line rating', () => {
-  expect(compareIdentityHeight(1)).toBe(40 + 2 * 6 + 3 * 21 + 2 * 20);
-  expect(compareIdentityHeight(1.2)).toBe(Math.ceil(40 + 2 * 6 + (3 * 21 + 2 * 20) * 1.2));
+// three-line name, two-line exceptional status, two-line rating and gaps), at the text size in use.
+it('holds a comparison header to the full name, exceptional status and rating height', () => {
+  expect(compareIdentityHeight(1)).toBe(40 + 3 * 6 + 3 * 21 + 2 * 16 + 2 * 20);
+  expect(compareIdentityHeight(1.2)).toBe(Math.ceil(40 + 3 * 6 + (3 * 21 + 2 * 16 + 2 * 20) * 1.2));
   expect(compareIdentityHeight(1)).toBeGreaterThan(132);
 });
 
 describe('the comparison', () => {
   const columns = () => tree.root.findAll(node => node.type === ('FlatList' as unknown as React.ElementType))[0].props.numColumns;
   const compare = async () => { await act(async () => pressNamed('Uporedi').props.onPress()); };
-  const two = [k(), k({ prijavaId: 'application-2', ime: 'Ana Jovanović', inicijali: 'AJ', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' } })];
+  const two = [k({ stanje: 'WITHDRAWN', mozeIzabrati: false }), k({ prijavaId: 'application-2', ime: 'Ana Jovanović', inicijali: 'AJ', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' } })];
 
   it.each([
-    ['a 390 dp phone at normal text', 390, 1, 2],
-    ['just under Large', 390, 1.29, 2],
-    ['Android Large as it arrives (1.2999999523)', 390, 1.2999999523, 1],
+    ['the actual 361 dp phone at 1.15', 361, 1.15, 1],
+    ['a 390 dp phone at normal text', 390, 1, 1],
+    ['one dp below the two-column boundary', 451, 1, 1],
+    ['two columns of exactly 200 dp', 452, 1, 2],
+    ['just under Large with enough column width', 452, 1.29, 2],
+    ['Android Large as it arrives (1.2999999523)', 452, 1.2999999523, 1],
     ['a 359 dp phone', 359, 1, 1],
   ])('follows the rounded text scale and the width: %s', async (_name, width, fontScale, expected) => {
     mockWidth = width; mockFontScale = fontScale;
@@ -175,13 +178,18 @@ describe('the comparison', () => {
     await compare();
     expect(columns()).toBe(expected);
     expect(pressNamed('Otvori prijavu: Ana Jovanović')).toBeDefined();
+    const withdrawn = texts(pressNamed('Otvori prijavu: Milan Petrović'));
+    expect(withdrawn.split('Povučena prijava')).toHaveLength(2);
+    expect(withdrawn.indexOf('Povučena prijava')).toBeLessThan(withdrawn.indexOf('Ukupno'));
+    expect(texts(pressNamed('Otvori prijavu: Ana Jovanović'))).not.toContain('Povučena prijava');
   });
 
   it('gives a lone last offer the width of one column, not the whole row', async () => {
+    mockWidth = 500;
     await render(list([...two, k({ prijavaId: 'application-3', ime: 'Nikola Ilić', inicijali: 'NI' })]));
     await compare();
-    // (390 − 2 × 20 side padding − 12 gap) / 2 = 169, for every column including the third offer alone on its row.
-    const widths = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && flat(node.props.style).width === 169);
+    // (500 − 2 × 20 side padding − 12 gap) / 2 = 224, including the third offer alone on its row.
+    const widths = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && flat(node.props.style).width === 224);
     expect(widths).toHaveLength(3);
   });
 
