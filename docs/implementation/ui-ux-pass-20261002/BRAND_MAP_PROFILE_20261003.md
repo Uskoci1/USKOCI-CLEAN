@@ -1,5 +1,7 @@
 # Dimenzionalni identitet, mirna mapa i radni profil — 3.10.2026.
 
+Aktuelno: materijal994c61 je pregledan na emulatoru; source1a03af51 dodaje povratak na prethodno mesto u profilu i čeka svoj APK. V2 intervju je izolovan ugovor, nije primenjena funkcija. Raniji neuspeli koraci ispod ostaju trag ispravke, ne trenutno prihvatanje.
+
 ## Odluka i odnos prema nacrtu
 
 Vlasnik traži materijal iz priloženog logotipa 13524, zadržavanje postojeće animacije, mirne kontrole mape i razgovor koji gradi lični radni profil. Postojeći tokovi i ugovori ostaju osnova. Odstupanje od starog vizuelnog zaključavanja: ravni znak/slova zamenjeni su odobrenim reljefnim materijalom. Nije napravljen novi intro ni drugi proizvod. Prikaz izvora mape ostaje čitljiv: nije pretvoren u znak uzvika jer nije upozorenje.
@@ -44,3 +46,37 @@ APK37148428976 uspešan, SHA256 c69f8efa3cb749bb7ebf56876731ef43210e4b312dab4382
 Uzrok potvrđen direktno u instaliranoj RNSVG biblioteci i nezavisnim pregledom: deklarativni G ne prenosi sirovi matrix prop, već izvodi matricu iz transform. Izvorni SVG adapter bio je previše popustljiv i to prikrio. Dve statičke matrice atlas-a sada su transform="matrix(...)"; originalni animatedProps.matrix ostaje jer radi kroz native update. Dodata je regresiona provera preko stvarnog native extractTransform, a ne istog stand-in renderera.145 prethodnih fokusiranih i dodatni23 clock/raster slučaja prolaze; TypeScript PASS. Build32583/run37149267523 je otkazan kao prevaziđen pre završetka da se ne instalira ista poznata greška.
 
 CI37149235840 za prethodnu parent-layout ispravku32583 je SUCCESS. Nova raster ispravka traži novi tačan APK/native rezultat. Prvi stvarni map ekran već pokazuje fiksne izvore ispod filtera; pin/Back/font provera je naredna. Privatne slike: brand-about-1b38, brand-gallery-final-1b38, brand-map-1b38.
+
+## Potvrđeno ponašanje mape i radnog profila na1b3825fb
+
+Emulator1264×2728/density560/font1.15: otvaranje postojećeg pina → detalj → Back vraća isti pin, narandžasti izbor, peek i prikaz mape. Read-only pixel poređenje regiona0,182–1264,1600 pre/posle daje identičan sadržaj. Izvori imaju iste granice56,707–1004,875; zum1058,921–1205,1071 i1058,1075–1205,1225, i pre izbora i nakon zatvaranja peek-a. FULL lista pokrije kontrole; povratak ih vraća na isto mesto. To je jedan stvarni slučaj, ne dokaz svih filtera/paging-a/performance-a. Privatne slike: `brand-map-pin-1b38`, `brand-map-detail-1b38`, `brand-map-return-1b38`, `brand-map-close-1b38`, `brand-map-full-1b38`, `brand-map-full-back-1b38`.
+
+Izvori otvaraju postojeći sheet sa sva tri pružaoca, potvrđeno na `brand-map-source-modal-1b38.png`; spoljne veze nisu otvarane. UIAutomator nije uspeo da izvuče hijerarhiju tog modal-a, pa je uzet direktan screenshot; to nije neuspeh samog otvaranja. Veći tekst1.3 na `brand-map-large-1b38` prikazuje celu traku izvora, razdvojene filtere i listu koja može da se pomera; zum se sakriva kada nema prostora. Pogrešno nazvani `brand-map-font13-1b38` zapravo prikazuje About posle Android promene konfiguracije i nije map dokaz.
+
+Radni profil → „Obaveštenja o poslovima” otvara WORKER tab „Poslovi”. Nijedan switch nije menjan. Slike `brand-worker-link-visible-1b38` i `brand-worker-notifications-1b38`. Back vraća postojeći profil, ali na vrh (`brand-worker-return-1b38`): potvrđen stariji problem jer hidden-on-blur forma privremeno postaje kratka, pa Android stegne scroll. Sledi uska owner-scoped ispravka pozicije; ne zadržavati privatnu formu vidljivom u pozadini.
+
+CI37149673117 za994c61f6 je SUCCESS. APK37149670951 za isti izvor još se gradi u trenutku ovog zapisa; ispravljen logo još nema native prihvatanje.
+
+## Radni intervju — sledeći povezani ugovor
+
+[WORKER_V2_CONTRACT_20261003.md](WORKER_V2_CONTRACT_20261003.md) i izolovani WPP02 čuvaju opisne napomene bez obećanja da ih matcher već razume.18 lokalnih provera čiste specifikacije je prošlo; nema instalacionog SQL-a, runtime importa ili primene. Sveži metadata snimak pokazuje i postojeći prazan export-policy binding. Potrebni su kompletni verzionisani autoriteti, atomski upis, export/erasure/konkurentnost i kompatibilni client/Edge pre pitanja o primeni. Nula godina u sadašnjoj bazi ne razlikuje nepopunjen podatak od izričito potvrđenih0. Ova granica je ispravljena posle nezavisnog pregleda. Ni ovaj ugovor ni prečica ka podešavanjima nisu dokaz novog matching-a ili push dostave.
+
+## Native994c61f6: prihvaćen novi materijal u proverenom opsegu
+
+APK37149670951 SUCCESS, source994c61f64dadd705ecd49049add5f183d3734b8b/tree974122748c3ceee13e74342ab2f993996dd447c6, SHA256e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd. Recovery, icon i RNR-01 attestacije PASS, instalacija uz očuvan UID10227. Puni CI37149673117 SUCCESS.
+
+- Stvarni About/font1.0 i1.3 (`brand-about-994c`, `brand-about-large-994c`) sada pokazuju potpun znak i ceo natpis. Nema odsečenih slova. Jednostavan tekst i dva otvorena objašnjenja čuvaju postojeće legal/privacy ulaze; veći tekst slaže ilustraciju iznad rečenice.
+- Stvarna Početna/font1.0 (`brand-home-994c`) ima čitljiv dimenzionalni lockup, postojeći avatar/zvono i dve jednako velike neutralne radnje. Tačan prikaz prethodnog clipping problema je ispravljen.
+- Ista BrandArtwork u postojećoj internoj galeriji: final,760/1700/3000ms uzorci, replay i cache reentry imaju stvarne Android screenshot-e (`brand-gallery-final-994c`, `brand-sample760-994c`, `brand-sample1700-994c`, `brand-sample3000-994c`, `brand-gallery-reentry-994c`). Stanje3000ms namerno još otkriva kraj natpisa. Konture delova prate originalnu animaciju; nisu pravougaono isečene ruke.
+- Snimljen replay `brand-replay-994c.mp4` i sekvenca `brand-sampled-994c-*.png`. Sekvenca pokazuje sklapanje i native otkrivanje slova, ali vreme zahteva za screenshot nije tačno vreme frejma. Ne dokazuje60fps, phone fluidnost ili ceo Auth tok.
+- Sistemski reduce motion uključen preko Android TRANSITION_ANIMATION_SCALE, pa replay: svih8 uzorkovanih slika ima identičan region znaka kao final. Proveren actual native izvor AccessibilityInfo, ne test-only prop. Posle provere motion vraćen1, font1.15.
+
+Ovo prihvata materijal na About/Početnoj i komponentu originalne animacije. Prava prva prijava, cold OS splash/timeout i fizički telefon nisu ovde provereni; sesija nije odjavljivana ni brisana. Izvezeni splash postoji u APK-u, ali source/asset potvrda nije cold-launch screenshot.
+
+## Povratak u radni profil — source1a03af51
+
+Po prolazu prethodnog APK-a dodata je uska ispravka starog scroll problema. Samo lični radni profil pamti offset pre dozvoljenog otvaranja podešavanja i vraća ga posle novog native layout-a. Blur i dalje sakriva privatnu formu; status-clamp ne prepisuje zapamćeno mesto. Promena vlasnika/revizije, Back i korisnikov drag poništavaju nevažeći povratak. Frame dobija samo opcione ref/event parametre, nema globalnog cache-a/tajmera ili upisa podataka.
+
+51 fokusirana provera i TypeScript PASS, uključujući tri povratka, zakasnele blur događaje, korisnikov drag, grešku čitanja/retry, drugog vlasnika i stare dirty/unknown-save granice. APK37150842656 i CI37150844967 vezuju tačan source1a03af519da967572f0a38f1fa311edd411f75b0; native povratak još čeka taj APK.
+
+Puni CI37150844967 zatim SUCCESS:428 suite/9387 slučajeva/6 snapshot-a, uz159 fokusiranih Discovery slučajeva. Native994c kontrola +/− na fiksnim mestima zaista menja mapu i zadržava izvore/zum na istim granicama (`brand-map-controls-994c`, `brand-map-zoom-plus-994c`, `brand-map-zoom-minus-994c`). „Prikaži sve zadatke” vraća opšti režim bez promene preference. Nema tvrdnje o transportu push-a ili novom dispatch-u.

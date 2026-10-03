@@ -90,3 +90,5 @@ supabase/candidates/ai-location-01-20261002/** -text whitespace=cr-at-eol
 supabase/functions/_shared/locationReply.ts text eol=lf
 # Exact SQL text recorded by this DEV migration contains CRLF; preserve its ledger hash.
 supabase/operations/dev-alpha/ledger/20261002185306_dev_alpha_ai_location_01_contextual_map_dialogue.sql -text whitespace=cr-at-eol
+# WPP02 isolated contract and recorded source hashes must survive Windows checkouts.
+supabase/candidates/worker-personal-v2-20261003/** text eol=lf

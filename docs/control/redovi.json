@@ -108,10 +108,16 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -1255,10 +1261,24 @@
           "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
+        },
+        "worker_v2_contract_20261003": {
+          "state": "ISOLATED_CONTRACT_ONLY / NOT_APPLICABLE",
+          "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+          "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+          "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
+          "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
+          "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1419,10 +1439,24 @@
           "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
+        },
+        "worker_v2_contract_20261003": {
+          "state": "ISOLATED_CONTRACT_ONLY / NOT_APPLICABLE",
+          "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+          "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+          "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
+          "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
+          "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
         }
       }
     },
@@ -2015,10 +2049,16 @@
           "boundary": "Exact ae76 only; no native-instance or motion claim; existing lights unchanged."
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -2393,10 +2433,16 @@
           }
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -3867,10 +3913,16 @@
           "boundary": "No preference submitted and no phone/push-delivery acceptance; no overlapping label or switch in bounded native captures."
         },
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -3992,6 +4044,14 @@
           "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "scope": "edd20976 phone preview registration confirmed active with revision/bound revision3 and stored session; no token read/provider send. CI37081876436 found non-newline predecessor certificate mismatch. c12eccc7/run37082860836 adds strict bounded semantic/catalog diagnostics; no DEV application."
+        },
+        "worker_v2_contract_20261003": {
+          "state": "ISOLATED_CONTRACT_ONLY / NOT_APPLICABLE",
+          "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+          "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+          "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
+          "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
+          "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
         }
       }
     },
@@ -4082,10 +4142,16 @@
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -4877,10 +4943,16 @@
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
         "brand_map_profile_20261003": {
-          "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+          "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
           "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-          "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-          "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+          "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+          "apkRun": 37149670951,
+          "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+          "ci": "37149673117 SUCCESS",
+          "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+          "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+          "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+          "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
         }
       }
     },
@@ -7291,10 +7363,24 @@
       "native": "Emulator UID10227 preserved; actual form/tool grid1.0, local laptop select/deselect without save; tool/vehicle rows1.3; font restored1.15."
     },
     "brand_map_profile_20261003": {
-      "state": "SOURCE / BUILD_AND_NATIVE_PENDING",
+      "state": "EMULATOR_BOUNDED / WORKER_SCROLL_RETURN_NATIVE_PENDING",
       "report": "docs/implementation/ui-ux-pass-20261002/BRAND_MAP_PROFILE_20261003.md",
-      "scope": "Dimensional shared brand preserving original motion; stable map attribution/zoom and task pin; worker profile to WORKER notifications.",
-      "boundary": "No backend/push send/business write. Phone disconnected; full entry/Auth/whole-app acceptance not claimed."
+      "source": "994c61f64dadd705ecd49049add5f183d3734b8b",
+      "apkRun": 37149670951,
+      "apkSha256": "e27e0cf59edb64f325c1bce4571f102a14594503560a199f1312b5a7ee2a9fdd",
+      "ci": "37149673117 SUCCESS",
+      "scope": "Dimensional Home/About and original artwork/clock gallery replay/reentry/system reduced motion. Map attribution/zoom/pin/detail/Back verified on parent1b38 with unchanged map source in994c. Worker profile opens WORKER notifications.",
+      "native": "USKOCI_V5_TEST emulator, UID10227 preserved; About1.0/1.3, Home1.0, gallery samples/replay/reduced motion; font restored1.15 and motion1. Parent map1.15/1.3, one actual selected pin/detail/Back and FULL return, sources sheet. No preference or business write.",
+      "next": "Worker reading-position restoration source1a03af51:51 focused cases and TypeScript PASS; exact APK37150842656/CI37150844967 pending. Full unauth entry/cold splash and physical phone remain open.",
+      "boundary": "No backend/Edge/certificate change, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance."
+    },
+    "worker_v2_contract_20261003": {
+      "state": "ISOLATED_CONTRACT_ONLY / NOT_APPLICABLE",
+      "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+      "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+      "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
+      "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
+      "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
     }
   }
 }
