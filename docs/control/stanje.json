@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T01:42:42Z",
+  "osvezeno": "2026-10-03T01:43:06Z",
   "grana": "HEAD",
-  "head": "b2585f91",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "head": "3edfdd57",
+  "head_poruka": "fix(voice): reuse microphone permission and compact recording review",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -9074,102 +9074,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37085762325,
-   "ime": "Build Android development APK",
-   "sha": "8aeb787a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:21:12Z"
-  },
-  {
-   "id": 37085760187,
-   "ime": "Build Android development APK",
-   "sha": "8aeb787a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:21:10Z"
-  },
-  {
-   "id": 37085760000,
-   "ime": "P5 ready task and matching contract",
-   "sha": "8aeb787a",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T01:21:10Z"
-  },
-  {
-   "id": 37085759924,
-   "ime": "Control tracker refresh",
-   "sha": "8aeb787a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:21:10Z"
-  },
-  {
-   "id": 37085434332,
-   "ime": "Push single-target disposable proof",
-   "sha": "4a16f2ae",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:16:05Z"
-  },
-  {
-   "id": 37084601034,
-   "ime": "Push single-target disposable proof",
-   "sha": "882f3cbb",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T01:03:28Z"
-  },
-  {
-   "id": 37084424867,
-   "ime": "Build Android development APK",
-   "sha": "3ca56cc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:00:53Z"
-  },
-  {
-   "id": 37084421808,
-   "ime": "Build Android development APK",
-   "sha": "3ca56cc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:00:51Z"
-  },
-  {
-   "id": 37084413073,
-   "ime": "Control tracker refresh",
-   "sha": "3ca56cc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T01:00:44Z"
-  },
-  {
-   "id": 37083786250,
-   "ime": "Push single-target disposable proof",
-   "sha": "0634b536",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T00:51:20Z"
-  },
-  {
-   "id": 37083786235,
-   "ime": "P5 ready task and matching contract",
-   "sha": "0634b536",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T00:51:20Z"
-  },
-  {
-   "id": 37083786234,
-   "ime": "Control tracker refresh",
-   "sha": "0634b536",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T00:51:20Z"
-  }
- ]
+ "ci": null
 }
