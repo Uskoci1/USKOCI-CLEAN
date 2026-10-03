@@ -33,7 +33,7 @@ export type HomePresentationProps = {
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
 };
 
-/** Equal doors for the two intentions of the same account (owner correction, 3 October). */
+/** Equal doors: original artwork leads, then the intention and one short explanation. */
 function StartActions({ compact, onPublish, onEarn }: {
   compact: boolean; onPublish: () => void; onEarn: () => void;
 }) {
@@ -44,21 +44,21 @@ function StartActions({ compact, onPublish, onEarn }: {
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
       haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised, { minHeight }]}>
       <View style={s.createMain}>
+        <HomeLaunchArt kind="publish" size={compact ? 64 : 96} />
         <View style={s.actionCopy}>
           <T accessibilityRole="header" style={s.actionTitle}>Objavi zadatak</T>
           <T style={s.actionSubtitle} tone="muted">Opiši šta ti treba.</T>
         </View>
-        <HomeLaunchArt kind="publish" size={compact ? 64 : 80} />
       </View>
     </Press>
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Nađi posao blizu."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised, { minHeight }]}>
       <View style={s.createMain}>
+        <HomeLaunchArt kind="discover" size={compact ? 64 : 96} />
         <View style={s.actionCopy}>
           <T accessibilityRole="header" style={s.actionTitle}>Uskoči i zaradi</T>
           <T style={s.actionSubtitle} tone="muted">Pronađi posao.</T>
         </View>
-        <HomeLaunchArt kind="discover" size={compact ? 64 : 80} />
       </View>
     </Press>
   </View>;
@@ -192,7 +192,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nisu učitane' : null;
   const recoveryNeeded = p.error || home?.partial;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.canvas}>
-    {/* The one header of the three tabs (V41): profile left, the mark in the middle, the inbox right. */}
+    {/* Shared root chrome: identity, notifications and the account's real avatar. */}
     {p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>

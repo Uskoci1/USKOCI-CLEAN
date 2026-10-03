@@ -197,7 +197,7 @@ it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads ther
   expect(mockRouter.navigate).not.toHaveBeenCalledWith('/moje-aktivnosti');
 });
 
-// Owner takeover: creation leads and discovery is a compact action, not two equal tiles.
+// Owner correction: equally prominent creation and discovery belong to the same account.
 // Keep actionable names, untruncated text and usable personal-list targets without pinning a layout recipe.
 it.each([[390, 1], [390, 1.2], [390, 1.2999999523], [320, 1], [320, 2]])(
   'keeps both launch actions readable and available at %idp / font %s', async (width, fontScale) => {
