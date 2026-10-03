@@ -142,4 +142,6 @@ Two closure digest boundaries necessarily move: `private.closure_schema_digest_v
 
 ## Control publication attempt
 
+Late CI reconciliation: P5 run37141652015 (initial4081) failed one outdated source assertion that still required licenses/team in the provider allow-list;193 other focused cases passed. The corrected contract test distinguishes the seven-field provider proposal from the compatible nine-field V1 SQL envelope, inventories the exact WPP01 candidate/revert/postflight files, and labels the older baseline pins as historical. Its50 local cases pass. No runtime/Edge/SQL artifact changed in this follow-up; the95a99 APK evidence remains applicable. Fresh P5 CI result is recorded below when complete.
+
 Local62-row registry, generated dashboard and LIVE projection are refreshed. Existing owner artifact was opened at its established URL; it still showed2026-10-02/b2fa3f60. Both the accessible upload control and its observed input[type=file] reached a file-chooser timeout in the in-app browser; no file was transferred and no shared-storage success occurred. Publication remains pending. No new dashboard, sharing change or Claude message was created.

@@ -6,7 +6,7 @@ import { AI_PROPOSABLE_NEED_FACT_V2_KEYS, NEED_FACT_V2_DEFINITIONS } from '../..
 const root = join(__dirname, '..', '..', '..');
 const source = (path: string) => readFileSync(join(root, path), 'utf8');
 
-describe('P5 matching field contract stays connected to the facts the two AI interviews collect', () => {
+describe('Historical P5 baseline matching contract (current WPP01 delta has a separate SQL proof)', () => {
   const dispatch = source('supabase/migrations/20260829211632_clean_dispatch_engine.sql');
   const selection = source('supabase/migrations/20260906010000_clean_ru5_selection_eligibility_revalidation.sql');
   const materialization = source('supabase/migrations/20260910130851_clean_w02_resolved_location_authority.sql');
@@ -60,6 +60,11 @@ const X6 = 'supabase/candidates/ex06a_flexible_window.sql';
 const X6R = 'supabase/candidates/ex06a_flexible_window_revert.sql';
 const X7 = 'supabase/candidates/ex06b_alias_registry.sql';
 const X7R = 'supabase/candidates/ex06b_alias_registry_revert.sql';
+// Frozen WPP01 forward/disposable/revert bodies retain the existing preference
+// readers; they remove license/team gates, without adding preference writers.
+const WPP01 = ['candidate.in-transaction.sql', 'candidate.sql', 'revert.sql']
+  .map(name => `supabase/candidates/worker-personal-profile-20261003/${name}`);
+const WPP01_POSTFLIGHT = 'supabase/candidates/worker-personal-profile-20261003/postflight.readonly.sql';
 const R15 = 'supabase/operations/dev-alpha/ledger/20260917181212_dev_alpha_pkg015b_gap0042_world_boundary.sql';
 const GW = 'supabase/migrations/20260910121926_clean_w02_regional_country_authority.sql';
 const G173 = 'supabase/migrations/20260830173000_clean_authoritative_mutation_boundary.sql';
@@ -160,9 +165,9 @@ describe('EX-06 S05 field-to-consumer map: effective matcher chain and gate clas
       'supabase/candidates/pkg035a_selectable_application_counts.sql', // md5 pin and reader only
       X6, X6R, // EX-06 ex06a: ONE anchored edit of the match_detail_without_calendar body (a window-less TOMORROW/WEEK task counts as future availability for CURRENT_AVAILABILITY_PAUSED), NOT APPLIED to DEV, and its exact inverse
       X7, X7R, // EX-06 ex06b: only pins the callers match_detail_without_calendar and dispatch_cheap_candidate_admitted by md5 (it changes private.work_kinds_v5 and adds configuration rows), NOT APPLIED to DEV, and its exact inverse
-      W2C, W2I, W2A].sort());
+      W2C, W2I, W2A, ...WPP01, WPP01_POSTFLIGHT].sort());
     // ex06a also pins the pre-image of dispatch_cheap_candidate_admitted (md5 row only; it changes neither this function nor the prefilter)
-    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R].sort());
+    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R, ...WPP01, WPP01_POSTFLIGHT].sort());
     const wrappers = mentioning(migrationSql(), /create or replace function private\.match_detail\(/);
     expect(wrappers[wrappers.length - 1]).toBe(W2F);
     const waves = mentioning(migrationSql(), /create or replace function private\.dispatch_next_wave\(/);
@@ -247,15 +252,17 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       'supabase/candidates/chat_voice_b1_revert.sql', // copy of the erasure body
       'supabase/candidates/pkg023c_public_pin_100m.sql', // copy of the erasure body (NOT applied)
       'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: byte copy of the pre-image of closure_redaction_patch_v5 (the profile reset text), NOT applied
-      K31, // kinds arm
+      K31, ...WPP01, // kinds arm; WPP01 retains those readers
     ]],
     ['app_profiles.minimum_fee_rsd', /minimum_fee_rsd/, [
+      ...WPP01,
       'supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql', DE,
       'supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql',
       'supabase/candidates/chat_voice_b1_revert.sql', 'supabase/candidates/pkg023c_public_pin_100m.sql',
       'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: copy of the erasure body (pre-image of closure_redaction_patch_v5), NOT applied
     ]],
     ['app_profiles.years_experience', /years_experience/, [
+      ...WPP01,
       'supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql', DE,
       G173, // superseded guard that forced it to 0
       G174, // comment: self-declared fields pass through freely
@@ -264,12 +271,13 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       'supabase/candidates/d12_review_comment_revert.sql', // D12 revert: copy of the erasure body (pre-image of closure_redaction_patch_v5), NOT applied
     ]],
     ['worker_match_preferences.proactive_notifications', /proactive_notifications/, [
-      'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE]],
+      'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE, ...WPP01]],
     ['worker_match_preferences.same_day_urgent_notifications', /same_day_urgent_notifications/, [
-      'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE]],
+      'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE, ...WPP01]],
     ['worker_match_preferences.buffer_minutes (X-01: no collector, no consumer)', /buffer_minutes/, [
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql']],
     ['private.identity_admitted (G04-8)', /identity_admitted/, [DE,
+      ...WPP01,
       X6, // EX-06 ex06a: a header COMMENT only ("the unchanged helpers ... identity_admitted ... are not pinned"); the candidate neither reads nor changes the function, NOT applied
     ]],
   ];
@@ -281,9 +289,13 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     });
 
   it('G04-1/2/4: the worker AI schema, its server allow-list and the manual writer carry none of the unconsumed fields', () => {
-    const list = "'displayName','bio','skills','tools','vehicles','licenses','teamCapacity','location','availability'";
-    expect(lf(WI)).toContain(`[${list}].includes(k)`);
-    expect(lf(OW)).toContain(`patch-array[${list}]<>'{}'::jsonb`);
+    // WPP01 retires license/team proposals, while V1 SQL/wire compatibility
+    // retains the older nine-key envelope. Do not conflate those two boundaries.
+    const providerList = "'displayName','bio','skills','tools','vehicles','location','availability'";
+    const legacyList = "'displayName','bio','skills','tools','vehicles','licenses','teamCapacity','location','availability'";
+    expect(lf(WI)).toContain(`[${providerList}].includes(k)`);
+    expect(lf(WI)).not.toContain(`[${legacyList}].includes(k)`);
+    expect(lf(OW)).toContain(`patch-array[${legacyList}]<>'{}'::jsonb`);
     expect(lf(WI)).not.toMatch(/exclusions|minimum_?[Ff]ee|years_?[Ee]xperience|proactive|sameDayUrgent|bufferMinutes/);
     expect(lf(OW)).not.toMatch(/exclusions|minimum_fee|years_experience|proactive|same_day_urgent|buffer_minutes/);
     expect(lf(WP)).toContain("['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','kapacitetTima','capacityRevision','zavrsi']");
