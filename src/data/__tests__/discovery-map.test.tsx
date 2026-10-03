@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { MarketplaceItem, PublicViewport } from '../marketplaceView';
 import type { NearbyCameraTarget } from '../../ui/v2/DiscoveryMap.types';
 import { Linking, StyleSheet } from 'react-native';
-let mockFocused = true, mockReduced = false;
+let mockFocused = true, mockReduced = false, mockRetain = false;
 let mockPackage: string | undefined = 'rs.uskoci.preview';
 jest.mock('expo-constants', () => ({ __esModule: true, default: { get expoConfig() { return { android: { package: mockPackage } }; } } }));
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockFit = jest.fn();
@@ -31,7 +31,7 @@ let rows = [row()], key = 'owner:1', viewport: PublicViewport | null = null, sel
 let nearby: NearbyCameraTarget | null = null;
 const select = jest.fn(), setViewport = jest.fn(), search = jest.fn(), list = jest.fn(), clear = jest.fn();
 const userIntent = jest.fn();
-function Screen() { return <DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} centerNearby={nearby} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} onUserIntent={userIntent} />; }
+function Screen() { return <DiscoveryMap canRetainMap={() => mockRetain} items={rows} scopeKey={key} viewport={viewport} selectedId={selectedId} centerNearby={nearby} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} onUserIntent={userIntent} />; }
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
@@ -46,7 +46,7 @@ const ready = async () => act(async () => {
 const region = { center: [0, 0], zoom: 4, bounds: [-1, -1, 1, 1] };
 const cluster = { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { cluster: true, cluster_id: 7 } };
 const pressFeature = async (features: unknown[]) => act(async () => source().props.onPress({ nativeEvent: { features }, stopPropagation: jest.fn() }));
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; mockPackage = 'rs.uskoci.preview'; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockFit, select, setViewport, search, list, clear]) fn.mockReset(); });
+beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {}); nearby = null; rows = [row()]; key = 'owner:1'; viewport = null; selectedId = null; mockFocused = true; mockReduced = false; mockRetain = false; mockPackage = 'rs.uskoci.preview'; for (const fn of [mockExpand, mockEase, mockJump, mockZoom, mockFit, select, setViewport, search, list, clear]) fn.mockReset(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 test('native clustering contains only rounded existing public points; zero is admitted', async () => {
  rows = [row(), row('two', 45.25444, 19.83444), { id: 'absent' } as MarketplaceItem]; await render();
@@ -405,4 +405,46 @@ test('P5 work-area: a selected task keeps priority and no invented point enters 
   await act(async () => { tree = create(workAreaPage({ publicationCameraToken: 'publication' })); }); await ready();
   expect(mockFit.mock.calls.some(([bounds]) => JSON.stringify(bounds) === JSON.stringify(workAreaTarget.bounds))).toBe(false);
   expect(sourceData().features.every((feature: any) => feature.properties.needId !== workAreaTarget.key)).toBe(true);
+});
+
+// Retained native identity is independent from each permanently retired focus owner.
+test('ready task-detail return keeps native instance while old async cluster and pan callbacks stay retired', async () => {
+ mockRetain = true;
+ let resolve!: (value: number) => void;
+ mockExpand.mockReturnValue(new Promise<number>(done => { resolve = done; }));
+ await render(); await ready();
+ const mapBefore = native(), oldRegion = mapBefore.props.onRegionDidChange;
+ await pressFeature([cluster]);
+ await act(async () => oldRegion(moved(region)));
+ mockFocused = false; await update();
+ mockFocused = true; await update();
+ expect(native()).toBe(mapBefore);
+ setViewport.mockClear(); search.mockClear();
+ await act(async () => { resolve(10); oldRegion(moved(region)); });
+ await wait(AREA_SETTLE_MS * 2);
+ expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+ expect(setViewport).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
+ await act(async () => native().props.onRegionDidChange(moved(region)));
+ await wait(AREA_SETTLE_MS);
+ expect(search).toHaveBeenCalledTimes(1);
+});
+
+test.each(['loading', 'failed', 'not-detail', 'account'])('retention cannot reuse native map after %s', async reason => {
+ mockRetain = true; await render();
+ if (reason !== 'loading') await ready();
+ const mapBefore = native();
+ if (reason === 'failed') await act(async () => native().props.onDidFailLoadingMap());
+ if (reason === 'not-detail') mockRetain = false;
+ mockFocused = false; await update();
+ if (reason === 'account') key = 'account:2';
+ mockFocused = true; await update();
+ expect(native()).not.toBe(mapBefore);
+});
+
+test('native failure while a retained detail is on top prevents reuse on return', async () => {
+ mockRetain = true; await render(); await ready(); const mapBefore = native();
+ mockFocused = false; await update();
+ await act(async () => mapBefore.props.onDidFailLoadingMap());
+ mockFocused = true; await update();
+ expect(native()).not.toBe(mapBefore);
 });

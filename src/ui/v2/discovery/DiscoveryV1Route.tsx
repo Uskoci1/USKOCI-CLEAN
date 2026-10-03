@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useDiscoveryWorkArea } from '../../../hooks/useDiscoveryWorkArea';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../../data/marketplaceView';
 import type { DiscoveryV1RouteCoordinator } from '../../../data/discoveryV1RouteCoordinator';
-import { createDiscoveryV1WarmReturn, type DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
+import { createDiscoveryV1WarmReturn, DISCOVERY_V1_WARM_RETURN_MS, type DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
 import type { TaskRelation } from '../../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
@@ -22,6 +22,31 @@ export function DiscoveryV1Route() {
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
   const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
+  // A source/account ABA creates a different surface even when its displayed key repeats.
+  const identitySequence = useRef(0);
+  const identity = useMemo(() => ({ number: ++identitySequence.current }), [source, user?.id, accountRevision]);
+  const latestIdentity = useRef(identity); latestIdentity.current = identity;
+  const held = useRef<{ identity: object; until: number } | null>(null);
+  const deadline = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [surfaceAttempt, setSurfaceAttempt] = useState(0);
+  const clearHold = useCallback(() => {
+    held.current = null;
+    if (deadline.current) clearTimeout(deadline.current);
+    deadline.current = null;
+  }, []);
+  const retireSurface = useCallback(() => { clearHold(); setSurfaceAttempt(value => value + 1); }, [clearHold]);
+  const canRetainMap = useCallback(() => latestIdentity.current === identity && !!held.current && held.current.identity === identity
+    && Date.now() < held.current.until && !!user?.id && sesijaSada().user?.id === user.id
+    && sesijaSada().accountRevision === accountRevision && izvorSada() === source
+    && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
+  [identity, user?.id, accountRevision, source]);
+  // This observer outlives route focus: the app may background while the detail covers a held map.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') { focus.current = null; setScope(null); retireSurface(); }
+    });
+    return () => { subscription.remove(); clearHold(); };
+  }, [retireSurface, clearHold]);
   const trace = useDiscoveryNativeTrace();
   const traceRef = useRef(trace); traceRef.current = trace;
   // EX-03 (owner approval 2026-09-30): what this route keeps of a screen that left, for the next screen of the same account (see discoveryV1WarmReturn). It goes with the route.
@@ -37,6 +62,8 @@ export function DiscoveryV1Route() {
     let owner: object | null = null;
     const enter = () => {
       if (owner) return;
+      if (held.current && Date.now() >= held.current.until) setSurfaceAttempt(value => value + 1);
+      clearHold();
       owner = {};
       focus.current = owner;
       navigating.current = false;
@@ -54,7 +81,7 @@ export function DiscoveryV1Route() {
     const subscription = AppState.addEventListener('change', state =>
       state === 'active' ? enter() : leave());
     return () => { subscription.remove(); leave(); };
-  }, []));
+  }, [clearHold]));
 
   const workArea = useDiscoveryWorkArea({
     accountId: user?.id ?? null,
@@ -66,30 +93,36 @@ export function DiscoveryV1Route() {
     publication: false,
   });
 
-  const current = useCallback(() => !!scope && focus.current === scope && !!user?.id
+  const current = useCallback(() => latestIdentity.current === identity && !!scope && focus.current === scope && !!user?.id
     && sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision
     && izvorSada() === source && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-  [scope, user?.id, accountRevision, source]);
+  [scope, user?.id, accountRevision, source, identity]);
 
-  const navigate = useCallback((action: () => void) => {
+  const navigate = useCallback((action: () => void, retainDetail = false) => {
     if (!current() || navigating.current) return;
     workArea.retire();
+    clearHold();
+    if (retainDetail) {
+      held.current = { identity, until: Date.now() + DISCOVERY_V1_WARM_RETURN_MS };
+      deadline.current = setTimeout(retireSurface, DISCOVERY_V1_WARM_RETURN_MS);
+    }
     navigating.current = true;
-    action();
-  }, [current, workArea]);
+    try { action(); } catch (failure) { navigating.current = false; clearHold(); throw failure; }
+  }, [current, workArea, clearHold, identity, retireSurface]);
 
   const open = useCallback((item: MarketplaceItem, relation: TaskRelation) => {
     navigate(() => router.navigate({
       pathname: relation.kind === 'OWNER' ? '/potrebe/[id]/pregled' : '/prilike/[id]',
       params: { id: item.id },
-    }));
+    }), true);
   }, [navigate]);
 
-  if (!scope || !user?.id) return <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
+  if ((!scope && !canRetainMap()) || !user?.id) return <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
     <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
   </View>;
 
-  return <DiscoveryV1Screen key={`${user.id}:${accountRevision}`}
+  return <DiscoveryV1Screen key={`${user.id}:${accountRevision}:${identity.number}:${surfaceAttempt}`}
+    activity={scope} canRetainMap={canRetainMap} onRetentionFailed={retireSurface}
     source={source} scopeKey={`${user.id}:${accountRevision}`} initialView={view}
     initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
     isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace} warmReturn={warmReturn.current!}

@@ -39,7 +39,11 @@ describe('SDK57 native civil-field adapter', () => {
   it('cancel does not silently accept the picker seed', async () => {
     const onChange = jest.fn();
     await act(async () => { tree = create(<CivilField label="Vreme" mode="time" value="" onChange={onChange} />); });
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Vreme' }).props.onPress());
+    const field = tree.root.findByProps({ accessibilityLabel: 'Vreme' });
+    expect(field.props.accessibilityHint).toBe('Izaberi vreme');
+    expect(field.props.accessibilityValue).toBeUndefined();
+    expect(field.findAllByType('T' as React.ElementType).map(node => node.props.children)).toContain('Izaberi');
+    await act(async () => field.props.onPress());
     await act(async () => picker().props.onDismiss());
     expect(onChange).not.toHaveBeenCalled();
     expect(tree.root.findAllByType('DateTimePicker' as React.ElementType)).toHaveLength(0);

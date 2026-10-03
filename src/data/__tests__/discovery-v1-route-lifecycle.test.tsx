@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
@@ -10,8 +11,9 @@ import { taskRelationIndex } from '../taskRelation';
 const ACCOUNT = '22222222-2222-4222-8222-222222222222';
 const PROFILE = '33333333-3333-4333-8333-333333333333';
 const AT = '2026-09-29T05:00:00.000000Z', EX = '2026-09-29T05:30:00.000000Z', A = 'a'.repeat(32), B = 'b'.repeat(32);
-let mockFocused = true;
-const mockSource = { odnosiPremaZadacima: jest.fn(async (ids: readonly string[]) => taskRelationIndex([], ids)) };
+let mockFocused = true, mockRevision = 1;
+let mockSource = { odnosiPremaZadacima: jest.fn(async (ids: readonly string[]) => taskRelationIndex([], ids)) };
+const mockOriginalSource = mockSource;
 const mockRouter = { navigate: jest.fn() };
 const mockTransportCalls: DiscoveryV1OwnerRequest[] = [];
 let mockTransport: (request: DiscoveryV1OwnerRequest) => Promise<unknown>;
@@ -27,8 +29,8 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('expo-constants', () => ({ expoConfig: { android: { package: 'rs.uskoci.dev' } } }));
 jest.mock('../../store/sesija', () => ({
-  useSesija: () => ({ user: { id: ACCOUNT }, accountRevision: 1 }),
-  sesijaSada: () => ({ user: { id: ACCOUNT }, accountRevision: 1 }),
+  useSesija: () => ({ user: { id: ACCOUNT }, accountRevision: mockRevision }),
+  sesijaSada: () => ({ user: { id: ACCOUNT }, accountRevision: mockRevision }),
 }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource }));
 jest.mock('../../hooks/useDiscoveryWorkArea', () => ({ useDiscoveryWorkArea: () => ({ target: null, handled: jest.fn(), retire: jest.fn() }) }));
@@ -90,7 +92,7 @@ const modes = () => mockTransportCalls.map(request => request.mode);
 let info: jest.SpyInstance;
 const traced = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
 beforeEach(() => {
-  mockFocused = true; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear();
+  mockFocused = true; mockRevision = 1; mockSource = mockOriginalSource; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear();
   info = jest.spyOn(console, 'info').mockImplementation(() => {});
 });
 afterEach(async () => { if (tree) await act(async () => tree!.unmount()); tree = undefined; info.mockRestore(); clock?.mockRestore(); clock = undefined; });
@@ -413,4 +415,70 @@ test('EX-03: what the route kept goes with the route', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
   expect(modes()).toEqual(['PAGE', 'MAP', 'MAP']);                        // a new route reads its own first visit
+});
+
+
+test('explicit task detail keeps the same presentation and loaded depth, but old visit callbacks never revive', async () => {
+ await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+ await act(async () => bridge().props.actions.onNextPage()); await flush();
+ const before = bridge(), oldProps = before.props;
+ await act(async () => before.props.onOpen(before.props.snapshot.items[0]));
+ expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+ mockFocused = false; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ expect(bridge()).toBe(before);
+ mockTransportCalls.length = 0;
+ mockFocused = true; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ expect(bridge()).toBe(before); expect(bridge().props.snapshot.items).toHaveLength(100);
+ expect(modes()).toEqual([]);
+ const currentView = bridge().props.snapshot.view;
+ await act(async () => {
+   oldProps.onView({ ...currentView, query: 'stale' }); oldProps.actions.onNextPage();
+   oldProps.actions.onClearPeek(); oldProps.onOpen(oldProps.snapshot.items[0]);
+ }); await flush();
+ expect(bridge().props.snapshot.view).toEqual(currentView); expect(modes()).toEqual([]);
+ expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+});
+
+test.each(['expired', 'account', 'source'])('held detail surface is discarded after %s before focus resumes', async reason => {
+ await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+ const before = bridge(); await act(async () => before.props.onOpen(before.props.snapshot.items[0]));
+ mockFocused = false; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ expect(bridge()).toBe(before);
+ if (reason === 'expired') pastWarmWindow();
+ else if (reason === 'source') mockSource = { ...mockSource };
+ else mockRevision++;
+ mockFocused = true; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ expect(bridge()).not.toBe(before); expect(errorState()).toHaveLength(0);
+});
+
+test('background while detail covers the retained route tears down the hidden surface', async () => {
+ const listeners = new Set<(state: string) => void>();
+ // Expo already mocks this method; spy.mockRestore would reset that shared mock's implementation.
+ const originalAdd = AppState.addEventListener;
+ AppState.addEventListener = jest.fn((_event: string, listener: (state: string) => void) => {
+   listeners.add(listener); return { remove: () => { listeners.delete(listener); } };
+ }) as typeof AppState.addEventListener;
+ try {
+   await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+   const before = bridge(); await act(async () => before.props.onOpen(before.props.snapshot.items[0]));
+   mockFocused = false; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+   expect(bridge()).toBe(before);
+   await act(async () => { for (const listener of listeners) listener('background'); }); await flush();
+   expect(bridge()).toBeUndefined();
+   mockFocused = true; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+   expect(bridge()).not.toBe(before);
+ } finally { AppState.addEventListener = originalAdd; }
+});
+
+
+test('source A-B-A cannot revive old route navigation callbacks during the same focus', async () => {
+ await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+ const sourceA = mockSource, old = bridge().props;
+ mockSource = { ...mockSource }; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ mockSource = sourceA; await act(async () => tree!.update(<DiscoveryV1Route />)); await flush();
+ await act(async () => { old.onProfile(); old.onNew(); old.onNotifications(); });
+ expect(mockRouter.navigate).not.toHaveBeenCalled();
+ await act(async () => bridge().props.onProfile());
+ expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+ expect(mockRouter.navigate).toHaveBeenCalledWith('/profil');
 });

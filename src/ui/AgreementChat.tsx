@@ -330,7 +330,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const hasMessageDraft = length > 0 || state.capturing || !!photos?.hasSelection || !!photos?.ready || !!photos?.items?.length;
   const showMic = !!voice && (holdingVoice || !hasMessageDraft);
   const inlineTools = !stackedComposer && !hideEmptyTextForVoiceReview;
-  const reserveReview = !!voice && !voice.screenReader;
+  const reserveReview = showMic && !voice?.screenReader;
   const canSend = ready && writable && !voiceBusy && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
   const settleSend = async (owner: Outbox, photoAgreementId?: string) => {
@@ -628,7 +628,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               accessibilityElementsHidden={!showMic} importantForAccessibility={!showMic ? 'no-hide-descendants' : 'auto'}>
               <View style={!showMic ? s.hidden : undefined}><AgreementVoiceMic voice={voice} /></View>
             </View>
-            <View style={[s.preferenceSlot, inlineTools && s.preferenceInline, !reserveReview && s.hidden]}>
+            <View pointerEvents={reserveReview ? 'auto' : 'none'}
+              accessibilityElementsHidden={!reserveReview} importantForAccessibility={reserveReview ? 'auto' : 'no-hide-descendants'}
+              style={[s.preferenceSlot, inlineTools && s.preferenceInline, !reserveReview && s.hidden]}>
               <AgreementVoicePreference voice={voice} writable={writable && !terminal} compact={inlineTools} />
             </View>
           </View> : null}

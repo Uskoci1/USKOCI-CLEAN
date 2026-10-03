@@ -103,9 +103,10 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
   // button's label no longer hides it from a screen reader.
   const shown = value ? mode === 'date' ? civilDay(value) : civilClock(value) : '';
   return <View style={{ gap: 6 }}><T variant="meta" tone="muted">{label}</T>
-    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={shown ? { text: shown } : undefined} accessibilityState={{ disabled: !!disabled }}
+    <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={shown ? { text: shown } : undefined}
+      accessibilityHint={!shown && mode === 'time' ? 'Izaberi vreme' : undefined} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
-      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberi datum' : 'Izaberi vreme')}</T>
+      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberi datum' : 'Izaberi')}</T>
       {/* Each fact its own picture (r6, "Tačan termin" and Izmene): a time field wears the clock, a date field the calendar. */}
       <FactArt kind={mode === 'time' ? 'clock' : 'calendar'} size={22} />
     </Press>

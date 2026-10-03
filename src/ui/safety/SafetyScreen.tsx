@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService, SAFETY_CATEGORIES, type SafetyCategory, type SafetyReportCommand, type SafetyReportReceipt } from '../../data/safetyClientService';
@@ -177,8 +177,14 @@ function PrivateReport(context: Context) {
       <View accessibilityRole="radiogroup" style={{ gap: 6 }}>{SAFETY_CATEGORIES.map(value => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
-        style={{ minHeight: 48, padding: 12, borderWidth: 1, borderRadius: sys.radius.control, borderColor: category === value ? sys.color.green : sys.color.line,
-          backgroundColor: category === value ? sys.color.wash : sys.color.surface }}><T>{safetyCategoryCopy[value]}</T></Press>)}</View>
+        style={[radioStyles.row, { borderColor: category === value ? sys.color.green : sys.color.line,
+          backgroundColor: category === value ? sys.color.wash : sys.color.surface }]}>
+        <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+          style={[radioStyles.marker, { borderColor: category === value ? sys.color.green : sys.color.lineStrong }]}>
+          {category === value ? <View testID="safety-category-selected" style={radioStyles.dot} /> : null}
+        </View>
+        <T style={radioStyles.label}>{safetyCategoryCopy[value]}</T>
+      </Press>)}</View>
       <T variant="bodyStrong">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
         onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
       <T variant="bodyStrong">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
@@ -195,3 +201,10 @@ function PrivateReport(context: Context) {
   </SettingsPanel>;
 }
 const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
+
+const radioStyles = StyleSheet.create({
+  row: { minHeight: 48, padding: 12, borderWidth: 1, borderRadius: sys.radius.control, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  marker: { width: 22, height: 22, flexShrink: 0, borderWidth: 2, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  label: { flex: 1, minWidth: 0 },
+});

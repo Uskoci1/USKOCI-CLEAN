@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/BuildIdentity', () => ({ BuildIdentity: 'BuildIdentity' }));
+jest.mock('../../ui/home/HomeLaunchArt', () => ({ HomeLaunchArt: 'HomeLaunchArt' }));
 jest.mock('../../ui/entry/BrandAssets', () => ({ BrandLockup: 'BrandLockup', BrandMark: 'BrandMark' }));
 import About from '../../app/(app)/profil/o-aplikaciji';
 
@@ -31,6 +32,11 @@ it('names the brand with its mark, not with a second title, and keeps the words'
   expect(heading[0].findAllByType('BrandLockup' as React.ElementType)).toHaveLength(1);
   const copy = texts().flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
   expect(copy).toContain('Pomoć počinje dogovorom.');
+  expect(copy).toContain('Jedan nalog, obe mogućnosti');
+  expect(copy).toContain('Objavi zadatak');
+  expect(copy).toContain('izbora saradnika');
+  expect(copy).toContain('Uskoči i zaradi');
+  expect(copy).toContain('zadacima na koje želiš da se prijaviš');
   expect(copy).toContain('AI pomaže da sastaviš zadatak. Ti pregledaš podatke i odlučuješ o objavi.');
   expect(tree.root.findAllByType('BuildIdentity' as React.ElementType)).toHaveLength(1);
 });

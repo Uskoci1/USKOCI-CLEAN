@@ -113,7 +113,7 @@ function boundedFitPadding(frame: { width: number; height: number }, toolsBottom
  * price pill over the pin once the map says which pins stand on their own at this zoom. Clusters stay the native
  * circles with their count.
  */
-function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void; mapStyle: MapStyle }) {
+function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: () => void; mapStyle: MapStyle; onLoadStatus: (status: 'loading' | 'ready' | 'failed') => void }) {
   const relationFor = (id: string): PinRelation | undefined => {
     const answer = props.relations?.relation(id);
     return answer?.kind === 'OWNER' ? 'OWNED' : answer?.kind === 'APPLIED' ? 'APPLIED' : undefined;
@@ -132,7 +132,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const [nativeFrameReady, setNativeFrameReady] = useState(false), focused = useRef(true);
   useFocusEffect(useCallback(() => {
     focused.current = true; setNativeFrameReady(false);
-    return () => { focused.current = false; traceLoad('retired'); };
+    return () => {
+      focused.current = false; traceLoad('retired');
+      cancelArea(); query.current++; intent.current = 0; openedCluster.current = null;
+      pendingFocus.current = null; zoomTarget.current = null; setSourcesOpen(false);
+    };
   }, [traceLoad]));
   const [viewport, setViewport] = useState(props.viewport);
   // Discovery V47: there is no "Pretraži ovu oblast" any more. A move of the person's own settles, the map waits
@@ -196,17 +200,18 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       : { center: [0, 0] as [number, number], zoom: 1 }); // Neutral overview; never a selected point.
   useEffect(() => {
     mounted.current = true;
+    props.onLoadStatus('loading');
     traceLoad('map-mounted');
-    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { traceLoad('deadline'); failure.current = 'deadline'; load.current = 'failed'; setStatus('failed'); } }, 15_000);
+    const timer = setTimeout(() => { if (mounted.current && props.owns() && load.current === 'loading') { traceLoad('deadline'); failure.current = 'deadline'; load.current = 'failed'; props.onLoadStatus('failed'); setStatus('failed'); } }, 15_000);
     return () => { traceLoad('retired'); mounted.current = false; clearTimeout(timer); cancelArea(); };
   }, []);
   const mark = (value: 'ready' | 'failed') => {
-    if (!owns()) return;
+    if (!mounted.current || (value === 'ready' && !owns())) return;
     // The display deadline offers recovery without retiring this native map. Only its actual load success may
     // dismiss that notice; an explicit native error stays terminal and retired owners cannot recover another map.
     if (value === 'ready' && load.current === 'failed' && failure.current !== 'deadline') return;
     failure.current = value === 'failed' ? 'native-error' : null;
-    load.current = value; setStatus(value);
+    load.current = value; props.onLoadStatus(value); setStatus(value);
   };
   // Which pins stand on their own at this zoom: the map's own answer, read after it settles. Only IDs come back, and
   // only IDs of the current read become pills. A failed read leaves the native logo markers.
@@ -567,16 +572,33 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
 export function DiscoveryMap(props: DiscoveryMapProps) {
   const [owner, setOwner] = useState<Owner | null>(null), [attempt, setAttempt] = useState(0);
   const current = useRef<Owner | null>(null), epoch = useRef(0), latestKey = useRef(props.scopeKey); latestKey.current = props.scopeKey;
+  const surface = useRef(0), retained = useRef(false), ready = useRef(false);
+  const latestRetention = useRef(props.canRetainMap); latestRetention.current = props.canRetainMap;
   // Place names in Serbian Latin: the map mounts once its style is known (read once for the whole app).
   const mapStyle = useMapStyle();
   useFocusEffect(useCallback(() => {
+    const reuse = retained.current && ready.current && latestKey.current === props.scopeKey;
+    retained.current = false;
+    if (!reuse) { surface.current++; ready.current = false; }
     const scope = { active: true, key: props.scopeKey, epoch: ++epoch.current }; current.current = scope; setOwner(scope);
-    return () => { scope.active = false; if (current.current === scope) current.current = null; };
+    return () => {
+      // This scope stays dead forever. A new focus gets fresh callback closures even when the native view survives.
+      scope.active = false;
+      if (current.current === scope) {
+        current.current = null;
+        retained.current = ready.current && latestKey.current === scope.key && latestRetention.current?.() === true;
+      }
+    };
   }, [props.scopeKey]));
-  if (!owner?.active || owner.key !== props.scopeKey || current.current !== owner) return <View style={s.feedback}><T>Mapa je dostupna dok je ovaj pregled otvoren.</T></View>;
+  const active = !!owner?.active && owner.key === props.scopeKey && current.current === owner;
+  if (!owner || owner.key !== props.scopeKey || (!active && !retained.current))
+    return <View style={s.feedback}><T>Mapa je dostupna dok je ovaj pregled otvoren.</T></View>;
   if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></View>;
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
-  return <MapSession key={`${owner.epoch}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns} onRetry={() => { if (owns()) setAttempt(value => value + 1); }} />;
+  const surfaceId = surface.current;
+  return <MapSession key={`${surfaceId}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns}
+    onLoadStatus={status => { if (surface.current === surfaceId && latestKey.current === owner.key) ready.current = status === 'ready'; }}
+    onRetry={() => { if (owns()) { ready.current = false; setAttempt(value => value + 1); } }} />;
 }
 const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
   ride: { position: 'absolute', left: 0, right: 0, top: 0 },

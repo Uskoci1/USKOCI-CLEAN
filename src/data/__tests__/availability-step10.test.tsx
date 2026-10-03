@@ -456,7 +456,9 @@ describe('what a screen reader hears', () => {
     const onSave = await form();
     const words = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.importantForAccessibility === 'no')[0];
     expect(words.props.accessible).toBe(false); expect(words.props.accessibilityElementsHidden).toBeFalsy();
-    const [label, explanation] = words.findAll(node => node.type === ('T' as React.ElementType));
+    const [label] = words.findAll(node => node.type === ('T' as React.ElementType));
+    const explanation = tree.root.findAll(node => node.type === ('T' as React.ElementType)
+      && typeof node.props.children === 'string' && node.props.children.includes('Čuva se odmah.'))[0];
     expect(label.props.children).toBe('Mogu odmah');
     expect(label.props.importantForAccessibility).toBe('no'); expect(label.props.accessibilityElementsHidden).toBe(true);
     expect(explanation.props.children).toContain('Čuva se odmah.');

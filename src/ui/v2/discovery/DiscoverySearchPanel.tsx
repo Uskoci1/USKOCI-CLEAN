@@ -339,8 +339,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       revealEditor(layoutOwner);
     } });
   const close = () => { retireReveal(); onClose(); };
+  const requestClose = () => {
+    // Android Modal owns Back: first leave the keyboard, keeping this same draft and editor mounted.
+    if (Platform.OS === 'android' && Keyboard.isVisible()) { retireReveal(); Keyboard.dismiss(); return; }
+    close();
+  };
 
-  return <Modal visible transparent hardwareAccelerated animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={close}>
+  return <Modal visible transparent hardwareAccelerated animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}>
     <View style={s.veil}>
       {canBlur ? <BlurView testID="search-blur-backdrop" pointerEvents="none" style={StyleSheet.absoluteFill}
         intensity={35} tint="light" blurMethod="dimezisBlurViewSdk31Plus" blurTarget={blurTarget} />

@@ -3,6 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { BuildIdentity } from '../../../ui/BuildIdentity';
 import { BrandLockup } from '../../../ui/entry/BrandAssets';
+import { HomeLaunchArt } from '../../../ui/home/HomeLaunchArt';
+import { useLayoutClass } from '../../../ui/system/textScale';
+import { sys } from '../../../ui/system/tokens';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow } from '../../../ui/settings/SettingsPresentation';
 
 /**
@@ -11,6 +14,7 @@ import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsRow } from '.
  * the page without a card, and the rules are rows like every other way onward in settings. No primary action.
  */
 export default function AboutUskoci() {
+  const { stacked } = useLayoutClass();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [token, setToken] = useState<object | null>(null);
   useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false;
@@ -26,8 +30,21 @@ export default function AboutUskoci() {
       <T variant="copy" tone="muted">Pomoć počinje dogovorom. Objavi šta ti treba ili ponudi ono što znaš i možeš.</T>
     </View>
     <View style={s.section}>
-      <T variant="heading">Jedan nalog, obe mogućnosti</T>
-      <T>„Objavi zadatak“ vodi te od ideje do zadatka i izbora saradnika. „Uskoči i zaradi“ povezuje ono što umeš i kada možeš sa zadacima na koje želiš da se prijaviš. Isti nalog radi oba.</T>
+      <T variant="heading" accessibilityRole="header">Jedan nalog, obe mogućnosti</T>
+      <View style={[s.path, stacked && s.pathStacked]}>
+        <HomeLaunchArt kind="publish" compact />
+        <View style={[s.pathCopy, stacked && s.pathCopyStacked]}>
+          <T variant="bodyStrong" accessibilityRole="header">Objavi zadatak</T>
+          <T variant="copy">Od ideje do objavljenog zadatka i izbora saradnika.</T>
+        </View>
+      </View>
+      <View style={[s.path, stacked && s.pathStacked]}>
+        <HomeLaunchArt kind="discover" compact />
+        <View style={[s.pathCopy, stacked && s.pathCopyStacked]}>
+          <T variant="bodyStrong" accessibilityRole="header">Uskoči i zaradi</T>
+          <T variant="copy">Poveži ono što umeš i kada možeš sa zadacima na koje želiš da se prijaviš.</T>
+        </View>
+      </View>
       <T variant="note" tone="muted">AI pomaže da sastaviš zadatak. Ti pregledaš podatke i odlučuješ o objavi. Uslove saradnje dogovaraš sa drugom osobom kroz Dogovor.</T>
     </View>
     <SettingsGroup title="Pravila i privatnost">
@@ -42,5 +59,9 @@ export default function AboutUskoci() {
 
 const s = StyleSheet.create({
   brand: { paddingTop: 8, gap: 12, alignItems: 'flex-start' },
-  section: { gap: 8 },
+  section: { gap: sys.space.base },
+  path: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  pathStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  pathCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  pathCopyStacked: { flex: 0, alignSelf: 'stretch' },
 });

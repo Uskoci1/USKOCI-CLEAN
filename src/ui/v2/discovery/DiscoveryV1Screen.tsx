@@ -18,6 +18,10 @@ import type { DiscoveryTrace } from '../DiscoveryPresentation';
 type Coordinator = ReturnType<typeof createDiscoveryV1RouteCoordinator>;
 
 export type DiscoveryV1ScreenProps = {
+  /** Optional route visit lease. null suspends a retained surface; undefined preserves standalone behavior. */
+  activity?: object | null;
+  canRetainMap?: () => boolean;
+  onRetentionFailed?: () => void;
   source: Pick<Izvor, 'odnosiPremaZadacima'>;
   scopeKey: string;
   initialView: MarketplaceView;
@@ -63,32 +67,49 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const errorRef = useRef(false); errorRef.current = error;
   const mounted = useRef(true), searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null), searchGeneration = useRef(0);
 
+  const visit = useMemo(() => ({}), [props.activity, coordinator]);
+  const latestVisit = useRef(visit); latestVisit.current = visit;
+  const resumed = useRef(false);
+  const activityRef = useRef(props.activity); activityRef.current = props.activity;
+  const live = useCallback(() => mounted.current && latestVisit.current === visit
+    && props.activity !== null && currentRef.current(), [visit, props.activity]);
   const commit = useCallback(() => {
-    if (!mounted.current || !currentRef.current()) return;
+    if (!live()) return;
     const next = coordinator.snapshot();
     setState(next);
     if (next.view) persistRef.current(next.view);
-  }, [coordinator]);
+  }, [coordinator, live]);
   optionalCommitRef.current = commit;
 
   const execute = useCallback(async (action: () => Promise<unknown>, busy = false) => {
-    if (busy && mounted.current) { setLoading(true); setError(false); }
+    if (!live()) return;
+    if (busy && live()) { setLoading(true); setError(false); }
     try {
       const result = await action();
       // A read that failed keeps the error state until a later read APPLIES: a passive or superseded action proves nothing.
-      if (mounted.current && currentRef.current() && (result as { kind?: string } | undefined)?.kind === 'applied') setError(false);
+      if (live() && (result as { kind?: string } | undefined)?.kind === 'applied') setError(false);
       commit();
     } catch (failure) {
-      if (mounted.current && currentRef.current()) { traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true); }
+      if (live()) { traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true); }
     } finally {
-      if (busy && mounted.current) setLoading(false);
+      if (busy && live()) setLoading(false);
     }
-  }, [commit]);
+  }, [commit, live]);
 
   useEffect(() => {
+    if (props.activity === null) return;
     mounted.current = true;
     let parkable = true;
-    if (warmStart) {
+    if (resumed.current) {
+      const view = coordinator.snapshot().view;
+      const candidate = view && props.warmReturn?.candidate(props.scopeKey, props.source, view);
+      if (!candidate || candidate.coordinator !== coordinator) {
+        props.onRetentionFailed?.();
+        return;
+      }
+    }
+    if (warmStart || resumed.current) {
+      resumed.current = false;
       if (coordinator.attach({ isCurrent: () => currentRef.current(), onOptionalState: () => optionalCommitRef.current() })) {
         // The kept picture is already on screen (first render). Nothing is read: attaching asks the optional overlay again in the background.
         props.warmReturn?.claim(coordinator);
@@ -104,12 +125,12 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       props.warmReturn?.discard(coordinator);
       setLoading(true); setError(false);
       void coordinator.restore(initialViewRef.current).then(() => {
-        if (!mounted.current || !currentRef.current()) return;
+        if (!live()) return;
         const read = coordinator.snapshot().screen;
         traceDiscoveryV1('restored', `${Math.min(read.items.length, 9999)}/${Math.min(read.mapMarkers.length, 9999)}`);
         commit(); setLoading(false);
       }, failure => {
-        if (!mounted.current || !currentRef.current()) return;
+        if (!live()) return;
         traceDiscoveryV1('restore-failed', discoveryV1ErrorCode(failure));
         setError(true); setLoading(false);
       });
@@ -117,9 +138,19 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     return () => {
       mounted.current = false;
       if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchGeneration.current++; touches.current++; tap.current = null; askedView.current = null;
+      if (activityRef.current === null) setPendingKey(null);
       // The route may keep the coordinator for the next screen (a screen that leaves in its error state is not worth keeping).
-      if (parkable && props.warmReturn && !errorRef.current) props.warmReturn.park(props.scopeKey, props.source, coordinator);
-      else coordinator.retire();
+      if (parkable && props.warmReturn && !errorRef.current) {
+        props.warmReturn.park(props.scopeKey, props.source, coordinator);
+        resumed.current = true;
+        const view = coordinator.snapshot().view;
+        if (activityRef.current === null && (!view || !props.warmReturn.candidate(props.scopeKey, props.source, view)))
+          props.onRetentionFailed?.();
+      } else {
+        coordinator.retire();
+        if (activityRef.current === null) props.onRetentionFailed?.();
+      }
     };
   }, [coordinator, commit]);
 
@@ -129,11 +160,12 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const askedView = useRef<MarketplaceView | null>(null);
   const [, showAsked] = useState(0);
   const handleView = useCallback((view: MarketplaceView) => {
+    if (!live()) return;
     askedView.current = view; showAsked(count => count + 1);
     void execute(() => coordinator.updateView(view)).finally(() => {
-      if (askedView.current === view) { askedView.current = null; if (mounted.current) showAsked(count => count + 1); }
+      if (askedView.current === view) { askedView.current = null; if (live()) showAsked(count => count + 1); }
     });
-  }, [coordinator, execute]);
+  }, [coordinator, execute, live]);
   const handleRefresh = useCallback(() => {
     const view = coordinator.snapshot().view;
     if (view) void execute(() => coordinator.open(view), true);
@@ -150,6 +182,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     if (pendingKey !== null && touch && touch.key === pendingKey && touch.feedback === null) touch.feedback = Date.now() - touch.at;
   }, [pendingKey]);
   const selectMarker = useCallback((marker: DiscoveryV1MapMarker) => {
+    if (!live()) return;
     const touch = ++touches.current;
     const record = { key: marker.key, at: Date.now(), feedback: null as number | null, touch, cardAt: null as number | null };
     tap.current = record;
@@ -163,18 +196,19 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     const reading = coordinator.selectMarker(marker);
     if (marker.kind !== 'CLUSTER') {
       const known = coordinator.peekNow();
-      if (known && known !== shown) nextFrame(() => { if (tap.current === record) { record.cardAt = Date.now(); commit(); } });
+      if (known && known !== shown) nextFrame(() => { if (live() && tap.current === record) { record.cardAt = Date.now(); commit(); } });
     }
     void execute(async () => {
       const result = await reading;
       applied = (result.kind === 'TASK' || result.kind === 'PLACE') && result.applied;
     }).then(() => {
+      if (!live()) return;
       const latest = tap.current;
       if (applied && latest && latest.touch === touch) {
         const content = Math.min((latest.cardAt ?? Date.now()) - latest.at, 9999);
         traceDiscoveryV1('pin', `${Math.min(latest.feedback ?? content, 9999)}/${content}`);
       }
-      if (mounted.current && touches.current === touch) setPendingKey(null);
+      if (live() && touches.current === touch) setPendingKey(null);
     });
   }, [coordinator, execute]);
   const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
@@ -187,13 +221,14 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   }, [coordinator, execute]);
   const onShowAll = useCallback(() => { void execute(() => coordinator.showAll()); }, [coordinator, execute]);
   const onNextPage = useCallback(() => { void execute(() => coordinator.nextPage()); }, [coordinator, execute]);
-  const onClearPeek = useCallback(() => { coordinator.clearPeek(); commit(); }, [coordinator, commit]);
+  const onClearPeek = useCallback(() => { if (!live()) return; coordinator.clearPeek(); commit(); }, [coordinator, commit, live]);
 
   const onSearchDraft = useCallback((draft: SearchDraft, mapArea: PublicBounds | null) => {
+    if (!live()) return;
     const generation = ++searchGeneration.current;
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
-      if (generation !== searchGeneration.current || !mounted.current || !currentRef.current()) return;
+      if (generation !== searchGeneration.current || !live()) return;
       void execute(async () => { await coordinator.previewSearch(draft, mapArea); });
     }, SEARCH_SETTLE_MS);
   }, [coordinator, execute]);
@@ -210,9 +245,10 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
     actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
+    canRetainMap={props.canRetainMap}
     loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
     trace={props.trace} onView={handleView} onRefresh={handleRefresh}
-    onOpen={item => props.onOpen(item, discoveryV1OverlayRelation(state.overlay, item.id))}
+    onOpen={item => { if (live()) props.onOpen(item, discoveryV1OverlayRelation(state.overlay, item.id)); }}
     onProfile={props.onProfile} onNew={props.onNew} onNotifications={props.onNotifications} />;
 }

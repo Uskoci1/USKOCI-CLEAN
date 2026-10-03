@@ -77,14 +77,14 @@ function FormSwitch({ label, value, change, disabled }: {
 function SwitchRow({ label, hint, strong = false, value, change, disabled }: {
   label: string; hint?: string; strong?: boolean; value: boolean; change: (value: boolean) => void; disabled?: boolean;
 }) {
-  return <View style={hint ? s.status : s.toggleRow}>
+  const row = <View style={s.toggleRow}>
     <Press accessible={false} importantForAccessibility="no" disabled={disabled}
       scaleTo={1} haptic="select" onPress={() => change(!value)} style={s.switchCopy}>
       <T variant={strong ? 'bodyStrong' : 'body'} accessibilityElementsHidden importantForAccessibility="no">{label}</T>
-      {hint ? <T variant="note" tone="muted">{hint}</T> : null}
     </Press>
     <FormSwitch label={label} value={value} change={change} disabled={disabled} />
   </View>;
+  return hint ? <View style={s.switchGroup}>{row}<T variant="note" tone="muted">{hint}</T></View> : row;
 }
 /** Two fields side by side where they fit, one under the other on a narrow screen or at a large text size. */
 function Pair({ children, minimumWidth = 360 }: { children: [ReactNode, ReactNode]; minimumWidth?: number }) {
@@ -494,14 +494,14 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
             {rules.length ? <Press accessibilityRole="button" accessibilityLabel={day.name} accessibilityValue={{ text: summary }}
               accessibilityState={{ expanded }} haptic="select" scaleTo={0.99} onPress={() => setExpandedDay(expanded ? null : day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
-                <T variant="bodyStrong" style={s.dayName}>{day.name}</T>
-                <T variant="note" numberOfLines={expanded ? undefined : 2} style={[s.summary, stacked && s.summaryStacked]}>{summary}</T>
+                <T variant="body" style={s.dayName}>{day.name}</T>
+                <T variant="bodyStrong" numberOfLines={expanded ? undefined : 2} style={[s.summary, stacked && s.summaryStacked]}>{summary}</T>
               </View>
               <TurningCaret open={expanded} />
             </Press> : <Press accessibilityRole="button" accessibilityLabel={`Dodaj — ${day.name}`} accessibilityState={{ disabled: blocked }}
               disabled={blocked} haptic="select" scaleTo={0.99} onPress={() => editRule(undefined, day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
-                <T variant="bodyStrong" style={s.dayName}>{day.name}</T>
+                <T variant="body" style={s.dayName}>{day.name}</T>
                 <View style={[s.add, stacked && s.addStacked]}><Plus size={18} color={blocked ? sys.color.muted : sys.color.ink} />
                   <T variant="note" style={{ color: blocked ? sys.color.muted : sys.color.ink }}>Dodaj</T></View>
               </View>
@@ -583,8 +583,8 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
   // Every inset, gap and margin is a step of sys.space (4 is the smallest); the 48 and 56 below are touch heights.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.sm, paddingBottom: sys.space.xxl, gap: sys.space.xxl },
-  group: { gap: sys.space.md },
-  status: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  group: { gap: sys.space.sm },
+  switchGroup: { gap: sys.space.xs },
   switchCopy: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', gap: sys.space.xs },
   section: { gap: sys.space.md },
   sectionHead: { gap: sys.space.xs },
@@ -595,7 +595,7 @@ const s = StyleSheet.create({
   dayLine: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   dayStack: { flex: 1, minWidth: 0, gap: sys.space.xs },
   dayName: { flexShrink: 0 },
-  summary: { flex: 1, minWidth: 0, textAlign: 'right', color: sys.color.fact },
+  summary: { flex: 1, minWidth: 0, textAlign: 'right', color: sys.color.ink, fontVariant: ['tabular-nums'] },
   summaryStacked: { flex: 0, textAlign: 'left' },
   add: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.xs },
   addStacked: { flex: 0, justifyContent: 'flex-start' },

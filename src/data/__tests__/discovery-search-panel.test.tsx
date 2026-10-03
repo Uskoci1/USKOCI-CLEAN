@@ -1,15 +1,17 @@
 import React from 'react';
-import { AccessibilityInfo, StyleSheet } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView, type PublicBounds } from '../marketplaceView';
 import { discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot } from '../discoveryV1SearchOwner';
 // The window the panel is drawn in: React Native's Jest default (a 2× text size) unless a test says otherwise.
 let mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
+let mockKeyboardVisible = false;
+const mockKeyboardDismiss = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
   // One stable function: a new one on every read would be a new component type, and React would mount the panel again.
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
-  const Keyboard = { dismiss: () => undefined };
+  const Keyboard = { dismiss: () => mockKeyboardDismiss(), isVisible: () => mockKeyboardVisible };
   const useWindowDimensions = () => mockWindow;
   return new Proxy(native, { get(target, key) {
     if (key === 'Modal') return Modal;
@@ -73,7 +75,7 @@ beforeEach(() => {
     row('mine', { podrucjeTekst: 'Zemun, Beograd' })];
   view = { ...initialMarketplaceView(), mode: 'map' }; mine = new Set(['mine']); mapArea = null; start = 'gde'; readiness = 'ready'; p6Search = undefined;
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
-  apply.mockReset(); close.mockReset();
+  apply.mockReset(); close.mockReset(); mockKeyboardVisible = false; mockKeyboardDismiss.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
@@ -271,6 +273,30 @@ test('"Obriši uslove" empties the draft and counts every task again; × leaves 
   await choose(/^Svi zadaci/);
   await tap('Zatvori pretragu');
   expect(apply).not.toHaveBeenCalled(); expect(close).toHaveBeenCalledTimes(1);
+});
+
+test('Android Back dismisses the visible keyboard without losing the draft, then closes when it is hidden', async () => {
+  const platform = Object.getOwnPropertyDescriptor(Platform, 'OS');
+  Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
+  try {
+    await render();
+    const input = tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' });
+    await act(async () => input.props.onChangeText('Liman'));
+    mockKeyboardVisible = true;
+    const requestClose = () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose();
+    await act(async () => requestClose());
+    expect(mockKeyboardDismiss).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
+    const retained = tree.root.findByProps({ accessibilityLabel: 'Pretraži mesta i zadatke' });
+    expect(retained).toBe(input); expect(retained.props.value).toBe('Liman');
+    expect(openStep()).toEqual(['gde']); expect(view.query).toBe('');
+    mockKeyboardVisible = false;
+    await act(async () => requestClose());
+    expect(close).toHaveBeenCalledTimes(1); expect(apply).not.toHaveBeenCalled();
+    expect(mockKeyboardDismiss).toHaveBeenCalledTimes(1);
+  } finally {
+    if (platform) Object.defineProperty(Platform, 'OS', platform);
+  }
 });
 
 test('"Kako se radi" is offered only when a task says how it is done', async () => {

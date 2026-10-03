@@ -65,6 +65,8 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   collectionStatus?: 'loading' | 'error';
   /** One-shot locality fallback, never a filter, task point or GPS marker. */
   initialWorkArea?: WorkAreaCamera | null; onInitialWorkAreaHandled?: (key: string) => void;
+  /** P6 task-detail return only. Native map still requires ready state and a retired interaction lease. */
+  canRetainMap?: () => boolean;
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   /** Explicit interaction supersedes an automatic publication landing still waiting for its read. */
   onUserIntent?: () => void;
@@ -1142,7 +1144,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <Animated.View testID="discovery-map-layer" style={[StyleSheet.absoluteFill, mapShown && mapVisibility]}
         pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
         importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
-        {mapShown ? <DiscoveryMap items={mapped} selectedId={props.p6Seam ? null : chosen?.id ?? null}
+        {mapShown ? <DiscoveryMap canRetainMap={props.canRetainMap} items={mapped} selectedId={props.p6Seam ? null : chosen?.id ?? null}
           selectedPlace={props.p6Seam ? null : placeTasks.length > 1 ? place!.key : null}
           p6Server={props.p6Seam ? { ...props.p6Seam.map, onSelect: selectServerMarker, onClear: props.p6Seam.onClearPeek } : undefined}
           relations={relations}

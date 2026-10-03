@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T08:19:54Z",
-  "grana": "HEAD",
-  "head": "bcbc8c23",
-  "head_poruka": "Compose connected chat, agreement and profile surfaces",
+  "osvezeno": "2026-10-03T08:46:08Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "dfcd46fc",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -3384,10 +3384,13 @@
      }
     },
     "connected_composition_20261003": {
-     "state": "SOURCE; final integrated checks and matching APK/native pending",
-     "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+     "state": "dfcd46fc BUILT/INSTALLED; bounded actual native review, full flow remains open",
+     "builds": {
+      "phone": 37109339853,
+      "emulator": 37109341917
+     },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "No server/provider/data mutation or whole-app acceptance."
+     "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     }
    },
    "ukupno": "PROBLEM",
@@ -3584,6 +3587,12 @@
      "accepted": "Saved weekly availability and calendar read-only navigation; no schedule mutation. Profile scroll restored.",
      "open": "Write/save, conflict, busy and notification scenarios not certified.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -4001,6 +4010,12 @@
       "emulator": 37107154789,
       "ciRuntimeEquivalent": 37107512099
      }
+    },
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -4399,6 +4414,12 @@
       "emulator": 37107154789,
       "ciRuntimeEquivalent": 37107512099
      }
+    },
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -5038,6 +5059,12 @@
      "accepted": "Saved weekly availability and calendar read-only navigation; no schedule mutation. Profile scroll restored.",
      "open": "Write/save, conflict, busy and notification scenarios not certified.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -5213,10 +5240,13 @@
     "status": "KOD I CILJANE PROVERE PROŠLI / TELEFON ČEKA",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_16_CLIENT_AND_SERVER_BOUNDARIES.md",
     "connected_composition_20261003": {
-     "state": "SOURCE; final integrated checks and matching APK/native pending",
-     "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+     "state": "dfcd46fc BUILT/INSTALLED; bounded actual native review, full flow remains open",
+     "builds": {
+      "phone": 37109339853,
+      "emulator": 37109341917
+     },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "No server/provider/data mutation or whole-app acceptance."
+     "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5379,10 +5409,19 @@
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     },
     "connected_composition_20261003": {
-     "state": "SOURCE; final integrated checks and matching APK/native pending",
-     "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+     "state": "dfcd46fc BUILT/INSTALLED; bounded actual native review, full flow remains open",
+     "builds": {
+      "phone": 37109339853,
+      "emulator": 37109341917
+     },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "No server/provider/data mutation or whole-app acceptance."
+     "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
+    },
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -6486,10 +6525,13 @@
     },
     "source_finishing_20261002": "Notification settings separate OS permission, current device, role preference and transport status; existing guards/opt-in retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
     "connected_composition_20261003": {
-     "state": "SOURCE; final integrated checks and matching APK/native pending",
-     "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+     "state": "dfcd46fc BUILT/INSTALLED; bounded actual native review, full flow remains open",
+     "builds": {
+      "phone": 37109339853,
+      "emulator": 37109341917
+     },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "No server/provider/data mutation or whole-app acceptance."
+     "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     }
    },
    "ukupno": "PROBLEM",
@@ -7167,10 +7209,13 @@
      }
     },
     "connected_composition_20261003": {
-     "state": "SOURCE; final integrated checks and matching APK/native pending",
-     "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
+     "state": "dfcd46fc BUILT/INSTALLED; bounded actual native review, full flow remains open",
+     "builds": {
+      "phone": 37109339853,
+      "emulator": 37109341917
+     },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-     "boundary": "No server/provider/data mutation or whole-app acceptance."
+     "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
     }
    },
    "ukupno": "PROBLEM",
@@ -7272,7 +7317,13 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -7360,7 +7411,13 @@
     "test": "NIJE POKRETANO — po nalogu vlasnika",
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+    "context_composition_20261003": {
+     "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+     "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+     "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -9260,5 +9317,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37109344305,
+   "ime": "P5 ready task and matching contract",
+   "sha": "dfcd46fc",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T08:20:03Z"
+  },
+  {
+   "id": 37109341917,
+   "ime": "Build Android development APK",
+   "sha": "dfcd46fc",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T08:20:00Z"
+  },
+  {
+   "id": 37109339853,
+   "ime": "Build Android development APK",
+   "sha": "dfcd46fc",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T08:19:58Z"
+  },
+  {
+   "id": 37109322116,
+   "ime": "Control tracker refresh",
+   "sha": "bcbc8c23",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T08:19:40Z"
+  },
+  {
+   "id": 37107512146,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "4f0a3368",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T07:47:27Z"
+  },
+  {
+   "id": 37107512099,
+   "ime": "P5 ready task and matching contract",
+   "sha": "4f0a3368",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T07:47:27Z"
+  },
+  {
+   "id": 37107154789,
+   "ime": "Build Android development APK",
+   "sha": "b35a2901",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T07:41:02Z"
+  },
+  {
+   "id": 37107152788,
+   "ime": "Build Android development APK",
+   "sha": "b35a2901",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T07:41:00Z"
+  },
+  {
+   "id": 37107150684,
+   "ime": "P5 ready task and matching contract",
+   "sha": "b35a2901",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T07:40:58Z"
+  },
+  {
+   "id": 37107136020,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "b35a2901",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T07:40:43Z"
+  },
+  {
+   "id": 37107135991,
+   "ime": "Control tracker refresh",
+   "sha": "b35a2901",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T07:40:43Z"
+  },
+  {
+   "id": 37095912881,
+   "ime": "Control tracker refresh",
+   "sha": "1c0af25e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T04:15:06Z"
+  }
+ ]
 }

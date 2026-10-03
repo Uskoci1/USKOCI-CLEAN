@@ -106,7 +106,15 @@ it('preserves the existing explicit unblock action and revision without a new bl
   expect(mockSafety.setBlock.mock.calls).toEqual([[{ targetAccountId: B, blocked: false, expectedRevision: 4, clientRequestId: K }]]);
 });
 it('keeps five categories and sends only once on retained double tap, storing no report text', async () => {
-  await render(); expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(5); await fill();
+  await render(); expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(5);
+  expect(tree.root.findAllByProps({ testID: 'safety-category-selected' })).toHaveLength(0);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Prevara' }).props.onPress());
+  expect(tree.root.findByProps({ accessibilityLabel: 'Prevara' }).props.accessibilityState.checked).toBe(true);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Prevara' }).findAllByProps({ testID: 'safety-category-selected' })).toHaveLength(1);
+  await fill();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Prevara' }).props.accessibilityState.checked).toBe(false);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).findAllByProps({ testID: 'safety-category-selected' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'safety-category-selected' })).toHaveLength(1);
   const send = action('Pošalji privatnu prijavu').onPress;
   await act(async () => { send(); send(); });
   expect(mockSafety.report).toHaveBeenCalledTimes(1);

@@ -492,7 +492,7 @@ describe('the overview of a 1:1 Dogovor says each thing once', () => {
     expect(people()).toEqual(['Ti · tražiš pomoć']); expect(texts()).toContain('Uskače');
     expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Dogovoreni broj osoba: 2 osobe')).toHaveLength(1);
   });
-  test('the facts are 24 px drawings in rows of at least 36 at 17/22, and the term keeps its zone on its own line', async () => {
+  test('the facts keep 24 px drawings and rows of at least 36, with supporting term text at 15/22 and its zone on a separate line', async () => {
     await render(base({ vremeTekst: '26. sep · 10:00–12:00 (po vremenu u Srbiji)' }));
     const fact = tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Termin: 26. sep · 10:00–12:00, Po vremenu u Srbiji')[0];
     const flat = (style: unknown): Record<string, unknown> => Array.isArray(style) ? Object.assign({}, ...style.map(flat)) : (style as Record<string, unknown>) ?? {};
@@ -501,7 +501,7 @@ describe('the overview of a 1:1 Dogovor says each thing once', () => {
     const lines = fact.findAll(node => String(node.type) === 'T').map(node => node.children.filter(child => typeof child === 'string').join(''));
     expect(lines).toEqual(['Termin', '26. sep · 10:00–12:00', 'Po vremenu u Srbiji']);
     const value = fact.findAll(node => String(node.type) === 'T' && node.children.join('') === '26. sep · 10:00–12:00')[0];
-    expect(flat(value.props.style)).toMatchObject({ fontSize: 17, lineHeight: 22 });
+    expect(flat(value.props.style)).toMatchObject({ fontSize: 15, lineHeight: 22 });
   });
   test.each(['COMPLETED', 'CANCELLED'])('a %s Dogovor without a time says "Bez tačnog termina"', async state => {
     await render(base({ stanje: state, vremeTekst: 'Termin nije potvrđen' }));

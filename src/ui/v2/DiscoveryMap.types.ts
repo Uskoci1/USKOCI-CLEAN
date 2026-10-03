@@ -21,6 +21,8 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   initialWorkArea?: WorkAreaCamera | null; onInitialWorkAreaHandled?: (key: string) => void;
   /** Account-owned overlay for rich pins only. Never added to the SDK's public GeoJSON. */
   relations?: TaskRelationIndex;
+  /** Opt-in same-account task-detail retention; never revives an old interaction owner. */
+  canRetainMap?: () => boolean;
   scopeKey: string; onSelect: (id: string) => void; onViewport: (value: PublicViewport) => void;
   /** Immediate manual interaction, distinct from camera/layout observations. */
   onUserIntent?: () => void;

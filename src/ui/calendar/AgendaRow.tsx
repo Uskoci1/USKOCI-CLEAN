@@ -25,7 +25,11 @@ export function AgendaRow({ item, day, onOpen, zoneNote = false }: {
   const scale = useTextScale();
   const { width } = useWindowDimensions();
   const rail = scale <= 1.3;
-  const beside = width >= 360 && scale < 1.3;
+  // AgendaScreen's gutters, this row's clock rail and the card's inset all reduce the space for title + amount.
+  // Keep the original 360dp two-column allowance inside the card, not across the whole phone.
+  const contentWidth = width - sys.space.lg * 2 - (rail ? RAIL + sys.space.md : 0)
+    - Number(cardCompact.padding) * 2 - Number(cardCompact.borderWidth) * 2;
+  const beside = contentWidth >= 360 && scale < 1.3;
   const done = item.state === 'COMPLETED', waiting = item.state === 'AWAITING_REQUESTER';
   const tone = done ? 'muted' : 'ink';
   const status = STATUS_WORDS[item.state];
@@ -34,7 +38,7 @@ export function AgendaRow({ item, day, onOpen, zoneNote = false }: {
   const timeLine = !rail || !withinDay(item, day);
   const others = [item.role, item.person].filter((part): part is string => !!part).join(' · ');
   const value = item.amount === null ? null : item.amount
-    ? <T variant="priceRow" style={{ color: done ? sys.color.muted : sys.color.money }}>{item.amount}</T>
+    ? <T variant="priceRow" style={{ color: done ? sys.color.muted : sys.color.money, maxWidth: '100%', flexShrink: 1 }}>{item.amount}</T>
     : <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
   const spoken = [status, item.role, zoneNote ? `${time}, po vremenu u Srbiji` : time, item.person,
     item.amount === null ? null : item.amount || BEZ_IZNOSA, item.place || null]

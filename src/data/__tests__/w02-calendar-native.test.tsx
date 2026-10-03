@@ -3,12 +3,12 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
 import { civilDay, civilInstant, deviceDate, displayDate, displayTime, localDayRange, overlapsInterval, weekDates, zonedParts } from '../../ui/calendar/calendarPresentation';
 
-let mockFontScale = 1;
+let mockFontScale = 1, mockWidth = 390;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
-    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: mockFontScale });
+    if (key === 'useWindowDimensions') return () => ({ width: mockWidth, height: 844, scale: 3, fontScale: mockFontScale });
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView', 'Switch', 'Modal', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -67,7 +67,7 @@ const addMonday = async () => {
 const toggleStatus = async (value: boolean) => {
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(value));
 };
-afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.clearAllMocks(); mockFontScale = 1; mockWidth = 390; });
 
 it('says that being available now means nothing while the work profile is still a draft', async () => {
   // The two screens contradicted each other: the work profile said it was a draft and so nothing
@@ -451,7 +451,9 @@ describe('actual agenda screen', () => {
     ucesnici: [{ id: 'me', viSte: true, uloga: 'narucilac', ime: 'Ti' }, { id: 'other', viSte: false, uloga: 'uskocer', ime: 'Marko' }], ...patch });
   const span = (day: string, from: string, to: string) => ({ pocetak: new Date(`${day}T${from}:00Z`).toISOString(), kraj: new Date(`${day}T${to}:00Z`).toISOString() });
 
-  it('places a Dogovor for my own task from the list, with its role, person, amount and place', async () => {
+  it.each([{ width: 361, scale: 1.15, layout: 'column' }, { width: 600, scale: 1, layout: 'row' },
+    { width: 361, scale: 1.3, layout: 'column' }])('places my task with all its facts and a title/amount that share only sufficient card space ($width dp, scale $scale)', async ({ width, scale, layout }) => {
+    mockWidth = width; mockFontScale = scale;
     const day = deviceDate(new Date());
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([mine('agreement-2', { tacanTermin: span(day, '10:00', '15:00') })]);
     await act(async () => { tree = create(<Raspored />); });
@@ -460,6 +462,9 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Nema zakazanih Dogovora');
     const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Otvori Dogovor Pomoć oko krečenja stana')[0];
     expect(row.props.accessibilityValue.text).toContain('Tvoj zadatak');
+    const title = row.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Pomoć oko krečenja stana')[0];
+    expect(title.parent?.props.style.flexDirection ?? 'column').toBe(layout);
+    expect(row.props.accessibilityValue.text).toContain('4.000 RSD');
     await act(async () => row.props.onPress());
     expect(jest.requireMock('expo-router').router.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-2' } });
   });
