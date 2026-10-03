@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T16:46:12Z",
-  "grana": "HEAD",
-  "head": "4958851c",
-  "head_poruka": "Record exact Worker picker emulator review and remaining visual work",
+  "osvezeno": "2026-10-03T18:28:28Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "95a99f06",
+  "head_poruka": "Clear explicitly discarded worker draft before cached route return",
   "server": {
-   "snimljeno": "2026-10-02T18:58:41.775Z",
-   "migracije": 225,
-   "dev_alpha": 76,
-   "poslednja": "dev_alpha_ex06b_alias_registry",
+   "snimljeno": "2026-10-03T18:07:31Z",
+   "migracije": 226,
+   "dev_alpha": 77,
+   "poslednja": "dev_alpha_wpp01_personal_worker_profile",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -29,7 +29,7 @@
    "edge": [
     {
      "slug": "uskoci-ai-interview",
-     "version": 51,
+     "version": 52,
      "verify_jwt": true
     },
     {
@@ -54,7 +54,7 @@
     },
     {
      "slug": "uskoci-worker-interview",
-     "version": 17,
+     "version": 18,
      "verify_jwt": true
     },
     {
@@ -3540,8 +3540,8 @@
     "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Round39 review/map ostaje povezan. Round40 dodaje tačno objašnjenje koje sačuvane činjenice stvarno ulaze u matching i source-contract proof; stvarni AI provider, save/activation i live dispatch još nisu dokazani na aktuelnom kandidatu.",
-   "sledece": "Završiti stvarni worker interview→frozen review→save/activation→matching na odobrenom test nalogu i objedinjenom APK-u; provider poziv i serverske promene samo u odobrenom scope-u. Krug03.10/759c327e: ulaz u AI uređivanje profila sada je pre polja, vidljiv na emulatoru/font1.15; nije sačuvan novi profil niti potvrđen novi AI intervju. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. 03.10 source: duplicate active AppState no longer aborts/remounts worker AI conversation; recovery58/TypeScript PASS. Native/provider verification pending.",
+   "problem": "Lični profil i discard/povratak primenjeni i provereni na emulatoru. Preostaju verzionisane željene/odbijene vrste posla i relevantna/HITNO obaveštenja u AI razgovoru; puna provider→save→matching provera nije izvršena.",
+   "sledece": "Verzionisani preferences ugovor sa source hash/review/export/erasure i zasebnim certificate gate-om; konkretna granica dokumentovana u docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3554,17 +3554,17 @@
     "priorities": [
      "P5"
     ],
-    "flow": "Radni profil kroz razgovor sa AI",
-    "ux": "Pregled sada objašnjava zašto su veštine/područje/dostupnost bitni, kako alat/vozila/licence proveravaju uslove i da kapacitet tima ograničava prijavu; ime/bio nisu skor.",
-    "ui": "Objašnjenje je mirna napomena u frozen review-u, bez procenta, verification bedža ili nove dashboard metrike.",
-    "backend": "Bez promene. Source-contract test vezuje UI tvrdnju za postojeći dispatch/match_detail/selection i Need materialization ugovor.",
-    "state_sync": "Round39 ownership/review/save guards ostaju; Round40 ne aktivira profil niti šalje matching događaj.",
+    "flow": "Lični radni profil kroz AI razgovor",
+    "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
+    "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
+    "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+    "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
     "performance": "Nije ponovo mereno.",
-    "test": "Round40 run36420684845: matching contract + worker review + intake/review focused 130 PASS; full Jest 345/7.265 PASS; TypeScript PASS.",
-    "device_proof": "Nema current APK/provider/live matching dokaza.",
-    "status": "P5 MATCHING SEMANTICS SOURCE-CONTRACT PASS / LIVE ACTIVATION+PROVIDER+NATIVE PENDING",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_WORKER_FACT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_40_P5_READY_TASK_AND_MATCHING_TRUTH.md",
-    "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+    "test": "91 scoped UI/profile cases + AI review12/recovery59 + Edge111/focused registry2 + TypeScript. Native discard regression43 PASS; SQL CI37142045047 svih15 proveri PASS.",
+    "device_proof": "Emulator4081: realni profil1.0/1.3, tastatura i AI-review inert gallery. Ispravka95a99/build37142990111: Back/cancel zadržava unos, discard→Profil→Radni profil briše unos i Save footer; editor potvrđuje praznu biografiju. UID10227 i hash provereni; font vraćen1.15. Telefon nije povezan.",
+    "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
+    "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
     "round39": {
      "tested_source": "1b11e046643c0f50cfa8eede360d03c0752eaab7",
      "run": "36415825211",
@@ -3619,6 +3619,33 @@
     "candidate_work_time_source_20261003": {
      "status": "SOURCE_ONLY",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "before_personal_profile_20261003": {
+     "flow": "Radni profil kroz razgovor sa AI",
+     "ux": "Pregled sada objašnjava zašto su veštine/područje/dostupnost bitni, kako alat/vozila/licence proveravaju uslove i da kapacitet tima ograničava prijavu; ime/bio nisu skor.",
+     "ui": "Objašnjenje je mirna napomena u frozen review-u, bez procenta, verification bedža ili nove dashboard metrike.",
+     "backend": "Bez promene. Source-contract test vezuje UI tvrdnju za postojeći dispatch/match_detail/selection i Need materialization ugovor.",
+     "state_sync": "Round39 ownership/review/save guards ostaju; Round40 ne aktivira profil niti šalje matching događaj.",
+     "test": "Round40 run36420684845: matching contract + worker review + intake/review focused 130 PASS; full Jest 345/7.265 PASS; TypeScript PASS.",
+     "device_proof": "Nema current APK/provider/live matching dokaza.",
+     "status": "P5 MATCHING SEMANTICS SOURCE-CONTRACT PASS / LIVE ACTIVATION+PROVIDER+NATIVE PENDING",
+     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_WORKER_FACT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_40_P5_READY_TASK_AND_MATCHING_TRUTH.md",
+     "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+    },
+    "personal_profile_20261003": {
+     "runtime": "4081d682",
+     "correctedRuntime": "95a99f065bbf6020fb0a72196d017f1a6600a979",
+     "sqlProofRun": 37142045047,
+     "emulatorBuild": 37141671693,
+     "followupBuild": 37142990111,
+     "receipt": "supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
+     "report": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md",
+     "boundary": "No provider/real save/application/push. Desired/declined work and urgent preferences require versioned source/review/export contract; not completed. Phone remains historical.",
+     "installedRuntime": "95a99f065bbf6020fb0a72196d017f1a6600a979",
+     "installedBuild": 37142990111,
+     "apkSha256": "b6d201de9baf3a8585c773d9b7bd003da2a6d54379ec7c414579a10184d3d23b",
+     "nativeDiscardReentry": "PASS_BOUNDED",
+     "fontRestored": "1.15"
     }
    },
    "ukupno": "PROBLEM",
@@ -3658,7 +3685,7 @@
   {
    "id": "B01",
    "grupa": "Put B · Uskoči i zaradi",
-   "naslov": "Radni profil ručno i kapacitet tima",
+   "naslov": "Lični radni profil — pregled i izmene",
    "nacrt_ref": "UX nacrt §5 korak 0",
    "stari": [
     "FUNC-3767",
@@ -3690,8 +3717,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Audit 24.09: DN-06: tastatura sakriva donji deo u kom je jedino objašnjenje zašto napuštanje izmena nije dozvoljeno; iz koda potvrđeno, nativni trenutak proveriti. → Ispravljeno u kodu (round 5c): DN-06, poruke ostaju vidljive dok je tastatura otvorena. 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
-   "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti DN-06 na emulatoru (radnik, tastatura, 320 dp). Dopuna 24.09: završiti nalaze DN-06 iz nezavisnog audita pre prihvatanja ovog toka. R11 pregled: radni profil je funkcionalno grupisan, ali dug i sa više ulaza do istih podešavanja. Sledeći paket skraćuje put do bitnih polja, bez gubitka činjenica i oporavka. docs/implementation/design-system/r11-screen-composition-20260925/NATIVE_REVIEW.md Završni krug04: popravljeno očuvanje već važećih termina pri dopuni AI radnog profila. Krug03.10/759c327e: ulaz u AI uređivanje profila sada je pre polja, vidljiv na emulatoru/font1.15; nije sačuvan novi profil niti potvrđen novi AI intervju. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
+   "problem": "Lični profil i discard/povratak primenjeni i provereni na emulatoru. Preostaju verzionisane željene/odbijene vrste posla i relevantna/HITNO obaveštenja u AI razgovoru; puna provider→save→matching provera nije izvršena.",
+   "sledece": "Verzionisani preferences ugovor sa source hash/review/export/erasure i zasebnim certificate gate-om; konkretna granica dokumentovana u docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3705,17 +3732,17 @@
      "P5",
      "P7"
     ],
-    "flow": "Radni profil ručno i kapacitet tima",
-    "ux": "Licence koje navodiš dostupne u ručnom profilu; sopstvena izjava bez oznake verifikacije.",
-    "ui": "Postojeći prikaz; odobrenje po paketu",
-    "backend": "Postojeći owned reader sada vraća licenses. DEV208; isti writer, prava i sertifikat.",
-    "state_sync": "Nedostajući licenses nije prazan spisak; save/activation readback uključuje licence.",
+    "flow": "Radni profil i ciljane ručne ispravke",
+    "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
+    "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
+    "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+    "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
     "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
-    "test": "5suite/121PASS, integrisani TypeScript proveren zasebno.",
-    "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
-    "status": "APPLIED / CLIENT WIRED / NATIVE PENDING",
-    "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_CLIENT_INTEGRATION.md",
-    "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json",
+    "test": "91 scoped UI/profile cases + AI review12/recovery59 + Edge111/focused registry2 + TypeScript. Native discard regression43 PASS; SQL CI37142045047 svih15 proveri PASS.",
+    "device_proof": "Emulator4081: realni profil1.0/1.3, tastatura i AI-review inert gallery. Ispravka95a99/build37142990111: Back/cancel zadržava unos, discard→Profil→Radni profil briše unos i Save footer; editor potvrđuje praznu biografiju. UID10227 i hash provereni; font vraćen1.15. Telefon nije povezan.",
+    "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
+    "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
     "visual_composition_20261003": {
      "scope": "Navigation/Home/Profile/manual work-profile/Discovery presentation continuation",
      "state": "b35a2901 BUILT/INSTALLED; bounded HONOR1.15 and emulator1.0/1.3 visual inspection; whole flow remains open",
@@ -3762,6 +3789,33 @@
     "shared_material_home_native_20261003": {
      "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "before_personal_profile_20261003": {
+     "flow": "Radni profil ručno i kapacitet tima",
+     "ux": "Licence koje navodiš dostupne u ručnom profilu; sopstvena izjava bez oznake verifikacije.",
+     "ui": "Postojeći prikaz; odobrenje po paketu",
+     "backend": "Postojeći owned reader sada vraća licenses. DEV208; isti writer, prava i sertifikat.",
+     "state_sync": "Nedostajući licenses nije prazan spisak; save/activation readback uključuje licence.",
+     "test": "5suite/121PASS, integrisani TypeScript proveren zasebno.",
+     "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
+     "status": "APPLIED / CLIENT WIRED / NATIVE PENDING",
+     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_LICENSES_CLIENT_INTEGRATION.md",
+     "device": "Emulator04b66de6: licence sa oznakom samoprijavljivanja prikazane iz DEV čitača; bez izmene/čuvanja. docs/implementation/product-v1-closure-20260926/finalization-20260927/PHONE_ROUND27_RECEIPT.json"
+    },
+    "personal_profile_20261003": {
+     "runtime": "4081d682",
+     "correctedRuntime": "95a99f065bbf6020fb0a72196d017f1a6600a979",
+     "sqlProofRun": 37142045047,
+     "emulatorBuild": 37141671693,
+     "followupBuild": 37142990111,
+     "receipt": "supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
+     "report": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md",
+     "boundary": "No provider/real save/application/push. Desired/declined work and urgent preferences require versioned source/review/export contract; not completed. Phone remains historical.",
+     "installedRuntime": "95a99f065bbf6020fb0a72196d017f1a6600a979",
+     "installedBuild": 37142990111,
+     "apkSha256": "b6d201de9baf3a8585c773d9b7bd003da2a6d54379ec7c414579a10184d3d23b",
+     "nativeDiscardReentry": "PASS_BOUNDED",
+     "fontRestored": "1.15"
     }
    },
    "ukupno": "PROBLEM",
@@ -5883,7 +5937,7 @@
     "telefon": "zuto"
    },
    "note": {
-    "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
+    "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
     "test": "13 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md 03.10: source97926fef, run37075515466, physical HONOR inbox read-only screenshot inspected; reciprocal account/task/preview/times/four tabs. Keyboard/Back inspection is emulator-only, not phone delivery evidence. docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md 03.10 f305/37079547884+37079547731: one owner QA text sent through HONOR UI; focused emulator inbox updated text/time/Danas without refresh. No group/reconnect/voice or provider proof. Local receipts native-w2/realtime-*; see INBOX_AND_NATIVE_20261003.md.",
@@ -10060,5 +10114,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37142990111,
+   "ime": "Build Android development APK",
+   "sha": "95a99f06",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T18:06:48Z"
+  },
+  {
+   "id": 37142045047,
+   "ime": "Worker personal profile bounded proof",
+   "sha": "29ae4f52",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:51:27Z"
+  },
+  {
+   "id": 37141671693,
+   "ime": "Build Android development APK",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:45:18Z"
+  },
+  {
+   "id": 37141652015,
+   "ime": "P5 ready task and matching contract",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T17:45:02Z"
+  },
+  {
+   "id": 37141652011,
+   "ime": "PKG-049 price authority characterization",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:45:02Z"
+  },
+  {
+   "id": 37141651987,
+   "ime": "D12 written review comment proof",
+   "sha": "4081d682",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T17:45:01Z"
+  },
+  {
+   "id": 37138048273,
+   "ime": "Control tracker refresh",
+   "sha": "4958851c",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T16:45:49Z"
+  },
+  {
+   "id": 37136726468,
+   "ime": "Build Android development APK",
+   "sha": "d18d083b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T16:24:22Z"
+  },
+  {
+   "id": 37132889633,
+   "ime": "Control tracker refresh",
+   "sha": "e73a7262",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T15:20:19Z"
+  },
+  {
+   "id": 37131295912,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a52680e3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T14:54:10Z"
+  },
+  {
+   "id": 37131261764,
+   "ime": "Build Android development APK",
+   "sha": "a52680e3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T14:53:35Z"
+  },
+  {
+   "id": 37131239596,
+   "ime": "Control tracker refresh",
+   "sha": "a8213105",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T14:53:11Z"
+  }
+ ]
 }

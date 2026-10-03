@@ -1,6 +1,6 @@
 # WPP01 — personal worker profile, per-offer people
 
-Status: authored locally; offline generation, SQL/PLpgSQL grammar and JavaScript syntax checks pass. **No database execution proof or DEV application has been performed by this package's author.** The manual workflow produces execution evidence against its exact Git source. A green source check is not database acceptance.
+Frozen candidate artifacts are preserved unchanged. Root integration subsequently passed disposable proof37142045047 (15checks) and applied canonical DEV migration20261003180006. Exact application/postflight evidence: [WPP01 receipt](../../operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json). The manifest's SOURCE_ONLY status records the artifact's preparation state; it is not the later deployment receipt.
 
 ## Behavior
 

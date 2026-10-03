@@ -1,6 +1,6 @@
 # Personal worker profile — minimal Edge candidate
 
-**PREPARED, NOT APPLIED.** This package contains no SQL, secret, provider, budget or deployment mutation. It has not called a live model. It does not certify conversation quality or native acceptance.
+Frozen prepared bundles are preserved unchanged. Root integration subsequently deployed worker **v18** and task **v52** and verified complete byte-exact readback (path-prefix normalization only); see [WPP01 receipt](../../operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json). The manifest's PREPARED_NOT_APPLIED status records preparation, not the later application. No live model was called; these artifacts do not certify conversation quality or native acceptance.
 
 The predecessor is the root agent's exact readback of canonical DEV `leqcwgzvjsxugfgzdmth`: worker interview **v17**, task interview **v51**, both `verify_jwt=true`, no import map. `MANIFEST.json` pins every before/after file. `before-bundle.json` is each function's complete rollback bundle; `after-bundle.json` is its complete candidate. Keep the worker and task bundles separate: their live `geminiTaskStream.ts` copies differ and each is preserved byte-for-byte.
 
