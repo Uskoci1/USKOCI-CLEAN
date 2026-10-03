@@ -58,7 +58,10 @@ it('shows current accepted terms and offers existing authoritative actions witho
  expect(mockService.propose).not.toHaveBeenCalled();expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('reviews actual entered terms and reason once, persists opaque metadata and deduplicates retained final taps',async()=>{
- await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');await type('Predloženi obim posla','Novi privatni obim');
+ await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');
+ await type('Predloženi obim posla','');
+ expect(tree.root.findByProps({accessibilityLabel:'Predloženi obim posla'}).props.value).toBe('');
+ await type('Predloženi obim posla','Novi privatni obim');
  await type('Razlog predloga — opciono','Privatan razlog');await tap('Pregledaj predlog');
  expect(text()).toContain('Novi privatni obim');expect(text()).toContain('Uslovi se menjaju tek');expect(mockService.propose).not.toHaveBeenCalled();
  const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const send=action('Pošalji predlog izmene').onPress;
@@ -70,7 +73,13 @@ it('reviews actual entered terms and reason once, persists opaque metadata and d
 });
 const mockSessionAccount=()=>({accountId:A,accountRevision:1});
 it('requires a positive bounded price and a real change before review',async()=>{
- await render();await tap('Predloži izmenu');await tap('Pregledaj predlog');expect(text()).toContain('Izmeni bar jedan');
+ snapshot={...snapshot,terms:{...terms,scopeNote:''}};
+ await render();await tap('Predloži izmenu');
+ expect(tree.root.findAllByProps({accessibilityLabel:'Predloženi obim posla'})).toHaveLength(0);
+ await tap('Dodaj opis obima posla');
+ await type('Predloženi obim posla','Privremeni opis');await type('Predloženi obim posla','');
+ expect(tree.root.findByProps({accessibilityLabel:'Predloženi obim posla'}).props.value).toBe('');
+ await tap('Pregledaj predlog');expect(text()).toContain('Izmeni bar jedan');
  await type('Predložena cena u RSD','-5');await tap('Pregledaj predlog');expect(text()).toContain('pozitivan ceo iznos');
  expect(mockService.propose).not.toHaveBeenCalled();expect(tree.root.findAllByProps({label:'Pošalji predlog izmene'})).toHaveLength(0);
 });

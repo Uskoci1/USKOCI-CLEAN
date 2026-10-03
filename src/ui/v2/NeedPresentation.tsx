@@ -9,6 +9,7 @@ import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, Product
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
+import { CalendarArt } from '../system/CalendarArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, inset, sys } from '../system/tokens';
 import { T } from '../Text';
@@ -97,7 +98,7 @@ function OwnTaskFact({ art, role, spoken, children }: {
   art: FactArtKind; role: FactArtRole; spoken: string; children: ReactNode;
 }) {
   return <View accessible accessibilityLabel={spoken} style={s.factRow}>
-    <View style={s.factArt}><FactArt kind={art} size={28} cut="art" role={role} /></View>
+    <View style={s.factArt}>{art === 'calendar' ? <CalendarArt size={28} /> : <FactArt kind={art} size={28} cut="art" role={role} />}</View>
     <T variant="copy" style={s.factText}>{children}</T>
   </View>;
 }

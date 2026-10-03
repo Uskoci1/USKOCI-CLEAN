@@ -1,7 +1,7 @@
 import {
   ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, ArrowUp, ArrowUpRight, ArrowsOutSimple, CalendarBlank, Camera, CaretDown, CaretLeft,
   CaretRight, CaretUp, Check, DotsThree, Eye, EyeSlash, Image, Info, MagnifyingGlass, MapTrifold, Microphone, Minus, PaperPlaneTilt, Plus,
-  Bell, ChatCircle, Handshake, HouseSimple,
+  Bell, ChatCircle, Handshake, HouseSimple, PencilSimpleLine,
   SlidersHorizontal, Trash, User, Waveform, X, type Icon, type IconWeight,
 } from 'phosphor-react-native';
 import { sys } from './tokens';
@@ -40,7 +40,7 @@ import { sys } from './tokens';
  */
 export const GLYPH_NAMES = ['back', 'close', 'caret-right', 'caret-left', 'caret-down', 'caret-up', 'plus', 'minus', 'check', 'send',
   'search', 'filters', 'more', 'mic', 'wave', 'arrow-right', 'arrow-up', 'arrow-up-right', 'refresh', 'trash', 'camera', 'image', 'eye',
-  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications'] as const;
+  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications', 'edit'] as const;
 export type GlyphName = (typeof GLYPH_NAMES)[number];
 
 /** In-text, row or beside a word, chrome. */
@@ -64,7 +64,7 @@ const REGISTRY: Record<GlyphName, Icon> = {
   mic: Microphone, wave: Waveform, 'arrow-right': ArrowRight, 'arrow-up': ArrowUp, 'arrow-up-right': ArrowUpRight, refresh: ArrowClockwise,
   trash: Trash, camera: Camera, image: Image, eye: Eye, 'eye-off': EyeSlash, external: ArrowSquareOut, expand: ArrowsOutSimple, info: Info,
   map: MapTrifold, profile: User, calendar: CalendarBlank,
-  home: HouseSimple, agreements: Handshake, messages: ChatCircle, notifications: Bell,
+  home: HouseSimple, agreements: Handshake, messages: ChatCircle, notifications: Bell, edit: PencilSimpleLine,
 };
 
 /** The short marks that read thin at any size. */

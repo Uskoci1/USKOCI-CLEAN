@@ -9,6 +9,7 @@ import { T } from '../../Text';
 import { PEEK_MAX_SHARE, PeekSheet } from '../../system/PeekSheet';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { FactArt } from '../../system/FactArt';
+import { CalendarArt } from '../../system/CalendarArt';
 import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
@@ -78,7 +79,7 @@ function PinTask({ item, relation, onOpen, onLayout }: {
       <View style={s.facts}>
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={28} cut="art" role="location" />}
           text={place.text} lines={2} artSize={28} />
-        <CardFact art={<FactArt kind="calendar" size={28} cut="art" role="time" />} text={schedule} lines={2} artSize={28} />
+        <CardFact art={<CalendarArt size={28} />} text={schedule} lines={2} artSize={28} />
       </View>
       {person ? <CardBriefFoot person={person} large={large} places={null} /> : null}
     </Press>

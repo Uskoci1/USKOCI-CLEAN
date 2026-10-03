@@ -525,11 +525,17 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
               <View style={s.dayActions}>
                 <V2Action label="Dodaj termin" accessibilityLabel={`Dodaj — ${day.name}`} kind="quiet" disabled={blocked}
                   onPress={() => editRule(undefined, day.day)} />
-                <V2Action label="Isto za sve radne dane" accessibilityLabel={`Isto za sve radne dane kao ${day.name}`} kind="quiet" disabled={blocked}
-                  onPress={() => sameForWorkdays(day)} />
-                <V2Action label="Kopiraj na…" accessibilityLabel={`Kopiraj ${day.name} na druge dane`} kind="quiet" disabled={blocked}
-                  onPress={() => { if (canEdit()) { retireEdit(); setCopySource({ ...day }); } }} />
               </View>
+              {/* Copying is secondary to editing this day. A changed source/read starts closed; closing the day
+                  unmounts this disclosure. Its state never becomes part of the availability draft. */}
+              <Disclosure key={JSON.stringify([availability, day.day, rules])} label="Kopiraj termine…">
+                <View style={s.dayActions}>
+                  <V2Action label="Isto za sve radne dane" accessibilityLabel={`Isto za sve radne dane kao ${day.name}`} kind="quiet" tone="neutral" disabled={blocked}
+                    onPress={() => sameForWorkdays(day)} />
+                  <V2Action label="Kopiraj na…" accessibilityLabel={`Kopiraj ${day.name} na druge dane`} kind="quiet" tone="neutral" disabled={blocked}
+                    onPress={() => { if (canEdit()) { retireEdit(); setCopySource({ ...day }); } }} />
+                </View>
+              </Disclosure>
             </View> : null}
           </View>;
         })}</View>
@@ -563,7 +569,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
       close={() => { if (alive.current && editScope.current.editing === editing) { retireEdit(); setEditing(null); } }} accept={rules => {
         if (!canEdit()) return;
         update({ rules: [...draft.rules.filter(rule => rule.id !== editing.rule.id), ...rules] });
-        // The day just filled stays open, so "Isto za sve radne dane" is one tap away.
+        // The day just filled stays open, with its copy options available below the new term.
         const first = rules[0]?.weekdays ?? [];
         const open = editing.day !== null && first.includes(editing.day) ? editing.day : weekdays.find(day => first.includes(day.day))?.day;
         if (open !== undefined) setExpandedDay(open);

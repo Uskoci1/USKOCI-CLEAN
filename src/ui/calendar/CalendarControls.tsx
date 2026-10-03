@@ -2,6 +2,7 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePicker } from '@expo/ui/community/datetime-picker';
+import { CivilTimeDialog } from './CivilTimeDialog';
 import { useReducedMotion } from '../system/motion';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { StateView } from '../system/StateView';
@@ -110,9 +111,11 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
       {/* Each fact its own picture (r6, "Tačan termin" and Izmene): a time field wears the clock, a date field the calendar. */}
       <FactArt kind={mode === 'time' ? 'clock' : 'calendar'} size={22} />
     </Press>
-    {open && Platform.OS === 'android' ? <DateTimePicker mode={mode} value={selection} is24Hour
-      onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}
-      positiveButton={{ label: 'Izaberi' }} negativeButton={{ label: 'Odustani' }} accentColor={sys.color.green} /> : null}
+    {open && Platform.OS === 'android' ? mode === 'time'
+      ? <CivilTimeDialog value={selection} onSelect={accept} onDismiss={() => setOpen(false)} />
+      : <DateTimePicker mode={mode} value={selection} is24Hour
+        onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}
+        positiveButton={{ label: 'Izaberi' }} negativeButton={{ label: 'Odustani' }} accentColor={sys.color.green} /> : null}
     {/* iOS: the spinner in the one sheet engine (the hand-made slide Modal was one of the nine Modals of the master
         plan). Turning the wheel only moves the selection; "Izaberi" accepts it, anything else leaves the value as it was.
         Release gate (review of owner step 10): no suite runs this branch on iOS, and the field is also used inside other

@@ -11,6 +11,9 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
+// Exercise the production Android seam, not Jest's platform-neutral fallback.
+jest.mock('@expo/ui/jetpack-compose', () => ({ Host: 'ComposeHost', TimePickerDialog: 'TimePickerDialog' }));
+jest.mock('../../ui/calendar/CivilTimeDialog', () => jest.requireActual('../../ui/calendar/CivilTimeDialog.android'));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReducedMotion }));
@@ -21,6 +24,7 @@ import { ProductSheet } from '../../ui/product/ProductSheet';
 
 let tree: ReactTestRenderer;
 const picker = () => tree.root.findByType('DateTimePicker' as React.ElementType);
+const timePicker = () => tree.root.findByType('TimePickerDialog' as React.ElementType);
 afterEach(async () => { await act(async () => tree?.unmount()); mockPlatform = 'android'; mockReducedMotion = true; });
 
 describe('SDK57 native civil-field adapter', () => {
@@ -44,9 +48,9 @@ describe('SDK57 native civil-field adapter', () => {
     expect(field.props.accessibilityValue).toBeUndefined();
     expect(field.findAllByType('T' as React.ElementType).map(node => node.props.children)).toContain('Izaberi');
     await act(async () => field.props.onPress());
-    await act(async () => picker().props.onDismiss());
+    await act(async () => timePicker().props.onDismissRequest());
     expect(onChange).not.toHaveBeenCalled();
-    expect(tree.root.findAllByType('DateTimePicker' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('TimePickerDialog' as React.ElementType)).toHaveLength(0);
   });
   it.each([true, false])('requires explicit iOS acceptance with reduced motion %s', async reduced => {
     mockPlatform = 'ios'; mockReducedMotion = reduced;
@@ -80,8 +84,13 @@ describe('SDK57 native civil-field adapter', () => {
     const onChange = jest.fn();
     await act(async () => { tree = create(<CivilField label="Vreme" mode="time" value="09:00" onChange={onChange} />); });
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Vreme' }).props.onPress());
+    expect(timePicker().props.is24Hour).toBe(true);
+    const seed = new Date(timePicker().props.initialDate);
+    expect([seed.getHours(), seed.getMinutes()]).toEqual([9, 0]);
+    expect(onChange).not.toHaveBeenCalled();
     const selected = new Date('2026-09-12T00:00:00Z'); selected.getHours = () => 17; selected.getMinutes = () => 45;
-    await act(async () => picker().props.onValueChange({}, selected));
+    await act(async () => timePicker().props.onDateSelected(selected));
     expect(onChange).toHaveBeenCalledWith('17:45');
+    expect(tree.root.findAllByType('TimePickerDialog' as React.ElementType)).toHaveLength(0);
   });
 });

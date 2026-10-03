@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowClockwise } from 'phosphor-react-native';
@@ -210,6 +210,16 @@ function baseFields(base: AgreementChangeTerms | null, zone: string) {
 
 function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: AgreementChangeTerms | null; busy: boolean;
   onEdit: AgreementActionsPresentationProps['onEdit'] }) {
+  // A form token owns this local reveal. A new form starts from its own source; once text was shown,
+  // deleting it must not remove the focused input. Adjust before committing children, without a reset effect.
+  const hasScope = form.scope.trim().length > 0;
+  const currentScope = useRef({ token: form.token, busy });
+  currentScope.current = { token: form.token, busy };
+  const [scopeEditor, setScopeEditor] = useState({ token: form.token, open: hasScope });
+  if (scopeEditor.token !== form.token || (hasScope && !scopeEditor.open)) {
+    setScopeEditor({ token: form.token, open: hasScope });
+  }
+  const showScope = hasScope || (scopeEditor.token === form.token && scopeEditor.open);
   const was = baseFields(base, form.zone);
   // Under a field whose value left the terms in force: what it replaces, so step 1 already shows the change (scene 11).
   const instead = (shown: boolean, text: string) => shown ? <T variant="meta" tone="muted" numberOfLines={2}>umesto {text}</T> : null;
@@ -233,8 +243,10 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
         </View>
         {instead(was.price !== null && form.price.trim() !== was.price, base ? novac(base.priceRsd) : '')}
       </View>
-      {input('Predloženi obim posla', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
-        instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))}
+      {showScope ? input('Predloženi obim posla', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
+        instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))
+        : <V2Action label="Dodaj opis obima posla" kind="quiet" tone="neutral" disabled={busy}
+          onPress={() => { if (currentScope.current.token === form.token && !currentScope.current.busy) setScopeEditor({ token: form.token, open: true }); }} style={s.scopeEntry} />}
       <T variant="meta" tone="muted">Vreme unosiš po vremenu u Srbiji.</T>
       {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true }), was.startDate)}
       {civil('Vreme početka', 'time', form.startTime, startTime => onEdit({ startTime, startChanged: true }), was.startTime)}
@@ -288,6 +300,7 @@ const s = StyleSheet.create({
   done: { gap: sys.space.base, paddingTop: sys.space.xl },
   mark: { alignItems: 'flex-start' },
   doneCopy: { gap: sys.space.sm },
+  scopeEntry: { alignSelf: 'flex-start', marginLeft: -sys.space.base },
   field: { gap: sys.space.xs },
   input: { ...field },
   multiline: { minHeight: 100, textAlignVertical: 'top' },

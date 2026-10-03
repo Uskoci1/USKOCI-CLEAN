@@ -5,7 +5,7 @@ import { Press, type HapticKind } from '../Press';
 import { T } from '../Text';
 import { GLYPH_COLOUR, Glyph, type GlyphIcon, type GlyphName } from './Glyph';
 import { useReducedMotion } from './motion';
-import { sys } from './tokens';
+import { materialControl, sys } from './tokens';
 
 /**
  * The one screen chrome (master design plan, 2026-09-24): every screen's top bar is one of three kinds, and all three
@@ -57,6 +57,8 @@ type ChromeIconButtonProps = ChromeArt & {
   label: string; hint?: string;
   /** Set for a toggle (search, filters): shown by weight and colour together, and spoken as selected. */ active?: boolean;
   disabled?: boolean; onPress: () => void;
+  /** A deliberate raised command, such as editing the profile; ordinary navigation remains quiet. */
+  raised?: boolean;
   /** Ink for navigation; green is available for a meaningful selected/action state. */ tone?: 'ink' | 'green';
   /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
   /**
@@ -102,7 +104,7 @@ export function ChromeIconButton(props: ChromeIconButtonProps) {
     // A toggle speaks whether it is on; a plain control speaks only whether it can be pressed.
     accessibilityState={active === undefined ? { disabled } : disabled ? { selected: active, disabled } : { selected: active }} disabled={disabled}
     onPress={onPress} haptic={disabled ? 'none' : haptic} hitSlop={0} style={caption ? s.controlWide : s.control}>
-    <View testID="chrome-circle" style={[caption ? s.pill : s.circle, quiet && s.quiet, active && s.active]}>
+    <View testID="chrome-circle" style={[caption ? s.pill : s.circle, props.raised && !quiet && materialControl.raised, quiet && s.quiet, active && s.active]}>
       <Animated.View style={glyphStyle}>{drawing}</Animated.View>
       {caption ? <T variant="meta" tone={glyphTone} numberOfLines={1} maxFontSizeMultiplier={SCROLL_TITLE_MAX_SCALE}>{caption}</T> : null}
     </View>

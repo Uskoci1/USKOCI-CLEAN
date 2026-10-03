@@ -81,6 +81,11 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -616,7 +621,12 @@
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
         "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
-        "source_finishing_20261002": "Own task leads with state/applications; filled/no-further-selection next action opens the honestly named personal Agreements list. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Own task leads with state/applications; filled/no-further-selection next action opens the honestly named personal Agreements list. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+        }
       }
     },
     {
@@ -670,9 +680,16 @@
         "ex04": "S1 (round 75 + DEV 1.10.): serverski kandidat ex04a (rpc_list_my_needs_page dopunjen na mestu: stavka = rpc_read_task dokument, scopes ALL/ACTIVE/DRAFTS/HISTORY/WAITING, pet brojeva na prvoj strani) DOKAZAN na disposable lancu (run 36846103774, 21 provera) i PRIMENJEN NA DEV 1.10. na vlasnikovo PRIMENI (migracija 20261001113449, ledger 216; postflight problems [], sertifikat nepromenjen); na pravim DEV podacima strana = rpc_list_my_tasks() za svih 5 naloga; klijent (pager, \"Prikaži još\", serverski brojevi) iza EXPO_PUBLIC_EX04_OWN_TASKS_PAGED (uključen SAMO u DEV workflow-u od bf48a5db), nativno HONOR 1.10. (ROUND_77): isti skup i redosled kao stari build (Aktivni 2/2, Istorija 17/17), Back čuva stanje, 10/10 ciklusa otvori-nazad bez pada/ANR; granica strane NIJE dokazana (premalo podataka). docs/implementation/product-v1-closure-20260926/finalization-20260927/EX04_S1_S4_DEV_APPLICATION_RECEIPT_20261001.md",
         "ui_w8_codex_20261002": "SOURCE + 196 TESTS + TSC / APK BUILT / EMULATOR VERIFIED / UX AND VISUAL APPROVED WITH LIMITS; docs/implementation/ui-ux-pass-20261002/W2_W8_CODEX_NATIVE_20261002.md",
         "material_fact_art_20261003": {
-          "state": "SOURCE: original calendar24/28, authoritative REMOTE icon, existing blue communication art32; exact native pending",
-          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
-          "boundary": "Applies only to the shared card or Inbox illustration on this surface. No factual text, backend, navigation, acknowledgment or business command changes. Matching emulator artwork check pending."
+          "state": "d52e9859 BUILT/INSTALLED; actual calendar24/28 and blue communication32 reviewed on emulator; full CI green",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Actual Discovery/MyApplications/Inbox stills only; Applications/Inbox alsofont1.3. Shared source reuse is not native acceptance of every other route. No phone/business/provider acceptance.",
+          "build": 37119632905,
+          "ci": 37119634429
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -1352,6 +1369,11 @@
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -1758,9 +1780,16 @@
           }
         },
         "material_fact_art_20261003": {
-          "state": "SOURCE: original calendar24/28, authoritative REMOTE icon, existing blue communication art32; exact native pending",
-          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
-          "boundary": "Applies only to the shared card or Inbox illustration on this surface. No factual text, backend, navigation, acknowledgment or business command changes. Matching emulator artwork check pending."
+          "state": "d52e9859 BUILT/INSTALLED; actual calendar24/28 and blue communication32 reviewed on emulator; full CI green",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Actual Discovery/MyApplications/Inbox stills only; Applications/Inbox alsofont1.3. Shared source reuse is not native acceptance of every other route. No phone/business/provider acceptance.",
+          "build": 37119632905,
+          "ci": 37119634429
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -2195,6 +2224,11 @@
           "scope": "Agreement/task accepted terms, direct conversation rows/composer, avatar pending, phone preference hierarchy, clean work-profile footer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "boundary": "No server/provider/data mutation or whole-app acceptance."
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -2415,9 +2449,16 @@
           }
         },
         "material_fact_art_20261003": {
-          "state": "SOURCE: original calendar24/28, authoritative REMOTE icon, existing blue communication art32; exact native pending",
-          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
-          "boundary": "Applies only to the shared card or Inbox illustration on this surface. No factual text, backend, navigation, acknowledgment or business command changes. Matching emulator artwork check pending."
+          "state": "d52e9859 BUILT/INSTALLED; actual calendar24/28 and blue communication32 reviewed on emulator; full CI green",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Actual Discovery/MyApplications/Inbox stills only; Applications/Inbox alsofont1.3. Shared source reuse is not native acceptance of every other route. No phone/business/provider acceptance.",
+          "build": 37119632905,
+          "ci": 37119634429
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -2610,6 +2651,11 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },
@@ -2999,7 +3045,12 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK."
+        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK.",
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+        }
       }
     },
     {
@@ -3413,9 +3464,11 @@
           }
         },
         "material_fact_art_20261003": {
-          "state": "SOURCE: original calendar24/28, authoritative REMOTE icon, existing blue communication art32; exact native pending",
-          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#notification-settings-native-check-and-material-fact-illustrations",
-          "boundary": "Applies only to the shared card or Inbox illustration on this surface. No factual text, backend, navigation, acknowledgment or business command changes. Matching emulator artwork check pending."
+          "state": "d52e9859 BUILT/INSTALLED; actual calendar24/28 and blue communication32 reviewed on emulator; full CI green",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Actual Discovery/MyApplications/Inbox stills only; Applications/Inbox alsofont1.3. Shared source reuse is not native acceptance of every other route. No phone/business/provider acceptance.",
+          "build": 37119632905,
+          "ci": 37119634429
         }
       }
     },
@@ -3943,6 +3996,11 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "connected_material_depth_20261003": {
+          "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
+          "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
+          "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
         }
       }
     },

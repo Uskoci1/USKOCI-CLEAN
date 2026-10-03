@@ -10,7 +10,7 @@ import { FactArt } from '../system/FactArt';
 import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
 import { useLayoutClass } from '../system/textScale';
-import { cardCompact, sys } from '../system/tokens';
+import { cardCompact, raisedItem, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardBriefFoot, CardDecision, CardTitle, CardFact, CardFootLine, CardNext, CardNote, CardPerson, CardPlaces, CardRequirement, CardStatus, CardWaitingLine,
@@ -89,7 +89,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   // Put back at once under reduced motion, even if the setting changed mid-press.
   const settle = () => { scale.set(reduced ? 1 : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System })); };
 
-  return <Animated.View style={[s.card, bare && s.bare, disabled && s.disabled, lift]}>
+  return <Animated.View style={[s.card, !bare && raisedItem, bare && s.bare, disabled && s.disabled, lift]}>
     <Press accessibilityRole="button" accessibilityLabel={`${ownerView ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
@@ -123,7 +123,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
 export const TaskCard = memo(TaskCardBase);
 
 const s = StyleSheet.create({
-  // A list task is a distinct white card. A neutral edge separates it from the white sheet without a second shadow.
+  // Only the framed list variant receives raisedItem; bare embedded faces keep their own parent surface.
   card: { ...cardCompact, padding: 0 },
   disabled: { opacity: 0.55 },
   body: { padding: sys.space.base, gap: sys.space.base, borderRadius: sys.radius.cardCompact },

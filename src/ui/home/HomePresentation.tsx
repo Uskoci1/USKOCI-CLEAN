@@ -12,7 +12,7 @@ import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { materialControl, sys } from '../system/tokens';
+import { materialControl, raisedItem, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useTextScale } from '../system/textScale';
 import { HomeLaunchArt } from './HomeLaunchArt';
@@ -255,16 +255,15 @@ const s = StyleSheet.create({
   // The bottom padding leaves air between the last row and the inset tab bar below the list when it is scrolled to its end.
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge, width: '100%', maxWidth: 640, alignSelf: 'center' },
   flexible: { flexShrink: 1 }, muted: { color: sys.color.muted },
-  actions: { gap: sys.space.sm, paddingTop: sys.space.sm },
+  actions: { gap: sys.space.base, paddingTop: sys.space.sm },
   createEntry: { padding: sys.space.lg, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
     borderWidth: 1, borderColor: sys.color.surface,
     gap: sys.space.md },
   createMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   actionCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   actionTitle: { fontSize: 24, lineHeight: 29, fontWeight: '600', letterSpacing: -0.7, color: sys.color.ink },
-  discoverEntry: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
-    paddingVertical: sys.space.md, paddingHorizontal: sys.space.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  discoverEntry: { ...raisedItem, borderRadius: sys.radius.card, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 72,
+    paddingVertical: sys.space.md, paddingHorizontal: sys.space.base },
   // Attention is an open inbox: the subject leads, with the exact action/reason below, never truncated.
   attention: { backgroundColor: sys.color.surface },
   section: { marginTop: sys.space.lg },

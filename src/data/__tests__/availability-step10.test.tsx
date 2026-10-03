@@ -56,6 +56,7 @@ const press = async (label: string) => { await act(async () => all(label)[0].pro
 const dayRow = (name: string) => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === name
   && node.props.accessibilityRole === 'button' && node.props.accessibilityState && 'expanded' in node.props.accessibilityState)[0];
 const openDay = async (name: string) => { await act(async () => dayRow(name).props.onPress()); };
+const toggleCopyOptions = async () => { await act(async () => host('Kopiraj termine…').props.onPress()); };
 /** A day of a sheet's day picker (a checkbox), not the day row of the week behind the sheet. */
 const pick = async (name: string) => { await act(async () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
   && node.props.accessibilityRole === 'checkbox' && node.props.accessibilityLabel === name)[0].props.onPress()); };
@@ -74,6 +75,7 @@ describe('P5: a calendar edit belongs to the draft it opened', () => {
     const fresh = availability({ revision: 'b'.repeat(64), rules: [rule(ids[0], [1], '09:00', '17:00'), rule(ids[2], [2], '18:00', '20:00')] });
     const onSave = await form(previous, { candidateMode: true });
     await openDay('Ponedeljak');
+    if (operation === 'copy') await toggleCopyOptions();
     await press(operation === 'delete' ? 'Ukloni Ponedeljak 09:00' : 'Isto za sve radne dane kao Ponedeljak');
     const retainedConfirm = tree.root.findByType(ConfirmSheet).props.onConfirm;
     await act(async () => tree.update(<AvailabilityForm availability={fresh} busy={false} uncertain={false} candidateMode onSave={onSave} />));
@@ -157,12 +159,15 @@ describe('the Termin sheet', () => {
     expect(all('Nastavi uređivanje')).not.toHaveLength(0);
   });
 
-  it('keeps the day just filled open, so the whole week is one more tap', async () => {
+  it('keeps the day just filled open and its copy options available on demand', async () => {
     await form();
     await press('Dodaj — Utorak');
     await edit('Početak termina', '09:00'); await edit('Kraj termina', '17:00');
     await press('Primeni termin');
     expect(dayRow('Utorak').props.accessibilityState.expanded).toBe(true);
+    expect(all('Isto za sve radne dane kao Utorak')).toHaveLength(0);
+    expect(host('Kopiraj termine…').props.accessibilityState.expanded).toBe(false);
+    await toggleCopyOptions();
     expect(all('Isto za sve radne dane kao Utorak')).not.toHaveLength(0);
   });
 });
@@ -216,12 +221,42 @@ describe('the Poseban datum sheet', () => {
   });
 });
 
+describe('copy actions disclosure', () => {
+  it('does not dirty or save availability and closes when the day is closed', async () => {
+    const onDirtyChange = jest.fn();
+    const onSave = await form(availability({ rules: [rule(ids[0], [1], '09:00', '17:00')] }), { onDirtyChange });
+    await openDay('Ponedeljak');
+    expect(all('Isto za sve radne dane kao Ponedeljak')).toHaveLength(0);
+    await toggleCopyOptions();
+    expect(host('Kopiraj termine…').props.accessibilityState.expanded).toBe(true);
+    expect(all('Isto za sve radne dane kao Ponedeljak')).not.toHaveLength(0);
+    expect(all('Kopiraj Ponedeljak na druge dane')).not.toHaveLength(0);
+    await openDay('Ponedeljak'); await openDay('Ponedeljak');
+    expect(host('Kopiraj termine…').props.accessibilityState.expanded).toBe(false);
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onDirtyChange.mock.calls.some(([dirty]) => dirty === true)).toBe(false);
+  });
+
+  it('retires the opened copy options when a fresh schedule replaces its source', async () => {
+    const previous = availability({ rules: [rule(ids[0], [1], '09:00', '17:00')] });
+    const onSave = await form(previous);
+    await openDay('Ponedeljak'); await toggleCopyOptions();
+    const fresh = availability({ revision: 'b'.repeat(64), rules: [rule(ids[0], [1], '10:00', '18:00')] });
+    await act(async () => tree.update(<AvailabilityForm availability={fresh} busy={false} uncertain={false} onSave={onSave} />));
+    expect(host('Kopiraj termine…').props.accessibilityState.expanded).toBe(false);
+    expect(all('Isto za sve radne dane kao Ponedeljak')).toHaveLength(0);
+    expect(dayRow('Ponedeljak').props.accessibilityValue.text).toBe('10:00–18:00');
+    expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
 describe('copying a day', () => {
   const week = () => availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00'), rule(ids[1], [3], '13:00:00', '15:00:00')] });
 
   it('asks before "Isto za sve radne dane" replaces a day\'s own slots, and replaces them only on yes', async () => {
     const onSave = await form(week());
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Isto za sve radne dane kao Ponedeljak');
     const ask = tree.root.findByType(ConfirmSheet);
     // Updated deliberately (review of owner step 10): weekdays are lower-case inside a Serbian sentence.
@@ -241,6 +276,7 @@ describe('copying a day', () => {
   it('copies at once when no chosen day loses a slot of its own', async () => {
     await form(availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00')] }));
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Isto za sve radne dane kao Ponedeljak');
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
     expect(dayRow('Petak')).toBeTruthy();
@@ -249,6 +285,7 @@ describe('copying a day', () => {
   it('holds "Kopiraj" until a day is chosen, says why, and copies onto the chosen days', async () => {
     await form(week());
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Kopiraj Ponedeljak na druge dane');
     expect(text()).toContain('Ponedeljak: 09:00–12:00');
     const copy = () => all('Kopiraj')[0];
@@ -364,6 +401,7 @@ describe('copying a day with a slot over midnight', () => {
   it('copies the whole night onto the working days at once, since no day loses a slot of its own', async () => {
     const onSave = await form(night());
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Isto za sve radne dane kao Ponedeljak');
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
     await press('Sačuvaj dostupnost');
@@ -374,6 +412,7 @@ describe('copying a day with a slot over midnight', () => {
   it('does not say Utorak is replaced when it only holds the rest of Monday\'s night', async () => {
     await form(night());
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Kopiraj Ponedeljak na druge dane');
     await pick('Utorak');
     expect(text()).not.toContain('Postojeći termini izabranih dana se zamenjuju.');
@@ -388,11 +427,13 @@ describe('copying a day with a slot over midnight', () => {
       const week = availability({ rules: [...night().rules, rule(ids[2], [3], '09:00:00', '12:00:00')] });
       await form(week);
       await openDay('Ponedeljak');
+      await toggleCopyOptions();
       await press('Kopiraj Ponedeljak na druge dane');
       expect(text()).toContain(note);
       await act(async () => tree.unmount());
       await form(week);
       await openDay('Ponedeljak');
+      await toggleCopyOptions();
       await press('Isto za sve radne dane kao Ponedeljak');
       expect(tree.root.findByType(ConfirmSheet).props.message).toContain(`kao ponedeljak. ${note}`);
       await act(async () => tree.root.findByType(ConfirmSheet).props.onConfirm());
@@ -403,6 +444,7 @@ describe('copying a day with a slot over midnight', () => {
   it('says nothing of a night when the copied day has none', async () => {
     await form(availability({ rules: [rule(ids[0], [1], '09:00:00', '12:00:00')] }));
     await openDay('Ponedeljak');
+    await toggleCopyOptions();
     await press('Kopiraj Ponedeljak na druge dane');
     expect(text()).not.toContain('Noćni termin');
   });

@@ -48,12 +48,12 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 describe('the status line', () => {
   const WORDS: [StanjeMojePrijave, string][] = [['SUBMITTED', 'Poslata'], ['VIEWED', 'Pregledana'], ['SHORTLISTED', 'U užem izboru'],
     ['SELECTED', 'Izabrana'], ['STALE_REVIEW_REQUIRED', 'Potrebna nova provera'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena']];
-  it.each(WORDS)('%s says "%s" first, with a dot, and the card edge is the one hairline of every card', async (state, word) => {
+  it.each(WORDS)('%s says "%s" first, with a dot, and the raised card retains a neutral edge', async (state, word) => {
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()[0]).toBe(word);
     expect(tree.root.findAllByProps({ testID: 'card-status-dot' })).toHaveLength(1);
     // The selected (or waiting) state is said by the line, never by a green or orange card edge.
-    expect(style(frame())).toMatchObject({ borderColor: sys.color.cardLine, borderWidth: 1 });
+    expect(style(frame())).toMatchObject({ borderColor: sys.color.line, borderWidth: 1 });
     expect(style(frame())).not.toHaveProperty('borderLeftColor');
   });
 

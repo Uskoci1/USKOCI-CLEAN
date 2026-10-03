@@ -272,22 +272,19 @@ export const sys = {
   elevation,
 } as const;
 
-/**
- * The one card (owner, 2026-09-23: "izgled kartice isti kroz ceo app"). A panel is `card` (20px padding); an item in a
- * list is `cardCompact` (16px padding); both have the card corner. Both are white with a neutral card edge
- * (`cardLine`) and NO shadow (emulator critique B5, 2026-09-24): a card lying on the white screen is drawn by its edge,
- * and a border plus a shadow on every card of a list was two outlines for one thing. With the shadow gone the edge is the
- * card's only outline, so it is `cardLine`, not the faintest `line`, which
- * left list cards and the white Početna tile with almost no visible edge (round 2c). Shadow means "this floats above the
- * screen", so it is kept for what really floats (`floating`: sheets, map controls, the tab bar). Something inside a
- * card is never another card: use spacing and a rule between its sections.
- */
+/** Flat reading panels retain their original edge/padding. Navigable marketplace items explicitly opt into raisedItem. */
 export const card: ViewStyle = { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1,
   borderColor: sys.color.cardLine, padding: 20 };
 export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCompact, padding: 16 };
 /** boxShadow needs Android 9+; minSdk is 24, so the phones before it get an elevation instead. */
 const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28;
-/** Neutral lift for floating layers; no green veil on the white canvas. Never on every card in a list. */
+/** Targeted lift for navigable marketplace items (owner material direction). No geometry or animation is imposed. */
+export const raisedItem: ViewStyle = {
+  backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line,
+  ...(NO_BOX_SHADOW ? { elevation: 2 }
+    : { boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.055), 0px 5px 12px rgba(0, 0, 0, 0.07)' }),
+};
+/** Neutral lift for floating layers; marketplace rows opt into the separate raisedItem material. */
 export const floating: ViewStyle = NO_BOX_SHADOW ? { elevation: 1 }
   : { boxShadow: '0px 5px 18px rgba(0, 0, 0, 0.063), 0px 1px 2px rgba(0, 0, 0, 0.027)' };
 /** Tactile map controls. Figma MaterialFilterChip 93:18; inset shadows require Android 10+. */

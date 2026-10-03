@@ -8,7 +8,7 @@ import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
-import { cardCompact, sys } from '../system/tokens';
+import { cardCompact, raisedItem, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { CARD_PRESS_SCALE } from './TaskCard';
@@ -169,7 +169,7 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large,
 });
 
 /**
- * One application: the shared hairline card with no shadow. The body is ONE press that opens the task; the foot, when the
+ * One application: a softly raised marketplace card. The body is ONE press that opens the task; the foot, when the
  * state allows an action, is its own press beside it; `children` is what opens under the card (the review of a changed
  * task). The frame gives under the finger as one object, as the task card's does, and nothing moves under reduced motion.
  * The handlers are the screen's own guarded commands, handed in fresh on every render on purpose.
@@ -238,9 +238,8 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
 export const ApplicationCard = memo(ApplicationCardBase);
 
 const s = StyleSheet.create({
-  // The task card's frame and body geometry: white, the card corner, one hairline, no shadow; the body carries the padding
-  // so the whole card stays one target up to its edge.
-  card: { ...cardCompact, padding: 0 },
+  // Shared raised frame; body/footer keep their existing separate targets and exact internal geometry.
+  card: { ...cardCompact, ...raisedItem, padding: 0 },
   body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
   facts: { gap: 4 },
   noteToggle: { minHeight: 48, paddingHorizontal: 16, paddingVertical: sys.space.sm, justifyContent: 'center' },

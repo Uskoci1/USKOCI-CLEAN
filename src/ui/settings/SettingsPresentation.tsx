@@ -30,14 +30,14 @@ export function SettingsText({ variant = 'body', tone = 'ink', style, ...props }
     { color: tone === 'muted' ? sys.color.muted : tone === 'danger' ? sys.color.danger : tone === 'success' ? sys.color.green : sys.color.ink }, style]} />;
 }
 
-export function SettingsScreen({ title, onBack, backLabel, disabled = false, children, footer }: {
+export function SettingsScreen({ title, onBack, backLabel, disabled = false, children, footer, right }: {
   /** The bar names the screen; nothing explains where you are (no eyebrow, owner 2026-09-23). */
   title: string; onBack: () => void;
   /** What the arrow says when "Nazad" is not enough ("Nazad na profil"). */ backLabel?: string;
-  disabled?: boolean; children: ReactNode; footer?: ReactNode;
+  disabled?: boolean; children: ReactNode; footer?: ReactNode; right?: ReactNode;
 }) {
   return <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-    <ProductHeader title={title} back={onBack} backLabel={backLabel} disabled={disabled} />
+    <ProductHeader title={title} back={onBack} backLabel={backLabel} disabled={disabled} right={right} />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>
     {footer ? <SettingsFooter>{footer}</SettingsFooter> : null}
   </SafeAreaView>;

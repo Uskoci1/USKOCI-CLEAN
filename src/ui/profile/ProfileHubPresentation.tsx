@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SignOut, Camera } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { CalendarArt } from '../system/CalendarArt';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { floating, sys } from '../system/tokens';
@@ -11,7 +12,7 @@ import { BuildIdentity } from '../BuildIdentity';
 import { Avatar } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
 import { WorkProfileArt } from './WorkProfileArt';
-import { V2Action } from '../v2/V2Action';
+import { ChromeIconButton } from '../system/ScreenChrome';
 
 const NOTIFICATION_ART = require('../../../assets/illustrations/uskoci-notification-bell-v1.png');
 
@@ -34,7 +35,7 @@ export type ProfileHubIdentity =
       /** The rating line under the name, or nothing. */ reputation: ReactNode };
 
 /**
- * Identity leads in one compact raised passport; its edit action sits with the name. Reputation keeps full width because it can
+ * Identity leads in one compact raised passport; editing is a separate command at the top right. Reputation keeps full width because it can
  * include actual review comments, loading and recovery. Independent work facts follow before setup and utilities.
  * The route still owns reads, navigation admission and logout. This view never substitutes unavailable facts.
  */
@@ -47,9 +48,9 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
   const compact = forced ?? stacked;
   const row = s.identity;
   const copy = s.copy;
-  const editName = <V2Action label="Izmeni ime" kind="quiet" tone="neutral" compact disabled={busy}
+  const editName = <ChromeIconButton label="Izmeni ime" hint="Otvara ime na profilu." glyph="edit" raised disabled={busy}
     onPress={() => open('/profil/podaci')} />;
-  return <SettingsScreen title="Profil" disabled={busy} onBack={onBack}>
+  return <SettingsScreen title="Profil" disabled={busy} onBack={onBack} right={editName}>
     <View style={[s.identitySection, compact && s.identityCompact]}>
       {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
       {identity.state === 'loading' ? <View key="loading" testID="profile-identity" accessible
@@ -80,12 +81,10 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
             : <T variant="title" tone="muted" accessibilityRole="header" style={[s.name, compact && s.nameStacked]}>Ime još nije uneto</T>}
           {identity.place ? <View style={[styles.identityCity, s.city, compact && s.cityStacked]}><FactArt kind="pin" size={18} cut="art" />
             <T variant="note" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
-          <View style={[s.editName, !compact && s.editNameInline]}>{editName}</View>
         </View>
         </View>
         {identity.reputation ? <View style={s.reputation}>{identity.reputation}</View> : null}
       </View>}
-      {identity.state !== 'ready' ? <View style={s.editName}>{editName}</View> : null}
     </View>
 
     {workSummary}
@@ -141,7 +140,7 @@ function ProfileUtilityRow({ label, detail, art, disabled, last = false, feature
       importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       {art === 'bell' ? <Image source={NOTIFICATION_ART} style={s.notificationArt} contentFit="contain"
         cachePolicy="memory" transition={0} allowDownscaling accessible={false} tintColor={disabled ? sys.color.muted : undefined} />
-        : <FactArt kind={art} size={28} cut="art" muted={disabled} />}
+        : art === 'calendar' ? <CalendarArt size={28} quiet={disabled} /> : <FactArt kind={art} size={28} cut="art" muted={disabled} />}
     </View> : null}
     <View style={s.utilityCopy}>
       <T variant={featured ? "bodyStrong" : "body"} tone={disabled ? 'muted' : 'ink'}>{label}</T>
@@ -165,8 +164,6 @@ const s = StyleSheet.create({
   cityStacked: { justifyContent: 'center' },
   // Do not center or constrain the supplied node's children: it can contain full review comments and retry actions.
   reputation: { alignSelf: 'stretch', minWidth: 0 },
-  editName: { alignSelf: 'center', maxWidth: '100%' },
-  editNameInline: { alignSelf: 'flex-start' },
   shrink: { flexShrink: 1 },
   retry: { alignSelf: 'center', marginTop: sys.space.xs },
   name: { ...sys.type.cardTitle, textAlign: 'left', alignSelf: 'stretch' },

@@ -322,7 +322,7 @@ describe('the card', () => {
     for (const words of ['Liman, Novi Sad', '24. sep · 17:00', 'Zgrada bez lifta']) {
       expect(style(textNode(words).parent!).flexWrap).not.toBe('wrap');
     }
-    expect(style(frame())).toMatchObject({ borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface });
+    expect(style(frame())).toMatchObject({ borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface });
     expect(presses()).toHaveLength(1);
   });
 

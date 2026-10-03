@@ -6,6 +6,7 @@ import { T } from '../../Text';
 import { Press } from '../../Press';
 import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
+import { CalendarArt } from '../../system/CalendarArt';
 import { sys } from '../../system/tokens';
 import { useLayoutClass } from '../../system/textScale';
 import { osoba } from '../../system/plural';
@@ -49,7 +50,7 @@ export function TaskDecisionLogistics({ remote, place, time, people, filled, spo
       <View style={s.copy}><T style={s.factValue}>{remote ? 'Na daljinu' : place}</T></View>
     </View>
     <View accessible accessibilityLabel={`Termin: ${time}`} style={s.planningFact}>
-      <FactArt kind="calendar" size={28} cut="art" role="time" />
+      <CalendarArt size={28} />
       <View style={s.copy}><T style={s.factValue}>{time}</T></View>
     </View>
     {showCapacity ? <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`} style={s.planningFact}>

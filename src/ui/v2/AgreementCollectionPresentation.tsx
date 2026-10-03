@@ -16,7 +16,7 @@ import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { dogovora } from '../system/plural';
 import { StateView } from '../system/StateView';
-import { sys } from '../system/tokens';
+import { raisedItem, sys } from '../system/tokens';
 import { T } from '../Text';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -289,9 +289,9 @@ const s = StyleSheet.create({
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
   list: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28, flexGrow: 1 },
   empty: { paddingVertical: 8, flex: 1 },
-  // Agreements are open appointments. Advertisement cards own the rounded enclosing frame; this list uses a rule.
-  agreement: { backgroundColor: sys.color.surface },
-  separator: { height: 1, backgroundColor: sys.color.line, marginVertical: 20 },
+  // One raised appointment contains identity, accepted facts and its existing next action.
+  agreement: { ...raisedItem, borderRadius: sys.radius.cardCompact, padding: 16 },
+  separator: { height: 20 },
   body: { borderRadius: 0 },
   main: { paddingVertical: 4, gap: 12 },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
