@@ -166,6 +166,12 @@
           "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
+      },
+      "native_6d4_checkpoint_20261003": {
+        "source": "6d4ce57c827cac496f18a61c24d32638e6e1e8fa",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR actual new-task welcome/Back; emulator existing waiting/streaming/worker fixtures only. No provider turn or full recovery proof. Compact summary price/review composition remains open.",
+        "ci": "P5 37092866560 SUCCESS; focused186, full9325 tests; exact phone/emulator artifacts verified and installed."
       }
     },
     {
@@ -1027,6 +1033,12 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "scope": "759299f2 installed on HONOR and emulator with exact hash/UID receipts. Physical chat+keyboard/review and clean/dirty/discard notification settings inspected; original worker robot/profile entry viewed. Scoped visual PASS, not whole-app acceptance."
         }
+      },
+      "native_6d4_checkpoint_20261003": {
+        "source": "6d4ce57c827cac496f18a61c24d32638e6e1e8fa",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR actual new-task welcome/Back; emulator existing waiting/streaming/worker fixtures only. No provider turn or full recovery proof. Compact summary price/review composition remains open.",
+        "ci": "P5 37092866560 SUCCESS; focused186, full9325 tests; exact phone/emulator artifacts verified and installed."
       }
     },
     {
@@ -3659,6 +3671,11 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+      },
+      "native_e572_account_readonly_20261003": {
+        "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
       }
     },
     {
@@ -3784,6 +3801,11 @@
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
           "status": "STILLS_NATIVE_OBSERVED_MOTION_PENDING"
         }
+      },
+      "native_e572_account_readonly_20261003": {
+        "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
       }
     },
     {
@@ -3843,6 +3865,11 @@
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P7_EXPORT_SOURCE.md",
         "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+      },
+      "native_e572_account_readonly_20261003": {
+        "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
       }
     },
     {
@@ -3899,6 +3926,11 @@
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json",
         "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
+      },
+      "native_e572_account_readonly_20261003": {
+        "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
       }
     },
     {
@@ -3957,6 +3989,11 @@
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
           "status": "STILLS_NATIVE_OBSERVED_MOTION_PENDING"
         }
+      },
+      "native_e572_account_readonly_20261003": {
+        "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
       }
     },
     {
