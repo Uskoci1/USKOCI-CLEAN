@@ -1157,7 +1157,7 @@
         "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
         "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
         "performance": "Nije ponovo mereno.",
-        "test": "91 scoped UI/profile cases + AI review12/recovery59 + Edge111/focused registry2 + TypeScript. Native discard regression43 PASS; SQL CI37142045047 svih15 proveri PASS.",
+        "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
         "device_proof": "Emulator4081: realni profil1.0/1.3, tastatura i AI-review inert gallery. Ispravka95a99/build37142990111: Back/cancel zadržava unos, discard→Profil→Radni profil briše unos i Save footer; editor potvrđuje praznu biografiju. UID10227 i hash provereni; font vraćen1.15. Telefon nije povezan.",
         "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN",
         "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
@@ -1242,7 +1242,11 @@
           "installedBuild": 37142990111,
           "apkSha256": "b6d201de9baf3a8585c773d9b7bd003da2a6d54379ec7c414579a10184d3d23b",
           "nativeDiscardReentry": "PASS_BOUNDED",
-          "fontRestored": "1.15"
+          "fontRestored": "1.15",
+          "latestSource": "511a3588",
+          "ciRun": 37145120004,
+          "ciResult": "SUCCESS",
+          "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1319,7 +1323,7 @@
         "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
         "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
         "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
-        "test": "91 scoped UI/profile cases + AI review12/recovery59 + Edge111/focused registry2 + TypeScript. Native discard regression43 PASS; SQL CI37142045047 svih15 proveri PASS.",
+        "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
         "device_proof": "Emulator4081: realni profil1.0/1.3, tastatura i AI-review inert gallery. Ispravka95a99/build37142990111: Back/cancel zadržava unos, discard→Profil→Radni profil briše unos i Save footer; editor potvrđuje praznu biografiju. UID10227 i hash provereni; font vraćen1.15. Telefon nije povezan.",
         "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN",
         "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
@@ -1396,7 +1400,11 @@
           "installedBuild": 37142990111,
           "apkSha256": "b6d201de9baf3a8585c773d9b7bd003da2a6d54379ec7c414579a10184d3d23b",
           "nativeDiscardReentry": "PASS_BOUNDED",
-          "fontRestored": "1.15"
+          "fontRestored": "1.15",
+          "latestSource": "511a3588",
+          "ciRun": 37145120004,
+          "ciResult": "SUCCESS",
+          "unbuiltDelta": "Only profile-name accessibilityRole=header; installed native source remains95a99, no new layout/state/Edge change."
         }
       }
     },
