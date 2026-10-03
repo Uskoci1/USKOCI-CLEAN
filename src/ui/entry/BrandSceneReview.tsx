@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandArtwork } from './BrandScene';
@@ -11,16 +11,20 @@ import { sys } from '../system/tokens';
 
 /** Existing internal gallery only. Real artwork/clock, no Auth/storage/session operations. */
 export function BrandSceneReview() {
-  const { width, height } = useWindowDimensions(), reduced = useReducedMotion();
+  const reduced = useReducedMotion();
+  const [{ width, height }, setFrame] = useState({ width: 0, height: 0 });
   const [ready, setReady] = useState(false);
   const time = useSharedValue(INTRO_DURATION_MS);
-  const logoWidth = Math.min(width - 48, 320);
-  return <View style={s.root}>
-    <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill}>
+  const logoWidth = Math.max(0, Math.min(width - 48, 320));
+  return <View style={s.root} onLayout={event => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width > 0 && height > 0) setFrame(current => current.width === width && current.height === height ? current : { width, height });
+  }}>
+    {width > 0 ? <Animated.View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <BrandArtwork time={time} phone={{ x: 0, y: 0, width, height }}
         logo={{ x: (width - logoWidth) / 2, y: 180, width: logoWidth, height: logoWidth * 104 / 320 }}
         onArtReady={() => setReady(true)} />
-    </Animated.View>
+    </Animated.View> : null}
     <SafeAreaView edges={['bottom']} style={s.controls}>
       <T variant="note" style={s.note}>Stvarna animacija znaka · lokalni pregled</T>
       <View style={s.row}>

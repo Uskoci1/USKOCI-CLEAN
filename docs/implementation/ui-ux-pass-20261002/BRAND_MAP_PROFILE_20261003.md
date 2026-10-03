@@ -28,3 +28,11 @@ Postojeći V1 ne može da sačuva željene/odbijene vrste rada i opštu HITNO pr
 ## Materijal i dokaz
 
 Provenance, ceo imagegen prompt i SHA256: assets/brand/uskoci-dimensional-20261003.json. SVG izvori ostaju uz splash i pin. Privatne pre-slike: native-w2/brand-before-about.png, stable-map-before.png. Screenshot/video i exact-build rezultat biće dodati posle instalacije.
+
+## Izvorna integracija i kritika
+
+Izvor1b3825fb je pushovan; APK run37148428976 gradi taj tačan izvor. Završni lokalni entry/auth/About/gallery/splash prolaz120/6 i TypeScript prošli. Nezavisni pregled potvrđuje byte/hash/dimenzije atlas-a, splash-a i pina i postojeću zaštitu Worker navigacije.
+
+CI37148429851:427 suite/9380 slučajeva i6snapshot-a PASS; jedini FAIL je zabrana novog neposrednog čitanja širine prozora na About i lokalnoj sceni. Ispravka koristi izmereni prostor roditelja (onLayout), dok postojeća zajednička layout klasa određuje prelamanje About. Guard nije oslabljen ni proširen. Ciljani ponovni prolaz90/3 i TypeScript PASS; puna ponovna CI provera mora vezati korigovani izvor.
+
+Dizajnerski reperi, ne kopiranje: [Airbnb opis novog proizvoda](https://news.airbnb.com/airbnb-2025-summer-release) povezuje objedinjene tokove sa dimenzionalnim i animiranim interfejsom. [Apple Motion](https://developer.apple.com/design/human-interface-guidelines/motion) i [Reduced Motion kriterijumi](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/reduced-motion-evaluation-criteria) su kontrola za pregled. Primena u USKOČI je naša odluka: materijal na prepoznatljivim predmetima, mirne svakodnevne kontrole i izvorni uvod uz smanjeno kretanje.
