@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RetentionExecutionStatus, RetentionPolicyStatus, RetentionRule } from '../../contracts/retentionPolicy';
-import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsAction, SettingsGroup, SettingsIntro, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
 import { CatalogArt } from '../system/CatalogArt';
 import { FactArt } from '../system/FactArt';
@@ -46,12 +46,12 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
       Podaci za saradnju imaju različitu vidljivost. Rokove čuvanja možeš pregledati ispod.
     </SettingsIntro>
     <SettingsGroup title="Vidljivost">
-      <SettingsInfo title="Javni podaci Zadatka" icon={<FactArt kind="eye" size={26} />}>
+      <VisibilityFact title="Javni podaci Zadatka" icon={<FactArt kind="eye" size={26} />}>
         Opis objavljenog Zadatka i njegova približna lokacija dostupni su drugim korisnicima.
-      </SettingsInfo>
-      <SettingsInfo title="Lokacija i kontakt" last icon={<CatalogArt kind="lock" />}>
+      </VisibilityFact>
+      <VisibilityFact title="Lokacija i kontakt" last icon={<CatalogArt kind="lock" />}>
         Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
-      </SettingsInfo>
+      </VisibilityFact>
     </SettingsGroup>
 
     <SettingsGroup title="Tvoji podaci">{dataRows}</SettingsGroup>
@@ -94,6 +94,17 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
   </>;
 }
 
+/** Keep the illustration with its heading; privacy paragraphs use the full reading width. */
+function VisibilityFact({ title, icon, children, last = false }: { title: string; icon: ReactNode; children: ReactNode; last?: boolean }) {
+  return <View style={[s.visibility, last && s.visibilityLast]}>
+    <View style={s.visibilityHead}>
+      <View style={s.visibilityIcon}>{icon}</View>
+      <T variant="bodyStrong" style={s.visibilityTitle}>{title}</T>
+    </View>
+    <T variant="note" tone="muted">{children}</T>
+  </View>;
+}
+
 /** One published fact of a rule: the name above, the owner's text under it, in reading size (it was 13 px meta). */
 function Fact({ label, value }: { label: string; value: string }) {
   return <View style={s.fact}>
@@ -103,6 +114,11 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const s = StyleSheet.create({
+  visibility: { minHeight: 56, paddingVertical: sys.space.md, gap: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  visibilityLast: { borderBottomWidth: 0 },
+  visibilityHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  visibilityIcon: { width: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' },
+  visibilityTitle: { flex: 1, minWidth: 0 },
   fact: { gap: 2 },
   version: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingVertical: sys.space.md },
 });

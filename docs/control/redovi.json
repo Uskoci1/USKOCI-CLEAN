@@ -1697,10 +1697,14 @@
           }
         },
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd BUILT/INSTALLED; bounded map-return and keyboard native checks PASS",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Sequential screenshots and actual zoom/back/query only; no latency/all-device/full-flow claim. Other changed screens need continued visual review.",
+          "builds": {
+            "phone": 37110902973,
+            "emulator": 37110904517
+          }
         }
       }
     },
@@ -2065,10 +2069,14 @@
           }
         },
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd BUILT/INSTALLED; bounded map-return and keyboard native checks PASS",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Sequential screenshots and actual zoom/back/query only; no latency/all-device/full-flow claim. Other changed screens need continued visual review.",
+          "builds": {
+            "phone": 37110902973,
+            "emulator": 37110904517
+          }
         }
       }
     },
@@ -3175,7 +3183,13 @@
         "d12_proof_20261002": "2.10.: D12 CI DOKAZ PROSAO (run 36957213904, izvor f36879ae, 46 provera, 0 pao, 47/47 pinova == DEV; prvi run 36949455489 je pao na 2 greske SAMOG DOKAZA, kandidat bajt-isti) + sveže read-only DEV pre-flight 04:12Z problems [] (ledger 220, sertifikat 58447d77 ready, 7 recenzija). NIJE primenjen. Approval block: docs/implementation/product-v1-closure-20260926/finalization-20260927/d12/D12_CI_PROOF_AND_APPROVAL_BLOCK_20261002.md. Traži izričito „PRIMENI D12 PISANI KOMENTAR“ koje IMENUJE re-bind sertifikata; primena ne daje ništa vidljivo (klijent ne postoji), prozor reverta se zatvara pri prvom komentaru; otvorene vlasnikove odluke unutar kandidata: 16 (senka-komentar uz blok), 17 (agregat uz pojedinačne ocene), 7 (jedna lista pod oba lica).",
         "d12_applied_20261002": "2.10. 04:49Z: D12 PRIMENJEN NA DEV po vlasnikovom „PRIMENI D12 PISANI KOMENTAR“ (migracija 20261002044950, ledger 221, postflight problems [], sertifikat zatvaranja RE-BIND 58447d77 → 0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431 u tri mesta; tri nezavisna read-only verifikatora 79 od 79). Nova privatna tabela private.agreement_review_comments_v1 (0 redova), 6 novih funkcija, 6 izmenjenih (3 sertifikovane zatvaranja, 3 export), stare zvezdice netaknute. Prvi pokušaj je odbio integrity guard (guard za običan transport; apply_migration umotava tekst i drži ga dvaput) — ništa primenjeno; drugi sa guardom po markeru je prošao, kandidat bajt-isti. KLIJENT NE POSTOJI: ništa nije vidljivo, nijedan APK ne poziva v2; prozor reverta se zatvara pri prvom komentaru ili prvom zatvaranju naloga; podrazumevane odluke 16 (komentar-senka uz blok), 17 (agregat uz pojedinačne ocene), 7 (jedna lista pod oba lica) ostaju primenjene. Receipt: supabase/operations/dev-alpha/ledger/20261002_d12_review_comment_application.receipt.json",
         "status": "ZVEZDICE POVEZANE / PISANI KOMENTAR: SERVER PRIMENJEN, DEO KLIJENTA POSTOJI, FLAG OFF / PREGLED I NATIVE ČEKAJU",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
+        "review_privacy_composition_20261003": {
+          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
+        }
       }
     },
     {
@@ -4107,7 +4121,13 @@
         "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json",
-        "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
+        "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
+        "review_privacy_composition_20261003": {
+          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
+        }
       },
       "native_e572_account_readonly_20261003": {
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
@@ -4170,6 +4190,12 @@
         "catalog27": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
           "status": "STILLS_NATIVE_OBSERVED_MOTION_PENDING"
+        },
+        "review_privacy_composition_20261003": {
+          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
         }
       },
       "native_e572_account_readonly_20261003": {

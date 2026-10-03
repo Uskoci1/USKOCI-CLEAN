@@ -113,22 +113,26 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
               {person.task ? <T variant="meta" tone="muted" numberOfLines={2}>{person.task}</T> : null}
             </View>
           </View> : null}
-          <T accessibilityRole="header" variant={person ? 'heading' : 'title'} style={s.ink}>Kako je prošla saradnja?</T>
-          <View style={s.stars}>
-            <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={s.starRow}>
-              {/* A star takes its colour on the press, with no scale or bounce: the rating is a fact. */}
-              {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
-                accessibilityHint={ratingLabels[value]}
-                accessibilityState={{ checked: view.rating === value, disabled: !view.editable }} disabled={!view.editable} haptic="select" scaleTo={1} hitSlop={0}
-                onPress={() => view.onRate(value)} style={[s.star, { width: star, height: star }]}>
-                <Star size={40} weight={value <= view.rating ? 'fill' : 'regular'} color={value <= view.rating ? sys.color.orange : sys.color.muted} />
-              </Press>)}
+          <View style={s.rating}>
+            <T accessibilityRole="header" variant={person ? 'heading' : 'title'} style={s.ink}>Kako je prošla saradnja?</T>
+            <View style={s.stars}>
+              <View accessibilityRole="radiogroup" accessibilityLabel="Ocena od 1 do 5" style={s.starRow}>
+                {/* A star takes its colour on the press, with no scale or bounce: the rating is a fact. */}
+                {[1, 2, 3, 4, 5].map(value => <Press key={value} accessibilityRole="radio" accessibilityLabel={`Ocena ${value} od 5`}
+                  accessibilityHint={ratingLabels[value]}
+                  accessibilityState={{ checked: view.rating === value, disabled: !view.editable }} disabled={!view.editable} haptic="select" scaleTo={1} hitSlop={0}
+                  onPress={() => view.onRate(value)} style={[s.star, { width: star, height: star }]}>
+                  <Star size={40} weight={value <= view.rating ? 'fill' : 'regular'} color={value <= view.rating ? sys.color.orange : sys.color.muted} />
+                </Press>)}
+              </View>
+              <T accessibilityLiveRegion="polite" variant="bodyStrong" tone={view.rating ? 'ink' : 'muted'}>{ratingLabels[view.rating]}</T>
             </View>
-            <T accessibilityLiveRegion="polite" variant="bodyStrong" tone={view.rating ? 'ink' : 'muted'}>{ratingLabels[view.rating]}</T>
           </View>
           <View style={s.section}>
-            <T accessibilityRole="header" variant="heading" style={s.ink}>Šta je obeležilo saradnju?</T>
-            <T variant="meta" tone="muted">{`Nije obavezno · najviše ${view.catalog.maxTags}`}</T>
+            <View style={s.sectionHead}>
+              <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Šta je obeležilo saradnju?</T>
+              <T variant="meta" tone="muted">{`Nije obavezno · najviše ${view.catalog.maxTags}`}</T>
+            </View>
             <View style={s.tags}>
               {view.catalog.tags.map(tag => {
                 const selected = view.tags.includes(tag), capped = !selected && tagsFull, disabled = !view.editable || capped;
@@ -172,10 +176,12 @@ const s = StyleSheet.create({
   content: { paddingHorizontal: SIDE, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, gap: sys.space.lg },
   person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  rating: { gap: sys.space.md },
   stars: { gap: sys.space.sm, alignItems: 'center' },
   starRow: { flexDirection: 'row', justifyContent: 'center' },
   star: { alignItems: 'center', justifyContent: 'center' },
-  section: { gap: sys.space.sm, paddingTop: sys.space.lg, borderTopWidth: 1, borderColor: sys.color.line },
+  section: { gap: sys.space.sm, marginTop: sys.space.xs },
+  sectionHead: { gap: sys.space.xs },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, paddingTop: sys.space.xs },
   tag: { minHeight: 48, paddingHorizontal: sys.space.base, flexDirection: 'row', alignItems: 'center', gap: sys.space.xs,
     borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },

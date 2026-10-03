@@ -98,177 +98,6 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
      ]
     },
     {
-     "type": "T",
-     "props": {
-      "accessibilityRole": "header",
-      "variant": "heading"
-     },
-     "children": [
-      "Kako je prošla saradnja?"
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "View",
-       "props": {
-        "accessibilityRole": "radiogroup",
-        "accessibilityLabel": "Ocena od 1 do 5"
-       },
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 1 od 5",
-          "accessibilityHint": "Loše",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "fill",
-            "color": "#FF7A1A"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 2 od 5",
-          "accessibilityHint": "Ispod očekivanja",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "fill",
-            "color": "#FF7A1A"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 3 od 5",
-          "accessibilityHint": "Dobro",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "fill",
-            "color": "#FF7A1A"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 4 od 5",
-          "accessibilityHint": "Vrlo dobro",
-          "accessibilityState": {
-           "checked": true,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "fill",
-            "color": "#FF7A1A"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 5 od 5",
-          "accessibilityHint": "Odlično",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "accessibilityLiveRegion": "polite",
-        "variant": "bodyStrong",
-        "tone": "ink"
-       },
-       "children": [
-        "Vrlo dobro"
-       ]
-      }
-     ]
-    },
-    {
      "type": "View",
      "props": {},
      "children": [
@@ -279,17 +108,200 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
         "variant": "heading"
        },
        "children": [
-        "Šta je obeležilo saradnju?"
+        "Kako je prošla saradnja?"
        ]
       },
       {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Nije obavezno · najviše 3"
+        {
+         "type": "View",
+         "props": {
+          "accessibilityRole": "radiogroup",
+          "accessibilityLabel": "Ocena od 1 do 5"
+         },
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 1 od 5",
+            "accessibilityHint": "Loše",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "fill",
+              "color": "#FF7A1A"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 2 od 5",
+            "accessibilityHint": "Ispod očekivanja",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "fill",
+              "color": "#FF7A1A"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 3 od 5",
+            "accessibilityHint": "Dobro",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "fill",
+              "color": "#FF7A1A"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 4 od 5",
+            "accessibilityHint": "Vrlo dobro",
+            "accessibilityState": {
+             "checked": true,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "fill",
+              "color": "#FF7A1A"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 5 od 5",
+            "accessibilityHint": "Odlično",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "accessibilityLiveRegion": "polite",
+          "variant": "bodyStrong",
+          "tone": "ink"
+         },
+         "children": [
+          "Vrlo dobro"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "View",
+     "props": {},
+     "children": [
+      {
+       "type": "View",
+       "props": {},
+       "children": [
+        {
+         "type": "T",
+         "props": {
+          "accessibilityRole": "header",
+          "variant": "bodyStrong"
+         },
+         "children": [
+          "Šta je obeležilo saradnju?"
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "meta",
+          "tone": "muted"
+         },
+         "children": [
+          "Nije obavezno · najviše 3"
+         ]
+        }
        ]
       },
       {
@@ -579,177 +591,6 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
      ]
     },
     {
-     "type": "T",
-     "props": {
-      "accessibilityRole": "header",
-      "variant": "heading"
-     },
-     "children": [
-      "Kako je prošla saradnja?"
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "View",
-       "props": {
-        "accessibilityRole": "radiogroup",
-        "accessibilityLabel": "Ocena od 1 do 5"
-       },
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 1 od 5",
-          "accessibilityHint": "Loše",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 2 od 5",
-          "accessibilityHint": "Ispod očekivanja",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 3 od 5",
-          "accessibilityHint": "Dobro",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 4 od 5",
-          "accessibilityHint": "Vrlo dobro",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Ocena 5 od 5",
-          "accessibilityHint": "Odlično",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "scaleTo": 1,
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Star",
-           "props": {
-            "size": 40,
-            "weight": "regular",
-            "color": "#525252"
-           },
-           "children": null
-          }
-         ]
-        }
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "accessibilityLiveRegion": "polite",
-        "variant": "bodyStrong",
-        "tone": "muted"
-       },
-       "children": [
-        "Izaberi ocenu"
-       ]
-      }
-     ]
-    },
-    {
      "type": "View",
      "props": {},
      "children": [
@@ -760,17 +601,200 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
         "variant": "heading"
        },
        "children": [
-        "Šta je obeležilo saradnju?"
+        "Kako je prošla saradnja?"
        ]
       },
       {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Nije obavezno · najviše 3"
+        {
+         "type": "View",
+         "props": {
+          "accessibilityRole": "radiogroup",
+          "accessibilityLabel": "Ocena od 1 do 5"
+         },
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 1 od 5",
+            "accessibilityHint": "Loše",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 2 od 5",
+            "accessibilityHint": "Ispod očekivanja",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 3 od 5",
+            "accessibilityHint": "Dobro",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 4 od 5",
+            "accessibilityHint": "Vrlo dobro",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Ocena 5 od 5",
+            "accessibilityHint": "Odlično",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "scaleTo": 1,
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Star",
+             "props": {
+              "size": 40,
+              "weight": "regular",
+              "color": "#525252"
+             },
+             "children": null
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "accessibilityLiveRegion": "polite",
+          "variant": "bodyStrong",
+          "tone": "muted"
+         },
+         "children": [
+          "Izaberi ocenu"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "View",
+     "props": {},
+     "children": [
+      {
+       "type": "View",
+       "props": {},
+       "children": [
+        {
+         "type": "T",
+         "props": {
+          "accessibilityRole": "header",
+          "variant": "bodyStrong"
+         },
+         "children": [
+          "Šta je obeležilo saradnju?"
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "meta",
+          "tone": "muted"
+         },
+         "children": [
+          "Nije obavezno · najviše 3"
+         ]
+        }
        ]
       },
       {
