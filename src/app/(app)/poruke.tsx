@@ -50,6 +50,6 @@ function ConversationInbox() {
       hasMore={!!state.page?.nextCursor} openingDisabled={state.stale} onOpen={onOpen}
       onRefresh={() => { if (active()) void model.refresh(); }} onLoadMore={() => { if (active()) void model.more(); }}
       onAgreements={() => navigate(() => router.push('/dogovori'))}
-      header={<ScreenHeader title="Poruke" onProfile={() => navigate(() => router.push('/profil'))} />} />
+      titleInHeader header={<ScreenHeader showTitle title="Poruke" onProfile={() => navigate(() => router.push('/profil'))} />} />
   </SafeAreaView>;
 }

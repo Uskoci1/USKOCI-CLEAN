@@ -31,6 +31,8 @@ export type ConversationInboxPresentationProps = {
   renderAvatar?: (row: ConversationInboxRow) => ReactNode;
   /** Optional route chrome, outside the scrolling list. Does not create a bell or any data read. */
   header?: ReactNode;
+  /** The supplied chrome already contains the visible section heading. Default keeps standalone/gallery rendering. */
+  titleInHeader?: boolean;
   /** The existing Dogovori screen includes Agreements without messages. Optional real route callback only. */
   onAgreements?: () => void;
   bottomInset?: number; zona?: string; sada?: Date;
@@ -69,7 +71,7 @@ const rowKey = (row: ListRow) => row.key;
 
 export function ConversationInboxPresentation({ items, loading, refreshing, error, paging, pageError, hasMore,
   disabled = false, openingDisabled = false, openingKey = null, unavailableKeys = EMPTY_KEYS, openErrorKey = null,
-  onOpen, onRefresh, onLoadMore, renderAvatar, header, onAgreements, bottomInset = 0, zona, sada,
+  onOpen, onRefresh, onLoadMore, renderAvatar, header, titleInHeader = false, onAgreements, bottomInset = 0, zona, sada,
 }: ConversationInboxPresentationProps) {
   const { stacked } = useLayoutClass();
   const rows = useMemo(() => conversationInboxRows(items ?? EMPTY_ITEMS, { zona, sada }), [items, zona, sada]);
@@ -85,8 +87,8 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
         disabled={openDisabled || unavailableKeys.has(row.key)} onOpen={onOpen} photo={renderAvatar?.(row.item)} />,
   [stacked, unavailableKeys, openErrorKey, openingKey, openDisabled, onOpen, renderAvatar]);
 
-  const listHeader = <View style={s.heading}>
-    <T variant="pageTitle" accessibilityRole="header">Poruke</T>
+  const listHeader = titleInHeader && !(items !== null && error) ? null : <View style={s.heading}>
+    {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
     {items !== null && error ? <View style={s.notice}>
       <T variant="note" accessibilityRole="alert">Razgovori nisu osveženi.</T>
       <T variant="note" tone="muted">Poslednji učitani razgovori ostaju prikazani. Osveži ih da nastaviš.</T>
