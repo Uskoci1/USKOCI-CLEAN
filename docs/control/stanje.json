@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T12:49:39Z",
-  "grana": "HEAD",
-  "head": "ebed71e3",
-  "head_poruka": "Record emulator acceptance for material depth and connected artwork",
+  "osvezeno": "2026-10-03T13:51:48Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "a0156153",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1787,6 +1787,12 @@
    ],
    "limits": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance.",
    "meta_receipt": "amount-people-emu-a790.json (installed APK SHA and font1.15 confirmed)"
+  },
+  "candidate_work_time_source_20261003": {
+   "source": "Candidate raised surfaces and original clock/tool artwork; source only.",
+   "checks": "TypeScript PASS;201 existing cases/7 suites plus overlapping92-case calendar/offer rerun; no new tests.",
+   "native": "Matching APK pending. Before: actual a790 candidate list. Phone unplugged.",
+   "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
   }
  },
  "redovi": [
@@ -2969,6 +2975,10 @@
      "builds": {
       "emulator": 37118304645
      }
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -3051,7 +3061,11 @@
     "device_proof": "Objedinjeni emulator APK sada odobren; nova instalacija/provera još u pripremi.",
     "status": "KOD I CILJANE PROVERE PROŠLI / EMULATOR SLEDI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_15_APPLICATIONS.md",
-    "source_finishing_20261002": "Selection review retains exact terms/confirmation/recovery with quieter white composition and consistent fact art. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+    "source_finishing_20261002": "Selection review retains exact terms/confirmation/recovery with quieter white composition and consistent fact art. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -3524,6 +3538,10 @@
      "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
      "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -3651,6 +3669,10 @@
      "scope": "Actual Worker team People28;1.3 heading wraps and count stepper remains unclipped.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
      "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -3864,6 +3886,10 @@
      "scope": "Internal fixture only: copy disclosure/replacement/local discard and time selection/cancel. No saved availability acceptance.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
      "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -4833,6 +4859,10 @@
      "scope": "Actual public OFFERS detail People24; OFFERS retains its tag. No exact compact Money28 claim.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
      "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -5427,6 +5457,10 @@
      "scope": "Internal calendar gallery only; not actual appointment or backend acceptance.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
      "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -7707,6 +7741,10 @@
      "scope": "Actual a790 Home/Profile1.15: discover52 artwork, real avatar/bell and separate48dp pencil visible.",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
      "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
+    },
+    "candidate_work_time_source_20261003": {
+     "status": "SOURCE_ONLY",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -9885,5 +9923,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37124121129,
+   "ime": "Control tracker refresh",
+   "sha": "ebed71e3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:49:24Z"
+  },
+  {
+   "id": 37122685412,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:55Z"
+  },
+  {
+   "id": 37122683343,
+   "ime": "Build Android development APK",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:53Z"
+  },
+  {
+   "id": 37122669107,
+   "ime": "Control tracker refresh",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37122669082,
+   "ime": "P5 ready task and matching contract",
+   "sha": "a7904583",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T12:22:36Z"
+  },
+  {
+   "id": 37121358579,
+   "ime": "P5 ready task and matching contract",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:39Z"
+  },
+  {
+   "id": 37121336496,
+   "ime": "Build Android development APK",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:11Z"
+  },
+  {
+   "id": 37121302717,
+   "ime": "Control tracker refresh",
+   "sha": "e46b53c4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:57:32Z"
+  },
+  {
+   "id": 37119634429,
+   "ime": "P5 ready task and matching contract",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:26:00Z"
+  },
+  {
+   "id": 37119632905,
+   "ime": "Build Android development APK",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:58Z"
+  },
+  {
+   "id": 37119620151,
+   "ime": "Control tracker refresh",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:42Z"
+  },
+  {
+   "id": 37118306278,
+   "ime": "P5 ready task and matching contract",
+   "sha": "7b33392d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T11:01:19Z"
+  }
+ ]
 }

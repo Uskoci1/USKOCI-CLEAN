@@ -11,6 +11,8 @@ import { ChromeIconButton } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { PeopleArt } from '../system/PeopleArt';
+import { ClockArt } from '../system/ClockArt';
+import { ToolArt } from '../system/ToolArt';
 import { PickerGrid, PickerTile } from '../system/PickerTile';
 import { pictogramCatalog, type PictogramGroup } from '../system/Pictogram';
 import { StateView } from '../system/StateView';
@@ -120,7 +122,7 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
 }
 
 function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}>{art === 'users' ? <PeopleArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
+  return <View style={s.head}>{art === 'users' ? <PeopleArt size={28} /> : art === 'tool' ? <ToolArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
@@ -294,7 +296,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     <View style={s.rows}>
       <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={24} cut="art" />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
-      <SettingsRow label="Dostupnost" icon={<FactArt kind="clock" size={24} cut="art" />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
+      <SettingsRow label="Dostupnost" icon={<ClockArt size={24} quiet={disabled} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
         detail={`Status „Mogu odmah“ je ${draft.dostupanOdmah ? 'uključen' : 'isključen'}.`} />
     </View>
     <TermsPicker label="Alat i oprema" art="tool" group="alat" placeholder="Dodaj alat" quickLabel="Brzi izbor alata" quickOpen={false}

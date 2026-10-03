@@ -9,7 +9,7 @@ import { Avatar, type AvatarSize } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
 import { osoba } from '../system/plural';
 import { useTextScale } from '../system/textScale';
-import { cardCompact, sys } from '../system/tokens';
+import { cardCompact, raisedItem, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { CardFact, valueStyles } from './TaskFace';
@@ -152,7 +152,7 @@ export function CandidateValueSlot({ value, large }: { value: CandidateValue; la
 
 /**
  * An offer in the list: one press that opens it, heard as the person and everything the card shows. The drawing is the
- * quiet white row with a separator, leaving the person and terms to lead; a chosen offer keeps a green separator.
+ * raised white item, leaving the person and terms to lead; a chosen offer keeps its semantic green edge.
  */
 export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, onOpen, photo, large, narrow = false }: {
   candidate: KandidatProjekcija; timezone?: string | null; onOpen: () => void; photo?: ReactNode;
@@ -255,8 +255,7 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   personAction: { ...sys.type.bodyStrong, color: sys.color.green },
-  card: { backgroundColor: sys.color.surface, paddingVertical: sys.space.lg, gap: sys.space.md,
-    borderBottomWidth: 1, borderColor: sys.color.line },
+  card: { ...raisedItem, borderRadius: sys.radius.card, padding: sys.space.base, gap: sys.space.md },
   chosen: { borderColor: sys.color.green },
   status: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
@@ -273,7 +272,7 @@ const s = StyleSheet.create({
   terms: { gap: sys.space.sm },
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
   message: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 21, color: sys.color.muted },
-  compare: { ...cardCompact, flex: 1, minWidth: 0, padding: sys.space.base, gap: sys.space.md,
+  compare: { ...cardCompact, ...raisedItem, flex: 1, minWidth: 0, padding: sys.space.base, gap: sys.space.md,
     borderColor: sys.color.line, backgroundColor: sys.color.surface },
   compareName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   compareIdentity: { gap: COMPARE_IDENTITY_GAP },

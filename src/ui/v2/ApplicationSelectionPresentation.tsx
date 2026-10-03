@@ -15,6 +15,7 @@ import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '.
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
+import { MoneyArt } from '../system/MoneyArt';
 import { dolaziOsoba, osobuAkuz, prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
@@ -351,7 +352,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       </View> : null}
       <View style={s.offerTerms}>
         <View accessible accessibilityLabel={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}: ${value.kind === 'amount' ? value.amount : UNPRICED}`} style={s.offerPrice}>
-          <View style={s.offerPriceLabel}><FactArt kind="money" size={24} cut="art" />
+          <View style={s.offerPriceLabel}>{value.kind === 'amount' ? <MoneyArt size={24} /> : <FactArt kind="money" size={24} cut="art" tone="quiet" />}
             <T variant="note" tone="muted" style={s.grow}>Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T></View>
           {value.kind === 'amount' ? <T style={s.offerAmount}>{value.amount}</T> : <T variant="bodyStrong" tone="muted">{UNPRICED}</T>}
         </View>
@@ -384,7 +385,7 @@ const s = StyleSheet.create({
   notice: { padding: 14, backgroundColor: sys.color.warnSoft, borderRadius: sys.radius.control },
   footer: { backgroundColor: sys.color.surface, paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line, gap: 8 },
   center: { textAlign: 'center' },
-  listHeader: { gap: sys.space.md, marginBottom: sys.space.xs },
+  listHeader: { gap: sys.space.md, marginBottom: sys.space.base },
   // A row that opens something is a command: never under 48.
   brief: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: ACTION_MIN_HEIGHT,
     paddingVertical: sys.space.base, backgroundColor: sys.color.surface, borderBottomWidth: 1, borderBottomColor: sys.color.line },
@@ -398,7 +399,7 @@ const s = StyleSheet.create({
   sortMenu: { ...cardCompact, padding: 0, marginBottom: 8, overflow: 'hidden' },
   sortOption: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   sortDivider: { borderTopWidth: 1, borderColor: sys.color.line },
-  separator: { height: sys.space.sm },
+  separator: { height: sys.space.lg },
   columnRow: { gap: sys.space.md },
   listFooter: { gap: 4, paddingTop: 12 },
   pagingFoot: { alignItems: 'center', gap: 8, paddingBottom: 4 },

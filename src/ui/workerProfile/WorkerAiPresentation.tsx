@@ -8,6 +8,8 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { PeopleArt } from '../system/PeopleArt';
+import { ClockArt } from '../system/ClockArt';
+import { ToolArt } from '../system/ToolArt';
 import { sys, card, inset, field } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { V2Action } from '../v2/V2Action';
@@ -71,14 +73,14 @@ function ReviewCue({disabled}:{disabled:boolean}){
   </View>;
 }
 function PreviewFact({art,children}:{art:FactArtKind;children:string}){
-  return <View style={s.previewFact}>{art === 'users' ? <PeopleArt size={24} /> : <FactArt kind={art} size={24} cut="art" role={artRole(art)}/>}<T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
+  return <View style={s.previewFact}>{art === 'users' ? <PeopleArt size={24} /> : art === 'clock' ? <ClockArt size={24} /> : <FactArt kind={art} size={24} cut="art" role={artRole(art)}/>}<T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
 }
 function Row({label,value,quiet=false}:{label:string;value:string;quiet?:boolean}){
   return <View style={s.row}><T variant="meta" tone="muted">{label}</T><T selectable variant="body" style={quiet?s.muted:s.ink}>{value}</T></View>;
 }
 function ReviewSection({title,art,children}:{title:string;art:FactArtKind;children:ReactNode}){
   return <View style={s.reviewSection}>
-    <View style={s.sectionHead}><View style={s.sectionIcon}>{art === 'users' ? <PeopleArt size={28} /> : <FactArt kind={art} size={28} role={artRole(art)}/>}</View>
+    <View style={s.sectionHead}><View style={s.sectionIcon}>{art === 'users' ? <PeopleArt size={28} /> : art === 'clock' ? <ClockArt size={28} /> : art === 'tool' ? <ToolArt size={28} /> : <FactArt kind={art} size={28} role={artRole(art)}/>}</View>
       <T accessibilityRole="header" variant="heading" style={[s.grow,s.skillHeading]}>{title}</T></View>
     <View style={s.reviewRows}>{children}</View>
   </View>;

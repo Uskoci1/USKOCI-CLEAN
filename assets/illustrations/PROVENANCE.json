@@ -29,7 +29,9 @@
     "uskoci-calendar-v1.png",
     "uskoci-discover-v3.png",
     "uskoci-money-v3.png",
-    "uskoci-people-v2.png"
+    "uskoci-people-v2.png",
+    "uskoci-clock-v1.png",
+    "uskoci-tool-v1.png"
   ],
   "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
   "workProfileAsset": {
@@ -89,5 +91,25 @@
     "purpose": "Generic decorative people subject. Authoritative capacity and identities stay in adjacent facts/real avatars. Explicit quiet people drawings remain unchanged.",
     "prompt": "Use case: stylized-concept. Create ONE original premium USKOCI small mobile UI decorative 3D art asset, genuine transparent alpha background. Subject: exactly TWO distinct gender-neutral abstract rounded busts, a cobalt/soft blue front bust slightly lower-left and a pearl gray/ivory rear bust slightly upper-right. Each has a simple round featureless head and broad gently domed shoulder torso; rear bust remains clearly separable at24–28dp, heads must not touch. No faces, eyes, hair, skin identity, gender styling, clothes, collar, tie, arms, hands, badge, checkmark, numbers, words or extra objects. NOT chess pawns or real people; clear minimal people pictogram rendered with refined dimensional materials. Same family as premium ivory enamel calendar/bell art: satin blue and pearl ceramic, clean rounded bevels, subtle thickness, slight3/4 perspective mostly face-on, broad smooth silhouette, soft directional upper-left studio light, quiet contact shadow only near bust bases and overlaps. No plastic toy glare, hard black outlines, gradients as background, pedestal, scene, floor, checkerboard or watermark. Center coherent group fills85–90% of square canvas with safe transparent margins. This decoration means people only; actual number/status supplied elsewhere by UI. Native transparent alpha PNG.",
     "nativeAcceptance": "a790 exact emulator37122683343: root and independent visual review accept24dp public OFFERS detail and28dp own count/actual Worker team. Worker team at1.3 retains full wrapping heading and unclipped count stepper; font restored1.15. Quiet people and real identities unchanged. WorkerAI variant not newly native-verified. No profile Save, business write, phone or motion/performance acceptance. See INBOX_AND_NATIVE_20261003.md."
+  },
+  "clockAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "original": "exec-88ad39ac-0723-45b0-b9a0-bb8d73537528.png",
+    "file": "uskoci-clock-v1.png",
+    "sha256": "2220e8dad4c9a0c745de9d0ef0c136d59475cfba0af24db19910c8cad3124dec",
+    "prompt": "Create ONE original premium USKOCI small mobile UI decorative 3D illustration. A simple round desk clock seen nearly front-on with slight three-quarter depth, thick pearl ivory ceramic rim, broad silver side bevel, clean warm-white face, two dark charcoal hands, only four simple dark hour ticks (no numerals), tiny warm orange center spindle. Strong clock silhouette, generous calm face, polished soft upper-left studio light, restrained contact shadow beneath clock only. No alarm bells, progress ring, check, status badge, date, text, letters, real clock brand, pedestal, backdrop or checkerboard. Subject fills 80 percent square canvas, fully framed with at least 8 percent transparent safe margin each side. True transparent alpha. Refined tactile materials in original USKOCI illustration family, designed to remain legible at 24–32dp beside availability text, not a detailed photo. Clock conveys time as a subject only, never countdown or availability status.",
+    "purpose": "Decorative subject only; no status or authoritative time/equipment claim.",
+    "nativeAcceptance": "Source candidate; matching native review pending."
+  },
+  "toolAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "original": "exec-4fca216b-b23a-4579-b90e-d59eec8b6931.png",
+    "file": "uskoci-tool-v1.png",
+    "sha256": "021dc6d5ee1f88089a46d221fb015c87efe7cd49469ff0ad209bf65e3aaf10f8",
+    "prompt": "Create ONE original premium USKOCI small mobile UI decorative 3D illustration on genuine transparent alpha. A compact open ivory tool tote with exactly two tools: an orange-handled screwdriver and a satin silver open-end wrench, protruding clearly above a single curved dark teal carry handle. Strong simple silhouette, nearly front-on slight three-quarter perspective, refined rounded edges, subtly woven canvas suggested broadly not microtexture, clean soft upper-left studio lighting, delicate shadow only directly beneath object. Same pearl ivory / emerald teal / warm orange material family as a premium mobile marketplace. Readable at 24–32dp; avoid tiny clutter. Subject fills 80 percent square canvas with 8 percent clear transparent margins each side. No hands, people, words, letters, numbers, checkmark, badge, currency, extra tools, logo, pedestal, background or checkerboard. Original design, not copied from any brand. One object, one isolated image.",
+    "purpose": "Decorative subject only; no status or authoritative time/equipment claim.",
+    "nativeAcceptance": "Source candidate; matching native review pending."
   }
 }

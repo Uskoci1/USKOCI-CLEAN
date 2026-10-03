@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SignOut, Camera } from 'phosphor-react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { CalendarArt } from '../system/CalendarArt';
+import { ClockArt } from '../system/ClockArt';
 import { SettingsText as T, SettingsScreen, SettingsGroup, SettingsAction, settingsStyles as styles } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { floating, sys } from '../system/tokens';
@@ -140,7 +141,8 @@ function ProfileUtilityRow({ label, detail, art, disabled, last = false, feature
       importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       {art === 'bell' ? <Image source={NOTIFICATION_ART} style={s.notificationArt} contentFit="contain"
         cachePolicy="memory" transition={0} allowDownscaling accessible={false} tintColor={disabled ? sys.color.muted : undefined} />
-        : art === 'calendar' ? <CalendarArt size={28} quiet={disabled} /> : <FactArt kind={art} size={28} cut="art" muted={disabled} />}
+        : art === 'calendar' ? <CalendarArt size={28} quiet={disabled} />
+        : art === 'clock' ? <ClockArt size={28} quiet={disabled} /> : <FactArt kind={art} size={28} cut="art" muted={disabled} />}
     </View> : null}
     <View style={s.utilityCopy}>
       <T variant={featured ? "bodyStrong" : "body"} tone={disabled ? 'muted' : 'ink'}>{label}</T>

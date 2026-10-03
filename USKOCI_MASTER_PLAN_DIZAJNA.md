@@ -18,6 +18,8 @@ CURRENT ROUND 32 ROLLBACK (2026-09-28 local): canonical commit 36c57b84 restores
 
 ## Current checkpoint — visual composition, 2026-10-03
 
+Next source: candidate list/comparison items gain the existing raised material and separated rhythm; original clock/tool art connects Profile, Agenda, Worker profile/AI review and task requirements. Same offer terms and commands. Source checks pass; matching emulator build and native review pending. [Scope and provenance](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#candidate-surfaces-and-worktime-artwork--source-continuation).
+
 Owner prioritizes the complete visual product and permits recomposition within actual contracts. Continue the existing Expo application and sole62-row registry. [Current exact native/source report](docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance).
 
 Exact ae76 emulator build37121336496 is installed and CI37121358579 passes427 suites/9368 cases/6 snapshots plus191 focused cases and TypeScript. Actual Home/Profile edit, Agreements1.15/1.3, Applications1.3/full-note reveal, D06 optional-scope reveal/clear/discard/reopen and visible single-peek → own detail → Back retention are accepted within their recorded scope. Availability copy/replacement/discard and native time selection/cancel are internal fixture/noopSave evidence only, not saved business-flow acceptance.

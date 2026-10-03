@@ -8,6 +8,7 @@ import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { MoneyArt } from '../../system/MoneyArt';
 import { PeopleArt } from '../../system/PeopleArt';
+import { ToolArt } from '../../system/ToolArt';
 import { CalendarArt } from '../../system/CalendarArt';
 import { sys } from '../../system/tokens';
 import { useLayoutClass } from '../../system/textScale';
@@ -120,7 +121,7 @@ export function TaskDecisionRequirements({ rows }: { rows: { label: string; valu
       const bullets = lines.length > 0 && lines.every(line => /^[•\-–]\s*/.test(line));
       const values = bullets ? lines.map(line => line.replace(/^[•\-–]\s*/, '')).filter(Boolean) : [row.value];
       return <View key={`${row.label}:${index}`} style={s.requirement}>
-        <View style={s.requirementArt}><FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={24} cut="art" /></View>
+        <View style={s.requirementArt}>{REQUIREMENT_ART[row.label] === 'tool' ? <ToolArt size={24} /> : <FactArt kind={REQUIREMENT_ART[row.label] ?? 'document'} size={24} cut="art" />}</View>
         <View style={s.copy}><T variant="meta" tone="muted">{row.label}</T>
           {values.map((value, at) => <T key={`${at}:${value}`} selectable variant="body" style={s.ink}>{value}</T>)}
         </View>

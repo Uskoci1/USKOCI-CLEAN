@@ -9,6 +9,7 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { ClockArt } from '../system/ClockArt';
 import { dogovora } from '../system/plural';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
@@ -141,7 +142,7 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
 function LinkRow({ art, label, detail, onPress }: { art: FactArtKind; label: string; detail?: string; onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={detail ? { text: detail } : undefined}
     haptic="select" scaleTo={0.99} onPress={onPress} style={s.link}>
-    <FactArt kind={art} size={26} />
+    {art === 'clock' ? <ClockArt size={26} /> : <FactArt kind={art} size={26} />}
     <View style={s.linkCopy}>
       <T variant="bodyStrong">{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}

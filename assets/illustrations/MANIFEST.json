@@ -33,5 +33,15 @@
     "file": "uskoci-discover-v3.png",
     "sha256": "c9637868157f86d3d33d57be986880f9fd5cf712d972b72df544f5dc489bc015",
     "bytes": 1325912
+  },
+  {
+    "file": "uskoci-clock-v1.png",
+    "sha256": "2220e8dad4c9a0c745de9d0ef0c136d59475cfba0af24db19910c8cad3124dec",
+    "bytes": 960115
+  },
+  {
+    "file": "uskoci-tool-v1.png",
+    "sha256": "021dc6d5ee1f88089a46d221fb015c87efe7cd49469ff0ad209bf65e3aaf10f8",
+    "bytes": 1457918
   }
 ]
