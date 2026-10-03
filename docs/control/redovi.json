@@ -140,6 +140,12 @@
           "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
           "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_8aeb_checkpoint_20261003": {
+          "source": "8aeb787a both verified DEV installs",
+          "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
+          "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -205,6 +211,12 @@
           "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
           "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_8aeb_checkpoint_20261003": {
+          "source": "8aeb787a both verified DEV installs",
+          "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
+          "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -258,6 +270,12 @@
           "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
           "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
           "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_8aeb_checkpoint_20261003": {
+          "source": "8aeb787a both verified DEV installs",
+          "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
+          "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -2450,6 +2468,12 @@
           "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
           "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
           "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_8aeb_checkpoint_20261003": {
+          "source": "8aeb787a both verified DEV installs",
+          "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
+          "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }

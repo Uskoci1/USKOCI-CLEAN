@@ -81,3 +81,81 @@ it('the logout purge never throws into the logout', async () => {
   await nativeVoiceFiles.writeTemp('one.m4a', bytesOf(1)); mockStore.failDelete = true;
   await expect(purgeVoiceFiles()).resolves.toBeUndefined();
 });
+
+
+// The recorder's permission boundary reuses this suite's native file fixture; no capture starts here.
+const mockAudioPermissionRead = jest.fn(), mockAudioPermissionRequest = jest.fn();
+const mockAudioAppState = { currentState: 'active' };
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  return new Proxy(native, { get(target, key) {
+    if (key === 'Platform') return { OS: 'android', isTV: false };
+    if (key === 'AppState') return mockAudioAppState;
+    return Reflect.get(target, key);
+  } });
+});
+jest.mock('expo-audio', () => ({
+  getRecordingPermissionsAsync: () => mockAudioPermissionRead(),
+  requestRecordingPermissionsAsync: () => mockAudioPermissionRequest(),
+}));
+import { createNativeVoiceRecorder } from '../nativeAudioAdapters';
+
+describe('native recorder permission admission', () => {
+  beforeEach(() => {
+    mockAudioAppState.currentState = 'active';
+    mockAudioPermissionRead.mockReset().mockResolvedValue({ granted: true, canAskAgain: true });
+    mockAudioPermissionRequest.mockReset().mockResolvedValue({ granted: true, canAskAgain: true });
+  });
+  it('reuses an already-granted microphone permission on repeated holds without requesting it again', async () => {
+    const recorder = createNativeVoiceRecorder();
+    expect(await recorder.requestPermission()).toBe('granted');
+    expect(await recorder.requestPermission()).toBe('granted');
+    expect(mockAudioPermissionRead).toHaveBeenCalledTimes(2);
+    expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+  it.each([
+    [{ granted: true, canAskAgain: true }, 'granted'],
+    [{ granted: false, canAskAgain: true }, 'denied'],
+    [{ granted: false, canAskAgain: false }, 'blocked'],
+  ])('requests an ungranted askable permission once and keeps its actual result %j', async (answer, expected) => {
+    mockAudioPermissionRead.mockResolvedValue({ granted: false, canAskAgain: true });
+    mockAudioPermissionRequest.mockResolvedValue(answer);
+    expect(await createNativeVoiceRecorder().requestPermission()).toBe(expected);
+    expect(mockAudioPermissionRequest).toHaveBeenCalledTimes(1);
+  });
+  it('does not reopen a blocked permission request', async () => {
+    mockAudioPermissionRead.mockResolvedValue({ granted: false, canAskAgain: false });
+    expect(await createNativeVoiceRecorder().requestPermission()).toBe('blocked');
+    expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+  it.each(['read', 'request'] as const)('rejects a late granted permission after cancellation during %s', async stage => {
+    let settle!: (permission: { granted: boolean; canAskAgain: boolean }) => void;
+    const pending = new Promise(resolve => { settle = resolve; });
+    if (stage === 'read') mockAudioPermissionRead.mockReturnValue(pending);
+    else {
+      mockAudioPermissionRead.mockResolvedValue({ granted: false, canAskAgain: true });
+      mockAudioPermissionRequest.mockReturnValue(pending);
+    }
+    const recorder = createNativeVoiceRecorder();
+    const permission = recorder.requestPermission();
+    await Promise.resolve();
+    if (stage === 'request') expect(mockAudioPermissionRequest).toHaveBeenCalledTimes(1);
+    await recorder.cancel();
+    settle({ granted: true, canAskAgain: true });
+    expect(await permission).toBe('unavailable');
+    if (stage === 'read') expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+  it('does not turn a foreground exit during permission read into a system request', async () => {
+    mockAudioPermissionRead.mockImplementation(async () => {
+      mockAudioAppState.currentState = 'background';
+      return { granted: false, canAskAgain: true };
+    });
+    expect(await createNativeVoiceRecorder().requestPermission()).toBe('unavailable');
+    expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+  it('fails closed when permission cannot be read', async () => {
+    mockAudioPermissionRead.mockRejectedValue(new Error('permission read failed'));
+    expect(await createNativeVoiceRecorder().requestPermission()).toBe('unavailable');
+    expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+});

@@ -203,6 +203,12 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
       if (!audio || !foreground()) return 'unavailable';
       const own = epoch;
       try {
+        // Expo's Android request path delegates to Activity.requestPermissions even when granted.
+        // Read first so repeated holds do not reopen that lifecycle path unnecessarily.
+        const permission = await audio.getRecordingPermissionsAsync();
+        if (own !== epoch || !foreground()) return 'unavailable';
+        if (permission.granted) return 'granted';
+        if (!permission.canAskAgain) return 'blocked';
         const answer = await audio.requestRecordingPermissionsAsync();
         if (own !== epoch || !foreground()) return 'unavailable';
         return answer.granted ? 'granted' : answer.canAskAgain ? 'denied' : 'blocked';

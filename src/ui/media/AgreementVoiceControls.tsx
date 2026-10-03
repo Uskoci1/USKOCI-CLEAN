@@ -8,6 +8,7 @@ import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
 import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
+import { useLayoutClass } from '../system/textScale';
 
 export function voiceTime(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000));
@@ -93,24 +94,47 @@ export function AgreementVoicePreference({ voice, writable }: { voice: Agreement
 
 /** The recording is voice-only. It never consumes or silently replaces a text/photo draft. */
 export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoiceController; writable: boolean }) {
+  const { stacked } = useLayoutClass();
   const state = voice.recording;
   const recording = state.phase === 'recording', requesting = state.phase === 'requesting';
   const review = state.phase === 'review', failed = state.phase === 'failed', uploading = state.phase === 'uploading';
   return <View style={s.panel}>
     {recording || requesting ? <View style={s.recording}>
       <View style={s.flex}><T variant="bodyStrong">{requesting ? 'Pripremamo mikrofon…' : `Snimaš · ${voiceTime(state.elapsedMs)}`}</T>
-        {recording ? <T variant="note" tone="muted">{voice.review ? 'Zaustavi, pa pregledaj snimak.' : 'Pusti mikrofon za slanje.'}</T> : null}</View>
+        {recording ? <T variant="note" tone="muted">{voice.review ? voice.screenReader ? 'Zaustavi, pa pregledaj snimak.' : 'Pusti mikrofon za pregled.' : 'Pusti mikrofon za slanje.'}</T> : null}</View>
       {recording && state.level !== null ? <View accessible={false} style={s.meter}>
         <View style={[s.level, { width: `${Math.round(state.level * 100)}%` }]} /></View> : null}
       <Action label="Odustani" onPress={() => { void voice.cancel(); }} />
     </View> : null}
-    {review || failed || uploading ? <View style={s.preview}>
+    {review ? <View style={s.review}>
+      <T variant="meta" tone="muted">Glasovna poruka</T>
+      <View style={s.reviewActions}>
+        <Press accessibilityRole="button" accessibilityLabel={state.preview === 'playing' ? 'Pauziraj snimak' : 'Preslušaj snimak'}
+          accessibilityValue={state.durationMs !== null ? { text: voiceTime(state.durationMs) } : undefined}
+          onPress={() => { void voice.preview(); }} style={[s.reviewPlay, stacked && s.reviewPlayStacked]}>
+          <View accessible={false}><Glyph name="wave" size={24} /></View>
+          <View style={s.flex}>
+            <T variant="note">{state.preview === 'playing' ? 'Pauziraj' : 'Preslušaj'}</T>
+            {state.durationMs !== null ? <T variant="meta" tone="muted" style={s.duration}>{voiceTime(state.durationMs)}</T> : null}
+          </View>
+        </Press>
+        <Press accessibilityRole="button" accessibilityLabel="Odbaci snimak" disabled={!state.canDiscard}
+          accessibilityState={{ disabled: !state.canDiscard }} onPress={() => { void voice.cancel(); }}
+          style={[s.reviewDiscard, !state.canDiscard && s.disabled]}>
+          <Glyph name="trash" size={24} />
+        </Press>
+        <Press accessibilityRole="button" accessibilityLabel="Pošalji snimak" disabled={!state.canSend}
+          accessibilityState={{ disabled: !state.canSend }} onPress={() => { void voice.send(); }}
+          style={[s.reviewSend, !state.canSend && s.disabled]}>
+          <T variant="note" style={s.reviewSendText}>Pošalji</T>
+        </Press>
+      </View>
+    </View> : null}
+    {failed || uploading ? <View style={s.preview}>
       <T variant="bodyStrong">Glasovna poruka{state.durationMs !== null ? ` · ${voiceTime(state.durationMs)}` : ''}</T>
       {uploading ? <View style={s.row}><ActivityIndicator color={sys.color.ink} /><T variant="note" tone="muted">Pripremamo slanje…</T></View> :
         <View style={s.row}>
-          {review ? <Action label={state.preview === 'playing' ? 'Pauziraj snimak' : 'Preslušaj snimak'} onPress={() => { void voice.preview(); }} /> : null}
           <Action label="Odbaci snimak" disabled={!state.canDiscard} onPress={() => { void voice.cancel(); }} />
-          {review ? <Action label="Pošalji snimak" primary disabled={!state.canSend} onPress={() => { void voice.send(); }} /> : null}
           {failed ? <Action label="Proveri isto slanje" primary disabled={!state.canRetry} onPress={() => { void voice.retry(); }} /> : null}
         </View>}
     </View> : null}
@@ -133,6 +157,17 @@ const s = StyleSheet.create({
   primary: { backgroundColor: sys.color.ink, borderColor: sys.color.ink }, disabled: { opacity: 0.5 },
   mic: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   recording: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, paddingVertical: 8 },
+  // Review is part of the composer, not a second large card competing with the conversation.
+  review: { gap: sys.space.xs, paddingVertical: sys.space.sm },
+  reviewActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  reviewPlay: { minHeight: 48, flexBasis: 120, flexGrow: 1, flexShrink: 1, minWidth: 0,
+    flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.xs },
+  reviewPlayStacked: { flexBasis: '100%', flexGrow: 0 },
+  reviewDiscard: { width: 48, minHeight: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  reviewSend: { minHeight: 48, maxWidth: '100%', paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm,
+    borderRadius: sys.radius.pill, backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
+  reviewSendText: { color: sys.color.surface, fontWeight: '600', textAlign: 'center', flexShrink: 1 },
+  duration: { fontVariant: ['tabular-nums'] },
   preview: { gap: 8, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   message: { minWidth: 180, gap: 6, backgroundColor: sys.color.surface, borderRadius: 18, padding: 8 },
   play: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
