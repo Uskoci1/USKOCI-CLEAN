@@ -550,8 +550,12 @@ describe('EX-06 S02 synthetic contract corpus', () => {
         'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography']);
     });
 
-    it('pins the worker patch fields, activation labels and finish command to the worker sources', () => {
-      for (const key of [...WORKER_PATCH_KEYS, ...WORKER_LOCATION_KEYS, ...WORKER_AVAILABILITY_KEYS]) expect(sources.workerEdge).toMatch(new RegExp(`\\b${key}\\b`));
+    it('pins compatible worker fields and current personal-profile proposals to their respective sources', () => {
+      // The corpus remains V1/history-compatible; WPP01 retired two provider inputs.
+      for (const key of WORKER_PATCH_KEYS) expect(sources.workerClient).toMatch(new RegExp(`\\b${key}\\b`));
+      const personalKeys = WORKER_PATCH_KEYS.filter(key => !['licenses', 'teamCapacity'].includes(key));
+      for (const key of [...personalKeys, ...WORKER_LOCATION_KEYS, ...WORKER_AVAILABILITY_KEYS]) expect(sources.workerEdge).toMatch(new RegExp(`\\b${key}\\b`));
+      expect(sources.workerEdge).toContain("['displayName','bio','skills','tools','vehicles','location','availability'].includes(k)");
       for (const label of WORKER_REQUIRED_LABELS) expect(sources.workerClient).toContain(label);
       expect(sources.workerEdge).toContain('to je to|to je sve|gotovo');
       expect(sources.taskEdge).toContain('to je to|to je sve|gotovo');

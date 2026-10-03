@@ -60,13 +60,18 @@ it('lists every scene by its visible name and draws each one, with Nazad back to
   // About fifty scenes in one walk: under the full parallel run this takes longer than the 5 s default.
 }, 60_000);
 
-it('a scene edits only its own copy: a quick pick changes the tile, and nothing is sent', async () => {
+it('a scene edits only its own copy: a free-text vehicle is retained locally and nothing is sent', async () => {
   await act(async () => { tree = create(<Gallery />); });
   await act(async () => presses().find(node => node.props.accessibilityLabel === 'Radni profil: aktivan')!.props.onPress());
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Brzi izbor vozila')!.props.onPress());
-  const tile = () => presses().find(node => node.props.accessibilityLabel === 'Automobil')!;
-  expect(tile().props.accessibilityState.checked).toBe(false);
-  await act(async () => tile().props.onPress());
-  expect(tile().props.accessibilityState.checked).toBe(true);
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Izmeni: Vozila')!.props.onPress());
+  const input = () => tree.root.findAll(node => String(node.type) === 'TextInput')
+    .find(node => node.props.accessibilityLabel === 'Nova stavka: Vozila')!;
+  await act(async () => input().props.onChangeText('Automobil'));
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Dodaj: Vozila')!.props.onPress());
+  expect(texts()).toContain('Automobil');
+  expect(input().props.value).toBe('');
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Nazad na listu scena')!.props.onPress());
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Radni profil: aktivan')!.props.onPress());
+  expect(texts()).not.toContain('Automobil');
   nothingReadOrWritten();
 });

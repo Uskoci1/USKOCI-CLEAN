@@ -256,7 +256,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         <View style={s.arrow}><CaretRight size={20} color={sys.color.ink} /></View></View>
     </Press> : null}
     <ProfileSection title="O meni" art="person" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
-      summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title">{draft.ime}</T>
+      summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title" accessibilityRole="header">{draft.ime}</T>
         {draft.biografija ? <ProfileSummary text={draft.biografija} label="O meni" muted /> : null}</View> : undefined}
       empty="Dodaj ime i nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
