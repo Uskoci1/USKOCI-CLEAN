@@ -9,6 +9,7 @@ import { Avatar } from '../system/Avatar';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { MoneyArt } from '../system/MoneyArt';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
 import { useLayoutClass } from '../system/textScale';
@@ -93,7 +94,7 @@ export function AgreementFact({ art, label, value, note, basis, money = false, l
   labelVisible?: boolean; prominent?: boolean; supporting?: boolean;
 }) {
   return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
-    <View style={[s.factArt, labelVisible && s.labeledArt]}><FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} /></View>
+    <View style={[s.factArt, labelVisible && s.labeledArt]}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} />}</View>
     <View style={s.factCopy}>
       {labelVisible ? <T variant="meta" tone="muted">{label}</T> : null}
       <T style={[money ? s.factMoney : s.factValue, supporting && s.supportingValue, prominent && s.prominentValue]}>{value}{money && basis ? <T style={s.factBasis}>{` ${basis}`}</T> : null}</T>

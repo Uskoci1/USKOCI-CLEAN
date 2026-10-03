@@ -9,6 +9,8 @@ import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, Product
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
+import { MoneyArt } from '../system/MoneyArt';
+import { PeopleArt } from '../system/PeopleArt';
 import { CalendarArt } from '../system/CalendarArt';
 import { SkeletonCard } from '../system/Skeleton';
 import { brandAction, card, inset, sys } from '../system/tokens';
@@ -98,7 +100,7 @@ function OwnTaskFact({ art, role, spoken, children }: {
   art: FactArtKind; role: FactArtRole; spoken: string; children: ReactNode;
 }) {
   return <View accessible accessibilityLabel={spoken} style={s.factRow}>
-    <View style={s.factArt}>{art === 'calendar' ? <CalendarArt size={28} /> : <FactArt kind={art} size={28} cut="art" role={role} />}</View>
+    <View style={s.factArt}>{art === 'calendar' ? <CalendarArt size={28} /> : art === 'users' ? <PeopleArt size={28} /> : <FactArt kind={art} size={28} cut="art" role={role} />}</View>
     <T variant="copy" style={s.factText}>{children}</T>
   </View>;
 }
@@ -221,8 +223,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           </View>
           {price ? <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
             {price.isAmount || need.rezimCene === 'OFFERS' ? <View style={s.priceArt}>
-              <FactArt kind={need.rezimCene === 'OFFERS' ? 'offers' : 'money'} size={32} cut="art"
-                role={need.rezimCene === 'OFFERS' ? 'people' : 'confirmed'} />
+              {need.rezimCene === 'OFFERS' ? <FactArt kind="offers" size={32} cut="art" role="people" /> : <MoneyArt size={32} />}
             </View> : null}
             <View style={s.priceCopy}><T style={price.isAmount ? s.amount : s.priceWords}>{price.value}</T>
               {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}

@@ -6,6 +6,8 @@ import { T } from '../../Text';
 import { Press } from '../../Press';
 import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
+import { MoneyArt } from '../../system/MoneyArt';
+import { PeopleArt } from '../../system/PeopleArt';
 import { CalendarArt } from '../../system/CalendarArt';
 import { sys } from '../../system/tokens';
 import { useLayoutClass } from '../../system/textScale';
@@ -29,7 +31,7 @@ export function TaskDecisionSection({ title, children }: { title: string; childr
 /** The same truthful price helper, with a different visual weight for amounts and statements about a price. */
 export function TaskDecisionPrice({ price, offers = false, compact = false }: { price: ReturnType<typeof productPriceParts>; offers?: boolean; compact?: boolean }) {
   return <View accessible accessibilityLabel={`Budžet: ${price.value}${price.note ? `, ${price.note}` : ''}`} style={[s.price, compact && s.priceCompact]}>
-    {price.isAmount || offers ? <View style={s.priceArt}><FactArt kind={offers ? 'offers' : 'money'} size={compact ? 28 : 32} cut="art" role={offers ? 'people' : 'confirmed'} /></View> : null}
+    {price.isAmount || offers ? <View style={s.priceArt}>{offers ? <FactArt kind="offers" size={compact ? 28 : 32} cut="art" role="people" /> : <MoneyArt size={compact ? 28 : 32} />}</View> : null}
     <View style={s.priceCopy}>
       <T style={price.isAmount ? [s.amount, compact && s.amountCompact] : s.priceWords}>{price.value}</T>
       {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
@@ -54,7 +56,7 @@ export function TaskDecisionLogistics({ remote, place, time, people, filled, spo
       <View style={s.copy}><T style={s.factValue}>{time}</T></View>
     </View>
     {showCapacity ? <View accessible accessibilityLabel={`Potrebno: ${people}${spokenFilled || filled ? `, ${spokenFilled ?? filled}` : ''}`} style={s.planningFact}>
-      <FactArt kind="users" size={28} cut="art" role="people" />
+      <PeopleArt size={28} />
       <View style={s.capacityCopy}><T style={[s.factValue, s.capacityValue]}>{filled ?? people}</T></View>
     </View> : null}
   </View>;
@@ -78,7 +80,7 @@ export function TaskDecisionSummary({ need, price }: {
       </View> : null}
       <View accessible accessibilityLabel={`Potrebno: ${people}, ${capacity.spoken}`}
         style={[s.capacityTerm, stackTerms && s.termStacked]}>
-        <FactArt kind="users" size={24} cut="art" role="people" />
+        <PeopleArt size={24} />
         <View style={[s.copy, s.capacityInline]}>
           <T style={s.capacityCount}>{people}</T>
           <T variant="meta" tone="muted" style={s.capacityFilled}>{capacity.text} popunjeno</T>

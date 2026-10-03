@@ -4,6 +4,7 @@ import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withS
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { FactArt } from '../system/FactArt';
+import { MoneyArt } from '../system/MoneyArt';
 import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba } from '../system/plural';
@@ -133,7 +134,7 @@ export function OfferRow({ value, places, large, settled = false }: { value: App
   /** The offer is settled (chosen, withdrawn or closed): the people are a count, not "Dolaze". */ settled?: boolean }) {
   return <View style={[s.offer, large && s.offerStacked]}>
     <View style={[s.offerValue, large && s.offerValueStacked]}>
-      <FactArt kind="money" size={24} cut="art" />
+      {value.kind === 'amount' ? <MoneyArt size={24} /> : <FactArt kind="money" size={24} cut="art" />}
       <View style={s.offerCopy}>
         <T variant="meta" tone="muted">{OFFER_WORDS}</T>
         {value.kind === 'amount' ? <View style={s.offerAmount}>

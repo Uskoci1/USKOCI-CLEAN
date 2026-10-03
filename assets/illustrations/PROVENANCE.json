@@ -27,7 +27,9 @@
     "uskoci-work-kit-v1.png",
     "uskoci-notification-bell-v1.png",
     "uskoci-calendar-v1.png",
-    "uskoci-discover-v3.png"
+    "uskoci-discover-v3.png",
+    "uskoci-money-v3.png",
+    "uskoci-people-v2.png"
   ],
   "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
   "workProfileAsset": {
@@ -66,5 +68,26 @@
     "reference": "Original USKOCI task-launch and map material family only.",
     "nativeAcceptance": "Original viewed; matching52dp emulator check pending.",
     "prompt": "Use case: stylized-concept. Asset type: original USKOCI mobile app discover/map button illustration, square transparent PNG, readable at 52–90 dp. Create a NEW sibling illustration matching the visible task-launch reference's polished tactile materials: pearl ivory thick paper/card, emerald green glossy enamel, vivid orange small detail, restrained precise metallic highlights and soft upper-left studio lighting. Primary subject: compact folded ivory map card in a slight three-quarter perspective, with a LARGE sculpted green enamel location pin dominating the upper-right/center, occupying about 45% of the object's height. The map is a supporting shape, not a detailed cartographic scene. ONE bold calm blue river bend, only TWO OR THREE broad neutral-gray streets, and one short orange route with just 3 chunky rounded dashes leading toward the pin. Clear visual hierarchy: green pin first, folded ivory map second, blue river third; no tiny street network. Refined rounded paper bevels and subtle silver-gray edge definition; clean broad shapes with premium shallow 3D depth, not plastic toy clutter. Fully framed isolated object fills about 85% of square canvas with comfortable transparent margins on every side. Genuine transparent alpha background, no backdrop, no background tile or base plaque, no cast shadow rectangle. No real city or location, no text, letters, numbers, logo, checkmark, status badge, stars, sparkle ornaments, pencil, buildings, or decorative extra objects. This must be original art, not copied from any travel app. Preserve white/ivory luminous surfaces and dark emerald dimension, not muddy beige. One single asset only."
+  },
+  "moneyAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "file": "uskoci-money-v3.png",
+    "original": "exec-ea843763-0d32-4916-8abe-dd721ded6ae5.png",
+    "sha256": "64f8f1f502dc6c328e46670f7032491a5454ef8f645ee0691b5d58bf0274da40",
+    "purpose": "Decorative banknotes beside an authoritative amount; no amount, denomination, paid/escrow state or currency is baked into the artwork. OFFERS and unknown amounts retain existing presentation.",
+    "prompt": "# Money v3 — new sibling generation\n\nUse case: stylized-concept. Create one ORIGINAL premium mobile UI raster decoration on true transparent alpha, a new money/banknote illustration. Exactly TWO overlapping thin flexible paper currency NOTES, NOT plastic cards, NOT credit cards, NOT enamel slabs. Wide warm OFF-WHITE paper notes with EMERALD INK rectangular ornamental border and a broad nonalphanumeric WAVY ENGRAVING flowing horizontally across the middle. Main visual must unmistakably read as paper currency: delicate visible paper edge, lightly fibrous matte surface, shallow natural curl at ONE corner, slight relaxed paper bow, very thin layers. Engraving is broad irregular interwoven curved waves, never an oval, numeral, letter or single stripe. Rear note offset a little upper-right; front note lower-left, mostly face-on with a slight three-quarter perspective. Emerald printed ornament is flat ink, not raised relief. Coherent soft upper-left studio light, subtle contact shadow solely between sheets and directly beneath object. Ivory and clear emerald family matching refined contemporary 3D USKOCI artwork, but paper material far thinner and less plastic than an enamel icon. Strong simple silhouette readable at 24–32dp, two notes only, no clutter. Center whole subject inside square canvas with at least7% completely transparent safe margin on EVERY side. NO digits, letters, currency symbols, vertical single bar or1, oval or0, coins, checks, seals, badges, portraits, hands, wallet, payment cards, chip, magnetic stripe, pedestal, room, background, checkerboard, watermark or text. Genuine transparent alpha PNG, no backdrop. Broad wavy engraving and paper curl are the only descriptive details.\n\nBuilt-in imagegen. New generation; no v2 editing and no image inputs uploaded. Original v2 files and provenance remain unchanged.\n",
+    "marginEdit": "# Built-in imagegen margin-only follow-up\n\nEdit this generated original USKOCI money art ONLY to add reliable transparent safe margins. Preserve exactly the same two thin ivory paper banknotes, emerald ink wave engraving, curl, illumination, textures, colors and lack of any letters/numerals/symbols. Reduce the entire existing two-note object uniformly and center it so EVERY visible paper edge and shadow is at least9% of the square canvas from every image edge. Do not crop any paper corner. Keep true transparent alpha background. No new text, digits, oval, coin, badge, checks, cards, extra objects or changes to art. This is a composition/margin adjustment only, not a subject redesign.\n\nInput: new generated v3 paper banknote image exec-17a05da5-6465-4c1d-bbc8-6fe061c7ea29.png. v2 remains unchanged.\n",
+    "nativeAcceptance": "Original viewed; matching24/28/32dp emulator review pending."
+  },
+  "peopleAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "file": "uskoci-people-v2.png",
+    "original": "exec-7e790c40-a198-43c5-aab9-fdec4ff50872.png",
+    "sha256": "014c40342a560b57072ca647d7e91ec58f6c72ee57ff4894a94b445d315b99e9",
+    "purpose": "Generic decorative people subject. Authoritative capacity and identities stay in adjacent facts/real avatars. Explicit quiet people drawings remain unchanged.",
+    "prompt": "Use case: stylized-concept. Create ONE original premium USKOCI small mobile UI decorative 3D art asset, genuine transparent alpha background. Subject: exactly TWO distinct gender-neutral abstract rounded busts, a cobalt/soft blue front bust slightly lower-left and a pearl gray/ivory rear bust slightly upper-right. Each has a simple round featureless head and broad gently domed shoulder torso; rear bust remains clearly separable at24–28dp, heads must not touch. No faces, eyes, hair, skin identity, gender styling, clothes, collar, tie, arms, hands, badge, checkmark, numbers, words or extra objects. NOT chess pawns or real people; clear minimal people pictogram rendered with refined dimensional materials. Same family as premium ivory enamel calendar/bell art: satin blue and pearl ceramic, clean rounded bevels, subtle thickness, slight3/4 perspective mostly face-on, broad smooth silhouette, soft directional upper-left studio light, quiet contact shadow only near bust bases and overlaps. No plastic toy glare, hard black outlines, gradients as background, pedestal, scene, floor, checkerboard or watermark. Center coherent group fills85–90% of square canvas with safe transparent margins. This decoration means people only; actual number/status supplied elsewhere by UI. Native transparent alpha PNG.",
+    "nativeAcceptance": "Original viewed; matching24/28dp emulator review pending."
   }
 }

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T11:57:48Z",
-  "grana": "HEAD",
-  "head": "e46b53c4",
-  "head_poruka": "Give marketplace lists coherent depth and refine profile and time controls",
+  "osvezeno": "2026-10-03T12:21:44Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "ae76a8a9",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1645,6 +1645,45 @@
    ],
    "publication": "Local generated views only; hosted Claude artifact pending.",
    "ui_review": "W2/own-task bounded read-only review completed; U10 corrected and reviewed, U16 remains open, no native acceptance."
+  },
+  "money_people_art_source_20261003": {
+   "state": "SOURCE INTEGRATED / 192 targeted cases in 7 suites and TypeScript PASS / new artwork native pending",
+   "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+   "scope": "Nine runtime files: seven existing callers and MoneyArt/PeopleArt wrappers. Known amounts and selected material people subjects only; OFFERS, unknown prices, quiet people20/24, actual avatars and business guards preserved.",
+   "runtime_sha256": {
+    "src/ui/v2/TaskFace.tsx": "636cb0c696ff127238327f980167f0022477c62cbbb9a4f4979f8ea2cb1d1932",
+    "src/ui/v2/ApplicationFace.tsx": "2ffe2966e2d7b936afa3d078a887cc774ebda4d93148097e449c85574d9a4bdd",
+    "src/ui/v2/detail/TaskDecision.tsx": "a1386da20234dfd25e4d8c748f4b557a76b6ebb19639a74db20b776bf1bd4d8b",
+    "src/ui/v2/NeedPresentation.tsx": "0142fbce74e9c6163d41321dee28e181de933b63d70d3bd39c7c005bf34eb375",
+    "src/ui/v2/AgreementPresentation.tsx": "3296a94c4f8e5642aca77cb6dc16fecc798b4597b8555f3bd75b44887eb8f3a9",
+    "src/ui/workerProfile/WorkerProfilePresentation.tsx": "a2212b9283f3bfd6f717ccd8b693c494a3209a18e31879bb54df5b7d9fed37be",
+    "src/ui/workerProfile/WorkerAiPresentation.tsx": "0f6d95426c91c142549cb326a38ad529662edd2d57ba1b87498c378753c2e0ae",
+    "src/ui/system/MoneyArt.tsx": "e1dd7dde4616207223761f8076297fd6893cbf4188ff35ba0e6a78eeb4c44810",
+    "src/ui/system/PeopleArt.tsx": "b74c197d194e80434ffc4fc577112ad56a276f35de4c7fc14405bdb6ca78cb29"
+   },
+   "assets_sha256": {
+    "assets/illustrations/uskoci-money-v3.png": "64f8f1f502dc6c328e46670f7032491a5454ef8f645ee0691b5d58bf0274da40",
+    "assets/illustrations/uskoci-people-v2.png": "014c40342a560b57072ca647d7e91ec58f6c72ee57ff4894a94b445d315b99e9"
+   },
+   "rejected": "Money v2 rejected; not in repository or accepted runtime.",
+   "checks": {
+    "targeted_cases": 192,
+    "suites": 7,
+    "typescript": "PASS",
+    "test_files_changed": false,
+    "evidence_origin": "Root integrated-source verification; no new run by documentation subagent."
+   },
+   "prior_source_checkpoint": {
+    "source": "ae76a8a9005ec87856c35a3440bb4a470e22daca",
+    "ci_run": 37121358579,
+    "ci": "GREEN: 427 suites / 9368 tests / 6 snapshots; TypeScript and 191 focused cases PASS",
+    "emulator_build": 37121336496,
+    "apk_sha256": "abb5d84ca0803293b46eb0e5ea6a413f4106ab4bc0960ae96c3818c70ecc96bc",
+    "installed_uid": 10227,
+    "native": "Installed; root beginning bounded review. New depth/controls not yet accepted. This APK does not contain the later Moneyv3/Peoplev2 source.",
+    "phone": "Unplugged; remains cb96."
+   },
+   "boundary": "No new native artwork or depth acceptance, phone parity, performance, whole-app, provider, push-transport or store claim. No backend/dependency changes."
   }
  },
  "redovi": [
@@ -2504,6 +2543,11 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -2602,6 +2646,11 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "PROBLEM",
@@ -3343,6 +3392,11 @@
      "builds": {
       "emulator": 37118304645
      }
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "PROBLEM",
@@ -3459,6 +3513,11 @@
      },
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
      "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "PROBLEM",
@@ -4105,6 +4164,11 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "PROBLEM",
@@ -4613,6 +4677,11 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -4992,6 +5061,11 @@
      "state": "SOURCE: connected raised items, map art, calendar continuity, Profile edit, availability/time and optional scope controls; matching native pending",
      "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#material-artwork-accepted-on-emulator-connected-depth-and-controls",
      "boundary": "Existing factual text, backend authority, business command/recovery and separate targets preserved. Targeted source checks only; phone unplugged and no whole-app acceptance."
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "PROBLEM",
@@ -5390,6 +5464,11 @@
       "phone": 37114305714,
       "emulator": 37114307273
      }
+    },
+    "money_people_art_source_20261003": {
+     "state": "SOURCE / 192 targeted cases and TypeScript PASS; matching artwork native pending",
+     "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
+     "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -9607,5 +9686,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37121358579,
+   "ime": "P5 ready task and matching contract",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:39Z"
+  },
+  {
+   "id": 37121336496,
+   "ime": "Build Android development APK",
+   "sha": "ae76a8a9",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:58:11Z"
+  },
+  {
+   "id": 37121302717,
+   "ime": "Control tracker refresh",
+   "sha": "e46b53c4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:57:32Z"
+  },
+  {
+   "id": 37119634429,
+   "ime": "P5 ready task and matching contract",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:26:00Z"
+  },
+  {
+   "id": 37119632905,
+   "ime": "Build Android development APK",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:58Z"
+  },
+  {
+   "id": 37119620151,
+   "ime": "Control tracker refresh",
+   "sha": "d52e9859",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:25:42Z"
+  },
+  {
+   "id": 37118306278,
+   "ime": "P5 ready task and matching contract",
+   "sha": "7b33392d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T11:01:19Z"
+  },
+  {
+   "id": 37118304645,
+   "ime": "Build Android development APK",
+   "sha": "7b33392d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:01:17Z"
+  },
+  {
+   "id": 37118283128,
+   "ime": "EX-07 S06 safety target name proof",
+   "sha": "9dd944b4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:00:56Z"
+  },
+  {
+   "id": 37118283107,
+   "ime": "Control tracker refresh",
+   "sha": "9dd944b4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T11:00:56Z"
+  },
+  {
+   "id": 37117092827,
+   "ime": "Build Android development APK",
+   "sha": "d9ff69cd",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T10:38:41Z"
+  },
+  {
+   "id": 37117084120,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "d9ff69cd",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T10:38:31Z"
+  }
+ ]
 }

@@ -7,6 +7,7 @@ import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceVi
 import { inicijali } from '../../lib/inicijali';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
+import { MoneyArt } from '../system/MoneyArt';
 import { osobuAkuz, plural } from '../system/plural';
 import type { WindowRoom } from '../system/textScale';
 import { nested, sys } from '../system/tokens';
@@ -221,7 +222,7 @@ export function CardValue({ value, large, prominent = false }: { value: TaskValu
 export function CardDecision({ value, places, large }: { value: TaskValue; places: ReactNode; large: boolean }) {
   return <View style={[s.decision, large && s.decisionStacked]}>
     <View style={s.decisionValue}>
-      {value.kind !== 'unpriced' ? <View style={s.decisionArt}><FactArt kind={value.kind === 'offers' ? 'offers' : 'money'} size={24} cut="art" /></View> : null}
+      {value.kind !== 'unpriced' ? <View style={s.decisionArt}>{value.kind === 'offers' ? <FactArt kind="offers" size={24} cut="art" /> : <MoneyArt size={24} />}</View> : null}
       <View style={s.decisionCopy}><CardValue value={value} large prominent /></View>
     </View>
     {places ? <View style={s.decisionPlaces}>{places}</View> : null}

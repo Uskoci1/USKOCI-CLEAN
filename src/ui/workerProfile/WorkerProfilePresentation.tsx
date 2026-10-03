@@ -10,6 +10,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { PeopleArt } from '../system/PeopleArt';
 import { PickerGrid, PickerTile } from '../system/PickerTile';
 import { pictogramCatalog, type PictogramGroup } from '../system/Pictogram';
 import { StateView } from '../system/StateView';
@@ -119,7 +120,7 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
 }
 
 function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}><FactArt kind={art} size={28} cut="art" /><T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
+  return <View style={s.head}>{art === 'users' ? <PeopleArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
