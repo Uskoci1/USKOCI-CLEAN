@@ -1,4 +1,4 @@
-import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowUpRight, DotsThree, Info, PaperPlaneTilt, Plus, Waveform } from 'phosphor-react-native';
@@ -41,6 +41,8 @@ export type AiConversationShellProps = {
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
   /** Current task context, such as its location, on the conversation's open white surface. */
   context?: ReactNode;
+  /** An owned inline editing visit. Reveal its top once; local height changes never follow the thread end. */
+  interactiveContextKey?: string;
   /** The conversation's next primary step, shown above the composer when the draft is ready. */
   footerAction?: ReactNode;
   /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
@@ -95,6 +97,13 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const momentumAllowed = useRef(false);
   const historyOffset = useRef(0);
   const contextHeight = useRef(0);
+  const anchorConversation = useRef(p.conversationKey);
+  const contextActive = useRef(false);
+  contextActive.current = !!p.context && p.interactiveContextKey !== undefined;
+  const contextOwner = useRef<{ key: string; conversation: string | undefined; pending: boolean; measuring: boolean } | null>(null);
+  // RN exposes innerViewRef for measurement relative to the actual scroll content, not its viewport.
+  const threadContent = useRef<View>(null!);
+  const interactiveContext = useRef<View>(null);
   const geometry = useRef({ offset: 0, content: 0, viewport: 0 });
   const followFrame = useRef<number | null>(null);
   const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText);
@@ -103,14 +112,52 @@ export function AiConversationShell(p: AiConversationShellProps) {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
     followFrame.current = null;
   }, []);
+  const revealContext = useCallback(() => {
+    const owner = contextOwner.current;
+    if (!contextActive.current || !owner?.pending || owner.measuring || userScrolling.current) return;
+    cancelFollow();
+    followFrame.current = requestAnimationFrame(() => {
+      followFrame.current = null;
+      if (!contextActive.current || contextOwner.current !== owner || !owner.pending || userScrolling.current) return;
+      const node = interactiveContext.current, ancestor = threadContent.current;
+      if (!node || !ancestor) return; // A later actual layout event retries; never spin waiting for a native ref.
+      owner.measuring = true;
+      const current = () => contextActive.current && contextOwner.current === owner && owner.pending
+        && !userScrolling.current && interactiveContext.current === node && threadContent.current === ancestor;
+      const failed = () => { owner.measuring = false; };
+      try {
+        node.measureLayout(ancestor, (_x, y) => {
+          owner.measuring = false;
+          if (!current() || !Number.isFinite(y)) return;
+          owner.pending = false;
+          // A content-size event may still describe the preceding conversation.
+          // Let the native ScrollView clamp against its current layout instead.
+          const target = Math.max(0, y);
+          historyOffset.current = target; geometry.current.offset = target;
+          thread.current?.scrollTo({ y: target, animated: false });
+        }, failed);
+      } catch { failed(); }
+    });
+  }, [cancelFollow]);
+  useLayoutEffect(() => {
+    cancelFollow();
+    const newConversation = anchorConversation.current !== p.conversationKey;
+    anchorConversation.current = p.conversationKey;
+    contextOwner.current = contextActive.current && p.interactiveContextKey !== undefined
+      ? { key: p.interactiveContextKey, conversation: p.conversationKey,
+          pending: newConversation || (followLatest.current && !userScrolling.current), measuring: false } : null;
+    revealContext();
+    return () => { contextOwner.current = null; cancelFollow(); };
+  }, [p.conversationKey, p.interactiveContextKey, !!p.context, cancelFollow, revealContext]);
+  const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
   const followAfterLayout = useCallback(() => {
-    if (!followLatest.current || userScrolling.current || !activity.current) return;
+    if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
     cancelFollow();
     thread.current?.scrollToEnd({ animated: false });
     // Keyboard avoidance settles after the first layout; every later content/viewport event can replace this pass.
     followFrame.current = requestAnimationFrame(() => {
       followFrame.current = null;
-      if (followLatest.current && !userScrolling.current && activity.current) thread.current?.scrollToEnd({ animated: false });
+      if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) thread.current?.scrollToEnd({ animated: false });
     });
   }, [cancelFollow]);
   const reduced = useReducedMotion();
@@ -134,8 +181,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   useEffect(() => { if (!p.voice) setVoiceMode(false); }, [p.voice]);
   useEffect(() => {
     cancelFollow(); followLatest.current = true; userScrolling.current = false; momentumAllowed.current = false;
-    historyOffset.current = 0; setReadingEarlier(false); followAfterLayout();
-  }, [p.conversationKey, cancelFollow, followAfterLayout]);
+    historyOffset.current = 0; setReadingEarlier(false);
+    if (contextActive.current) revealContext(); else followAfterLayout();
+  }, [p.conversationKey, cancelFollow, followAfterLayout, revealContext]);
   const syncReadingPosition = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     geometry.current = { offset: contentOffset.y, content: contentSize.height, viewport: layoutMeasurement.height };
@@ -145,7 +193,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
     if (followLatest.current !== atBottom) { followLatest.current = atBottom; setReadingEarlier(!atBottom); }
   };
   const latest = (animated: boolean) => {
-    cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
+    cancelContextReveal(); cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
     followLatest.current = true; setReadingEarlier(false); thread.current?.scrollToEnd({ animated });
   };
 
@@ -181,12 +229,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
         { maxHeight: compact ? 180 : Math.min(300, height * 0.36) }]} contentContainerStyle={compact ? s.cardAreaCompact : s.cardContents}
         keyboardShouldPersistTaps="handled" nestedScrollEnabled>{pinned}</ScrollView> : null}
       <View style={s.flex}>
-      <ScrollView ref={thread} testID="ai-conversation-thread" style={s.flex}
+      <ScrollView ref={thread} innerViewRef={threadContent} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
         contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && !p.context && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={() => { cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
+        onScrollBeginDrag={() => { cancelContextReveal(); cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
         onScroll={syncReadingPosition}
         onScrollEndDrag={event => { syncReadingPosition(event); userScrolling.current = false; }}
         onMomentumScrollBegin={() => { userScrolling.current = momentumAllowed.current; momentumAllowed.current = false; }}
@@ -198,7 +246,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           if (direction !== 'scrollBackward' && direction !== 'scrollForward') return;
           const { offset, viewport, content } = geometry.current;
           if (!viewport) return;
-          cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
+          cancelContextReveal(); cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
           const end = Math.max(0, content - viewport);
           const target = Math.max(0, Math.min(end, offset + (direction === 'scrollBackward' ? -1 : 1) * viewport * 0.75));
           historyOffset.current = target; geometry.current.offset = target;
@@ -209,13 +257,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
           const viewport = event.nativeEvent.layout.height;
           if (!Number.isFinite(viewport) || viewport <= 0 || geometry.current.viewport === viewport) return;
           geometry.current.viewport = viewport;
+          if (contextActive.current) revealContext();
           if (followLatest.current) followAfterLayout();
           else thread.current?.scrollTo({ y: historyOffset.current, animated: false });
         }}
         // The first pending turn already belongs at the bottom, even before the server returns a message ID.
         onContentSizeChange={(_width, content) => {
           if (!Number.isFinite(content) || content < 0 || geometry.current.content === content) return;
-          geometry.current.content = content; followAfterLayout();
+          geometry.current.content = content; revealContext(); followAfterLayout();
         }}>
         {/* Always mounted: inserting/removing inline context preserves the sentence being read below it. */}
         <View testID="ai-inline-context" style={pinned && inlineSummary && !cardAtEnd ? s.inlineContext : undefined} onLayout={event => {
@@ -269,7 +318,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
             <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}
-        {p.context ? <View testID="ai-task-context">{p.context}</View> : null}
+        {p.context ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}

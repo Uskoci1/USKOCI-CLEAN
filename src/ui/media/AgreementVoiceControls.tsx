@@ -54,7 +54,7 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
   const MicTarget = voice.screenReader ? Press : Animated.View;
   const cancel = () => { if (held.current) { held.current = false; lift.settle(); void voice.cancel(); } };
   return <MicTarget accessible accessibilityRole="button" accessibilityLabel={label}
-    accessibilityHint={voice.review ? 'Snimak prvo preslušaj, pa izaberi Pošalji snimak.' : 'Drži dok govoriš. Puštanje šalje snimak. Povuci nagore da otkažeš.'}
+    accessibilityHint={voice.review ? `Snimak prvo preslušaj, pa izaberi Pošalji snimak.${voice.screenReader ? '' : ' Povuci nagore da odustaneš.'}` : 'Drži dok govoriš. Puštanje šalje snimak. Povuci nagore da otkažeš.'}
     accessibilityState={{ disabled, busy: state.phase === 'requesting' }} disabled={disabled}
     // Press-out is not finger-up: leaving its rectangle used to stop a still-held recording.
     onStartShouldSetResponder={voice.screenReader ? undefined : () => !disabled}
@@ -101,7 +101,7 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
   return <View style={s.panel}>
     {recording || requesting ? <View style={s.recording}>
       <View style={s.flex}><T variant="bodyStrong">{requesting ? 'Pripremamo mikrofon…' : `Snimaš · ${voiceTime(state.elapsedMs)}`}</T>
-        {recording ? <T variant="note" tone="muted">{voice.review ? voice.screenReader ? 'Zaustavi, pa pregledaj snimak.' : 'Pusti mikrofon za pregled.' : 'Pusti mikrofon za slanje.'}</T> : null}</View>
+        {recording ? <T variant="note" tone="muted">{voice.screenReader ? 'Zaustavi, pa pregledaj snimak.' : `${voice.review ? 'Pusti za pregled.' : 'Pusti za slanje.'} Povuci ↑ da odustaneš.`}</T> : null}</View>
       {recording && state.level !== null ? <View accessible={false} style={s.meter}>
         <View style={[s.level, { width: `${Math.round(state.level * 100)}%` }]} /></View> : null}
       <Action label="Odustani" onPress={() => { void voice.cancel(); }} />

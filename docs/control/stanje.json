@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T01:43:06Z",
+  "osvezeno": "2026-10-03T02:14:00Z",
   "grana": "HEAD",
-  "head": "3edfdd57",
-  "head_poruka": "fix(voice): reuse microphone permission and compact recording review",
+  "head": "051830ed",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1819,6 +1819,12 @@
      "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
      "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_3edf_checkpoint_20261003": {
+     "source": "3edfdd57 exact verified phone/emulator installs",
+     "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+     "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -1933,6 +1939,12 @@
      "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
      "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_3edf_checkpoint_20261003": {
+     "source": "3edfdd57 exact verified phone/emulator installs",
+     "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+     "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -2025,6 +2037,12 @@
      "source": "8aeb787a both verified DEV installs",
      "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
      "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_3edf_checkpoint_20261003": {
+     "source": "3edfdd57 exact verified phone/emulator installs",
+     "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+     "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -5219,6 +5237,12 @@
      "source": "8aeb787a both verified DEV installs",
      "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
      "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_3edf_checkpoint_20261003": {
+     "source": "3edfdd57 exact verified phone/emulator installs",
+     "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+     "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -9074,5 +9098,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37087150977,
+   "ime": "Build Android development APK",
+   "sha": "3edfdd57",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:42:58Z"
+  },
+  {
+   "id": 37087148951,
+   "ime": "Build Android development APK",
+   "sha": "3edfdd57",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:42:56Z"
+  },
+  {
+   "id": 37087143814,
+   "ime": "Control tracker refresh",
+   "sha": "3edfdd57",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:42:51Z"
+  },
+  {
+   "id": 37085762325,
+   "ime": "Build Android development APK",
+   "sha": "8aeb787a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:21:12Z"
+  },
+  {
+   "id": 37085760187,
+   "ime": "Build Android development APK",
+   "sha": "8aeb787a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:21:10Z"
+  },
+  {
+   "id": 37085760000,
+   "ime": "P5 ready task and matching contract",
+   "sha": "8aeb787a",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T01:21:10Z"
+  },
+  {
+   "id": 37085759924,
+   "ime": "Control tracker refresh",
+   "sha": "8aeb787a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:21:10Z"
+  },
+  {
+   "id": 37085434332,
+   "ime": "Push single-target disposable proof",
+   "sha": "4a16f2ae",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:16:05Z"
+  },
+  {
+   "id": 37084601034,
+   "ime": "Push single-target disposable proof",
+   "sha": "882f3cbb",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T01:03:28Z"
+  },
+  {
+   "id": 37084424867,
+   "ime": "Build Android development APK",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:53Z"
+  },
+  {
+   "id": 37084421808,
+   "ime": "Build Android development APK",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:51Z"
+  },
+  {
+   "id": 37084413073,
+   "ime": "Control tracker refresh",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:44Z"
+  }
+ ]
 }

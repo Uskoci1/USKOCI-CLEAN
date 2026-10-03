@@ -291,9 +291,12 @@ describe('compact conversation proposal', () => {
     await press('Dopuni mesto u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled();
     await press('Označi na mapi'); expect(map().props.position).toBeNull();
+    expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
+    expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
     expect(props.onInvalidate).not.toHaveBeenCalled();
     await act(async () => map().props.onChoose(other.position));
     expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(map().props.cameraHint).toBeUndefined();
     expect(props.onInvalidate).toHaveBeenCalledTimes(1); // A real pin movement still activates the discard guard.
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45000000, longitudeE6: 19000000, origin: { kind: 'MANUAL_PIN' } });
@@ -428,4 +431,25 @@ describe('inert compact location gallery', () => {
     expect(code).not.toMatch(/(?:import|require).*?(?:supabase|ClientService|productionLocationResolver|expo-location|https?:)/i);
     expect(code).not.toMatch(/\b(?:fetch|rpc|invoke|captureCurrentLocation)\s*\(/);
   });
+});
+
+
+it('retires unresolved camera context on disable and rejects the retained map action', async () => {
+  const other = { ...candidate, position: { latitude: 45, longitude: 19 },
+    origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
+  const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
+  await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
+  await press('Označi na mapi');
+  const oldChoose = map().props.onChoose;
+  expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
+  await update({ disabled: true });
+  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+  await act(async () => oldChoose(other.position));
+  expect(props.onConfirm).not.toHaveBeenCalled(); expect(props.onInvalidate).not.toHaveBeenCalled();
+  await update({ disabled: false });
+  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+  await press('Označi na mapi');
+  expect(map().props.position).toBeNull();
+  expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
+  expect(resolver.search).toHaveBeenCalledTimes(2);
 });

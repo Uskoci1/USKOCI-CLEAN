@@ -6,7 +6,7 @@ import { sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
+import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
 
@@ -54,9 +54,12 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const [centeredToken, setCenteredToken] = useState<object | null>(null);
   const token = useMemo(() => ({}), [position?.latitude, position?.longitude, coarse, disabled]);
   const latest = useRef({ token, props }); latest.current = { token, props };
-  // The neutral world viewport is an overview only. It never becomes a selected pin.
+  // Initial context fits every real resolver candidate, without choosing any of them.
+  // Keep it initial-only: ordinary rerenders must not undo the person's pan/zoom.
+  const hintBounds = cameraHintBounds(props.cameraHint, coarse);
   const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: coarse ? 10 : 15 }
-    : { center: [0, 0] as [number, number], zoom: 1 });
+    : hintBounds ? { bounds: hintBounds, padding: { top: 24, bottom: 24, left: 24, right: 24 } }
+      : { center: [0, 0] as [number, number], zoom: 1 });
   const owns = () => active.current && props.owns() && latest.current.token === token;
   const cancelDrag = () => {
     if (drag.current) { clearTimeout(drag.current.timeout); drag.current.stop(); }

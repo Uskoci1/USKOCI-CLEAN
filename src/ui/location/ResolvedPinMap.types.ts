@@ -2,6 +2,9 @@
 export type ResolvedPinPosition = Readonly<{ latitude: number; longitude: number }>;
 export type ResolvedPinMapProps = Readonly<{
   position: ResolvedPinPosition | null;
+  /** Initial camera context from actual resolver results; never draws, selects or saves a point.
+   *  Scope-owned and bounded to 20 positions. Ignored once a real position exists. */
+  cameraHint?: readonly ResolvedPinPosition[];
   onChoose: (position: ResolvedPinPosition) => void;
   disabled?: boolean;
   /** Account incarnation + reviewed point/input identity; never sent to the map SDK. */
@@ -22,4 +25,18 @@ export function displayedPinPosition(value: ResolvedPinPosition | null, coarse =
     || Math.abs(value.latitude) > 90 || Math.abs(value.longitude) > 180) return null;
   return coarse ? { latitude: Number(value.latitude.toFixed(2)), longitude: Number(value.longitude.toFixed(2)) }
     : { latitude: value.latitude, longitude: value.longitude };
+}
+
+
+/** Validated camera-only extent. A little viewport padding keeps coincident results usable, without inventing a pin. */
+export function cameraHintBounds(values: readonly ResolvedPinPosition[] | undefined, coarse = false): [number, number, number, number] | null {
+  if (!Array.isArray(values) || values.length < 1 || values.length > 20) return null;
+  const points = values.map(value => displayedPinPosition(value, coarse));
+  if (points.some(point => !point)) return null;
+  const longitudes = points.map(point => point!.longitude), latitudes = points.map(point => point!.latitude);
+  const west = Math.min(...longitudes), east = Math.max(...longitudes), south = Math.min(...latitudes), north = Math.max(...latitudes);
+  // Bounds are presentation geometry, not proposed coordinates. A zero-span native bounds fit may overzoom.
+  const horizontal = Math.max(0, (0.01 - (east - west)) / 2), vertical = Math.max(0, (0.01 - (north - south)) / 2);
+  return [Math.max(-180, west - horizontal), Math.max(-90, south - vertical),
+    Math.min(180, east + horizontal), Math.min(90, north + vertical)];
 }

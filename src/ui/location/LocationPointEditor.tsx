@@ -60,6 +60,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   // broken. Where the address is already known the map has no job until something resolves,
   // so it waits. Opt-in with autoLocate; the long form still shows it from the start.
   const [placeByHand, setPlaceByHand] = useState(false);
+  // Camera context is never a selected point. Keep only this editor's actual resolver positions.
+  const [cameraHint, setCameraHint] = useState<readonly ResolvedPinPosition[] | undefined>();
   // "The work starts where I am" is the shortest path to a point, and it was missing. The
   // permission is requested only when this is pressed, never on opening; one foreground
   // observation, no geocoder and no background listener. Opt-in with autoLocate, so the long
@@ -93,6 +95,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // Clearing the search text on blur left the point ask seedless for the rest of the session:
       // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
       // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
+      setCameraHint(undefined); if (conversation) setPlaceByHand(false);
       setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchText(initialQuery); located.current = false; setError(false);
       setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
       setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });setAddress(saved?.address ?? '');setNotes(saved?.accessNotes ?? '');
@@ -102,6 +105,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     if (!disabled) return;
     replyLease.current = null; setReplyLocked(false);
     requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false);
+    setCameraHint(undefined); if (conversation) setPlaceByHand(false);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
     // Recovery retires the unsaved proposal. Allow its normal guarded lookup again
@@ -114,7 +118,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const owns = () => alive.current && focus.current && !current.current.disabled && !replyLease.current && rendered === renderEpoch.current;
   const retireSearch = (clearCandidatePin = false) => {
     renderEpoch.current++; requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null);
-    setCandidatePage(0);
+    setCandidatePage(0); setCameraHint(undefined);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     if (clearCandidatePin && origin.kind === 'PROVIDER_CANDIDATE') { setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); }
   };
@@ -339,9 +343,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       {!position && !placeByHand && !loading ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => {
           if (!owns()) return;
-          retireSearch(); setPlaceByHand(true);
+          const context = lookupMode === 'search' && lookup.status === 'PROPOSALS'
+            ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
+          retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
-      {position || placeByHand ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey}
+      {position || placeByHand ? <ResolvedPinMap position={position} cameraHint={cameraHint} onChoose={choose} scopeKey={scopeKey}
         disabled={controlDisabled || !focused} height={220} /> : null}
       {position && (manualProposal || correctionOpen) ? <>
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}

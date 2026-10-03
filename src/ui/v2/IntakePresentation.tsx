@@ -229,6 +229,7 @@ export function IntakePresentation(props: Props) {
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement={readyForReview ? 'end' : 'top'}
+    interactiveContextKey={editingPlace && showPlace && !pointAskHidden ? placeKey : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}

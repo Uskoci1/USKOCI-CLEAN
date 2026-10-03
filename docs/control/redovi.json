@@ -146,6 +146,12 @@
           "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
           "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_3edf_checkpoint_20261003": {
+          "source": "3edfdd57 exact verified phone/emulator installs",
+          "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+          "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -217,6 +223,12 @@
           "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
           "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_3edf_checkpoint_20261003": {
+          "source": "3edfdd57 exact verified phone/emulator installs",
+          "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+          "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -276,6 +288,12 @@
           "source": "8aeb787a both verified DEV installs",
           "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
           "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_3edf_checkpoint_20261003": {
+          "source": "3edfdd57 exact verified phone/emulator installs",
+          "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+          "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
@@ -2474,6 +2492,12 @@
           "source": "8aeb787a both verified DEV installs",
           "accepted": "Emulator hold/release, side release and upward cancel with local review; bounded Poruke header1.15/1.3; untouched location close and manually dirty discard.",
           "open": "HONOR hold still resets. Next source permission read-before-request and compact review await native APK. True spoken AI and full map flow remain open.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_3edf_checkpoint_20261003": {
+          "source": "3edfdd57 exact verified phone/emulator installs",
+          "accepted": "HONOR hold and lateral release each produce local4sec review; upward cancel retains choice. Compact review phone1.15/emulator1.3 readable; discarded and preferences restored.",
+          "open": "Voice provider delivery/spoken AI/full location flow not certified. Camera/scroll refinement next. Push blocked on CLI access.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }

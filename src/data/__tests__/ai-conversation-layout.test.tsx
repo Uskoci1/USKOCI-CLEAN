@@ -159,9 +159,16 @@ describe('deliberate reading intent', () => {
   } });
   const layout = (height: number) => ({ nativeEvent: { layout: { height } } });
   const mount = async (p: AiConversationShellProps) => {
-    const native = { scrollToEnd: jest.fn(), scrollTo: jest.fn() };
+    const measurements: Array<(x: number, y: number, width: number, height: number) => void> = [];
+    const inner = {};
+    const context = { measureLayout: jest.fn((_ancestor: unknown, success: (x: number, y: number, width: number, height: number) => void) => { measurements.push(success); }) };
+    const native = { scrollToEnd: jest.fn(), scrollTo: jest.fn(), measurements, context, inner };
     await act(async () => { tree = create(<AiConversationShell {...p} />, {
-      createNodeMock: element => (element.props as { testID?: string }).testID === 'ai-conversation-thread' ? native : null,
+      createNodeMock: element => {
+        const node = element.props as { testID?: string; innerViewRef?: { current: unknown } };
+        if (node.testID === 'ai-conversation-thread') { node.innerViewRef!.current = inner; return native; }
+        return node.testID === 'ai-task-context' ? context : null;
+      },
     }); });
     return native;
   };
@@ -181,6 +188,67 @@ describe('deliberate reading intent', () => {
     });
     expect(native.scrollToEnd).not.toHaveBeenCalled();
     expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
+  });
+  it('reveals an owned editor top once, ignores local height changes, then follows normally after it closes', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Potvrdi mesto' }];
+    p.context = <View testID="place-editor" />; p.interactiveContextKey = 'place-1';
+    const native = await mount(p);
+    await act(async () => {
+      scroller().props.onLayout(layout(400));
+      tree.root.findByProps({ testID: 'ai-task-context' }).props.onLayout(layout(100));
+      scroller().props.onContentSizeChange(390, 1400); flushFrame();
+    });
+    expect(native.context.measureLayout).toHaveBeenCalledWith(native.inner, expect.any(Function), expect.any(Function));
+    await act(async () => native.measurements[0](0, 636, 300, 500));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 636, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    native.scrollTo.mockClear();
+    await act(async () => {
+      tree.root.findByProps({ testID: 'ai-task-context' }).props.onLayout(layout(500));
+      scroller().props.onContentSizeChange(390, 1800); mockKeyboard.keyboardDidShow();
+      scroller().props.onLayout(layout(250)); flushFrame();
+    });
+    expect(native.scrollTo).not.toHaveBeenCalled(); expect(native.scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => tree.update(<AiConversationShell {...p} interactiveContextKey={undefined} />));
+    await act(async () => { scroller().props.onContentSizeChange(390, 1900); flushFrame(); });
+    expect(native.scrollToEnd).toHaveBeenCalledWith({ animated: false });
+    expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it.each([636, 820])('requires a fresh native measurement for a replacement owner, even without a layout event (y=%s)', async y => {
+    const p = props(); p.conversationKey = 'conversation-a'; p.context = <View />; p.interactiveContextKey = 'place-a';
+    const native = await mount(p);
+    await act(async () => {
+      scroller().props.onLayout(layout(400));
+      scroller().props.onContentSizeChange(390, 800);
+      flushFrame();
+    });
+    expect(native.measurements).toHaveLength(1);
+    const oldMeasurement = native.measurements[0];
+    // Same mounted wrapper and no onLayout: the new owner must request its own measurement anyway.
+    await act(async () => tree.update(<AiConversationShell {...p} conversationKey="conversation-b" interactiveContextKey="place-b" />));
+    await act(async () => flushFrame());
+    expect(native.measurements).toHaveLength(2);
+    await act(async () => oldMeasurement(0, 636, 300, 500));
+    expect(native.scrollTo).not.toHaveBeenCalled();
+    await act(async () => native.measurements[1](0, y, 300, 500));
+    expect(native.scrollTo).toHaveBeenCalledTimes(1);
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+  });
+  it('cancels a pending editor reveal for deliberate history scrolling and never reclaims that offset', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Potvrdi mesto' }];
+    p.context = <View />; p.interactiveContextKey = 'place-1';
+    const native = await mount(p);
+    await act(async () => {
+      tree.root.findByProps({ testID: 'ai-task-context' }).props.onLayout({ nativeEvent: { layout: { y: 620 } } });
+      scroller().props.onScrollBeginDrag(); scroller().props.onScrollEndDrag(position(200)); flushFrame();
+    });
+    expect(native.scrollTo).not.toHaveBeenCalled(); expect(native.scrollToEnd).not.toHaveBeenCalled();
+    await act(async () => {
+      scroller().props.onContentSizeChange(390, 1800); scroller().props.onLayout(layout(250)); flushFrame();
+    });
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 200, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
   });
   it('preserves the deliberate history offset when context, viewport and streaming content change', async () => {
     const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];

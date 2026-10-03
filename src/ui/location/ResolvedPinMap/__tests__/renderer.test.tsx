@@ -446,3 +446,56 @@ it('retires camera readiness synchronously before retained responder callbacks c
   });
   expect(mockProject).not.toHaveBeenCalled(); expect(onChoose).not.toHaveBeenCalled();
 });
+
+
+it('frames all real candidates as camera context without selecting a winner or changing their coordinates', async () => {
+  const cameraHint = [{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }];
+  await render({ cameraHint }); await ready();
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toMatchObject({
+    bounds: [19.8, 45.2, 19.9, 45.3], padding: { top: 24, bottom: 24, left: 24, right: 24 },
+  });
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.maxZoom).toBe(18);
+  expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);
+  expect(onChoose).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+  await act(async () => map().props.onPress(tap(19.85, 45.25)));
+  expect(onChoose).toHaveBeenCalledWith({ latitude: 45.25, longitude: 19.85 });
+  expect(cameraHint).toEqual([{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }]);
+});
+
+it('keeps a real point authoritative over a camera hint and never carries a hint across scope changes', async () => {
+  const cameraHint = [{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }];
+  await render({ position: { latitude: 44, longitude: 20 }, cameraHint }); await ready();
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [20, 44], zoom: 15 });
+  await act(async () => tree.update(<ResolvedPinMap {...initial} scopeKey="new-account-context" />));
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [0, 0], zoom: 1 });
+  expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+it.each([
+  { cameraHint: [] },
+  { cameraHint: [{ latitude: NaN, longitude: 19 }] },
+  { cameraHint: Array(21).fill({ latitude: 45, longitude: 19 }) },
+])(
+  'rejects invalid or unbounded camera context without synthesizing a marker', async ({ cameraHint }) => {
+    await render({ cameraHint }); await ready();
+    expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [0, 0], zoom: 1 });
+    expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);
+    expect(onChoose).not.toHaveBeenCalled();
+  });
+
+it('keeps coincident camera results at a nonzero extent and coarse hints at public precision', async () => {
+  await render({ coarse: true, cameraHint: [{ latitude: 45.123456, longitude: 19.654321 }] }); await ready();
+  const bounds = tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState.bounds;
+  expect((bounds[0] + bounds[2]) / 2).toBeCloseTo(19.65, 8);
+  expect((bounds[1] + bounds[3]) / 2).toBeCloseTo(45.12, 8);
+  expect(bounds[2] - bounds[0]).toBeCloseTo(0.01, 8); expect(bounds[3] - bounds[1]).toBeCloseTo(0.01, 8);
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.maxZoom).toBe(13);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+it('keeps web camera context passive under the existing native-only editor limitation', async () => {
+  await act(async () => { tree = create(<WebPinMap {...initial} cameraHint={[{ latitude: 45, longitude: 19 }]} />); });
+  expect(text()).toContain('Otvori mobilnu aplikaciju');
+  expect(onChoose).not.toHaveBeenCalled();
+});

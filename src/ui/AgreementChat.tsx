@@ -322,6 +322,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const ready = state.phase === 'ready';
   const entries = voice ? [...state.entries, ...voice.outboxState.entries] : state.entries;
   const voiceBusy = !!voice && voice.recording.phase !== 'idle';
+  const hideEmptyTextForVoiceReview = voice?.recording.phase === 'review' && state.draft.length === 0;
   const length = Array.from(state.draft.trim()).length;
   const canSend = ready && writable && !voiceBusy && !state.capturing && (!photos || photos.loaded) && !photos?.busy && (length > 0 || photos?.ready === true) && length <= 2000
     && (!photos?.hasSelection || photos.ready);
@@ -583,7 +584,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </Press>
       </View> : null}
       {!terminal ? <View testID="agreement-chat-composer" style={[s.composerArea, compact && s.composerCompact]}>
-        <View style={[s.pill, focused && s.pillFocused]}>
+        <View style={[s.pill, focused && s.pillFocused, hideEmptyTextForVoiceReview && { display: 'none' }]}
+          accessibilityElementsHidden={hideEmptyTextForVoiceReview}
+          importantForAccessibility={hideEmptyTextForVoiceReview ? 'no-hide-descendants' : 'auto'}>
           <View style={s.writingRow}>
             <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
               accessibilityLabel="Napiši poruku" placeholder="Napiši poruku…" placeholderTextColor={sys.color.muted}
