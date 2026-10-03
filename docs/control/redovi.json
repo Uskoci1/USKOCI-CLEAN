@@ -172,6 +172,23 @@
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "HONOR actual new-task welcome/Back; emulator existing waiting/streaming/worker fixtures only. No provider turn or full recovery proof. Compact summary price/review composition remains open.",
         "ci": "P5 37092866560 SUCCESS; focused186, full9325 tests; exact phone/emulator artifacts verified and installed."
+      },
+      "duplex_compile_candidate_20261003": {
+        "status": "ISOLATED_KOTLIN_COMPILE_PASS_NOT_INTEGRATED",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "receiptSha256": "5581fc3c27742631be62f1c29a4ef00ab803a06b9b10ab48f84b99b1d1fa254a",
+        "limits": "No APK/acoustic/provider acceptance; queue credits and connected turn/session/usage contracts remain open."
+      },
+      "native_e444_compact_summary_20261003": {
+        "source": "e444eabe42193b8e4e33889769d25a4b5b4562a1",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "Exact phone/emulator installed; native fixture HONOR361dp/1.15 readable terms/action; emulator1.3 stacks, short pinned-area scroll remains. No provider/business acceptance. P5 CI37094720754 SUCCESS."
+      },
+      "duplex_credit_candidate_20261003": {
+        "status": "SOURCE_JS_TYPESCRIPT_KOTLIN_PASS_NOT_INTEGRATED",
+        "receiptSha256": "fed6df3892b828c5af45aeb15aaedbdbeb8d90535e899dc15860f707292e404f",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "limits": "30JS; isolated full TypeScript and Kotlin PASS. No native runtime/acoustics/provider integration. Candidate only in private workspace."
       }
     },
     {
@@ -262,6 +279,11 @@
           "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
+      },
+      "native_e444_compact_summary_20261003": {
+        "source": "e444eabe42193b8e4e33889769d25a4b5b4562a1",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "scope": "Exact phone/emulator installed; native fixture HONOR361dp/1.15 readable terms/action; emulator1.3 stacks, short pinned-area scroll remains. No provider/business acceptance. P5 CI37094720754 SUCCESS."
       }
     },
     {
@@ -1039,6 +1061,18 @@
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "HONOR actual new-task welcome/Back; emulator existing waiting/streaming/worker fixtures only. No provider turn or full recovery proof. Compact summary price/review composition remains open.",
         "ci": "P5 37092866560 SUCCESS; focused186, full9325 tests; exact phone/emulator artifacts verified and installed."
+      },
+      "duplex_compile_candidate_20261003": {
+        "status": "ISOLATED_KOTLIN_COMPILE_PASS_NOT_INTEGRATED",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "receiptSha256": "5581fc3c27742631be62f1c29a4ef00ab803a06b9b10ab48f84b99b1d1fa254a",
+        "limits": "No APK/acoustic/provider acceptance; queue credits and connected turn/session/usage contracts remain open."
+      },
+      "duplex_credit_candidate_20261003": {
+        "status": "SOURCE_JS_TYPESCRIPT_KOTLIN_PASS_NOT_INTEGRATED",
+        "receiptSha256": "fed6df3892b828c5af45aeb15aaedbdbeb8d90535e899dc15860f707292e404f",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+        "limits": "30JS; isolated full TypeScript and Kotlin PASS. No native runtime/acoustics/provider integration. Candidate only in private workspace."
       }
     },
     {
