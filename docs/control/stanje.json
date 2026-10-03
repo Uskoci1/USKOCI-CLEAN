@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T13:51:48Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "a0156153",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "osvezeno": "2026-10-03T13:52:54Z",
+  "grana": "HEAD",
+  "head": "e3f4ea70",
+  "head_poruka": "Compose applicant surfaces and connect original work and time artwork",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -9923,102 +9923,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37124121129,
-   "ime": "Control tracker refresh",
-   "sha": "ebed71e3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:49:24Z"
-  },
-  {
-   "id": 37122685412,
-   "ime": "P5 ready task and matching contract",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:55Z"
-  },
-  {
-   "id": 37122683343,
-   "ime": "Build Android development APK",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:53Z"
-  },
-  {
-   "id": 37122669107,
-   "ime": "Control tracker refresh",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:36Z"
-  },
-  {
-   "id": 37122669082,
-   "ime": "P5 ready task and matching contract",
-   "sha": "a7904583",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T12:22:36Z"
-  },
-  {
-   "id": 37121358579,
-   "ime": "P5 ready task and matching contract",
-   "sha": "ae76a8a9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:58:39Z"
-  },
-  {
-   "id": 37121336496,
-   "ime": "Build Android development APK",
-   "sha": "ae76a8a9",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:58:11Z"
-  },
-  {
-   "id": 37121302717,
-   "ime": "Control tracker refresh",
-   "sha": "e46b53c4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:57:32Z"
-  },
-  {
-   "id": 37119634429,
-   "ime": "P5 ready task and matching contract",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:26:00Z"
-  },
-  {
-   "id": 37119632905,
-   "ime": "Build Android development APK",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:25:58Z"
-  },
-  {
-   "id": 37119620151,
-   "ime": "Control tracker refresh",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:25:42Z"
-  },
-  {
-   "id": 37118306278,
-   "ime": "P5 ready task and matching contract",
-   "sha": "7b33392d",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T11:01:19Z"
-  }
- ]
+ "ci": null
 }
