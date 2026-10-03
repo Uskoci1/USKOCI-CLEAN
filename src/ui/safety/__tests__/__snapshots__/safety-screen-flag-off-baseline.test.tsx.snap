@@ -10,6 +10,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
   {
    "type": "T",
    "props": {
+    "variant": "note",
     "tone": "muted"
    },
    "children": [
@@ -17,13 +18,14 @@ exports[`draws the screen as before for a blocked person 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Kontakt sa korisnikom"
@@ -31,7 +33,9 @@ exports[`draws the screen as before for a blocked person 1`] = `
     },
     {
      "type": "T",
-     "props": {},
+     "props": {
+      "variant": "copy"
+     },
      "children": [
       "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
      ]
@@ -39,7 +43,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
     {
      "type": "T",
      "props": {
-      "variant": "meta",
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -67,13 +71,14 @@ exports[`draws the screen as before for a blocked person 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Privatna prijava"
@@ -82,6 +87,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
     {
      "type": "T",
      "props": {
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -252,44 +258,58 @@ exports[`draws the screen as before for a blocked person 1`] = `
      ]
     },
     {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Kratak razlog"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Kratak razlog"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Kratak razlog privatne prijave",
+        "value": "",
+        "maxLength": 200,
+        "editable": true
+       },
+       "children": null
+      }
      ]
     },
     {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Kratak razlog privatne prijave",
-      "value": "",
-      "maxLength": 200,
-      "editable": true
-     },
-     "children": null
-    },
-    {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Dodatni opis, ako želiš"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Dodatni opis, ako želiš"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Dodatni privatni opis",
+        "value": "",
+        "maxLength": 2000,
+        "editable": true,
+        "multiline": true,
+        "textAlignVertical": "top"
+       },
+       "children": null
+      }
      ]
-    },
-    {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Dodatni privatni opis",
-      "value": "",
-      "maxLength": 2000,
-      "editable": true,
-      "multiline": true,
-      "textAlignVertical": "top"
-     },
-     "children": null
     },
     {
      "type": "Action",
@@ -312,13 +332,14 @@ exports[`draws the screen as before for a blocked person 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "bodyStrong"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Treba ti operater?"
@@ -358,6 +379,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
   {
    "type": "T",
    "props": {
+    "variant": "note",
     "tone": "muted"
    },
    "children": [
@@ -365,13 +387,14 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Kontakt sa korisnikom"
@@ -379,7 +402,9 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
     },
     {
      "type": "T",
-     "props": {},
+     "props": {
+      "variant": "copy"
+     },
      "children": [
       "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
      ]
@@ -387,7 +412,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
     {
      "type": "T",
      "props": {
-      "variant": "meta",
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -415,13 +440,14 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Privatna prijava"
@@ -430,6 +456,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
     {
      "type": "T",
      "props": {
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -600,44 +627,58 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
      ]
     },
     {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Kratak razlog"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Kratak razlog"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Kratak razlog privatne prijave",
+        "value": "",
+        "maxLength": 200,
+        "editable": true
+       },
+       "children": null
+      }
      ]
     },
     {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Kratak razlog privatne prijave",
-      "value": "",
-      "maxLength": 200,
-      "editable": true
-     },
-     "children": null
-    },
-    {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Dodatni opis, ako želiš"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Dodatni opis, ako želiš"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Dodatni privatni opis",
+        "value": "",
+        "maxLength": 2000,
+        "editable": true,
+        "multiline": true,
+        "textAlignVertical": "top"
+       },
+       "children": null
+      }
      ]
-    },
-    {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Dodatni privatni opis",
-      "value": "",
-      "maxLength": 2000,
-      "editable": true,
-      "multiline": true,
-      "textAlignVertical": "top"
-     },
-     "children": null
     },
     {
      "type": "Action",
@@ -660,13 +701,14 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "bodyStrong"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Treba ti operater?"
@@ -706,6 +748,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
   {
    "type": "T",
    "props": {
+    "variant": "note",
     "tone": "muted"
    },
    "children": [
@@ -713,13 +756,14 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Kontakt sa korisnikom"
@@ -727,7 +771,9 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
     },
     {
      "type": "T",
-     "props": {},
+     "props": {
+      "variant": "copy"
+     },
      "children": [
       "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
      ]
@@ -735,7 +781,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
     {
      "type": "T",
      "props": {
-      "variant": "meta",
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -764,13 +810,14 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "heading"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Privatna prijava"
@@ -779,6 +826,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
     {
      "type": "T",
      "props": {
+      "variant": "note",
       "tone": "muted"
      },
      "children": [
@@ -949,44 +997,58 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
      ]
     },
     {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Kratak razlog"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Kratak razlog"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Kratak razlog privatne prijave",
+        "value": "",
+        "maxLength": 200,
+        "editable": true
+       },
+       "children": null
+      }
      ]
     },
     {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Kratak razlog privatne prijave",
-      "value": "",
-      "maxLength": 200,
-      "editable": true
-     },
-     "children": null
-    },
-    {
-     "type": "T",
-     "props": {
-      "variant": "bodyStrong"
-     },
+     "type": "View",
+     "props": {},
      "children": [
-      "Dodatni opis, ako želiš"
+      {
+       "type": "T",
+       "props": {
+        "variant": "note",
+        "tone": "muted"
+       },
+       "children": [
+        "Dodatni opis, ako želiš"
+       ]
+      },
+      {
+       "type": "Input",
+       "props": {
+        "accessibilityLabel": "Dodatni privatni opis",
+        "value": "",
+        "maxLength": 2000,
+        "editable": true,
+        "multiline": true,
+        "textAlignVertical": "top"
+       },
+       "children": null
+      }
      ]
-    },
-    {
-     "type": "Input",
-     "props": {
-      "accessibilityLabel": "Dodatni privatni opis",
-      "value": "",
-      "maxLength": 2000,
-      "editable": true,
-      "multiline": true,
-      "textAlignVertical": "top"
-     },
-     "children": null
     },
     {
      "type": "Action",
@@ -1009,13 +1071,14 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
    ]
   },
   {
-   "type": "Panel",
+   "type": "View",
    "props": {},
    "children": [
     {
      "type": "T",
      "props": {
-      "variant": "bodyStrong"
+      "variant": "bodyStrong",
+      "accessibilityRole": "header"
      },
      "children": [
       "Treba ti operater?"

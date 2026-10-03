@@ -1065,6 +1065,12 @@
           "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "scope": "759299f2 installed on HONOR and emulator with exact hash/UID receipts. Physical chat+keyboard/review and clean/dirty/discard notification settings inspected; original worker robot/profile entry viewed. Scoped visual PASS, not whole-app acceptance."
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1297,10 +1303,10 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd bounded native continuation recorded",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
         }
       }
     },
@@ -2469,10 +2475,10 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd bounded native continuation recorded",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
         }
       }
     },
@@ -2593,6 +2599,12 @@
           },
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       }
     },
@@ -2727,10 +2739,10 @@
           "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
         },
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd bounded native continuation recorded",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
         }
       }
     },
@@ -3185,10 +3197,14 @@
         "status": "ZVEZDICE POVEZANE / PISANI KOMENTAR: SERVER PRIMENJEN, DEO KLIJENTA POSTOJI, FLAG OFF / PREGLED I NATIVE ČEKAJU",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
         "review_privacy_composition_20261003": {
-          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "state": "4e5ef874 BUILT/INSTALLED; bounded Rating/Privacy native review PASS",
           "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
+          "boundary": "No rating or closure action submitted; unavailable retention/execution remains truthful. Whole-app and live-voice/push acceptance not claimed.",
+          "builds": {
+            "phone": 37112338160,
+            "emulator": 37112340815
+          }
         }
       }
     },
@@ -3802,6 +3818,12 @@
           },
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "boundary": "No message/provider/account-data write; local draft and voice review discarded/reversed. CI one stale typography expectation corrected locally."
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       }
     },
@@ -3856,10 +3878,16 @@
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd bounded native continuation recorded",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       },
       "native_e572_account_readonly_20261003": {
@@ -3923,10 +3951,16 @@
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
         "context_composition_20261003": {
-          "state": "SOURCE; scoped checks and TypeScript PASS; matching APK/native pending",
+          "state": "77ec19dd bounded native continuation recorded",
           "scope": "Owned map retention, keyboard-first Back, availability/calendar layout, visible safety selection, wider typed-message composer",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No contract/backend/provider changes; native map texture and changed screens await exact APK."
+          "boundary": "Availability and Safety actual phone; chat text local and cleared; long Calendar cases existing fixtures only. No report/block/message/save."
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       }
     },
@@ -4123,10 +4157,14 @@
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_04_MESSAGE_AND_READ_CONTRACTS.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_NATIVE_RECEIPT.json",
         "device": "Round23 f526a736: stvarni Profil/Privatnost otvara pregled zatvaranja; zatvori/ponovo/Android Back/header Back PASS. Bez pripreme ili brisanja; nije erasure proof. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
         "review_privacy_composition_20261003": {
-          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "state": "4e5ef874 BUILT/INSTALLED; bounded Rating/Privacy native review PASS",
           "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
+          "boundary": "No rating or closure action submitted; unavailable retention/execution remains truthful. Whole-app and live-voice/push acceptance not claimed.",
+          "builds": {
+            "phone": 37112338160,
+            "emulator": 37112340815
+          }
         }
       },
       "native_e572_account_readonly_20261003": {
@@ -4192,10 +4230,20 @@
           "status": "STILLS_NATIVE_OBSERVED_MOTION_PENDING"
         },
         "review_privacy_composition_20261003": {
-          "state": "SOURCE;63 distinct focused cases and TypeScript PASS; matching APK/native pending",
+          "state": "4e5ef874 BUILT/INSTALLED; bounded Rating/Privacy native review PASS",
           "scope": "Required rating group, secondary optional tags, full-width unchanged privacy paragraphs",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
-          "boundary": "No rating/account write or backend/contract change; no whole-app completion."
+          "boundary": "No rating or closure action submitted; unavailable retention/execution remains truthful. Whole-app and live-voice/push acceptance not claimed.",
+          "builds": {
+            "phone": 37112338160,
+            "emulator": 37112340815
+          }
+        },
+        "open_utility_composition_20261003": {
+          "state": "SOURCE reviewed; matching APK/native pending",
+          "scope": "Safety open sections, Worker summary review, large-font Profile facts, secondary Agreement routes, full-width Privacy note",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
+          "boundary": "Presentation only, existing action guards and literal privacy text preserved; no whole-app completion."
         }
       },
       "native_e572_account_readonly_20261003": {

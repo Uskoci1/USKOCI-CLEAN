@@ -81,8 +81,11 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
 
     {/* Not green: the line under it may say the feature is off or not confirmed, and green would read "all good". A read
         that failed takes the one look for "failed", the danger note (round 5 review); every other state is the wash. */}
-    <InlineNote tone={execution.error ? 'danger' : 'neutral'} art="clock">
-      <T variant="bodyStrong">Automatsko brisanje napuštenih razgovora</T>
+    <InlineNote tone={execution.error ? 'danger' : 'neutral'} art={null}>
+      <View style={s.executionHead}>
+        <View style={s.executionIcon}><FactArt kind="clock" size={22} muted={execution.error} /></View>
+        <T variant="bodyStrong" style={s.visibilityTitle}>Automatsko brisanje napuštenih razgovora</T>
+      </View>
       {execution.loading ? <T variant="note" tone="muted">Proveravamo dostupnost…</T>
         : execution.error || (execution.data?.executionAdmitted && !admitted)
           ? <T variant="note" tone={execution.error ? 'danger' : 'ink'} accessibilityRole="alert">Dostupnost automatskog brisanja nije potvrđena.</T>
@@ -119,6 +122,8 @@ const s = StyleSheet.create({
   visibilityHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   visibilityIcon: { width: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' },
   visibilityTitle: { flex: 1, minWidth: 0 },
+  executionHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  executionIcon: { paddingTop: 1 },
   fact: { gap: 2 },
   version: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingVertical: sys.space.md },
 });

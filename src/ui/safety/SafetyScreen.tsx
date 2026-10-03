@@ -9,7 +9,7 @@ import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 
-import { SettingsText as T, SettingsScreen, SettingsPanel, SettingsAction } from '../settings/SettingsPresentation';
+import { SettingsText as T, SettingsScreen, SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { sys } from '../system/tokens';
@@ -73,11 +73,11 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
   };
   return <SettingsScreen title="Bezbednost" onBack={back}>
     {profileId && safetyTargetNameBuilt() ? <TargetName profileId={profileId} targetAccountId={p.targetAccountId} /> : null}
-    <T tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
-    <SettingsPanel>
-      <T variant="heading">Kontakt sa korisnikom</T>
-      <T>{blockConsequence}</T>
-      <T variant="meta" tone="muted">Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.</T>
+    <T variant="note" tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
+    <View style={s.section}>
+      <T variant="bodyStrong" accessibilityRole="header">Kontakt sa korisnikom</T>
+      <T variant="copy">{blockConsequence}</T>
+      <T variant="note" tone="muted">Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.</T>
       {editor.loading ? <T>Proveravamo blokiranje…</T> : null}
       {editor.error ? <T tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
       {editor.data ? <>
@@ -87,17 +87,17 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
           onPress={askBlock} />
       </> : null}
       {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
-    </SettingsPanel>
+    </View>
     <PrivateReport {...p} />
     {/* This screen is where a person arrives when something has gone wrong with another person, and
         it had no way through to support at all — the only paths in were the profile row and a
         publication review. */}
-    <SettingsPanel>
-      <T variant="bodyStrong">Treba ti operater?</T>
+    <View style={[s.section, s.separated]}>
+      <T variant="bodyStrong" accessibilityRole="header">Treba ti operater?</T>
       <T variant="note" tone="muted">Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje.</T>
       <SettingsAction label="Otvori zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
-    </SettingsPanel>
+    </View>
     {confirmation.sheet}
   </SettingsScreen>;
 }
@@ -169,26 +169,29 @@ function PrivateReport(context: Context) {
     finally { finish(s); }
   }
   const editable = loaded && !busy && !frozen.current && !receipt;
-  return <SettingsPanel><T variant="heading">Privatna prijava</T>
-    <T tone="muted">Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
+  return <View style={[s.section, s.separated]}><T variant="bodyStrong" accessibilityRole="header">Privatna prijava</T>
+    <T variant="note" tone="muted">Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
     {receipt ? <View style={{ gap: 12 }}><T accessibilityLiveRegion="polite">Prijava je primljena.</T>
       <T variant="meta" tone="muted">{vreme(receipt.createdAt)}</T>
       <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} onPress={() => { void newReport(); }} /></View> : <>
-      <View accessibilityRole="radiogroup" style={{ gap: 6 }}>{SAFETY_CATEGORIES.map(value => <Press key={value} accessibilityRole="radio"
+      <View accessibilityRole="radiogroup">{SAFETY_CATEGORIES.map((value, index) => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
-        style={[radioStyles.row, { borderColor: category === value ? sys.color.green : sys.color.line,
-          backgroundColor: category === value ? sys.color.wash : sys.color.surface }]}>
+        style={[radioStyles.row, index === SAFETY_CATEGORIES.length - 1 && radioStyles.last]}>
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           style={[radioStyles.marker, { borderColor: category === value ? sys.color.green : sys.color.lineStrong }]}>
           {category === value ? <View testID="safety-category-selected" style={radioStyles.dot} /> : null}
         </View>
         <T style={radioStyles.label}>{safetyCategoryCopy[value]}</T>
       </Press>)}</View>
-      <T variant="bodyStrong">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
-        onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
-      <T variant="bodyStrong">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
-        onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
+      <View style={s.field}>
+        <T variant="note" tone="muted">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
+          onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setReason(value); }} editable={editable} style={input} />
+      </View>
+      <View style={s.field}>
+        <T variant="note" tone="muted">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
+          onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
+      </View>
       <SettingsAction label={busy ? 'Proveravamo prijavu…' : pending ? 'Ponovi isti zahtev' : 'Pošalji privatnu prijavu'}
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
       {/* A grey button carries its reason (owner's rule); a failed restore already speaks through `error` below. */}
@@ -198,12 +201,18 @@ function PrivateReport(context: Context) {
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}
-  </SettingsPanel>;
+  </View>;
 }
 const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
 
+const s = StyleSheet.create({
+  section: { gap: sys.space.md },
+  separated: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
+  field: { gap: sys.space.sm },
+});
 const radioStyles = StyleSheet.create({
-  row: { minHeight: 48, padding: 12, borderWidth: 1, borderRadius: sys.radius.control, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  row: { minHeight: 48, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  last: { borderBottomWidth: 0 },
   marker: { width: 22, height: 22, flexShrink: 0, borderWidth: 2, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   label: { flex: 1, minWidth: 0 },

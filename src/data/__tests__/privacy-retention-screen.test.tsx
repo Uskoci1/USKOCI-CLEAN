@@ -182,7 +182,9 @@ it('a failed retention read has its retry right under its own note', async () =>
 });
 it('a failed deletion read takes the danger note; a version mismatch stays a plain note', async () => {
   mockExecution.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
-  const block = () => tree.root.findAllByType(InlineNote).find(node => node.props.art === 'clock')!;
+  const block = () => tree.root.findAllByType(InlineNote).find(node =>
+    node.findAll(child => child.type === 'T' as React.ElementType &&
+      child.props.children === 'Automatsko brisanje napuštenih razgovora').length === 1)!;
   expect(block().props.tone).toBe('danger');
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1')));
   await act(async () => button('Osveži stanje').onPress());

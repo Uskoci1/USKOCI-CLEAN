@@ -507,9 +507,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
             {/* A finished or cancelled Dogovor has nothing left to change or cancel: the row opened a screen with no
                 possible action (emulator sweep, 2026-09-23). */}
             {!active || (requester && dogovor.stanje === 'AWAITING_REQUESTER') ? null
-              : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
+              : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" visibleLabel="Izmene i otkazivanje" quiet hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
                 onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
-            {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
+            {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" visibleLabel="Bezbednost i prijava" quiet hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
               onPress={() => { if (formCurrent())
                 router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
           </WorkspaceRows> : null}

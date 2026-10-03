@@ -44,8 +44,9 @@ export function ProfileWorkSummary({ requesterProfileId, workerProfileId }: {
       : <View style={[s.facts, stacked && s.stacked]}>
         {resource.data?.map(fact => <View key={fact.role} style={[s.fact, stacked && s.factStacked]} accessible
           accessibilityLabel={`${fact.role === 'uskocer' ? 'Kad ti radiš' : 'Kad ti objavljuješ'}, završeni Dogovori: ${fact.count === null ? 'broj nije dostupan' : fact.count}`}>
-          <T variant="note" tone="muted">{fact.role === 'uskocer' ? 'Kad ti radiš' : 'Kad ti objavljuješ'}</T>
-          <T variant={fact.count === null ? 'note' : 'heading'} tone={fact.count === null ? 'muted' : 'ink'}>
+          <T variant="note" tone="muted" style={stacked ? s.roleStacked : undefined}>{fact.role === 'uskocer' ? 'Kad ti radiš' : 'Kad ti objavljuješ'}</T>
+          <T variant={fact.count === null ? 'note' : 'heading'} tone={fact.count === null ? 'muted' : 'ink'}
+            style={stacked ? s.valueStacked : undefined}>
             {fact.count === null ? 'Broj nije dostupan' : fact.count.toLocaleString('sr-Latn-RS')}
           </T>
         </View>)}
@@ -64,7 +65,9 @@ const s = StyleSheet.create({
   facts: { flexDirection: 'row', gap: 20 },
   stacked: { flexDirection: 'column', gap: 12 },
   fact: { flexGrow: 1, flexBasis: 0, minWidth: 0, gap: 4 },
-  factStacked: { flexGrow: 0, flexBasis: 'auto' },
+  factStacked: { flexGrow: 0, flexBasis: 'auto', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 16, rowGap: 4 },
+  roleStacked: { flexGrow: 1, minWidth: 0, maxWidth: '100%' },
+  valueStacked: { maxWidth: '100%', flexShrink: 1 },
   retry: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' },
   retryText: { color: sys.color.ink, fontWeight: '600' },
 });

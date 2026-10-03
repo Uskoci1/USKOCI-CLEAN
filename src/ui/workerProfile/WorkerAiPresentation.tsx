@@ -23,7 +23,10 @@ const artRole=(kind:FactArtKind):FactArtRole => kind==='pin'||kind==='map'||kind
   :kind==='clock'||kind==='calendar'?'time':kind==='tool'||kind==='vehicle'?'skills'
     :kind==='person'||kind==='users'?'people':'ai';
 /** Live card of the worker profile proposal beside the conversation. */
-export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false}:{profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean}){
+export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false,showReview=true,reviewReason}:{
+  profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean;
+  showReview?:boolean;reviewReason?:string;
+}){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
   const place = `${profile.location.city || 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
@@ -49,12 +52,16 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         <PreviewFact art="users">{`${team} · ${availability}`}</PreviewFact>
         <PreviewFact art="clock">{schedule}</PreviewFact>
       </View>:null}
-      {!reviewInFooter?<Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
-        accessibilityHint="Otvara sve podatke pre završnog čuvanja." accessibilityState={{disabled}} disabled={disabled}
-        onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
-        <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
-        <ReviewCue disabled={disabled}/>
-      </Press>:null}
+      {showReview&&!reviewInFooter?<View style={s.reviewAction}>
+        <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+          accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
+          accessibilityState={{disabled}} disabled={disabled}
+          onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
+          <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
+          <ReviewCue disabled={disabled}/>
+        </Press>
+        {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
+      </View>:null}
   </View>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
@@ -170,9 +177,10 @@ const s=StyleSheet.create({
   skillHeading:{color:sys.color.ink},
   previewFacts:{gap:sys.space.sm},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:sys.space.sm},
-  reviewLabel:{color:sys.color.ink,fontWeight:'700'},
-  reviewCue:{width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
+  reviewAction:{gap:4},
+  reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
+  reviewLabel:{flex:1,minWidth:0,color:sys.color.ink,fontWeight:'700'},
+  reviewCue:{flexShrink:0,width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   review:{gap:sys.space.xl},
   reviewIntro:{gap:sys.space.md,padding:sys.space.base,borderRadius:sys.radius.card,

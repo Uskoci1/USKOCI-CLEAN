@@ -110,12 +110,12 @@ export function NextStepCard({ title, body, tone = 'green', children }: { title:
   </View>;
 }
 
-/** Contextual action as a row: its art, the label, an optional hint, the caret. Label stays the screen's contract. */
-export function WorkspaceRow({ label, hint, art, disabled = false, onPress }: { label: string; hint?: string; art?: FactArtKind; disabled?: boolean; onPress: () => void }) {
+/** Contextual action as a row. A shorter visible title may quiet secondary destinations; the full spoken label stays intact. */
+export function WorkspaceRow({ label, visibleLabel, quiet = false, hint, art, disabled = false, onPress }: { label: string; visibleLabel?: string; quiet?: boolean; hint?: string; art?: FactArtKind; disabled?: boolean; onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99}
     onPress={onPress} style={[s.row, disabled && s.rowDisabled]}>
     {art ? <View style={s.rowArt}><FactArt kind={art} size={26} /></View> : null}
-    <View style={s.rowCopy}><T variant="bodyStrong" style={[s.rowLabel, disabled && s.rowLabelOff]}>{label}</T>{hint ? <T variant="note" tone="muted">{hint}</T> : null}</View>
+    <View style={s.rowCopy}><T variant={quiet ? "body" : "bodyStrong"} style={[s.rowLabel, disabled && s.rowLabelOff]}>{visibleLabel ?? label}</T>{hint ? <T variant="note" tone="muted">{hint}</T> : null}</View>
     <CaretRight size={20} color={sys.color.muted} />
   </Press>;
 }

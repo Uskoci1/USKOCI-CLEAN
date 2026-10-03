@@ -466,19 +466,19 @@ it('late dispatched exit after account reincarnation cannot clear the old journa
  expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
 
-it('P5 worker review: one reachable footer action prepares the existing review, never saves or activates implicitly', async () => {
+it('P5 worker review: one reachable card action prepares the existing review, never saves or activates implicitly', async () => {
   mockApi.prepare.mockResolvedValue({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proveri stanje.' });
-  await render(); const footer = shell().props.footerAction;
-  expect(footer.props.label).toBe('Pregledaj profil'); expect(footer.props.disabled).toBe(false);
-  expect(shell().props.card(false).props.reviewInFooter).toBe(true);
+  await render(); const card = shell().props.card(false);
+  expect(card.props.showReview).toBe(true); expect(card.props.disabled).toBe(false); expect(typeof card.props.review).toBe('function');
+  expect(card.props.reviewInFooter).toBeUndefined(); expect(shell().props.footerAction).toBeUndefined();
   expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
-  await act(async () => footer.props.onPress());
+  await act(async () => card.props.review());
   expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true); expect(mockApi.save).not.toHaveBeenCalled();
 });
 it('P5 worker review: no empty-profile call to action and no review during an unresolved turn', async () => {
   mockApi.read.mockResolvedValue(ok({ ...snapshot(), candidate: { ...candidate(), skills: [] } }));
-  await render(); expect(shell().props.footerAction).toBeUndefined(); await act(async () => tree.unmount());
+  await render(); expect(shell().props.card(false)).toBeNull(); expect(shell().props.footerAction).toBeUndefined(); await act(async () => tree.unmount());
   mockApi.read.mockResolvedValue(ok(snapshot(turn()))); await render();
-  const footer = shell().props.footerAction; expect(footer.props.disabled).toBe(true);
-  await act(async () => footer.props.onPress()); expect(mockApi.prepare).not.toHaveBeenCalled();
+  const card = shell().props.card(false); expect(card.props.showReview).toBe(true); expect(card.props.disabled).toBe(true); expect(card.props.reviewReason).toBeTruthy();
+  await act(async () => card.props.review()); expect(mockApi.prepare).not.toHaveBeenCalled();
 });

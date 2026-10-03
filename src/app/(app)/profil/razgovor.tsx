@@ -257,11 +257,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     || data.candidate.skills.length > 0 || data.candidate.tools.length > 0 || data.candidate.licenses.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
-    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable} reviewInFooter review={()=>{void review();}}/>:null}
-    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action tone="neutral" label="Pregledaj profil" style={brandAction}
-      disabled={!enabled} reason={!enabled?unavailableNow:undefined} onPress={()=>{void review();}}/>:undefined}
+    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
+      showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
+    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Šta umeš da radiš?'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
