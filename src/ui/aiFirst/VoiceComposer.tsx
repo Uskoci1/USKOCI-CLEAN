@@ -74,10 +74,13 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const listening = phase === 'LISTENING';
   const targetSize = p.size ?? 48;
   const glyphSize = targetSize === 60 ? 28 : targetSize === 52 ? 26 : 22;
+  // Pressable's onPressOut also fires on leaving its press rectangle or losing the responder.
+  // Held speech must finish only on actual responder release; termination cancels it unsent.
+  const MicTarget = explicit ? Pressable : View;
   const begin = () => {
     if (p.disabled || occupied || active) return;
     const id = noviUuidZahtevId(); gesture.current = id;
-    void p.controller.begin(id, explicit ? 'accessible' : 'hold');
+    if (!p.controller.begin(id, explicit ? 'accessible' : 'hold')) gesture.current = null;
   };
   const release = () => {
     const id = gesture.current; gesture.current = null;
@@ -92,7 +95,8 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const label = listening ? review ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti da pošalješ'
     : PHASE_WORDS[phase] ?? (explicit ? 'Pokreni govorni unos' : 'Drži da govoriš');
   const waiting = phase === 'PERMISSION_PENDING' || phase === 'PREPARING' || phase === 'STARTING' || phase === 'FINALIZING';
-  return <Pressable testID="voice-mic" accessibilityRole="button" accessibilityLabel={label}
+  const cancel = () => { if (gesture.current) { gesture.current = null; p.controller.cancel('gesture'); } };
+  return <MicTarget testID="voice-mic" accessible accessibilityRole="button" accessibilityLabel={label}
     accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.'
       : 'Drži tokom govora. Kad pustiš, poruka ide u razgovor. Povuci prst naviše da otkažeš.'}
     accessibilityState={{ disabled: blocked, busy: waiting }} disabled={blocked}
@@ -101,18 +105,20 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     // as a short tap, with "Govori bez držanja" beside it, which opens voice mode (verify r4b ra item B).
     accessibilityActions={explicit ? undefined : [{ name: 'activate' }]}
     onAccessibilityAction={explicit ? undefined : event => { if (event.nativeEvent.actionName === 'activate' && !blocked) p.onTooShort?.(); }}
-    onPressIn={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
-    onPressOut={explicit ? undefined : release}
+    onStartShouldSetResponder={explicit ? undefined : () => !blocked}
+    onResponderGrant={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
+    onResponderRelease={explicit ? undefined : release}
+    onResponderTerminate={explicit ? undefined : cancel}
+    onResponderTerminationRequest={explicit ? undefined : () => true}
     onPress={explicit ? () => active ? release() : begin() : undefined}
-    onTouchMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) {
-      gesture.current = null; p.controller.cancel('gesture'); } }}
+    onResponderMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) cancel(); }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
     <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, listening && s.micListening, waiting && s.micWaiting]}>
       {waiting ? <ActivityIndicator size="small" color={sys.color.artRole.ai.front} />
         : active && review ? <StopCircle size={glyphSize} weight="fill" color={listening ? sys.color.onGreen : sys.color.ink} />
           : <Microphone size={glyphSize} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
     </View>
-  </Pressable>;
+  </MicTarget>;
 }
 
 /** Five still bars for the measured level; they redraw with the level and never animate on their own. */

@@ -29,20 +29,49 @@ it('hold release finalizes once while edit/send remain the parent controller res
   const c=controller(),keep=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={keep}/>);});
   const mic=tree.root.findByProps({accessibilityLabel:'Drži da govoriš'});
-  await act(async()=>mic.props.onPressIn({nativeEvent:{pageY:200}}));
-  await act(async()=>{mic.props.onPressOut();mic.props.onPressOut();});
+  await act(async()=>mic.props.onResponderGrant({nativeEvent:{pageY:200}}));
+  await act(async()=>{mic.props.onResponderRelease();mic.props.onResponderRelease();});
   expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC','hold');expect(c.release).toHaveBeenCalledTimes(1);
   expect(keep).not.toHaveBeenCalled();
+});
+it('moving outside the press rectangle does not send; only physical responder release finalizes',async()=>{
+  const c=controller();
+  const props={controller:c as unknown as HoldToTalkController,disabled:false,onKeepText:jest.fn()};
+  await act(async()=>{tree=create(<VoiceComposer {...props} state={idle}/>);});
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
+  await act(async()=>tree.update(<VoiceComposer {...props} state={{...idle,phase:'LISTENING'}}/>));
+  const mic=tree.root.findByProps({testID:'voice-mic'});
+  expect(mic.props.onPressOut).toBeUndefined();
+  // A sideways move leaves a 52dp press rectangle but is neither finger-up nor upward cancellation.
+  await act(async()=>mic.props.onResponderMove({nativeEvent:{pageX:500,pageY:200}}));
+  expect(c.release).not.toHaveBeenCalled();expect(c.cancel).not.toHaveBeenCalled();
+  await act(async()=>{mic.props.onResponderRelease();mic.props.onResponderRelease();});
+  expect(c.release).toHaveBeenCalledTimes(1);
+});
+it.each(['termination','upward gesture'])('%s cancels held speech without dispatching a transcript on later release',async reason=>{
+  const c=controller();
+  const props={controller:c as unknown as HoldToTalkController,disabled:false,onKeepText:jest.fn()};
+  await act(async()=>{tree=create(<VoiceComposer {...props} state={idle}/>);});
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
+  await act(async()=>tree.update(<VoiceComposer {...props} state={{...idle,phase:'LISTENING'}}/>));
+  const mic=tree.root.findByProps({testID:'voice-mic'});
+  await act(async()=>{
+    if(reason==='termination')mic.props.onResponderTerminate();
+    else mic.props.onResponderMove({nativeEvent:{pageY:120}});
+    mic.props.onResponderRelease();
+  });
+  expect(c.cancel).toHaveBeenCalledTimes(1);expect(c.cancel).toHaveBeenCalledWith('gesture');
+  expect(c.release).not.toHaveBeenCalled();
 });
 it('a tap that ends before the microphone listens asks the composer to explain holding; a real hold does not',async()=>{
   const c=controller(),short=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={jest.fn()} onTooShort={short}/>);});
   const tap=tree.root.findByProps({accessibilityLabel:'Drži da govoriš'});
-  await act(async()=>{tap.props.onPressIn({nativeEvent:{pageY:200}});tap.props.onPressOut();});
+  await act(async()=>{tap.props.onResponderGrant({nativeEvent:{pageY:200}});tap.props.onResponderRelease();});
   expect(short).toHaveBeenCalledTimes(1);
-  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onPressIn({nativeEvent:{pageY:200}}));
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
   await act(async()=>tree.update(<VoiceComposer controller={c as unknown as HoldToTalkController} state={{...idle,phase:'LISTENING'}} disabled={false} onKeepText={jest.fn()} onTooShort={short}/>));
-  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onPressOut());
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderRelease());
   expect(short).toHaveBeenCalledTimes(1);expect(c.release).toHaveBeenCalledTimes(2);
 });
 // Verify r4b ra item B: a click from Switch Access or Voice Access reaches the held microphone only as `activate`; it

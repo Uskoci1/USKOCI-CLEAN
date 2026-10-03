@@ -441,8 +441,8 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
   it('a tap on the held microphone explains itself above the composer; typing takes the advice away', async () => {
     const p = props(); p.value = ''; p.voice = voice();
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPressIn === 'function')[0];
-    await act(async () => { mic.props.onPressIn({ nativeEvent: { pageY: 200 } }); mic.props.onPressOut(); });
+    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
+    await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
     expect(text()).toContain(HOLD_HINT);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props.onChangeText('T'));
     expect(text()).not.toContain(HOLD_HINT);
@@ -454,8 +454,8 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
       const p = props(); p.value = value; p.canSend = !!value; p.voice = voice();
       await act(async () => { tree = create(<AiConversationShell {...p} />); });
       expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
-      const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPressIn === 'function')[0];
-      await act(async () => { mic.props.onPressIn({ nativeEvent: { pageY: 200 } }); mic.props.onPressOut(); });
+      const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
+      await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
       await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
       expect(tree.root.findByType(VoiceMode).props.reviewFirst).toBe(review);
       expect(text()).not.toContain(HOLD_HINT);
@@ -479,8 +479,8 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
   it('the advice offers no voice mode while the screen cannot take a message', async () => {
     const p = props(); p.value = 'Treba mi prevoz'; p.voice = voice({ disabled: true });
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPressIn === 'function')[0];
-    await act(async () => { mic.props.onPressIn({ nativeEvent: { pageY: 200 } }); mic.props.onPressOut(); });
+    const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
+    await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
     expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
   });
   it('the chrome has no "···" when the screen has nothing to put behind it', async () => {
