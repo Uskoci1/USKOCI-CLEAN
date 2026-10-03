@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T01:00:57Z",
-  "grana": "HEAD",
-  "head": "3ca56cc1",
-  "head_poruka": "Keep voice recording held until actual release",
+  "osvezeno": "2026-10-03T01:20:37Z",
+  "grana": "work/uskoci-ui-unification-20260924",
+  "head": "4a16f2ae",
+  "head_poruka": "Qualify promotion preconditions under catalog-only search path",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1807,7 +1807,13 @@
      "device": "PENDING",
      "provider": "NOT_RUN"
     },
-    "source_finishing_20261002": "Existing AI draft card refined: white surface, black/gray hierarchy,24dp art and complete expanded facts. Existing chat/prompts/behavior retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+    "source_finishing_20261002": "Existing AI draft card refined: white surface, black/gray hierarchy,24dp art and complete expanded facts. Existing chat/prompts/behavior retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+    "native_hold_location_20261003": {
+     "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+     "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+     "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    }
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -1909,6 +1915,12 @@
      "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
      "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_hold_location_20261003": {
+     "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+     "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+     "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -1990,7 +2002,13 @@
     "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
     "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
-    "source_finishing_20261002": "Existing AI point confirmation clarifies proposal/confirmation, real alternatives, manual pin label, correction action and public/private geography. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+    "source_finishing_20261002": "Existing AI point confirmation clarifies proposal/confirmation, real alternatives, manual pin label, correction action and public/private geography. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+    "native_hold_location_20261003": {
+     "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+     "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+     "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -5171,6 +5189,12 @@
      "source": "AI0634b536 + Agreement actual responder release/cancel; source checked, next exact APK pending.",
      "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
      "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_hold_location_20261003": {
+     "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+     "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+     "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -9026,5 +9050,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37085434332,
+   "ime": "Push single-target disposable proof",
+   "sha": "4a16f2ae",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-03T01:16:05Z"
+  },
+  {
+   "id": 37084601034,
+   "ime": "Push single-target disposable proof",
+   "sha": "882f3cbb",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T01:03:28Z"
+  },
+  {
+   "id": 37084424867,
+   "ime": "Build Android development APK",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:53Z"
+  },
+  {
+   "id": 37084421808,
+   "ime": "Build Android development APK",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:51Z"
+  },
+  {
+   "id": 37084413073,
+   "ime": "Control tracker refresh",
+   "sha": "3ca56cc1",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T01:00:44Z"
+  },
+  {
+   "id": 37083786250,
+   "ime": "Push single-target disposable proof",
+   "sha": "0634b536",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T00:51:20Z"
+  },
+  {
+   "id": 37083786235,
+   "ime": "P5 ready task and matching contract",
+   "sha": "0634b536",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T00:51:20Z"
+  },
+  {
+   "id": 37083786234,
+   "ime": "Control tracker refresh",
+   "sha": "0634b536",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T00:51:20Z"
+  },
+  {
+   "id": 37082860836,
+   "ime": "Push single-target disposable proof",
+   "sha": "c12eccc7",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T00:37:47Z"
+  },
+  {
+   "id": 37081880706,
+   "ime": "Build Android development APK",
+   "sha": "759299f2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T00:23:40Z"
+  },
+  {
+   "id": 37081878573,
+   "ime": "Build Android development APK",
+   "sha": "759299f2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T00:23:38Z"
+  },
+  {
+   "id": 37081876918,
+   "ime": "Control tracker refresh",
+   "sha": "759299f2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T00:23:37Z"
+  }
+ ]
 }

@@ -134,7 +134,13 @@
           "device": "PENDING",
           "provider": "NOT_RUN"
         },
-        "source_finishing_20261002": "Existing AI draft card refined: white surface, black/gray hierarchy,24dp art and complete expanded facts. Existing chat/prompts/behavior retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Existing AI draft card refined: white surface, black/gray hierarchy,24dp art and complete expanded facts. Existing chat/prompts/behavior retained. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "native_hold_location_20261003": {
+          "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+          "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+          "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {
@@ -193,6 +199,12 @@
           "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
           "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_hold_location_20261003": {
+          "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+          "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+          "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },
@@ -241,7 +253,13 @@
         "status": "SOURCE_CHECKED / NATIVE_SCOPED / OPEN_DEVICE_FINDINGS",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
         "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
-        "source_finishing_20261002": "Existing AI point confirmation clarifies proposal/confirmation, real alternatives, manual pin label, correction action and public/private geography. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Existing AI point confirmation clarifies proposal/confirmation, real alternatives, manual pin label, correction action and public/private geography. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "native_hold_location_20261003": {
+          "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+          "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+          "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {
@@ -2426,6 +2444,12 @@
           "source": "AI0634b536 + Agreement actual responder release/cancel; source checked, next exact APK pending.",
           "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
           "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "native_hold_location_20261003": {
+          "installed": "3ca56cc1 on both exact-attested DEV APKs; phone37084421808/emulator37084424867.",
+          "result": "Phone hold still resets review; NOT accepted. Next source guards duplicate active in Agreement route/voice/history; automatic untouched location suggestion no longer manually dirty; compact draft while editing.",
+          "checks": "Agreement90 + location137 targeted checks PASS. Next native acceptance pending.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }

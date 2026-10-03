@@ -840,12 +840,37 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(texts()).toContain('Dogovor je završen');
     expect(mockRead).toHaveBeenCalledTimes(3); // successful command readback, then resume snapshot
   });
-  it('a second foreground event supersedes a pending resume read without revealing its stale result', async () => {
+  it('duplicate active events preserve the admitted chat visit and do not reread workspace or history', async () => {
+    mockTab = 'poruke';
+    await render();
+    const before = tree.root.findByType('AgreementChat' as any).props;
+    const voiceScope = before.voiceScope;
+    const workspaceReads = mockRead.mock.calls.length, historyReads = mockMessages.mock.calls.length;
+    expect(voiceScope.isCurrent()).toBe(true);
+    await act(async () => {
+      mockAppListeners.forEach(listener => listener('active'));
+      mockAppListeners.forEach(listener => listener('active'));
+    });
+    const after = tree.root.findByType('AgreementChat' as any).props;
+    expect(voiceScope.isCurrent()).toBe(true);
+    expect(after.voiceScope.isCurrent()).toBe(true);
+    expect(after.readingPosition).toBe(before.readingPosition);
+    expect(after.outbox).toBe(before.outbox);
+    expect(after.messages).toEqual(before.messages);
+    expect(mockRead).toHaveBeenCalledTimes(workspaceReads);
+    expect(mockMessages).toHaveBeenCalledTimes(historyReads);
+    // Ignoring a duplicate lifecycle event never relaxes the retained account-incarnation fence.
+    mockAccountRevision++;
+    expect(voiceScope.isCurrent()).toBe(false);
+  });
+  it('a second real background/foreground transition supersedes a pending resume read without revealing its stale result', async () => {
     await render();
     let first!: (data: unknown) => void, second!: (data: unknown) => void;
     mockRead.mockImplementationOnce(() => new Promise(done => { first = done; }))
       .mockImplementationOnce(() => new Promise(done => { second = done; }));
+    await act(async () => mockAppListeners.forEach(listener => listener('background')));
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
+    await act(async () => mockAppListeners.forEach(listener => listener('background')));
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
     await act(async () => first({ ...workspace, naslov: 'Stari rezultat' }));
     expect(texts()).not.toContain('Stari rezultat');

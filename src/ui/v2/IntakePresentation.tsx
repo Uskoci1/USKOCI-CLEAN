@@ -71,10 +71,10 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 
 /**
  * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
- * owned editor's guards. Safety and missing information remain visible in either state.
+ * owned editor's guards. Safety stays visible; during point editing, disclosure reveals the full draft.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
-  editing = false, hiddenMissing = false, reviewAtEnd = false }: {
+  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
@@ -85,6 +85,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   hiddenMissing?: boolean;
   /** A complete draft becomes the final summary in the thread, with review and edit entries inside this one card. */
   reviewAtEnd?: boolean;
+  /** Give an active location question room; existing disclosure still opens all draft facts. */
+  locationEditing?: boolean;
 }) {
   const large = useTextScale() >= 1.3;
   const stackValue = large || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
@@ -95,6 +97,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // TaskFace language and shows the facts needed for the decision with one guarded primary review action.
   // This is not the published TaskCard/Peek and carries no publication state.
   const readyForReview = ready && reviewAtEnd;
+  const locationSummary = locationEditing && !expanded && !readyForReview;
   const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
     summary.people, summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
@@ -102,11 +105,11 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const title = <View style={s.titleSide}>
     <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
       <T variant="label" style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
-    <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : 2}
+    <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : locationSummary ? 1 : 2}
       style={[s.compactTitle, !summary.title && s.titleEmpty]} />
   </View>;
   return <View testID="intake-task-summary"
-    style={[s.card, compact && s.cardCompact, readyForReview && s.cardReady]}>
+    style={[s.card, (compact || locationSummary) && s.cardCompact, readyForReview && s.cardReady]}>
     {readyForReview ? <View testID="intake-ready-head" accessible accessibilityLabel={spoken} style={s.disclosure}>
       {title}
     </View> : <Press testID="intake-draft-disclosure" accessibilityRole="button"
@@ -123,9 +126,9 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" role="people" />} text={summary.people} lines={0} /> : null}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
-    {next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
-      : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null}
-    {summary.value || !reviewAtEnd || readyForReview ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
+    {!locationSummary && (next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
+      : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null)}
+    {!locationSummary && (summary.value || !reviewAtEnd || readyForReview) ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
       {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
         <CardValue value={summary.value} large />
       </View> : null}
@@ -243,7 +246,7 @@ export function IntakePresentation(props: Props) {
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
-      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} />}
+      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} />}
     actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"

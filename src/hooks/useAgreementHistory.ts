@@ -13,9 +13,14 @@ export function useAgreementHistory(accountId: string, accountRevision: number, 
   }), [accountId, accountRevision, agreementId, readingPosition]);
   const state = useSyncExternalStore(model.subscribe, model.snapshot, model.snapshot);
   useFocusEffect(useCallback(() => {
-    if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive') model.start();
+    let foreground = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+    if (foreground) model.start();
     const subscription = AppState.addEventListener('change', value => {
-      if (value === 'active') model.start(); else model.forget();
+      const nextForeground = value === 'active';
+      // A duplicate foreground event is not a restore request; keep the current transcript/read owner.
+      if (nextForeground && foreground) return;
+      foreground = nextForeground;
+      if (nextForeground) model.start(); else model.forget();
     });
     return () => { subscription.remove(); model.stop(); };
   }, [model]));

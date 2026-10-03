@@ -265,6 +265,7 @@ describe('compact conversation proposal', () => {
     const resolver = configured();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
     expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(props.onInvalidate).not.toHaveBeenCalled();
     expect(map().props).toMatchObject({ position: candidate.position, height: 220 });
     expect(text()).toContain('Da li je ovo početak?'); expect(text()).toContain(candidate.label);
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
@@ -285,12 +286,15 @@ describe('compact conversation proposal', () => {
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
     expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
-    expect(text()).toContain('U kom gradu ili opštini je početak? Dopuni ulicu ili naziv mesta.');
+    expect(text()).toContain('Gde tačno je početak? Dopuni opis ili označi tačku na mapi.');
+    expect(props.onInvalidate).not.toHaveBeenCalled(); // An automatic ambiguous lookup is not a manual edit.
     await press('Dopuni mesto u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled();
     await press('Označi na mapi'); expect(map().props.position).toBeNull();
+    expect(props.onInvalidate).not.toHaveBeenCalled();
     await act(async () => map().props.onChoose(other.position));
     expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(props.onInvalidate).toHaveBeenCalledTimes(1); // A real pin movement still activates the discard guard.
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45000000, longitudeE6: 19000000, origin: { kind: 'MANUAL_PIN' } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
@@ -397,7 +401,7 @@ describe('inert compact location gallery', () => {
       expect(button('Potvrdi tačku: Mesto rada')).toBeUndefined();
       if (scene === 'unavailable') expect(text()).toContain('Pretraga mesta nije uspela.');
       else {
-        expect(text()).toContain('U kom gradu ili opštini je mesto rada? Dopuni ulicu ili naziv mesta.');
+        expect(text()).toContain('Gde tačno je mesto rada? Dopuni opis ili označi tačku na mapi.');
         expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
       }
       await press('Označi na mapi'); expect(map().props.position).toBeNull();

@@ -543,3 +543,25 @@ describe('voice mode', () => {
     expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
   });
 });
+
+it('gives an active point question a compact draft while retaining disclosure, safety and review guards', async () => {
+  const p = props(), review = jest.fn();
+  p.card = compact => <DraftCard summary={{ title: 'Pomoć oko selidbe iz Novog Sada', value: null, zone: 'Novi Sad', people: '1 osoba' }}
+    stillNeeded="Cena · Termin · tačka na mapi" open busy={false} compact={compact} canReview={false}
+    onReview={review} note="Proveri detalje pre objave." locationEditing />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const disclosure = () => tree.root.findByProps({ testID: 'intake-draft-disclosure' });
+  expect(text()).toContain('Nacrt'); expect(text()).toContain('Proveri detalje pre objave.');
+  expect(disclosure().props.accessibilityValue.text).toContain('Pomoć oko selidbe iz Novog Sada');
+  expect(text()).not.toContain('Još treba:');
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  await act(async () => disclosure().props.onPress());
+  expect(text()).toContain('Još treba: Cena · Termin · tačka na mapi');
+  expect(text()).toContain('Novi Sad'); expect(text()).toContain('1 osoba');
+  const reviewTarget = tree.root.findByProps({ testID: 'intake-draft-review' });
+  expect(reviewTarget.props.accessibilityState.disabled).toBe(true);
+  await act(async () => reviewTarget.props.onPress());
+  expect(review).not.toHaveBeenCalled();
+  await act(async () => disclosure().props.onPress());
+  expect(text()).not.toContain('Još treba:'); expect(text()).toContain('Proveri detalje pre objave.');
+});

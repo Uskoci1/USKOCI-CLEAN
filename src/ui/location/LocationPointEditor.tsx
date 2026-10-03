@@ -28,7 +28,7 @@ type Props = {
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
   /** Look the seeded query up once, so a caller that already knows the address can show the pin
    *  standing on it instead of asking the person to search for what they just said. Opt-in: a
-   *  lookup marks the point pending, which the long form treats as an unsaved change. */
+   *  lookup leaves a proposal pending confirmation. Only the long form treats automatic lookup as an unsaved change. */
   autoLocate?: boolean;
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
@@ -118,7 +118,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     if (clearCandidatePin && origin.kind === 'PROVIDER_CANDIDATE') { setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); }
   };
-  const invalidate = () => { setPending(true); setError(false); onInvalidate(); };
+  const invalidate = (notifyEdit = true) => { setPending(true); setError(false); if (notifyEdit) onInvalidate(); };
   const lookupAddress = async (next: ResolvedPinPosition, adoptProposal: boolean) => {
     const epoch = requestEpoch.current, owner = sesijaSada();
     const ownsRequest = () => alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current
@@ -153,9 +153,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     retireSearch(); setSearchText(value); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
     if (conversation) setAddress('');
   };
-  const search = async () => {
+  const runSearch = async (notifyEdit: boolean) => {
     if (!owns() || lookup.status === 'LOADING') return;
-    retireSearch(); setLookupMode('search'); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(); setLookup({ status: 'LOADING' });
+    retireSearch(); setLookupMode('search'); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(notifyEdit); setLookup({ status: 'LOADING' });
     if (conversation) { setAddress(''); setPlaceByHand(false); setCorrectionOpen(false); }
     const epoch = requestEpoch.current;
     try {
@@ -175,12 +175,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
     }
   };
-  // Placed after `search` so the effect calls the same guarded path a press does, once per scope.
+  const search = () => runSearch(true);
+  // Automatic chat suggestions are not user edits. They still require explicit confirmation,
+  // but dismissing an untouched suggestion must not claim an unsaved manual change.
   // A saved point wins: nothing here may move a point the person already confirmed.
   useEffect(() => {
     if (!autoLocate || located.current || !focused || disabled || point || !searchText.trim()) return;
     located.current = true;
-    void search();
+    void runSearch(!conversation);
   }, [autoLocate, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
   const useHere = async () => {
     if (!owns() || hereRequest.current) return;
@@ -259,7 +261,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const phase: DialogueContext['phase'] = position ? 'PROPOSAL'
     : lookupMode === 'search' && alternatives.length > 1 ? 'AMBIGUOUS' : 'UNRESOLVED';
   const pointQuestion = `Da li je ovo ${title.toLocaleLowerCase()}?`;
-  const clarificationQuestion = `U kom gradu ili opštini je ${title.toLocaleLowerCase()}? Dopuni ulicu ili naziv mesta.`;
+  const clarificationQuestion = `Gde tačno je ${title.toLocaleLowerCase()}? Dopuni opis ili označi tačku na mapi.`;
   const promptPage = phase === 'AMBIGUOUS' ? 0 : candidatePage;
   const promptAlternatives = alternatives.slice(promptPage * 3, promptPage * 3 + 3);
   // Incarnations, not coordinate equality: A→B→A cannot revive a reply to an older pin.
@@ -326,12 +328,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
           ? pointQuestion
           : loading ? 'Tražimo mesto iz razgovora…' : ambiguous
-            ? 'Pronađeno je više mogućih mesta.' : 'Dopuni opis mesta ili ga označi na mapi.'}</T>
+            ? clarificationQuestion : 'Dopuni opis mesta ili ga označi na mapi.'}</T>
         {(manualProposal || !position) && initialQuery ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View>
-      {ambiguous ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
-        {clarificationQuestion}
-      </T> : null}
       {!position && !loading && !ambiguous && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}

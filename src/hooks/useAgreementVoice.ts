@@ -87,7 +87,14 @@ export function useAgreementVoice(options: Options) {
     }
     admissionChanged.current = enter;
     enter();
-    const app = AppState.addEventListener('change', state => { if (state === 'active') enter(); else retire(); });
+    let foreground = AppState.currentState === 'active';
+    const app = AppState.addEventListener('change', state => {
+      const nextForeground = state === 'active';
+      // Repeating active must not dispose an in-progress hold or its recorder ownership.
+      if (nextForeground && foreground) return;
+      foreground = nextForeground;
+      if (nextForeground) enter(); else retire();
+    });
     return () => { focused = false; admissionChanged.current = () => {}; app.remove(); retire(); };
   }, [options.accountId, options.accountRevision, options.agreementId, options.version, outbox]));
   const admitted = options.isCurrent();

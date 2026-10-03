@@ -166,6 +166,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const [resumeEpoch, setResumeEpoch] = useState(0);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      // Android may repeat active without leaving the foreground (for example around microphone access).
+      // It is not a new visit: keep chat controls and the current workspace until a real lifecycle edge.
+      if (state === 'active' && activeRef.current) return;
       closeCompletionReview();
       chatVisit.current = {};
       activeRef.current = state === 'active';
