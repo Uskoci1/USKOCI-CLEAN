@@ -279,7 +279,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           }
         }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
-        {p.messages.length === 0 && !p.sentMessage ? <View style={s.welcome}>
+        {p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText ? <View style={s.welcome}>
           {!keyboard ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
             <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
           </View> : null}
@@ -314,7 +314,6 @@ export function AiConversationShell(p: AiConversationShellProps) {
           {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={s.answer}>{p.streamingText}</T></View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
-          {p.sentMessage || !last?.fromAi ? <Mark /> : null}
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
             <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}

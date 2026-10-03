@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T02:58:40Z",
+  "osvezeno": "2026-10-03T03:20:17Z",
   "grana": "HEAD",
-  "head": "e57250a4",
-  "head_poruka": "refine(ai): remove repeated location context and align visual checks",
+  "head": "4549a912",
+  "head_poruka": "docs(control): regenerate tracker views",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -1831,6 +1831,13 @@
      "accepted": "Emulator actual AI draft: city camera without pin, stable editor anchor, untouched close preserves conversation. HONOR local 4-second review without empty text composer; discarded.",
      "open": "No location confirmation/publication or audio delivery. Comparison readability source next; push CLI rights blocked.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_e572_checkpoint_20261003": {
+     "source": "e57250a4 exact verified phone/emulator installs",
+     "accepted": "Emulator same owned unpublished draft: deduplicated role/seed, real city map without fabricated pin, destination full address/proposed pin, untouched close preserves draft. Phone Home inspected.",
+     "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
+     "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -1957,6 +1964,13 @@
      "accepted": "Emulator actual AI draft: city camera without pin, stable editor anchor, untouched close preserves conversation. HONOR local 4-second review without empty text composer; discarded.",
      "open": "No location confirmation/publication or audio delivery. Comparison readability source next; push CLI rights blocked.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_e572_checkpoint_20261003": {
+     "source": "e57250a4 exact verified phone/emulator installs",
+     "accepted": "Emulator same owned unpublished draft: deduplicated role/seed, real city map without fabricated pin, destination full address/proposed pin, untouched close preserves draft. Phone Home inspected.",
+     "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
+     "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
    "ukupno": "PROBLEM",
@@ -2061,6 +2075,13 @@
      "source": "e7310578 exact verified phone/emulator installs",
      "accepted": "Emulator actual AI draft: city camera without pin, stable editor anchor, untouched close preserves conversation. HONOR local 4-second review without empty text composer; discarded.",
      "open": "No location confirmation/publication or audio delivery. Comparison readability source next; push CLI rights blocked.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_e572_checkpoint_20261003": {
+     "source": "e57250a4 exact verified phone/emulator installs",
+     "accepted": "Emulator same owned unpublished draft: deduplicated role/seed, real city map without fabricated pin, destination full address/proposed pin, untouched close preserves draft. Phone Home inspected.",
+     "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
+     "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -2711,7 +2732,8 @@
      "accepted": "Emulator actual incoming offers full-width at361dp/1.0, withdrawn status near identity, offer sheet close restores comparison. Physical1.15 fixture layout only.",
      "open": "No offer accepted; whole flow and wide native layout not claimed.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
-    }
+    },
+    "comparison_large_a8e9_20261003": "Emulator1.3 actual comparison: full-width identity/status/long term readable; title wraps without overlap; restored1.15. comparison-emu-large. Bounded resilience only."
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -5285,6 +5307,13 @@
      "source": "e7310578 exact verified phone/emulator installs",
      "accepted": "Emulator actual AI draft: city camera without pin, stable editor anchor, untouched close preserves conversation. HONOR local 4-second review without empty text composer; discarded.",
      "open": "No location confirmation/publication or audio delivery. Comparison readability source next; push CLI rights blocked.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "native_e572_checkpoint_20261003": {
+     "source": "e57250a4 exact verified phone/emulator installs",
+     "accepted": "Emulator same owned unpublished draft: deduplicated role/seed, real city map without fabricated pin, destination full address/proposed pin, untouched close preserves draft. Phone Home inspected.",
+     "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
+     "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
     }
    },
@@ -9140,5 +9169,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 37092200238,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "4549a912",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T03:08:30Z"
+  },
+  {
+   "id": 37091641537,
+   "ime": "Build Android development APK",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:40Z"
+  },
+  {
+   "id": 37091639346,
+   "ime": "Build Android development APK",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:38Z"
+  },
+  {
+   "id": 37091628203,
+   "ime": "R20 Discovery retained-mount proof",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:26Z"
+  },
+  {
+   "id": 37091628191,
+   "ime": "Control tracker refresh",
+   "sha": "e57250a4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:58:26Z"
+  },
+  {
+   "id": 37090550364,
+   "ime": "Build Android development APK",
+   "sha": "a8e9fcff",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:39:23Z"
+  },
+  {
+   "id": 37090548035,
+   "ime": "Build Android development APK",
+   "sha": "a8e9fcff",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:39:20Z"
+  },
+  {
+   "id": 37090538770,
+   "ime": "PKG-006 application identity and selection proof",
+   "sha": "a8e9fcff",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-03T02:39:10Z"
+  },
+  {
+   "id": 37090538764,
+   "ime": "Control tracker refresh",
+   "sha": "a8e9fcff",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:39:10Z"
+  },
+  {
+   "id": 37089189692,
+   "ime": "Build Android development APK",
+   "sha": "e7310578",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:15:51Z"
+  },
+  {
+   "id": 37089187177,
+   "ime": "Build Android development APK",
+   "sha": "e7310578",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:15:49Z"
+  },
+  {
+   "id": 37089176370,
+   "ime": "Control tracker refresh",
+   "sha": "e7310578",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-03T02:15:38Z"
+  }
+ ]
 }

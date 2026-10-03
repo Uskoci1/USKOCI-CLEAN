@@ -64,6 +64,27 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it.each([
+  { state: 'recovered pending', patch: { pending: true }, marks: 0 },
+  { state: 'waiting for an answer', patch: { busy: true }, marks: 0 },
+  { state: 'recovered processing', patch: { pending: true, busy: true }, marks: 0 },
+  { state: 'real streamed answer', patch: { busy: true, streamingText: 'Stvarni odgovor' }, marks: 1 },
+])('keeps welcome separate from $state and identifies only real answer text', async ({ patch, marks }) => {
+  const p = props(); p.conversationKey = 'owned-conversation';
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  expect(text()).toContain(p.welcome); expect(text()).toContain(p.welcomeDetail);
+  expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(0);
+  await act(async () => tree.update(<AiConversationShell {...p} {...patch} />));
+  expect(text()).not.toContain(p.welcome); expect(text()).not.toContain(p.welcomeDetail);
+  expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(marks);
+  if (patch.streamingText) expect(text()).toContain(patch.streamingText);
+  else if (patch.busy) expect(tree.root.findAllByProps({ accessibilityLabel: 'USKOČI piše odgovor' })).toHaveLength(1);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props.value).toBe(p.value);
+  expect(p.onSend).not.toHaveBeenCalled(); expect(p.onChange).not.toHaveBeenCalled();
+  await act(async () => tree.update(<AiConversationShell {...p} />));
+  expect(text()).toContain(p.welcome);
+  expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(0);
+});
 it('offers a way in before the first word, and one tap puts it in the message',async()=>{
   // 38 of the first 62 conversations never received a single message: the screen opened, said
   // "Reci šta ti treba" over an empty card, and was left. An opening is a start, not a command,
