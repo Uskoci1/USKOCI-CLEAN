@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {dirname,resolve,join,relative} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {diagnosticSql,withProjectedDigests,compareSurface,invalidationDiagnosticSql,compareInvalidation} from './cert-surface-diagnostic.mjs';
+import {buildLocationFixture} from './location-fixture.mjs';
 for(const key of ['PGHOSTADDR','PGSERVICE','PGSERVICEFILE','PGOPTIONS'])assert.ok(!process.env[key],'PG_OVERRIDE');
 assert.equal(process.env.PUSH_SINGLE_TARGET_DISPOSABLE,'SINGLE_TARGET_V1');
 assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),process.env.GITHUB_SHA);
@@ -57,32 +58,34 @@ try{
  const prior=readyObservation(),expectedLines=lf(readyBefore).split('\n'),actualLines=lf(prior.definition).split('\n');
  const firstDifferent=expectedLines.findIndex((line,i)=>line!==actualLines[i]);
  report.locationPredecessor={expectedDefinitionMd5:md5(readyBefore),observedDefinitionMd5:md5(prior.definition),expectedLfMd5:md5(lf(readyBefore)),observedLfMd5:md5(lf(prior.definition)),observedCR:prior.definition.split('\r').length-1,expectedCR:readyBefore.split('\r').length-1,firstDifferentLfLine:firstDifferent<0?(expectedLines.length===actualLines.length?null:expectedLines.length+1):firstDifferent+1,digest:prior.digest,source:prior.source,erasure:prior.erasure,bindingSource:prior.bindingSource,ready:prior.ready,newlineRestore:false};
- // A fixture-only byte-fidelity repair, never a digest or pin substitution. Every other mismatch aborts with bounded diagnostics above.
- assert.equal(prior.digest,predecessorDigest,'LOCATION_PREDECESSOR_DIGEST_DIAGNOSTIC');
- assert.equal(prior.source,predecessorDigest);assert.equal(prior.erasure,predecessorDigest);assert.equal(prior.bindingSource,predecessorDigest);assert.equal(prior.ready,true);
+ // Separate local assembly: never submit a historical ledger with rewritten pins.
+ assert.deepEqual(report.certSurface.semanticDifferences,[],'FIXTURE_CERTIFIED_SEMANTICS');
  assert.deepEqual(portable(prior.metadata),portable(live.functions.find(f=>f.signature==='private.retention_ai_source_ready()').metadata),'READY_PREDECESSOR_METADATA');
- if(prior.definition!==readyBefore){
-  assert.equal(lf(prior.definition),lf(readyBefore),'READY_PREDECESSOR_NOT_NEWLINE_ONLY');
-  rt.sql(readyBefore.trimEnd().replace(/;$/,'')+';');
-  const restored=readyObservation();assert.equal(restored.definition,readyBefore,'READY_EXACT_BYTE_RESTORE');
-  assert.deepEqual({...restored,definition:prior.definition},prior,'READY_RESTORE_CHANGED_OTHER_STATE');
-  report.locationPredecessor.newlineRestore=true;
- }
- rt.sql(application);report.checks.push({name:'EXACT_APPLIED_AI_LOCATION_PREDECESSOR',result:'PASS'});
+ read(join(dir,'location-fixture.mjs'));
+ const assembly=buildLocationFixture(application,prior,readyBefore,report.certSurface);
+ const {text:assemblySql,...assemblyReceipt}=assembly;report.locationAssembly=assemblyReceipt;
+ write('location-fixture.sql',assemblySql);rt.sql(assemblySql);
+ report.checks.push({name:'EXACT_AFTER_DEFINITIONS_LOCAL_CERTIFICATE_FIXTURE',result:'PASS'});
+ const cert=observe("select jsonb_build_object('checked_at',clock_timestamp(),'computed_digest',private.closure_source_digest_v5(),'ready',private.retention_ai_source_ready(),'binding',private.closure_erasure_binding_v5())");
+ assert.equal(cert.ready,true);assert.equal(cert.binding.sourceSha256,cert.computed_digest);
+ const bindingPolicy=b=>{const {sha256,sourceSha256,...policy}=b;return policy;};assert.deepEqual(bindingPolicy(cert.binding),bindingPolicy(liveCert.binding),'CERTIFICATE_POLICY_UNCHANGED');
+ const readyMap=d=>{assert.equal(d.split(cert.computed_digest).length,2,'ONE_INSTALLED_READINESS_LITERAL');return d.replace(cert.computed_digest,liveCert.computed_digest);};
+ // Verify every field in the immutable17-function application receipt; readiness alone has a local digest literal.
+ const aiRows=observe(`select jsonb_agg(jsonb_build_object('function_name',n.nspname||'.'||p.proname,'args',pg_get_function_arguments(p.oid),'body_md5',md5(case when p.oid='private.retention_ai_source_ready()'::regprocedure then replace(p.prosrc,${q(cert.computed_digest)},${q(liveCert.computed_digest)}) else p.prosrc end),'definition_md5',md5(case when p.oid='private.retention_ai_source_ready()'::regprocedure then replace(pg_get_functiondef(p.oid),${q(cert.computed_digest)},${q(liveCert.computed_digest)}) else pg_get_functiondef(p.oid) end),'prosecdef',p.prosecdef,'proconfig',p.proconfig,'provolatile',p.provolatile,'acl',p.proacl::text,'owner',pg_get_userbyid(p.proowner),'language',l.lanname,'anon_execute',has_function_privilege('anon',p.oid,'EXECUTE'),'authenticated_execute',has_function_privilege('authenticated',p.oid,'EXECUTE'),'service_execute',has_function_privilege('service_role',p.oid,'EXECUTE')) order by n.nspname,p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang where n.nspname||'.'||p.proname=any(array[${receipt.functions.map(f=>q(f.function_name))}])`,true);
+ assert.equal(aiRows.length,17);assert.deepEqual(aiRows,receipt.functions,'EXACT_AI_AFTER_DEFINITIONS_AND_AUTHORITY');report.aiReceiptFunctions=17;
  const signatures=live.functions.map(f=>f.signature.startsWith('private.')?f.signature.replace('(notification_deliveries)','(public.notification_deliveries)'):'public.'+f.signature);
  const captured=observe(`select jsonb_build_object('checked_at',clock_timestamp(),'current_user',current_user,'version',version(),'ledger_count',(select count(*) from supabase_migrations.schema_migrations),'functions',(select jsonb_agg(jsonb_build_object('signature',e.signature,'definition',pg_get_functiondef(p.oid),'bodyMd5',md5(replace(p.prosrc,chr(13),'')),'metadata',${metadata}) order by e.ord) from unnest(array[${signatures.map(q)}]) with ordinality e(signature,ord) join pg_proc p on p.oid=to_regprocedure(e.signature) join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang),'source_row',(select to_jsonb(c) from private.closure_source_v5 c where singleton),'erasure_row',(select to_jsonb(c) from private.closure_erasure_source_v5 c where singleton),'datasets',(select jsonb_agg(to_jsonb(c) order by data_class) from private.closure_dataset_catalog_v5 c),'export_catalog',private.data_export_dataset_catalog())`,true);
  assert.equal(captured.functions.length,live.functions.length);
  for(let i=0;i<live.functions.length;i++){
-  const a=live.functions[i],b=captured.functions[i];assert.equal(b.bodyMd5,a.bodyMd5,'CURRENT_DEV_BODY:'+signatures[i]);
-  assert.equal(b.definition,a.definition,'CURRENT_DEV_FULL_DEFINITION:'+signatures[i]);
+  const a=live.functions[i],b=captured.functions[i];
+  if(signatures[i]==='private.retention_ai_source_ready()')assert.equal(readyMap(b.definition),a.definition,'CURRENT_READINESS_EXCEPT_LOCAL_CERTIFICATE');
+  else{assert.equal(b.bodyMd5,a.bodyMd5,'CURRENT_DEV_BODY:'+signatures[i]);assert.equal(b.definition,a.definition,'CURRENT_DEV_FULL_DEFINITION:'+signatures[i]);}
   assert.deepEqual(portable(b.metadata),portable(a.metadata),'CURRENT_DEV_PORTABLE_METADATA:'+signatures[i]);
  }
- const cert=observe("select jsonb_build_object('checked_at',clock_timestamp(),'computed_digest',private.closure_source_digest_v5(),'ready',private.retention_ai_source_ready(),'binding',private.closure_erasure_binding_v5())");
- assert.equal(cert.computed_digest,liveCert.computed_digest,'CURRENT99_CERTIFICATE_EXACT');assert.equal(cert.ready,true);assert.deepEqual(cert.binding,liveCert.binding);
  assert.equal(captured.source_row.sha256,cert.computed_digest);assert.equal(captured.erasure_row.sha256,cert.computed_digest);
  const surfaceSql=read(join(dir,'surface.readonly.sql'));const surface=observe(`select jsonb_build_object('surface',surface,'surface_md5',md5(surface::text)) from (${surfaceSql})s`);
- // Local catalog OIDs, ledger length, certificate timestamps and fixture rows are bound locally only AFTER exact current body/schema certificate equivalence.
- report.fixtureBinding={definitionCount:captured.functions.length,currentDigest:cert.computed_digest,ledgerRows:captured.ledger_count,surfaceMd5:surface.surface_md5,allowedLocalIdentityFields:['catalog OIDs','ledger row count','certificate row timestamps','synthetic fixture row counts']};
+ // Local IDs/digest are admitted only after semantic equivalence and exact receipt-bound after-definitions.
+ report.fixtureBinding={kind:'CURRENT99_LOCAL_CATALOG_CERTIFICATE',historicalLedgerApplied:false,definitionCount:captured.functions.length,currentDigest:cert.computed_digest,devDigest:liveCert.computed_digest,ledgerRows:captured.ledger_count,surfaceMd5:surface.surface_md5,allowedLocalIdentityFields:['catalog OIDs','local certificate digest and matching readiness literal','ledger row count','certificate row timestamps','synthetic fixture row counts']};
  write('live-preflight-capture.json',captured);write('live-certificate-checked.json',cert);write('live-surface-capture.json',surface);
  write('live-edge-capture.json',json('live-edge-capture.json'));write('surface.readonly.sql',surfaceSql);write('build-promotion.mjs',read(join(dir,'build-promotion.mjs')));
  write('fixture-admission.json',{kind:'EXACT_99_LOOPBACK_CAPTURE'});
