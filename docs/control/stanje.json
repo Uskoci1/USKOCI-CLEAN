@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T18:45:18Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "511a3588",
-  "head_poruka": "Complete personal-profile accessibility and update retired catalogue checks",
+  "osvezeno": "2026-10-03T18:46:01Z",
+  "grana": "HEAD",
+  "head": "495bcfaf",
+  "head_poruka": "Record passing personal-profile regression and exact installed-source limits",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -10122,102 +10122,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37145120004,
-   "ime": "P5 ready task and matching contract",
-   "sha": "511a3588",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:40:58Z"
-  },
-  {
-   "id": 37144642648,
-   "ime": "P5 ready task and matching contract",
-   "sha": "87828942",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T18:33:27Z"
-  },
-  {
-   "id": 37144348384,
-   "ime": "Worker personal profile bounded proof",
-   "sha": "2c8b1fc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:28:53Z"
-  },
-  {
-   "id": 37144348344,
-   "ime": "Control tracker refresh",
-   "sha": "2c8b1fc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:28:53Z"
-  },
-  {
-   "id": 37144348342,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "2c8b1fc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:28:53Z"
-  },
-  {
-   "id": 37144348331,
-   "ime": "D12 written review comment proof",
-   "sha": "2c8b1fc1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:28:53Z"
-  },
-  {
-   "id": 37142990111,
-   "ime": "Build Android development APK",
-   "sha": "95a99f06",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:06:48Z"
-  },
-  {
-   "id": 37142045047,
-   "ime": "Worker personal profile bounded proof",
-   "sha": "29ae4f52",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T17:51:27Z"
-  },
-  {
-   "id": 37141671693,
-   "ime": "Build Android development APK",
-   "sha": "4081d682",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T17:45:18Z"
-  },
-  {
-   "id": 37141652015,
-   "ime": "P5 ready task and matching contract",
-   "sha": "4081d682",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T17:45:02Z"
-  },
-  {
-   "id": 37141652011,
-   "ime": "PKG-049 price authority characterization",
-   "sha": "4081d682",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T17:45:02Z"
-  },
-  {
-   "id": 37141651987,
-   "ime": "D12 written review comment proof",
-   "sha": "4081d682",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T17:45:01Z"
-  }
- ]
+ "ci": null
 }
