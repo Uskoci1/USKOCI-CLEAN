@@ -108,6 +108,15 @@ exports[`draws the screen as before for a blocked person 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -129,6 +138,15 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},
@@ -152,6 +170,15 @@ exports[`draws the screen as before for a blocked person 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -174,6 +201,15 @@ exports[`draws the screen as before for a blocked person 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -195,6 +231,15 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},
@@ -411,6 +456,15 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -432,6 +486,15 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},
@@ -455,6 +518,15 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -477,6 +549,15 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -498,6 +579,15 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},
@@ -715,6 +805,15 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -736,6 +835,15 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},
@@ -759,6 +867,15 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -781,6 +898,15 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
        },
        "children": [
         {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
+        {
          "type": "T",
          "props": {},
          "children": [
@@ -802,6 +928,15 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "disabled": false
        },
        "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "accessibilityElementsHidden": true,
+          "importantForAccessibility": "no-hide-descendants"
+         },
+         "children": null
+        },
         {
          "type": "T",
          "props": {},

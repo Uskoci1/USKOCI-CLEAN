@@ -2,10 +2,10 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
- * EX-07 S06 flag OFF: the safety screen is the screen it was before the displayed name existed. This file and its snapshot were
- * recorded BEFORE the name client was written (the snapshot is the structure of the then-current screen, without styles), and it must
- * pass unchanged after it: a build without EXPO_PUBLIC_EX07_SAFETY_TARGET_NAME draws this tree, calls the same service methods as
- * before, never asks for a safety target, and draws no name line, no wrapper and no extra element.
+ * EX-07 S06 flag OFF: this baseline was recorded before the displayed-name client. It still asserts that a build without
+ * EXPO_PUBLIC_EX07_SAFETY_TARGET_NAME uses the same service methods, never reads a safety target, and adds no target-name UI.
+ * The 2026-10-03 approved safety presentation adds five decorative radio markers in every state. Snapshots explicitly include
+ * those markers; all previous text, controls, block/read-error states and flag-off behavior remain checked without filtering.
  */
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', K = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const P = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
