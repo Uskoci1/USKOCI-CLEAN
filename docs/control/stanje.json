@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T11:56:35Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "e5288198",
-  "head_poruka": "docs(control): regenerate tracker views",
+  "osvezeno": "2026-10-03T11:57:48Z",
+  "grana": "HEAD",
+  "head": "e46b53c4",
+  "head_poruka": "Give marketplace lists coherent depth and refine profile and time controls",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -9607,102 +9607,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37119634429,
-   "ime": "P5 ready task and matching contract",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:26:00Z"
-  },
-  {
-   "id": 37119632905,
-   "ime": "Build Android development APK",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:25:58Z"
-  },
-  {
-   "id": 37119620151,
-   "ime": "Control tracker refresh",
-   "sha": "d52e9859",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:25:42Z"
-  },
-  {
-   "id": 37118306278,
-   "ime": "P5 ready task and matching contract",
-   "sha": "7b33392d",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T11:01:19Z"
-  },
-  {
-   "id": 37118304645,
-   "ime": "Build Android development APK",
-   "sha": "7b33392d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:01:17Z"
-  },
-  {
-   "id": 37118283128,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "9dd944b4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:00:56Z"
-  },
-  {
-   "id": 37118283107,
-   "ime": "Control tracker refresh",
-   "sha": "9dd944b4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T11:00:56Z"
-  },
-  {
-   "id": 37117092827,
-   "ime": "Build Android development APK",
-   "sha": "d9ff69cd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T10:38:41Z"
-  },
-  {
-   "id": 37117084120,
-   "ime": "PKG-006 application identity and selection proof",
-   "sha": "d9ff69cd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T10:38:31Z"
-  },
-  {
-   "id": 37117084115,
-   "ime": "P5 ready task and matching contract",
-   "sha": "d9ff69cd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T10:38:31Z"
-  },
-  {
-   "id": 37117084100,
-   "ime": "Control tracker refresh",
-   "sha": "d9ff69cd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T10:38:31Z"
-  },
-  {
-   "id": 37117084092,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "d9ff69cd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T10:38:31Z"
-  }
- ]
+ "ci": null
 }
