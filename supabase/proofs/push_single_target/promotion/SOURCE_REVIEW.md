@@ -1,11 +1,11 @@
-# Independent bounded source review
+# Bounded source review and isolated execution status
 
-Reviewer: `/root/review_ci`. Reviewed current generator, live candidate/preflight/postflight/revert, isolated current99 proof and workflow. Source-only; no candidate SQL, tests or provider calls executed by reviewer.
+Current candidate SHA256: `f069ba97a2ce3d6b459404dcb74593cdc54b6d651a2869e70a789d22271f227c`.
 
-Initial blocker: the inverse probe was encoded before renaming its disposable GUC, so its guard could not see the new install GUC. Fixed the plaintext probe before encoding; reviewer decoded and verified the regenerated candidate.
+The earlier independent review by `/root/review_ci` covered the generator, candidate/preflight/postflight/revert, isolated current99 proof and workflow. It identified the encoded inverse-probe GUC defect, which was corrected before encoding. That source review was not DEV application acceptance.
 
-Final candidate SHA256: `7f13c781f60c55bf59dd409cbf02841bf7a6260a7bb2d29408b3dc455b748181`.
+Run37084601034 at882f3cbb completed the separate source-bound current99 local-catalog fixture assembly: all17 AI receipt function checks and13 full-definition/portable-metadata checks passed. This is not execution of the original historical DEV ledger bytes. The report explicitly records historicalLedgerApplied=false. All15 report source hashes were independently matched to committed Git blobs; report SHA256 is5193b0ec13c47fb4a6ad4c4b45a4ac03b4beacf31bd1ff667f899fd611787df9.
 
-Final verdict: no second concrete source blocker found. Safe to integrate and execute the isolated proof. This is not DEV application acceptance. Strict historical D12→receipt-bound AI-location replay and the current99 wrapper must pass without relaxing predecessor pins. Existing trusted service_role direct DML limitation remains explicit.
+The run then stopped at the first promotion install because four frozen predecessor regprocedure signatures relied on public search_path while the new wrapper intentionally sets pg_catalog. The current generator fully qualifies those four signatures using unique exact tuple anchors, retaining every expected body hash. The generated candidate differs only in those four strings. Historical installer, seven function bodies, revert, preflight, postflight and Edge assets are unchanged. Root independently reviewed this bounded correction. JavaScript parsing and pure source generation passed; the corrected SQL still requires isolated execution.
 
-Actual verification so far: generated read-only DEV preflight returned no problems; both new JavaScript modules parsed; exact AI-location byte reconstruction matches its40209-character/e4a44a9b receipt. No live mutation, certificate update, Edge deployment, admission or sending occurred in this preparation.
+The full current99 install/postflight/revert/reapply proof and existing13 behavioral groups must pass before promotion. Existing trusted service_role direct DML limitation remains explicit. No live mutation, certificate update, Edge deployment, admission or sending occurred in this correction.

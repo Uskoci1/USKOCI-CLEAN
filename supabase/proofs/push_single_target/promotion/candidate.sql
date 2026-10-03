@@ -72,10 +72,10 @@ begin
  then raise exception 'SINGLE_TARGET_ALREADY_INSTALLED'; end if;
  for r in select * from (values
 ('private.push_session_valid(uuid,uuid)','3454eb7040f3dab3cb0c35b512b46859'),
-('private.push_suppression(notification_deliveries)','0e0277608bf40f3cccc3575a77b1c23d'),
-('rpc_begin_push_send(uuid,uuid)','fc76b3444e312e589255cccb2b0749c0'),
-('rpc_claim_push_transport(text)','8059dcbd47489ffba239c951e233dc02'),
-('rpc_complete_push_transport(uuid,uuid,text,text)','705df6b9fc3c7d9ef032ee33c3f5951c'),
+('private.push_suppression(public.notification_deliveries)','0e0277608bf40f3cccc3575a77b1c23d'),
+('public.rpc_begin_push_send(uuid,uuid)','fc76b3444e312e589255cccb2b0749c0'),
+('public.rpc_claim_push_transport(text)','8059dcbd47489ffba239c951e233dc02'),
+('public.rpc_complete_push_transport(uuid,uuid,text,text)','705df6b9fc3c7d9ef032ee33c3f5951c'),
 ('private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)','3891fe77d38af04e06cfe4c9e4abb96f'),
 ('private.closure_redaction_relations_v5()','ba362b6d0045d06e6207fc0a8f0592d4'),
 ('private.closure_redaction_scope_v5(text)','aec26bb057ec0022245a5d8641a47585')) pins(signature,expected_md5) loop

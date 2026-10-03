@@ -72,7 +72,16 @@ const check=(tag,query)=>`do $${tag}$ declare observation jsonb;begin select res
 const lock=`set local search_path=pg_catalog;set local lock_timeout='5s';set local statement_timeout='60s';
 do $promotion_fence$ begin if current_user<>'postgres' or not pg_try_advisory_xact_lock(hashtextextended('uskoci:push-claim',0)) then raise exception 'PROMOTION_LOCK_OR_ROLE' using errcode='55000';end if;end $promotion_fence$;
 `;
-let install=installWithCertificate(frozen('install.disposable.sql'),before,manifest).text;
+// The promotion wrapper intentionally resolves only pg_catalog. Qualify the four
+// frozen precondition signatures without changing their pins or any function body.
+let lowLevelInstall=frozen('install.disposable.sql');
+for(const [signature,pin] of [
+ ['private.push_suppression(notification_deliveries)','0e0277608bf40f3cccc3575a77b1c23d'],
+ ['rpc_begin_push_send(uuid,uuid)','fc76b3444e312e589255cccb2b0749c0'],
+ ['rpc_claim_push_transport(text)','8059dcbd47489ffba239c951e233dc02'],
+ ['rpc_complete_push_transport(uuid,uuid,text,text)','705df6b9fc3c7d9ef032ee33c3f5951c'],
+])lowLevelInstall=once(lowLevelInstall,`(${q(signature)},${q(pin)})`,`(${q(qualify(signature))},${q(pin)})`);
+let install=installWithCertificate(lowLevelInstall,before,manifest).text;
 install=once(install,'\nbegin;\n','\nbegin;\n'+lock);
 install=once(install,'end $pre$;','end $pre$;\n'+check('promotion_preflight',preflight));
 install=encodeDefinitions(install,[roster.sourceNext,roster.programNext]);
