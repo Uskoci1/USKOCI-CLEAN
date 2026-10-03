@@ -25,7 +25,8 @@
     "uskoci-discover-v2.png",
     "uskoci-messages-v2.png",
     "uskoci-work-kit-v1.png",
-    "uskoci-notification-bell-v1.png"
+    "uskoci-notification-bell-v1.png",
+    "uskoci-calendar-v1.png"
   ],
   "verification": "Viewed generated art; native visual acceptance requires matching built APK. Original generated files preserved.",
   "workProfileAsset": {
@@ -44,5 +45,15 @@
     "reference": "uskoci-task-launch-v2.png, material and lighting only",
     "nativeAcceptance": "SOURCE asset viewed; matching APK/native inspection pending.",
     "prompt": "Create one new original production UI illustration asset for the USKOČI mobile marketplace: a beautiful small three-dimensional NOTIFICATION BELL, isolated on truly transparent background. Reference image is STYLE AND MATERIAL REFERENCE ONLY: match its crafted premium physical materials, precise rounded edges, soft studio light from upper left, subtle realistic surface texture and excellent quality. DO NOT include the reference's pin, paper, pencil, lettering or any other object. One compact elegant upright bell with a warm polished pale silver/pearl enamel dome, a narrow subtle brushed-metal lower rim, and a small warm orange clapper visible underneath. Very slight three-quarter view, clean easily recognized bell silhouette readable at 32–40 dp, nearly front-facing; simple broad forms, no fine filigree. Tiny top loop integrated into the bell. Neutral white/silver main material keeps orange unread-count UI separate; no red notification dot, no badge, no counter, no text, no logo, no surround tile, no enclosing circle, no scene. Soft contact occlusion contained immediately under the bell, no huge cast shadow. Object fills about 82% of square canvas, centered, 1024 square, natural alpha edges. Consumer app craft, understated tactile depth, not a plastic toy, not a flat icon, not neon, not glass, not cute character."
+  },
+  "calendarAsset": {
+    "date": "2026-10-03",
+    "generator": "Built-in image_gen",
+    "original": "exec-1d8d898f-cf85-4b47-a4d5-0d8709335cbc.png",
+    "sha256": "5d9e5457490fb3edf96a6910ee83c5b2b438e94ff5547b2cd3899afc33c1f87b",
+    "purpose": "Decorative calendar fact at24/28dp; no digits, selected day, confirmation, urgency or actual schedule baked into artwork. Exact fact text stays authoritative.",
+    "reference": "Original USKOCI launch/bell material family, no private screenshot input.",
+    "nativeAcceptance": "Pending matching APK review; full original viewed. Browser contact-sheet runtime unavailable, so24/28dp readability is not yet accepted.",
+    "prompt": "Create ONE original production-ready decorative 3D calendar icon for the USKOCI marketplace mobile app, isolated on true transparent background. This is a new material-art family member, not an app screenshot. Subject: a single compact desk/page calendar, nearly front-facing with a very slight three-quarter view showing a thick ivory paper/enamel side edge. Strong simple rounded-square silhouette filling about 88% of a square canvas, two clearly separated chunky satin-silver binder loops, warm orange top band, creamy ivory body. Face has just four large charcoal shallow inset squares in a simple 2 by 2 arrangement to suggest calendar cells, none selected, no numbers, no text, no tick/check, no badges, no time or factual date. Materials: refined tactile warm ivory paper/enamel with subtle microtexture, clean satin-metal rings, rich warm orange enamel, restrained bevels and real directional highlights, softly lit from upper left with a slight ambient self shadow. Match the cohesive visual spirit of a realistic ivory satin-metal notification bell with an orange clapper and an ivory task paper illustration with green enamel pin/orange pencil, while keeping this calendar a single calm object. Crucial small mobile size readability at24 and28dp: large shapes, minimal detail, thick rings and upper band, no decorative confetti, no orbiting objects, no base tile, no floating platform, no drop shadow beyond a very subtle close contact shadow. No purple, no gradients in background, no background at all. Center complete object with safe transparent margin, no cropping. Deliver crisp transparent PNG."
   }
 }

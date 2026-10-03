@@ -4,6 +4,7 @@ import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withS
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { FactArt } from '../system/FactArt';
+import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
@@ -151,15 +152,15 @@ export function OfferRow({ value, places, large, settled = false }: { value: App
  * the screen's fresh per-render handlers (which the card must keep: a handle captured under one account revision must not
  * act under the next) re-render the thin interactive shell and not this text.
  */
-export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false }: { row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean }) {
+export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false, disabled = false }: { row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean; disabled?: boolean }) {
   const status = applicationStatus(row.stanje);
   const note = row.napomena?.trim();
   return <>
     <CardStatusLine text={status.text} tone={status.tone} />
     <CardTitle title={readableTitle(row.naslov)} lines={0} style={s.title} />
     <View style={s.facts}>
-      <CardFact art={<FactArt kind="pin" size={24} cut="art" />} text={row.podrucjeTekst} lines={0} />
-      <CardFact art={<FactArt kind="calendar" size={24} cut="art" tone="quiet" />} text={row.vremeTekst} lines={0} />
+      <CardFact art={<FactArt kind={row.zadatak?.rezimLokacije === 'REMOTE' ? 'remote' : 'pin'} size={24} cut="art" />} text={row.podrucjeTekst} lines={0} />
+      <CardFact art={<CalendarArt size={24} quiet={disabled || status.tone === 'muted'} />} text={row.vremeTekst} lines={0} />
     </View>
     <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} settled={offerSettled(row.stanje)} />
     {/* The only place my message to the requester can be read again; my words, so in quotes. */}
@@ -217,7 +218,7 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row) }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={s.body}>
-      <ApplicationSummary row={row} large={large} noteCollapsed={longNote && !noteExpanded} />
+      <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} />
     </Press>
     {/* A read-only sibling, never a nested press inside the task destination or the application command. */}
     {longNote ? <Press accessibilityRole="button" accessibilityLabel={noteLabel}

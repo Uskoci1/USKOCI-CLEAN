@@ -15,6 +15,9 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../../ui/v2/AgreementCollectionPresentation', () => ({ AgreementCollectionPresentation: 'Agreements' }));
+// This route suite isolates the whole presentation; its injected header/photo are separate UI leaves.
+jest.mock('../../ui/system/ScreenHeader', () => ({ ScreenHeader: 'ScreenHeader' }));
+jest.mock('../../ui/system/ActualUserAvatar', () => ({ ActualUserAvatar: 'ActualUserAvatar' }));
 import Screen from '../../app/(app)/dogovori';
 let tree: ReactTestRenderer;
 const props = () => tree.root.findByType('Agreements' as React.ElementType).props;

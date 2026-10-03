@@ -7,6 +7,7 @@ import { isOwnedNeed } from '../../data/marketplaceView';
 import { needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { FactArt } from '../system/FactArt';
+import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
 import { useLayoutClass } from '../system/textScale';
 import { cardCompact, sys } from '../system/tokens';
@@ -102,8 +103,8 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
         <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={28} cut="art" role="location" />}
           text={place.text} lines={0} artSize={28} />
         {/* The complete range remains readable, including its end date on narrow or enlarged-text cards. */}
-        {/* The time palette identifies the fact type; it makes no claim that a flexible term is confirmed. */}
-        <CardFact art={<FactArt kind="calendar" size={28} cut="art" role="time" />}
+        {/* Decorative calendar material identifies time, never a selected or confirmed date. */}
+        <CardFact art={<CalendarArt size={28} quiet={disabled || ('stanje' in item && item.stanje === 'ZATVORENA')} />}
           text={schedule} lines={0} artSize={28} />
         {requirement ? <CardRequirement requirement={requirement} artSize={28} role="skills" /> : null}
       </View>

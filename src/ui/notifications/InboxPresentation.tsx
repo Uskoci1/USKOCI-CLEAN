@@ -91,6 +91,7 @@ type RowProps = { item: InboxItem; moment: Trenutak | null; last: boolean; actin
 
 function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen }: RowProps) {
   const unread = !item.readAt;
+  const art = inboxEventArt(item.eventType, item.family);
   const { primary, secondary } = rowCopy(item);
   const when = moment ? `. ${moment.dan}, ${moment.sat}` : '';
   const time = moment ? <T variant="meta" tone="muted" numberOfLines={1} style={s.clock}>{moment.sat}</T> : null;
@@ -99,7 +100,7 @@ function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen }: R
     onPress={() => onOpen(item)} style={[s.row, last && s.rowLast]}>
     <View style={s.art} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       {acting ? <ActivityIndicator size="small" color={sys.color.green} />
-        : <FactArt kind={inboxEventArt(item.eventType, item.family)} size={32} />}
+        : art === 'chat' ? <ConversationArt size={32} /> : <FactArt kind={art} size={32} />}
       {unread ? <View testID="inbox-unread-dot" style={s.dot} /> : null}
     </View>
     <View style={s.copy}>

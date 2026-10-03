@@ -1,4 +1,5 @@
 import React from 'react';
+import { CalendarArt } from '../../ui/system/CalendarArt';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { STANJA_POTREBE, type NeedDetailProjection, type PotrebaProjekcija } from '../../contracts/projections';
@@ -463,31 +464,31 @@ describe('review r3', () => {
 // Owner takeover: calendar art identifies a time fact; the actual schedule text carries certainty.
 describe('calendar artwork does not imply confirmation', () => {
   const FIXED = { kind: 'FIXED_WINDOW', startsAt: '2026-09-24T15:00:00Z', endsAt: '2026-09-24T17:00:00Z' } as const;
-  const calendar = () => tree.root.find(node => node.type === ('FactArt' as React.ElementType) && node.props.kind === 'calendar');
+  const calendar = () => tree.root.findByType(CalendarArt);
 
   it('uses time artwork for a fixed window, including an end-only window', async () => {
     await render(<TaskCard item={task({ schedule: FIXED })} onOpen={jest.fn()} />);
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
     await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: '2026-09-24T17:00:00Z' } })} onOpen={jest.fn()} />));
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
   });
 
   it.each(['FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'] as const)('uses time artwork for a %s term without branding it confirmed', async kind => {
     await render(<TaskCard item={task({ schedule: { kind, startsAt: '2026-09-24T00:00:00Z', endsAt: '2026-09-30T22:00:00Z' } })} onOpen={jest.fn()} />);
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
   });
 
   it('keeps fallback words when a schedule is absent and the same neutral time role on owned tasks', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
     expect(textNode('24. sep · 17:00')).toBeTruthy();
     await act(async () => tree.update(<TaskCard item={task({ schedule: { kind: 'FIXED_WINDOW', startsAt: null, endsAt: null } })} onOpen={jest.fn()} />));
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
     // My own task has the same rule.
     await act(async () => tree.update(<TaskCard item={mine({ schedule: FIXED })} onOpen={jest.fn()} />));
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
     await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
-    expect(calendar().props).toMatchObject({ role: 'time', cut: 'art' }); expect(calendar().props.tone).toBeUndefined();
+    expect(calendar().props).toMatchObject({ size: 28, quiet: false });
   });
 
   it('keeps the schedule confirmation classifier independent of the artwork', async () => {

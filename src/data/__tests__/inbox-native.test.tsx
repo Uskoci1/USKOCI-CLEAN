@@ -283,10 +283,13 @@ test('the owner cancelling their own Zadatak still lands on that task',async()=>
 // The icon says what kind of thing happened: a message is a speech bubble, a completion is a check — seen
 // the other way round on a device on 2026-09-23, because the map went by family alone.
 test('a new message wears the speech bubble and a completion the check, whatever family the server files them under',async()=>{
-  // Each event wears its FactArt drawing (the one icon system); counted once per drawing, not per wrapper.
+  // Each event keeps its own subject; chat uses the existing original material illustration.
   mockState.page.items=[{...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor'},{...item,id:'c',eventType:'EXECUTION_STATE_CHANGED',family:'execution'},{...item,id:'a',eventType:'AGREEMENT_CHANGE_PROPOSED',family:'dogovor'}];
   mockState.page.unreadCount=3;await render();
-  expect([drawn('chat'),drawn('check'),drawn('agreements')]).toEqual([1,1,1]);
+  const messageRow = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && String(node.props.accessibilityLabel).startsWith('Nepročitano.')).find(node => node.findAllByType(ConversationArt.type).length > 0);
+  expect(messageRow).toBeDefined();
+  expect(messageRow!.findByType(ConversationArt.type).props.size).toBe(32);
+  expect([drawn('check'),drawn('agreements')]).toEqual([1,1]);
 });
 test('a task change, a cancellation and a question are drawn as what they are, not as offers',()=>{
   expect(inboxEventArt('NEED_REVISED','responses')).toBe('tasks');

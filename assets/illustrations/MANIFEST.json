@@ -23,5 +23,10 @@
     "file": "uskoci-notification-bell-v1.png",
     "sha256": "0432c7365c785922fc69efaaed783f73837522fba78627ce03a7215594417744",
     "bytes": 1044978
+  },
+  {
+    "file": "uskoci-calendar-v1.png",
+    "sha256": "5d9e5457490fb3edf96a6910ee83c5b2b438e94ff5547b2cd3899afc33c1f87b",
+    "bytes": 1656307
   }
 ]

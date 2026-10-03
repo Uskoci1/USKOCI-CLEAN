@@ -269,3 +269,14 @@ describe('reading my complete application message', () => {
     for (const callback of Object.values(callbacks)) expect(callback).not.toHaveBeenCalled();
   });
 });
+
+// The execution mode is a server fact. Identical visible words must never be parsed to choose geography art.
+it.each(['REMOTE', 'STATIONARY', undefined] as const)('uses authoritative application geography for %s', async mode => {
+  const taskFacts = mode ? { raspored: { kind: 'REMOTE_ANYTIME' as const, startsAt: null, endsAt: null },
+    rezimLokacije: mode, vremenskaZona: null, rezimCene: 'OFFERS' as const, osnovaCene: null, potrebnoMesta: 1 } : undefined;
+  await render(<ApplicationCard row={row({ zadatak: taskFacts, podrucjeTekst: 'Na daljinu' })} {...handlers()} />);
+  const geography = tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)
+    && ['pin', 'remote'].includes(node.props.kind));
+  expect(geography.map(node => node.props.kind)).toEqual([mode === 'REMOTE' ? 'remote' : 'pin']);
+  expect(texts()).toContain('Na daljinu');
+});
