@@ -1271,7 +1271,7 @@ test('native return restores into an explicitly bounded viewport without waiting
     // second bounded onLayout after EXTENDED, so waiting for one leaves the list at zero.
     await readyList(2611.4, 2611.4);
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
-    const frame = listSheet().props.snapPoints[2] - 76;
+    const frame = listSheet().props.snapPoints[2] - 68; // compact grab/count header before native measurement
     expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: frame, flexGrow: 0, flexShrink: 0 });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
