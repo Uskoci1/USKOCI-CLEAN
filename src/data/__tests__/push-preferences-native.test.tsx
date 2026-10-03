@@ -75,7 +75,7 @@ it('after an uncertain save only readback is available, and repeated retry taps 
  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
  await act(async () => { done({ ...preferences, revision: 3, settings: { ...settings, dogovor_enabled: false } }); await flush(); });
  expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
- expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(false);
  expect(mockSave).toHaveBeenCalledTimes(1); expect(mockSet).not.toHaveBeenCalled();
 });
@@ -219,12 +219,15 @@ it('a switch row is one focus stop, spoken as a switch, drawn green on white ins
  expect(toggle.props.trackColor).toEqual({ false: sys.color.lineStrong, true: sys.color.green });
  expect(toggle.props.thumbColor).toBe(sys.color.surface);
 });
-it('the one green action is Save, in the footer, grey with its reason until something changes', async () => {
+it('clean settings leave the categories visible; one sticky Save appears after an edit', async () => {
  await mount();
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
+ expect(tree.root.findAllByProps({ testID: 'settings-primary-footer' })).toHaveLength(0);
+ act(() => control('Dogovor i poruke').props.onPress());
  const save = button('Sačuvaj podešavanja');
  expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe(sys.color.green);
- expect(save.props.disabled).toBe(true);
- expect(save.props.reason).toBe('Nema nesačuvanih izmena.');
+ expect(save.props.disabled).toBe(false);
+ expect(save.props.reason).toBeNull();
  expect(tree.root.findByProps({ testID: 'settings-primary-footer' }).findAllByType('Button' as never).map(x => x.props.label)).toEqual(['Sačuvaj podešavanja']);
  const greens = tree.root.findAllByType('Button' as never).filter(x => StyleSheet.flatten(x.props.style)?.backgroundColor === sys.color.green);
  expect(greens).toHaveLength(1);
@@ -366,16 +369,15 @@ it('after an unconfirmed save the route is not told the changes are unsaved, so 
  expect(dirty).toHaveBeenLastCalledWith(false);
 });
 // Round 5c (2026-09-24): a reason that disappears while a command runs comes back afterwards and is spoken again.
-it('Save keeps the same reason through a phone command, so nothing is spoken again after it', async () => {
+it('a clean phone refresh does not introduce a Save action or repeat an irrelevant announcement', async () => {
  await mount();
- const reason = 'Nema nesačuvanih izmena.';
- expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
  let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Osveži stanje').props.onPress(); await flush(); });
  expect(button('Osveži stanje').props.loading).toBe(true);
- expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
  await act(async () => { answer(preferences); await flush(); });
- expect(button('Sačuvaj podešavanja').props.reason).toBe(reason);
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
  // While Save itself runs it has no reason: the spinner is the answer.
  act(() => control('Dogovor i poruke').props.onPress());
  mockSave.mockReturnValueOnce(new Promise(() => undefined));

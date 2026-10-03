@@ -610,8 +610,10 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
             {textScale >= 1.3 ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
           </Press> : null}
-          {voice ? <AgreementVoiceMic voice={voice} /> : null}
-          {voice ? <AgreementVoicePreference voice={voice} writable={writable && !terminal} /> : null}
+          {voice ? <View style={s.voiceTools}>
+            <AgreementVoiceMic voice={voice} />
+            <AgreementVoicePreference voice={voice} writable={writable && !terminal} />
+          </View> : null}
         </View> : null}
       </View> : null}
     </View>
@@ -668,6 +670,7 @@ const s = StyleSheet.create({
   toolInline: { width: COMMAND, paddingHorizontal: 0, backgroundColor: 'transparent' },
   pillFocused: { borderColor: sys.color.ink },
   toolbar: { minHeight: COMMAND, paddingHorizontal: sys.space.sm, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  voiceTools: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   tool: { minWidth: COMMAND, minHeight: COMMAND, flexShrink: 1, flexDirection: 'row', gap: sys.space.sm, paddingHorizontal: sys.space.md,
     borderRadius: sys.radius.pill, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center' },
   toolLabel: { flexShrink: 1, color: sys.color.ink },

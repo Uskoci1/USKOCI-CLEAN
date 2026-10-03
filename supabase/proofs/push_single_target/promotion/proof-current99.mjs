@@ -30,6 +30,25 @@ try{
  const application=variants.find(v=>sha(v)===receipt.migration.sha256&&v.length===receipt.migration.chars);
  assert.ok(application,'EXACT_APPLIED_LOCATION_BYTES_UNAVAILABLE');report.locationApplicationSha=sha(application);
  rt.sql(SQL.pauseSchedulers());
+ const readyBefore=read('supabase/candidates/ai-location-01-20261002/before-sql/private.retention_ai_source_ready.sql');
+ const md5=x=>createHash('md5').update(x).digest('hex'),lf=x=>x.replaceAll('\r\n','\n');
+ assert.equal(md5(readyBefore),'f8fb9f2e24f2432b302d7ee87c83a814','IMMUTABLE_READY_PREIMAGE');
+ const predecessorDigest='0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431';
+ const readyObservation=()=>observe(`select jsonb_build_object('definition',pg_get_functiondef(p.oid),'metadata',${metadata},'digest',private.closure_source_digest_v5(),'source',(select sha256 from private.closure_source_v5 where singleton),'erasure',(select sha256 from private.closure_erasure_source_v5 where singleton),'bindingSource',private.closure_erasure_binding_v5()->>'sourceSha256','ready',private.retention_ai_source_ready()) from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang where p.oid='private.retention_ai_source_ready()'::regprocedure`,true);
+ const prior=readyObservation(),expectedLines=lf(readyBefore).split('\n'),actualLines=lf(prior.definition).split('\n');
+ const firstDifferent=expectedLines.findIndex((line,i)=>line!==actualLines[i]);
+ report.locationPredecessor={expectedDefinitionMd5:md5(readyBefore),observedDefinitionMd5:md5(prior.definition),expectedLfMd5:md5(lf(readyBefore)),observedLfMd5:md5(lf(prior.definition)),observedCR:prior.definition.split('\r').length-1,expectedCR:readyBefore.split('\r').length-1,firstDifferentLfLine:firstDifferent<0?(expectedLines.length===actualLines.length?null:expectedLines.length+1):firstDifferent+1,digest:prior.digest,source:prior.source,erasure:prior.erasure,bindingSource:prior.bindingSource,ready:prior.ready,newlineRestore:false};
+ // A fixture-only byte-fidelity repair, never a digest or pin substitution. Every other mismatch aborts with bounded diagnostics above.
+ assert.equal(prior.digest,predecessorDigest,'LOCATION_PREDECESSOR_DIGEST_DIAGNOSTIC');
+ assert.equal(prior.source,predecessorDigest);assert.equal(prior.erasure,predecessorDigest);assert.equal(prior.bindingSource,predecessorDigest);assert.equal(prior.ready,true);
+ assert.deepEqual(portable(prior.metadata),portable(live.functions.find(f=>f.signature==='private.retention_ai_source_ready()').metadata),'READY_PREDECESSOR_METADATA');
+ if(prior.definition!==readyBefore){
+  assert.equal(lf(prior.definition),lf(readyBefore),'READY_PREDECESSOR_NOT_NEWLINE_ONLY');
+  rt.sql(readyBefore.trimEnd().replace(/;$/,'')+';');
+  const restored=readyObservation();assert.equal(restored.definition,readyBefore,'READY_EXACT_BYTE_RESTORE');
+  assert.deepEqual({...restored,definition:prior.definition},prior,'READY_RESTORE_CHANGED_OTHER_STATE');
+  report.locationPredecessor.newlineRestore=true;
+ }
  rt.sql(application);report.checks.push({name:'EXACT_APPLIED_AI_LOCATION_PREDECESSOR',result:'PASS'});
  const signatures=live.functions.map(f=>f.signature.startsWith('private.')?f.signature.replace('(notification_deliveries)','(public.notification_deliveries)'):'public.'+f.signature);
  const captured=observe(`select jsonb_build_object('checked_at',clock_timestamp(),'current_user',current_user,'version',version(),'ledger_count',(select count(*) from supabase_migrations.schema_migrations),'functions',(select jsonb_agg(jsonb_build_object('signature',e.signature,'definition',pg_get_functiondef(p.oid),'bodyMd5',md5(replace(p.prosrc,chr(13),'')),'metadata',${metadata}) order by e.ord) from unnest(array[${signatures.map(q)}]) with ordinality e(signature,ord) join pg_proc p on p.oid=to_regprocedure(e.signature) join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang),'source_row',(select to_jsonb(c) from private.closure_source_v5 c where singleton),'erasure_row',(select to_jsonb(c) from private.closure_erasure_source_v5 c where singleton),'datasets',(select jsonb_agg(to_jsonb(c) order by data_class) from private.closure_dataset_catalog_v5 c),'export_catalog',private.data_export_dataset_catalog())`,true);

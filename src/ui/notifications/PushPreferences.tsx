@@ -253,10 +253,10 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  // "Prvo proveri stanje." already; a second copy here was spoken twice in a row.
  const waitReason = dirty && !error ? SAVE_FIRST : null;
  const showZone = settings.quiet_timezone !== zone && (settings.quiet_hours_enabled || !settings.quiet_timezone.trim());
- // After a confirmed save the grey button's reason gives way to the saved line above it, which is said once. Another
- // command (a phone button, "Osveži stanje", the re-read on return) keeps the reason as it was: dropping it while that
- // command ran made it come back afterwards, and a changed reason is spoken again.
- const saveReason = error ? CHECK_FIRST : dirty || justSaved || working === 'save' ? null : 'Nema nesačuvanih izmena.';
+ // Reading clean settings needs no disabled action blocking the categories. Preserve the footer throughout a save,
+ // uncertain readback and validation; a phone-only refresh never announces an irrelevant Save state.
+ const showSave = dirty || working === 'save' || !!validation || error || justSaved;
+ const saveReason = error ? CHECK_FIRST : null;
  const stackTimes = large || narrow;
  return <View style={styles.fill}>
   <SavedAnnouncement justSaved={justSaved} />
@@ -280,16 +280,20 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
      </View>
     </View>
     {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
-    {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
-     loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
-     reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
+    <View style={styles.phoneActions}>
+     {phoneActions.map((action, index) => <V2Action key={action.label} label={action.label} kind={action.kind} onPress={action.onPress}
+      compact={action.kind === 'quiet'} tone={action.kind === 'quiet' ? 'neutral' : 'brand'}
+      style={action.kind === 'quiet' ? styles.phoneQuiet : styles.phoneConnect}
+      loading={!!action.working && working === action.working} disabled={action.guarded ? locked || dirty : false}
+      reason={index === firstGuarded ? waitReason : action.guarded ? null : undefined} />)}
+    </View>
    </View>
 
    {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
        the block is not faded a second time on top of that. The phone's state and the footer are not touched. */}
    <View style={styles.groups}>
-    <SettingsGroup title="U aplikaciji">
-     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Obaveštenja unutar aplikacije. Spisak obaveštenja ostaje sačuvan."
+    <SettingsGroup>
+     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Spisak ostaje sačuvan i kada ih isključiš."
       value={settings.in_app_enabled} disabled={locked} onChange={value => onEdit('in_app_enabled', value)} last />
     </SettingsGroup>
     {/* The note covers every category, so it stands under the first of them, not under the last. */}
@@ -351,14 +355,14 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
    </Disclosure>
 
   </ScrollView>
-  <SettingsFooter>
+  {showSave ? <SettingsFooter>
    {validation ? <T variant="note" tone="danger" accessibilityRole="alert">{validation}</T> : null}
    {/* The confirmed save is said in words (in the success colour, once to a screen reader), not only by a check that
        leaves after a moment on a button that turns grey again. */}
    {justSaved ? <T variant="note" tone="success" accessibilityLiveRegion="polite">{SAVED}</T> : null}
    <V2Action label="Sačuvaj podešavanja" onPress={onSave} disabled={locked || !dirty} loading={working === 'save'}
     success={justSaved} reason={saveReason} style={brandAction} />
-  </SettingsFooter>
+  </SettingsFooter> : null}
  </View>;
 }
 
@@ -405,6 +409,9 @@ const styles = StyleSheet.create({
  ink: { color: sys.color.ink },
  phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
  phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+ phoneActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+ phoneQuiet: { flexGrow: 1, flexShrink: 1, flexBasis: 128, paddingHorizontal: 4 },
+ phoneConnect: { width: '100%' },
  phoneTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
  groups: { gap: 24 },
  checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },

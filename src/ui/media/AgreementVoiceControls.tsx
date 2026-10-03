@@ -68,7 +68,7 @@ export function AgreementVoicePreference({ voice, writable }: { voice: Agreement
       {voice.reviewFirst ? <Glyph name="check" size={16} tone="ink" /> : null}
     </View>
     <T variant="meta" tone="muted" style={s.preferenceText}>
-      Pregled snimka · {voice.reviewFirst ? 'Uključen' : 'Isključen'}
+      Pregled: {voice.reviewFirst ? 'uključen' : 'isključen'}
     </T>
   </Press>;
 }
@@ -118,7 +118,7 @@ const s = StyleSheet.create({
   preview: { gap: 8, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   message: { minWidth: 180, gap: 6, backgroundColor: sys.color.surface, borderRadius: 18, padding: 8 },
   play: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
-  preference: { minHeight: 48, flexGrow: 1, flexShrink: 1, flexBasis: 148, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  preference: { minHeight: 48, flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, paddingVertical: 4 },
   preferenceText: { flex: 1, minWidth: 0 },
   preferenceMark: { width: 20, height: 20, flexShrink: 0, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   preferenceMarkChecked: { backgroundColor: sys.color.control, borderColor: sys.color.ink },
