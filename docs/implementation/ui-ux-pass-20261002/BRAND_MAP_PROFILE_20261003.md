@@ -36,3 +36,11 @@ Izvor1b3825fb je pushovan; APK run37148428976 gradi taj tačan izvor. Završni l
 CI37148429851:427 suite/9380 slučajeva i6snapshot-a PASS; jedini FAIL je zabrana novog neposrednog čitanja širine prozora na About i lokalnoj sceni. Ispravka koristi izmereni prostor roditelja (onLayout), dok postojeća zajednička layout klasa određuje prelamanje About. Guard nije oslabljen ni proširen. Ciljani ponovni prolaz90/3 i TypeScript PASS; puna ponovna CI provera mora vezati korigovani izvor.
 
 Dizajnerski reperi, ne kopiranje: [Airbnb opis novog proizvoda](https://news.airbnb.com/airbnb-2025-summer-release) povezuje objedinjene tokove sa dimenzionalnim i animiranim interfejsom. [Apple Motion](https://developer.apple.com/design/human-interface-guidelines/motion) i [Reduced Motion kriterijumi](https://developer.apple.com/help/app-store-connect/manage-app-accessibility/reduced-motion-evaluation-criteria) su kontrola za pregled. Primena u USKOČI je naša odluka: materijal na prepoznatljivim predmetima, mirne svakodnevne kontrole i izvorni uvod uz smanjeno kretanje.
+
+## Native1b3825fb: pronađena i popravljena regresija materijala
+
+APK37148428976 uspešan, SHA256 c69f8efa3cb749bb7ebf56876731ef43210e4b312dab4382d3bdf28a26ebdce0; tri attestacije PASS, emulator instalacija uz očuvan UID10227. About pokazuje odsečene glave bez slova; galerija prevelik znak bez slova. Ovaj logo NIJE vizuelno prihvaćen.
+
+Uzrok potvrđen direktno u instaliranoj RNSVG biblioteci i nezavisnim pregledom: deklarativni G ne prenosi sirovi matrix prop, već izvodi matricu iz transform. Izvorni SVG adapter bio je previše popustljiv i to prikrio. Dve statičke matrice atlas-a sada su transform="matrix(...)"; originalni animatedProps.matrix ostaje jer radi kroz native update. Dodata je regresiona provera preko stvarnog native extractTransform, a ne istog stand-in renderera.145 prethodnih fokusiranih i dodatni23 clock/raster slučaja prolaze; TypeScript PASS. Build32583/run37149267523 je otkazan kao prevaziđen pre završetka da se ne instalira ista poznata greška.
+
+CI37149235840 za prethodnu parent-layout ispravku32583 je SUCCESS. Nova raster ispravka traži novi tačan APK/native rezultat. Prvi stvarni map ekran već pokazuje fiksne izvore ispod filtera; pin/Back/font provera je naredna. Privatne slike: brand-about-1b38, brand-gallery-final-1b38, brand-map-1b38.

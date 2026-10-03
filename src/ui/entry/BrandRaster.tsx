@@ -41,7 +41,8 @@ export function BrandRasterDefs({ id }: { id: string }) {
 export function BrandRasterMark({ id, part }: { id: string; part?: number }) {
   const origin = part === undefined ? [0, 0] : BRAND_PARTS[part];
   return <G transform={`translate(${-origin[0]} ${-origin[1]})`}>
-    <G matrix={[SX, 0, 0, SY, -145 * SX, -66 * SY]}>
+    {/* Declarative G extracts transform, not the native-only matrix prop. */}
+    <G transform={`matrix(${SX} 0 0 ${SY} ${-145 * SX} ${-66 * SY})`}>
       <G clipPath={`url(#${id}-mark)`}>
         {part === undefined ? <Use href={`#${id}-image`} /> :
           <G clipPath={`url(#${id}-part-${part})`} clipRule="evenodd"><Use href={`#${id}-image`} /></G>}
@@ -51,7 +52,7 @@ export function BrandRasterMark({ id, part }: { id: string; part?: number }) {
 }
 
 export function BrandRasterWords({ id }: { id: string }) {
-  return <G matrix={[216 / 1226, 0, 0, 104 / 604, 143 - 699 * 216 / 1226, 174 - 66 * 104 / 604]}>
+  return <G transform={`matrix(${216 / 1226} 0 0 ${104 / 604} ${143 - 699 * 216 / 1226} ${174 - 66 * 104 / 604})`}>
     <G clipPath={`url(#${id}-words)`}><Use href={`#${id}-image`} /></G>
   </G>;
 }

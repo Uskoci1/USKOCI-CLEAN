@@ -7,6 +7,7 @@ import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import type { EntrySplashReadiness } from '../../hooks/useEntrySplashReady';
 import { brandFrame } from '../../ui/entry/spojBrandMath';
 import referenceFrames from './fixtures/spoj-brand-reference-frames.json';
+import { BrandRasterMark, BrandRasterWords } from '../../ui/entry/BrandRaster';
 
 const mockTiming = jest.fn();
 const mockCancel = jest.fn();
@@ -49,6 +50,24 @@ beforeEach(() => {
   mockTiming.mockReturnValue('UI-runtime-timing'); mockHide.mockResolvedValue(undefined);
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('passes atlas normalization through the real native SVG transform extractor', async () => {
+  // A plain G silently ignores its native-only matrix prop during React render.
+  // Browser adapters accepted it, so source screenshots missed the Android crop.
+  const extractTransform = jest.requireActual('react-native-svg/lib/commonjs/lib/extract/extractTransform').default;
+  for (const [element, source, expected] of [
+    [<BrandRasterMark id="mark" />, [145, 66, 725, 670], [0, 0, 280, 291]],
+    [<BrandRasterWords id="words" />, [699, 66, 1925, 670], [143, 174, 359, 278]],
+  ] as const) {
+    await act(async () => { tree = create(element); });
+    const group = tree.root.findAllByType('G' as React.ElementType).find(node => node.props.matrix || String(node.props.transform).startsWith('matrix('))!;
+    const [a, b, c, d, e, f] = extractTransform(group.props);
+    const mapped = [a * source[0] + c * source[1] + e, b * source[0] + d * source[1] + f,
+      a * source[2] + c * source[3] + e, b * source[2] + d * source[3] + f];
+    mapped.forEach((value, i) => expect(value).toBeCloseTo(expected[i], 5));
+    await act(async () => tree.unmount());
+  }
+});
 
 it('mounts the actual SVG scene at time zero while paused and starts the full unchanged clock only on release', async () => {
   const complete = jest.fn();
