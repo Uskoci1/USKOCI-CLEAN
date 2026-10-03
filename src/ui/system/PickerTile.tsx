@@ -5,7 +5,7 @@ import { Pictogram, type PictogramKind } from './Pictogram';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { useTextScale } from './textScale';
-import { sys } from './tokens';
+import { materialControl, sys } from './tokens';
 
 /**
  * How a grid lays its tiles out: side by side in two columns, or one per row as a list (a narrow screen or large text,
@@ -42,18 +42,19 @@ export function PickerTile({ kind, label, selected, disabled = false, reason, mo
     accessibilityLabel={why ? `${label}. ${why}` : label}
     accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={onPress}
     haptic={disabled ? 'none' : 'select'} scaleTo={list ? sys.motion.scale.row : sys.motion.scale.button}
-    style={[list ? s.row : [s.tile, medium && s.tileMedium], selected && (tone === 'neutral' ? s.selectedNeutral : s.selected), disabled && s.disabled]}>
+    style={[list ? s.row : [s.tile, medium && s.tileMedium], materialControl.raised,
+      selected && materialControl.inset, selected && (tone === 'neutral' ? s.selectedNeutral : s.selected), disabled && s.disabled]}>
     {list ? <>
       <Pictogram kind={kind} size={40} disabled={disabled} />
       <View style={s.rowCopy}>
-        <T variant="bodyStrong" numberOfLines={2} style={[s.rowLabel, medium && s.labelMedium]}>{label}</T>
+        <T variant="bodyStrong" style={[s.rowLabel, medium && s.labelMedium]}>{label}</T>
         {why ? <T variant="meta" tone="muted" numberOfLines={2}>{why}</T> : null}
       </View>
       {/* The check keeps its place at the row's end, so choosing does not move the label. */}
       <View style={s.rowCheck}>{selected ? <FactArt kind="check" size={20} /> : null}</View>
     </> : <>
       {selected ? <View style={[s.check, medium && s.checkMedium]}><FactArt kind="check" size={medium ? 20 : 22} /></View> : null}
-      <Pictogram kind={kind} size={medium ? 44 : 56} disabled={disabled} />
+      <Pictogram kind={kind} size={medium ? 52 : 64} disabled={disabled} />
       <T variant="bodyStrong" numberOfLines={2} style={[s.label, medium && s.labelMedium]}>{label}</T>
       {why ? <T variant="meta" tone="muted" numberOfLines={2} style={s.reason}>{why}</T> : null}
     </>}
@@ -72,15 +73,15 @@ export function PickerGrid({ children, columns = 'auto' }: { children: ReactNode
 }
 
 const s = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  list: { gap: 8 },
-  tile: { flexBasis: '46%', flexGrow: 1, minHeight: 140, borderRadius: sys.radius.card, borderWidth: 1.5, borderColor: 'transparent',
-    backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 16 },
-  tileMedium: { minHeight: 112, gap: 8, paddingVertical: 12, paddingHorizontal: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, padding: 4 },
+  list: { gap: 12 },
+  tile: { flexBasis: '45%', flexGrow: 1, minHeight: 140, borderRadius: sys.radius.card, borderWidth: 1.5, borderColor: sys.color.surface,
+    backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 16 },
+  tileMedium: { minHeight: 124, gap: 8, paddingVertical: 16, paddingHorizontal: 8 },
   row: { flexBasis: '100%', flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: 16, paddingVertical: 8, gap: 12,
-    borderRadius: sys.radius.control, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: sys.color.iconWell },
+    borderRadius: sys.radius.control, borderWidth: 1.5, borderColor: sys.color.surface, backgroundColor: sys.color.wash },
   selected: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green },
-  selectedNeutral: { backgroundColor: sys.color.surface, borderColor: sys.color.ink },
+  selectedNeutral: { backgroundColor: sys.color.wash, borderColor: sys.color.ink },
   disabled: { opacity: 0.55 },
   check: { position: 'absolute', top: 10, right: 10 },
   checkMedium: { top: 8, right: 8 },

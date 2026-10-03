@@ -17,7 +17,7 @@ import { PickerGrid, PickerTile } from '../system/PickerTile';
 import { pictogramCatalog, type PictogramGroup } from '../system/Pictogram';
 import { StateView } from '../system/StateView';
 import { plural } from '../system/plural';
-import { sys, field } from '../system/tokens';
+import { sys, field, materialControl } from '../system/tokens';
 import { useLayoutClass } from '../system/textScale';
 import { ConversationArt } from '../system/ConversationArt';
 import { SettingsRow } from '../settings/SettingsPresentation';
@@ -280,7 +280,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
       {openConversation ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
         accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
-        style={s.conversationEntry}>
+        style={[s.conversationEntry, materialControl.raised]}>
         <ConversationArt size={44} />
         <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.grow}>Uredi profil kroz razgovor</T>
         <CaretRight size={20} color={sys.color.muted} />
@@ -326,8 +326,8 @@ const s = StyleSheet.create({
   answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
   form: { gap: sys.space.xxl },
   intro: { gap: sys.space.sm },
-  conversationEntry: { minHeight: 64, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', gap: sys.space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  conversationEntry: { minHeight: 76, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: sys.radius.card, backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.surface },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Activation requirements are an open reading section; suspension keeps its meaningful warning surface.

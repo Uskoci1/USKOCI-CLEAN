@@ -23,12 +23,14 @@ const tone = t => `{ front: '${t.front}', edge: '${t.edge}', light: '${t.light}'
 
 const out = `import { memo, useId, type ReactNode } from 'react';
 import { View } from 'react-native';
+import { Image } from 'expo-image';
+import { MATERIAL_SUBJECTS } from './materialSubjects';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 /**
  * USKOČI pictograms: the picker level of the one icon language (the owner's master UI/UX directive, 2026-09-23).
  *
- * FactArt draws facts (a place, a time, a price) and stays flat. A pictogram draws a real thing a person chooses: a
+ * FactArt draws facts; a pictogram draws a real thing a person chooses: a
  * vehicle, a tool, a kind of work, a team size. It keeps FactArt's 32-unit canvas, its green and orange tones, the
  * ground shadow, the darker edge under the face and the light shine, and adds a soft vertical gradient on the face for
  * the volume a picker screen calls for. Use it at 32 px and above (48–64 in a picker tile); below 32 use FactArt.
@@ -58,6 +60,12 @@ ${cases}
 function PictogramBase({ kind, size = 48, disabled = false }: { kind: PictogramKind; size?: number; disabled?: boolean }) {
   const tone = disabled ? MUTED : ORANGE_KINDS.includes(kind) ? ORANGE : GREEN;
   const id = \`pg\${useId().replace(/[^a-zA-Z0-9]/g, '')}\`;
+  // Only exact subjects use bundled artwork. Different tools/vehicles keep distinct drawings;
+  // disabled choices retain the muted vector, not a colored image with ambiguous state.
+  const subject = kind === 'kombi' ? MATERIAL_SUBJECTS.vehicle : kind === 'laptop' ? MATERIAL_SUBJECTS.remote : undefined;
+  if (subject && !disabled && size >= 32) return <View aria-hidden style={{ width: size, height: size }}>
+    <Image source={subject} style={{ width: size, height: size }} contentFit="contain" cachePolicy="memory" transition={0} />
+  </View>;
   return <View aria-hidden style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox="0 0 32 32">
       <Defs><LinearGradient id={id} x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={tone.top} /><Stop offset="0.62" stopColor={tone.front} /></LinearGradient></Defs>
