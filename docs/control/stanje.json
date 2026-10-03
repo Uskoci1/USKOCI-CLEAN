@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T20:21:13Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "1a03af51",
-  "head_poruka": "fix(profile): restore reading position after worker settings",
+  "osvezeno": "2026-10-03T20:26:28Z",
+  "grana": "HEAD",
+  "head": "e77f9297",
+  "head_poruka": "docs: record native brand review and isolated worker V2 contract",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -10262,102 +10262,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37150844967,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "1a03af51",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T20:14:49Z"
-  },
-  {
-   "id": 37150842656,
-   "ime": "Build Android development APK",
-   "sha": "1a03af51",
-   "stanje": "in_progress",
-   "ishod": "",
-   "vreme": "2026-10-03T20:14:47Z"
-  },
-  {
-   "id": 37149673117,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "994c61f6",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T19:55:48Z"
-  },
-  {
-   "id": 37149670951,
-   "ime": "Build Android development APK",
-   "sha": "994c61f6",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T19:55:46Z"
-  },
-  {
-   "id": 37149267523,
-   "ime": "Build Android development APK",
-   "sha": "32583ca1",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-03T19:49:09Z"
-  },
-  {
-   "id": 37149235840,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "32583ca1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T19:48:35Z"
-  },
-  {
-   "id": 37148429918,
-   "ime": "Control tracker refresh",
-   "sha": "1b3825fb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T19:35:15Z"
-  },
-  {
-   "id": 37148429891,
-   "ime": "P7 signup confirmation recovery",
-   "sha": "1b3825fb",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T19:35:15Z"
-  },
-  {
-   "id": 37148429851,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "1b3825fb",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T19:35:15Z"
-  },
-  {
-   "id": 37148428976,
-   "ime": "Build Android development APK",
-   "sha": "1b3825fb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T19:35:14Z"
-  },
-  {
-   "id": 37145419838,
-   "ime": "Control tracker refresh",
-   "sha": "495bcfaf",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:45:44Z"
-  },
-  {
-   "id": 37145120004,
-   "ime": "P5 ready task and matching contract",
-   "sha": "511a3588",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T18:40:58Z"
-  }
- ]
+ "ci": null
 }
