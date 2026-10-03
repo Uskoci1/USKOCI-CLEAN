@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T09:12:31Z",
-  "grana": "work/uskoci-ui-unification-20260924",
-  "head": "f120f42f",
-  "head_poruka": "Update Safety visual baselines for visible reason selection",
+  "osvezeno": "2026-10-03T09:14:03Z",
+  "grana": "HEAD",
+  "head": "4e5ef874",
+  "head_poruka": "Clarify rating hierarchy and privacy reading composition",
   "server": {
    "snimljeno": "2026-10-02T18:58:41.775Z",
    "migracije": 225,
@@ -9343,102 +9343,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37111638796,
-   "ime": "P5 ready task and matching contract",
-   "sha": "f120f42f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T09:01:17Z"
-  },
-  {
-   "id": 37111624843,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "f120f42f",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T09:01:04Z"
-  },
-  {
-   "id": 37110906093,
-   "ime": "P5 ready task and matching contract",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T08:48:03Z"
-  },
-  {
-   "id": 37110904517,
-   "ime": "Build Android development APK",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:48:01Z"
-  },
-  {
-   "id": 37110902973,
-   "ime": "Build Android development APK",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:47:59Z"
-  },
-  {
-   "id": 37110889662,
-   "ime": "Control tracker refresh",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:47:45Z"
-  },
-  {
-   "id": 37110889637,
-   "ime": "EX-07 S06 safety target name proof",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T08:47:45Z"
-  },
-  {
-   "id": 37110889623,
-   "ime": "R20 Discovery retained-mount proof",
-   "sha": "77ec19dd",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T08:47:44Z"
-  },
-  {
-   "id": 37109344305,
-   "ime": "P5 ready task and matching contract",
-   "sha": "dfcd46fc",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-03T08:20:03Z"
-  },
-  {
-   "id": 37109341917,
-   "ime": "Build Android development APK",
-   "sha": "dfcd46fc",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:20:00Z"
-  },
-  {
-   "id": 37109339853,
-   "ime": "Build Android development APK",
-   "sha": "dfcd46fc",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:19:58Z"
-  },
-  {
-   "id": 37109322116,
-   "ime": "Control tracker refresh",
-   "sha": "bcbc8c23",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-03T08:19:40Z"
-  }
- ]
+ "ci": null
 }
