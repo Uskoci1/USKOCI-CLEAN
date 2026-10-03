@@ -2,6 +2,7 @@ import React from 'react';
 import { Animated } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { HoldToTalkController, VoiceSnapshot } from '../../features/voice/holdToTalk';
+import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
 const mockAlert=jest.fn();let mockReader=false,mockReduced=false;
 let mockAppState = 'active';
 const mockAppStateListeners = new Set<(state: string) => void>();
@@ -17,9 +18,12 @@ jest.mock('../../ui/Press',()=>({Press:'Press'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 jest.mock('../../ui/entry/BrandAssets',()=>({BrandMark:'BrandMark'}));
 jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>mockReduced}));
+jest.mock('../../ui/system/usePressLift',()=>({usePressLift:()=>({style:{},give:jest.fn(),settle:jest.fn()})}));
+jest.mock('../../ui/system/Glyph',()=>({Glyph:'Glyph'}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({VOICE_PROCESSING_NOTICE:'Approved transient Google speech notice.'}));
 jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=> 'GESTURE_SYNTHETIC'}));
 import { VoiceComposer, VoiceMode, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
+import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
 const controller=()=>({begin:jest.fn(()=>true),release:jest.fn(),cancel:jest.fn(),useFallback:jest.fn()});
@@ -99,6 +103,52 @@ it('screen reader sees explicit Stop, not an instruction to release a held finge
   expect(text()).toContain('Zaustavi, pregledaj tekst i izaberi Pošalji.');
   // 2026-09-24: the composer has no mode switch of its own any more; tapping instead of holding is voice mode.
   expect(tree.root.findAllByProps({label:'Govor bez držanja'})).toHaveLength(0);
+});
+describe('Agreement held voice-message control',()=>{
+  const setupVoice=(screenReader=false,review=false)=>({
+    recording:{phase:'idle',canRecord:true},screenReader,review,
+    begin:jest.fn(),release:jest.fn(),endHold:jest.fn(),cancel:jest.fn(),
+  });
+  const draw=(voice:ReturnType<typeof setupVoice>)=><AgreementVoiceMic voice={voice as unknown as AgreementVoiceController}/>;
+  const mic=()=>tree.root.findByProps({accessibilityRole:'button'});
+  it.each([false,true])('keeps recording outside the press rectangle and delegates actual release once (review=%s)',async review=>{
+    const voice=setupVoice(false,review);
+    await act(async()=>{tree=create(draw(voice));});
+    await act(async()=>mic().props.onResponderGrant({nativeEvent:{pageY:200}}));
+    voice.recording.phase='recording';
+    await act(async()=>tree.update(draw(voice)));
+    expect(mic().props.onPressOut).toBeUndefined();expect(mic().props.onPress).toBeUndefined();
+    await act(async()=>mic().props.onResponderMove({nativeEvent:{pageX:500,pageY:200}}));
+    expect(voice.endHold).not.toHaveBeenCalled();expect(voice.release).not.toHaveBeenCalled();
+    await act(async()=>{mic().props.onResponderRelease();mic().props.onResponderRelease();});
+    expect(voice.begin).toHaveBeenCalledTimes(1);expect(voice.release).toHaveBeenCalledTimes(1);
+    expect(voice.cancel).not.toHaveBeenCalled();
+  });
+  it.each(['termination','upward gesture'])('%s discards instead of ending/sending the recording',async reason=>{
+    const voice=setupVoice();
+    await act(async()=>{tree=create(draw(voice));});
+    await act(async()=>mic().props.onResponderGrant({nativeEvent:{pageY:200}}));
+    await act(async()=>{
+      if(reason==='termination')mic().props.onResponderTerminate();
+      else mic().props.onResponderMove({nativeEvent:{pageY:120}});
+      mic().props.onResponderRelease();
+    });
+    expect(voice.cancel).toHaveBeenCalledTimes(1);
+    expect(voice.release).not.toHaveBeenCalled();expect(voice.endHold).not.toHaveBeenCalled();
+  });
+  it('retains the screen-reader start/stop path and disabled held admission',async()=>{
+    const voice=setupVoice(true,true);
+    await act(async()=>{tree=create(draw(voice));});
+    expect(mic().props.onResponderGrant).toBeUndefined();
+    await act(async()=>mic().props.onPress());expect(voice.begin).toHaveBeenCalledTimes(1);
+    voice.recording.phase='recording';await act(async()=>tree.update(draw(voice)));
+    await act(async()=>mic().props.onPress());expect(voice.release).toHaveBeenCalledTimes(1);
+    voice.screenReader=false;voice.recording={phase:'idle',canRecord:false};
+    await act(async()=>tree.update(draw(voice)));
+    expect(mic().props.onStartShouldSetResponder()).toBe(false);
+    await act(async()=>mic().props.onResponderGrant({nativeEvent:{pageY:200}}));
+    expect(voice.begin).toHaveBeenCalledTimes(1);
+  });
 });
 it('keeps first-speech preparation cancellable and accessible', async () => {
   mockReader = true; const c = controller();

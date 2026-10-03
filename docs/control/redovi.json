@@ -187,7 +187,13 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "held_mic_20261003": {
+          "source": "AI0634b536 + Agreement actual responder release/cancel; source checked, next exact APK pending.",
+          "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
+          "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        }
       }
     },
     {
@@ -2415,6 +2421,12 @@
           "source": "759299f22b33a58d27f61b85eb23d3d76753033f",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
           "scope": "759299f2 physical chat toolbar/review OFF+ON and keyboard layout accepted; returned review to OFF, no new audio/message. f305 actual private send updated the focused other-device inbox without refresh. Group/reconnect/history/audio remain open."
+        },
+        "held_mic_20261003": {
+          "source": "AI0634b536 + Agreement actual responder release/cancel; source checked, next exact APK pending.",
+          "checks": "TypeScript PASS; AI layout40; combined controls30 + Agreement voice hook4 PASS.",
+          "scope": "Sideways movement does not finish; actual release once; upward or termination cancels. Existing review and authority guards retained. Not native recording/delivery or true spoken AI acceptance.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         }
       }
     },

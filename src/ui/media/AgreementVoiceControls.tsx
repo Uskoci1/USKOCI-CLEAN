@@ -1,10 +1,13 @@
+import { useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import type { PorukaProjekcija } from '../../contracts/projections';
 import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
 import { sys } from '../system/tokens';
+import { usePressLift } from '../system/usePressLift';
 
 export function voiceTime(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000));
@@ -39,23 +42,38 @@ export function AgreementVoiceMessage({ voice, message }: { voice: AgreementVoic
 }
 
 export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }) {
+  const held = useRef(false), startY = useRef(0);
+  const lift = usePressLift(sys.motion.scale.button);
   const state = voice.recording;
   const capturing = state.phase === 'requesting' || state.phase === 'recording';
   const disabled = !capturing && !state.canRecord;
   const label = voice.screenReader
     ? capturing ? 'Zaustavi snimanje i pregledaj glasovnu poruku' : 'Snimi glasovnu poruku'
     : 'Drži za glasovnu poruku';
-  return <Press accessibilityRole="button" accessibilityLabel={label}
-    accessibilityHint={voice.review ? 'Snimak prvo preslušaj, pa izaberi Pošalji snimak.' : 'Drži dok govoriš. Puštanje šalje snimak.'}
+  const MicTarget = voice.screenReader ? Press : Animated.View;
+  const cancel = () => { if (held.current) { held.current = false; lift.settle(); void voice.cancel(); } };
+  return <MicTarget accessible accessibilityRole="button" accessibilityLabel={label}
+    accessibilityHint={voice.review ? 'Snimak prvo preslušaj, pa izaberi Pošalji snimak.' : 'Drži dok govoriš. Puštanje šalje snimak. Povuci nagore da otkažeš.'}
     accessibilityState={{ disabled, busy: state.phase === 'requesting' }} disabled={disabled}
-    onPressIn={voice.screenReader ? undefined : () => { void voice.begin(); }}
-    // Press-out can mean responder cancellation; only a completed onPress authorizes sending.
-    onPressOut={voice.screenReader ? undefined : () => { void voice.endHold(); }}
-    onTouchCancel={() => { void voice.cancel(); }}
-    onPress={voice.screenReader ? () => { void (capturing ? voice.release() : voice.begin()); } : () => { void voice.release(); }}
-    style={[s.mic, capturing && s.primary, disabled && s.disabled]}>
+    // Press-out is not finger-up: leaving its rectangle used to stop a still-held recording.
+    onStartShouldSetResponder={voice.screenReader ? undefined : () => !disabled}
+    onResponderGrant={voice.screenReader ? undefined : event => {
+      if (disabled || held.current) return;
+      held.current = true; startY.current = event.nativeEvent.pageY; lift.give(); void voice.begin();
+    }}
+    onResponderRelease={voice.screenReader ? undefined : () => {
+      if (!held.current) return;
+      held.current = false; lift.settle(); void voice.release();
+    }}
+    onResponderTerminate={voice.screenReader ? undefined : cancel}
+    onResponderTerminationRequest={voice.screenReader ? undefined : () => true}
+    onResponderMove={voice.screenReader ? undefined : event => {
+      if (held.current && startY.current - event.nativeEvent.pageY > 70) cancel();
+    }}
+    onPress={voice.screenReader ? () => { void (capturing ? voice.release() : voice.begin()); } : undefined}
+    style={[s.mic, capturing && s.primary, disabled && s.disabled, !voice.screenReader && lift.style]}>
     <Glyph name="mic" size={24} tone={capturing ? 'onGreen' : 'ink'} />
-  </Press>;
+  </MicTarget>;
 }
 
 /** The same opt-in review mode stays explicit beside the microphone, including its off state. */
