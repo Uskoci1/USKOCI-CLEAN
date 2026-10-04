@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {parseControlMatching} from './runtime/matching-contract.mjs';
+const id='11111111-1111-4111-8111-111111111111',now='2026-10-04T17:00:00Z';
+const base={schemaVersion:'CONTROL_MATCHING_V1',capturedAt:now,freshness:'LIVE',need:{needId:id,revision:1,status:'PUBLISHED',title:'Test',requiredSlots:2,coveredSlots:1,remainingSlots:1},dispatchRounds:[],currentRevisionDeliveries:{total:0,uniqueWorkers:0,byStatus:{},scoreMin:null,scoreAvg:null,scoreMax:null},deliveredReasonCounts:{},currentRevisionResponsesByStatus:{},worker:null,semantics:{aggregateSource:'RECORDED_DISPATCH_ONLY',workerCurrentEvaluation:'CANONICAL_MATCH_DETAIL_SINGLE_PROFILE',nonDeliveredHistoricalReason:'UNKNOWN_UNLESS_RECORDED_ELSEWHERE'},privacy:{containsExactCoordinates:false,containsExactAddress:false,containsEmail:false,containsPhone:false}};
+assert.equal(parseControlMatching(base).need.remainingSlots,1);
+const w={...base,worker:{currentEvaluation:{evaluationScope:'CURRENT_RECOMPUTE',dispatchEligible:false,hardBlockers:['MISSING_REQUIRED_TOOL']},historicalDelivery:null,historicalExclusionProof:'UNAVAILABLE_NOT_RECORDED'}};
+assert.equal(parseControlMatching(w).worker.historicalExclusionProof,'UNAVAILABLE_NOT_RECORDED');
+assert.throws(()=>parseControlMatching({...base,dispatchRounds:Array(21).fill({})}));
+assert.throws(()=>parseControlMatching({...base,exactAddress:'secret'}));
+assert.throws(()=>parseControlMatching({...base,semantics:{...base.semantics,aggregateSource:'RECOMPUTED_ALL_WORKERS'}}));
+console.log('CONTROL MATCHING RUNTIME CONTRACT PASS');
