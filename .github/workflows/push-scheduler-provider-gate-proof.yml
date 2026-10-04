@@ -4,6 +4,7 @@ on:
     branches: [work/uskoci-ui-unification-20260924]
     paths:
       - 'supabase/candidates/push_scheduler_provider_gate_20261004.sql'
+      - 'supabase/candidates/push_scheduler_provider_gate_20261004_revert.sql'
       - 'supabase/proofs/notifications/push_scheduler_provider_gate_20261004.sql'
       - '.github/workflows/push-scheduler-provider-gate-proof.yml'
   workflow_dispatch:
