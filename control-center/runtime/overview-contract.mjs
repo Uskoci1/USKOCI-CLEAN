@@ -36,6 +36,7 @@ export function parseControlOverview(raw){
   if(typeof r.capturedAt!=='string'||Number.isNaN(Date.parse(r.capturedAt)))throw new Error('OVERVIEW_CAPTURED_AT');
   const accounts=object(r.accounts,'ACCOUNTS');
   const workers=object(r.workers,'WORKERS');
+  const needs=object(r.needs,'NEEDS');
   const responses=object(r.responses,'RESPONSES');
   const agreements=object(r.agreements,'AGREEMENTS');
   const reviews=object(r.reviews,'REVIEWS');
@@ -57,9 +58,15 @@ export function parseControlOverview(raw){
       activeProfiles:finiteNonNegative(workers.activeProfiles,'WORKERS_ACTIVE'),
       availableNow:finiteNonNegative(workers.availableNow,'WORKERS_AVAILABLE')
     },
-    needs:bucket(r.needs,'NEEDS'),
-    responses:{byStatus:bucket(responses.byStatus||{},'RESPONSES'),created24h:finiteNonNegative(responses.created24h,'RESPONSES_24H')},
-    agreements:{byStatus:bucket(agreements.byStatus||{},'AGREEMENTS'),created24h:finiteNonNegative(agreements.created24h,'AGREEMENTS_24H'),completed24h:finiteNonNegative(agreements.completed24h,'AGREEMENTS_COMPLETED_24H')},
+    needs:{
+      byStatus:bucket(needs.byStatus||{},'NEEDS'),
+      activeCount:finiteNonNegative(needs.activeCount,'NEEDS_ACTIVE'),
+      openForApplicationsCount:finiteNonNegative(needs.openForApplicationsCount,'NEEDS_OPEN_APPLICATIONS'),
+      created24h:finiteNonNegative(needs.created24h,'NEEDS_CREATED_24H'),
+      published24h:finiteNonNegative(needs.published24h,'NEEDS_PUBLISHED_24H')
+    },
+    responses:{byStatus:bucket(responses.byStatus||{},'RESPONSES'),created24h:finiteNonNegative(responses.created24h,'RESPONSES_CREATED_24H'),submitted24h:finiteNonNegative(responses.submitted24h,'RESPONSES_SUBMITTED_24H')},
+    agreements:{byStatus:bucket(agreements.byStatus||{},'AGREEMENTS'),activeCount:finiteNonNegative(agreements.activeCount,'AGREEMENTS_ACTIVE'),created24h:finiteNonNegative(agreements.created24h,'AGREEMENTS_CREATED_24H'),completed24h:finiteNonNegative(agreements.completed24h,'AGREEMENTS_COMPLETED_24H'),completionMismatchCount:finiteNonNegative(agreements.completionMismatchCount,'AGREEMENTS_COMPLETION_MISMATCH')},
     reviews:{total:finiteNonNegative(reviews.total,'REVIEWS_TOTAL'),created24h:finiteNonNegative(reviews.created24h,'REVIEWS_24H')},
     push:{
       deliveries24hByState:bucket(push.deliveries24hByState||{},'PUSH_DELIVERIES'),

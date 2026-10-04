@@ -27,41 +27,44 @@ worker_counts as (
   from public.app_profiles
 ),
 need_counts as (
-  select jsonb_object_agg(status, n order by status) as by_status
-  from (
-    select status, count(*)::bigint n
-    from public.needs
-    group by status
-  ) s
+  select
+    (select coalesce(jsonb_object_agg(status,n order by status),'{}'::jsonb)
+       from (select status,count(*)::bigint n from public.needs group by status) s) as by_status,
+    count(*) filter (where status in ('PUBLISHED','SELECTION','ACTIVE'))::bigint as active_count,
+    count(*) filter (where status in ('PUBLISHED','SELECTION')
+      and (response_deadline is null or response_deadline>statement_timestamp()))::bigint as open_for_applications_count,
+    count(*) filter (where created_at>=statement_timestamp()-interval '24 hours')::bigint as created_24h,
+    count(*) filter (where published_at>=statement_timestamp()-interval '24 hours')::bigint as published_24h
+  from public.needs
 ),
 response_counts as (
   select
-    jsonb_object_agg(status, n order by status) as by_status,
-    sum(n_24h)::bigint as created_24h
-  from (
-    select status, count(*)::bigint n,
-      count(*) filter (where created_at >= statement_timestamp() - interval '24 hours')::bigint n_24h
-    from public.marketplace_responses
-    group by status
-  ) s
+    (select coalesce(jsonb_object_agg(status,n order by status),'{}'::jsonb)
+       from (select status,count(*)::bigint n from public.marketplace_responses group by status) s) as by_status,
+    count(*) filter (where created_at>=statement_timestamp()-interval '24 hours')::bigint as created_24h,
+    count(*) filter (where submitted_at>=statement_timestamp()-interval '24 hours')::bigint as submitted_24h
+  from public.marketplace_responses
 ),
 agreement_counts as (
   select
-    jsonb_object_agg(status, n order by status) as by_status,
-    sum(n_24h)::bigint as created_24h
-  from (
-    select status, count(*)::bigint n,
-      count(*) filter (where created_at >= statement_timestamp() - interval '24 hours')::bigint n_24h
-    from public.agreements
-    group by status
-  ) s
+    (select coalesce(jsonb_object_agg(status,n order by status),'{}'::jsonb)
+       from (select status,count(*)::bigint n from public.agreements group by status) s) as by_status,
+    count(*) filter (where status='CONFIRMED')::bigint as active_count,
+    count(*) filter (where created_at>=statement_timestamp()-interval '24 hours')::bigint as created_24h
+  from public.agreements
 ),
 completion_counts as (
-  select count(*) filter (
-    where state='COMPLETED'
-      and completed_at >= statement_timestamp() - interval '24 hours'
-  )::bigint as completed_24h
-  from public.agreement_execution
+  select
+    count(*) filter (
+      where a.status='COMPLETED' and x.state='COMPLETED'
+        and x.completed_at>=statement_timestamp()-interval '24 hours'
+    )::bigint as completed_24h,
+    count(*) filter (
+      where (a.status='COMPLETED' and coalesce(x.state,'')<>'COMPLETED')
+         or (a.status<>'COMPLETED' and x.state='COMPLETED')
+    )::bigint as completion_mismatch_count
+  from public.agreements a
+  left join public.agreement_execution x on x.agreement_id=a.id
 ),
 review_counts as (
   select
@@ -120,15 +123,24 @@ select jsonb_build_object(
     'activeProfiles',(select active_worker_profiles from worker_counts),
     'availableNow',(select available_now from worker_counts)
   ),
-  'needs',coalesce((select by_status from need_counts),'{}'::jsonb),
+  'needs',jsonb_build_object(
+    'byStatus',coalesce((select by_status from need_counts),'{}'::jsonb),
+    'activeCount',coalesce((select active_count from need_counts),0),
+    'openForApplicationsCount',coalesce((select open_for_applications_count from need_counts),0),
+    'created24h',coalesce((select created_24h from need_counts),0),
+    'published24h',coalesce((select published_24h from need_counts),0)
+  ),
   'responses',jsonb_build_object(
     'byStatus',coalesce((select by_status from response_counts),'{}'::jsonb),
-    'created24h',coalesce((select created_24h from response_counts),0)
+    'created24h',coalesce((select created_24h from response_counts),0),
+    'submitted24h',coalesce((select submitted_24h from response_counts),0)
   ),
   'agreements',jsonb_build_object(
     'byStatus',coalesce((select by_status from agreement_counts),'{}'::jsonb),
+    'activeCount',coalesce((select active_count from agreement_counts),0),
     'created24h',coalesce((select created_24h from agreement_counts),0),
-    'completed24h',coalesce((select completed_24h from completion_counts),0)
+    'completed24h',coalesce((select completed_24h from completion_counts),0),
+    'completionMismatchCount',coalesce((select completion_mismatch_count from completion_counts),0)
   ),
   'reviews',jsonb_build_object(
     'total',(select total from review_counts),

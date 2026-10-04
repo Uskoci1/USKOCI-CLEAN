@@ -1,19 +1,24 @@
-# Business metric semantics v1
+# USKOČI CONTROL — Business metrics v1
 
-These formulas are the owner-facing meaning of Overview cards.
+These definitions are frozen before live runtime wiring.
 
-- **Registered total** = all `app_accounts`.
-- **New accounts 24h** = `app_accounts.created_at` in the last 24 hours.
-- **Active users 24h** = **UNKNOWN** until a canonical cross-app activity signal is approved. Never infer it from profile updates or push-device timestamps.
-- **Available workers now** = active WORKER profiles with `available_now=true`.
-- **Open for matching** = Needs in `PUBLISHED + SELECTION`.
-- **Active tasks** = Needs in `PUBLISHED + SELECTION + ACTIVE`.
-- **Applications / offers 24h** = marketplace responses created in the last 24 hours.
-- **Active Agreements** = Agreements in `CONFIRMED`.
-- **Completed 24h** = `agreement_execution.state=COMPLETED` with `completed_at` in the last 24 hours.
-- **Reviews 24h** = agreement reviews created in the last 24 hours.
-- **Push backlog** = PUSH deliveries still CREATED/QUEUED/FAILED_RETRYABLE for more than 15 minutes and not expired.
-- **Push success %** = OK / (OK + RETRYABLE + FATAL) push attempts in the last 24 hours. QUEUED is excluded from the denominator.
-- **AI conversations 24h** = sum of canonical conversation purpose/status buckets in the last 24 hours.
+- **registeredTotal**: count of `public.app_accounts`.
+- **registered24h**: accounts with `created_at` in the last 24 hours.
+- **active24h**: **UNKNOWN** until one canonical cross-app activity signal is approved. Profile updates, push-device last_seen and event receipt are not substitutes.
+- **active worker profiles**: WORKER profiles with `profile_status='ACTIVE'`.
+- **available now**: active WORKER profiles with `available_now=true`.
+- **Need byStatus**: exact database status buckets.
+- **active Needs**: status in `PUBLISHED | SELECTION | ACTIVE`.
+- **open for applications**: status in `PUBLISHED | SELECTION` and response deadline absent or still in the future.
+- **published24h**: `published_at` in the last 24 hours.
+- **response created24h**: response row created in the last 24 hours; may include DRAFT.
+- **response submitted24h**: `submitted_at` in the last 24 hours. This is the number to label as submitted applications/offers.
+- **active Agreements**: Agreement status `CONFIRMED`.
+- **completed24h**: Agreement status `COMPLETED` AND execution state `COMPLETED` with `completed_at` in the last 24 hours.
+- **completionMismatchCount**: Agreement/Execution completion truth disagrees. This is an anomaly, not a successful completion.
+- **review created24h**: immutable Agreement review created in the last 24 hours.
+- **push overdue backlog**: PUSH delivery still CREATED/QUEUED/FAILED_RETRYABLE for more than 15 minutes and not expired.
+- **push outcomes**: transport-attempt outcome buckets; do not label them phone delivery unless a stronger receipt exists.
+- **AI conversations24h**: purpose/status buckets for conversations created in the last 24 hours.
 
-No metric may silently convert UNKNOWN into zero.
+Never collapse these into one generic "active" number. UI labels must reflect the exact source semantics.

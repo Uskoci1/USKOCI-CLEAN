@@ -12,6 +12,11 @@ for(const x of [
   "'containsExactAddress',false",
   "'containsPushToken',false",
   "'containsChatBody',false",
+  "'openForApplicationsCount'",
+  "'submitted24h'",
+  "'activeCount'",
+  "'completionMismatchCount'",
+  'public.agreement_execution',
   'rollback;'
 ]) if(!sql.toLowerCase().includes(x.toLowerCase())) fail.push('missing '+x);
 for(const forbidden of ['select email','select phone','exact_address','expo_push_token','agreement_messages',' ai_messages ']){
