@@ -26,6 +26,7 @@ on:
   push:
     branches:
       - clean-alpha-backend
+      - work/uskoci-ui-unification-20260924
     paths:
       - '.github/workflows/build-android-dev-apk.yml'
 
