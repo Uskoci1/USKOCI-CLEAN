@@ -1,25 +1,23 @@
-# EX-06E R2 — reopen identity and Need-time hardening
+# EX-06E R2 — verified reopen identity and bounded Need-time hardening
 
-SOURCE/DISPOSABLE ONLY. NOT APPLIED TO DEV. This is a bounded continuation of EX-06E, not a new product or tracker.
+**DISPOSABLE R2 PASS / NOT APPLIED TO DEV / WHOLE LIFECYCLE NOT YET APPROVAL-READY.**
 
-R1's green run 37230071628 and exact input hashes are preserved. `build.mjs` deterministically produces a combined candidate and exact code revert from those frozen inputs plus these source patches; apply only the combined output, never a partially patched R1. Each generated output carries a SHA-256 in manifest.json. A changed predecessor or source anchor fails generation.
+Verified source `1d34a77d8c541f9ae0a291c61fb2c1444bd7bcbb`, run `37233269665`, artifact `11314587694`: 29/29 offline tests, 16/16 behavioral groups, 5/5 drift/application refusals. Original closed-search failure reproduced before the candidate and after exact code revert; reapply and final revert pass. Teardown exit 0.
 
-## Proposed delta
+Read the scoped receipt and admission limits at `docs/implementation/product-v1-closure-20260926/finalization-20260927/ex06/EX06E_R2_HARDENING_RECEIPT_20261004.md` and the proposed client readback in `CLIENT_READBACK_CONTRACT.md`. These are evidence/contract notes within the existing tracker, not a new master plan.
 
-Existing dispatch_next_wave and rpc_cancel_agreement use a fresh clock after the Need lock. dispatch_tick keeps the two terminal stop reasons. The existing closure trigger and existing close command stay byte-identical. The new private time helper also honours an explicit generic FLEXIBLE end and treats the exact endpoint as closed; it never invents an end from a generic start alone.
+## Reproduction
 
-The new canonical signature is `rpc_reopen_remaining_search(uuid,integer,timestamptz,text,text)`: Need, revision, exact observed closedAt, immutable command key, reason. The unsafe four-argument form is absent. The request hash binds operation and closure instant; the stored receipt also identifies the operation. Shared-ledger locking uses exactly the close command's key space/seed. Cross-operation collisions are refusals, never interpreted as success. A delayed first reopen cannot clear a newer manual closure. Replays return history, not a claim about current search state.
+R1 green run 37230071628 and input hashes are retained. `build.mjs` deterministically creates combined candidate.sql, revert.sql and manifest.json from frozen R1 candidate/revert/proof plus the R2 time body and scenario fragment. The generated candidate SHA-256 is `8ab4a121e9fc91f6deb23f2355da1ce854f03c1be6562bf390c3318c2640d6e8`; revert SHA-256 is `c9e38eef66667eae26fc3e106bf0e1fe56b585631c95baca067c39ec59eea253`. Do not apply R1 plus partial edits. Changed source pins or anchors fail generation.
 
-Code revert first checks both new bodies, ownership, grants, argument names/defaults and function attributes. It refuses later drift instead of silently deleting it. It restores the three original bodies and removes the two new functions; it does not rewind user data or delete command history.
+The canonical R2 command is `rpc_reopen_remaining_search(uuid,integer,timestamptz,text,text)`, binding exact observed closedAt. Operation identity, exact shared-key locking and stored receipt validation prevent close/reopen confusion and stale first commands. The unsafe four-argument form is absent. Replays are history, not current-state readback.
 
-## Intended evidence
+Known Need-time bounds, including generic FLEXIBLE ends, use strict endpoints and a fresh clock after locks. Real blocked API calls proved expiry during both reopen and cancellation. The certified trigger and existing close command stay unchanged by the candidate; no new table or task FSM.
 
-Retain all nine R1 groups; add seven R2 groups, including two actual blocked API requests that begin before expiry and finish after it. Observe pg_blocking_pids, query_start and database time, not only a timer. Reproduce the original closed-search retry before the candidate and after code revert. Prove refusal on duplicate apply/new-body/grant/volatility drift and exact reapply/revert.
+`align.mjs` is a strictly loopback-only replay adjustment of the old close function's single deterministic conflict code to the already-observed live PT409 body. It pins both hashes, metadata and certificate. It is not a DEV migration. The full newer DEV chain remains a separate admission check.
 
-All Auth/PostgREST/SQL activity in these scripts is guarded loopback. No paid providers, physical phone, new dependency or live DEV write. Synthetic time fixtures are labelled. CI results are not presumed until artifacts are read.
+Revert refuses changed new bodies/grants/metadata, restores the three existing functions and removes the two new functions. It does not undo user commands or erase history.
 
-## Still outside this bounded proof
+## Still open
 
-A differing accepted Agreement window versus its parent Need, per-cancelled-allocation replacement time authority and the full newer DEV replay remain open. No blanket +24h replacement window is introduced. The helper here is intentionally a Need-time gate, not a fabricated per-person replacement ledger.
-
-Client/UI remain unconnected: capture exact server closedAt without millisecond rounding, retain the same command on unknown outcomes, reread current owner state after a receipt, and add an owner-authoritative canReopen/time-reason projection before showing the new action. Existing Dogovor completion/problem/change actions remain the post-window next-action contract. F5 and large code cleanup remain outside this work.
+Accepted Agreement windows differing from the parent Need, per-allocation replacement time and the existing WEEK_FLEXIBLE +7-days expiry versus remaining-calendar-week matching discrepancy are not closed by R2. No blanket +24h revival was introduced. Client/UI current-state/receipt reads and phone/provider acceptance remain open. F5 and large cleanup remain outside this work. Any DEV change requires a later explicit owner approval.
