@@ -1,5 +1,6 @@
 import {parseControlOverview} from '../runtime/overview-contract.mjs';
 import {parseControlSearch,parseControlUser,parseControlTask,parseControlAgreement} from '../runtime/inspector-contracts.mjs';
+import {parseControlNotification,parseControlAi} from '../runtime/notification-ai-contracts.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FORBIDDEN=new Set(['email','phone','exactAddress','exactLat','exactLng','exactCoordinates','pushToken','expoPushToken','chatBody','messageBody','scopeNote']);
@@ -9,7 +10,9 @@ const PARSER={
  rpc_control_search_v1:parseControlSearch,
  rpc_control_user_v1:parseControlUser,
  rpc_control_task_v1:parseControlTask,
- rpc_control_agreement_v1:parseControlAgreement
+ rpc_control_agreement_v1:parseControlAgreement,
+ rpc_control_notification_v1:parseControlNotification,
+ rpc_control_ai_v1:parseControlAi
 };
 
 function requestId(){try{return crypto.randomUUID()}catch{return 'control-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)}}
@@ -76,6 +79,8 @@ export function createControlApi({authorize,rpc,audit}){
    }else if(p.startsWith('/api/control/users/')){name='rpc_control_user_v1';args={p_account_id:idFrom(p,'/api/control/users/')}}
    else if(p.startsWith('/api/control/tasks/')){name='rpc_control_task_v1';args={p_need_id:idFrom(p,'/api/control/tasks/')}}
    else if(p.startsWith('/api/control/agreements/')){name='rpc_control_agreement_v1';args={p_agreement_id:idFrom(p,'/api/control/agreements/')}}
+   else if(p.startsWith('/api/control/notifications/')){name='rpc_control_notification_v1';args={p_event_id:idFrom(p,'/api/control/notifications/')}}
+   else if(p.startsWith('/api/control/ai/')){name='rpc_control_ai_v1';args={p_conversation_id:idFrom(p,'/api/control/ai/')}}
    else return json({error:'NOT_FOUND',requestId:rid},404,baseHeaders);
   }catch(e){return json({error:e.message==='INVALID_ID'?'INVALID_ID':'BAD_ROUTE',requestId:rid},400,baseHeaders)}
   try{
