@@ -1,5 +1,5 @@
 {
-  "version": "0.1",
+  "version": "0.5",
   "generatedFrom": "canonical repository source audit",
   "runtimeTruth": "NOT_LIVE_CONNECTED",
   "canonicalDevRef": "leqcwgzvjsxugfgzdmth",
@@ -11,6 +11,17 @@
     "UNKNOWN": "unavailable"
   },
   "domains": [
+    {
+      "id": "search",
+      "sources": [
+        "app_accounts",
+        "needs",
+        "marketplace_responses",
+        "agreements"
+      ],
+      "status": "SOURCE_CANDIDATE_V1",
+      "exposure": "bounded global search; private identity exact-match only, never returned"
+    },
     {
       "id": "overview",
       "sources": [
@@ -33,7 +44,7 @@
         "profile_availability_rules",
         "profile_availability_windows"
       ],
-      "status": "SOURCE_ONLY",
+      "status": "SOURCE_CANDIDATE_V1",
       "exposure": "safe summary"
     },
     {
@@ -45,7 +56,7 @@
         "need_selections",
         "agreements"
       ],
-      "status": "SOURCE_ONLY",
+      "status": "SOURCE_CANDIDATE_V1",
       "exposure": "bounded inspector; mask private geography"
     },
     {
@@ -55,7 +66,7 @@
         "agreement_execution",
         "agreement_reviews"
       ],
-      "status": "SOURCE_ONLY",
+      "status": "SOURCE_CANDIDATE_V1",
       "exposure": "bounded inspector"
     },
     {
@@ -64,7 +75,7 @@
         "agreement_messages",
         "group messages"
       ],
-      "status": "SOURCE_ONLY",
+      "status": "METADATA_CANDIDATE_V1",
       "exposure": "metadata only by default"
     },
     {
