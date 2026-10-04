@@ -1,0 +1,27 @@
+name: USKOCI Control v0 guard
+
+on:
+  push:
+    branches:
+      - control/uskoci-control-v0-20261004
+    paths:
+      - 'control-center/**'
+      - '.github/workflows/control-v0-check.yml'
+  pull_request:
+    paths:
+      - 'control-center/**'
+      - '.github/workflows/control-v0-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  static-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node control-center/check-v0.mjs
