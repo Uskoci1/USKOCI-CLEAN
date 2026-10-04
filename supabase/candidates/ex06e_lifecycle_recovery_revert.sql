@@ -20,7 +20,7 @@ begin
       ('private.dispatch_next_wave(uuid)', 'c37d672ccaf44e86b5e83b117156cdb8'),
       ('private.dispatch_tick(integer,timestamptz)', '8798cb6b6f004ecd5d88dd472cd6de0b'),
       ('private.guard_remaining_search_close_fields()', 'c2d5e8ad7398f25a026d9bfd333efa8b'),
-      ('public.rpc_cancel_agreement(uuid,text)', 'd6bc6e6d7717a013fcc654a9796e4e41')
+      ('public.rpc_cancel_agreement(uuid,text)', 'f23a499bdd57d68476c126232645a139')
     ) x(signature, expected_md5)
   loop
     if (select md5(replace(prosrc,E'\r','')) from pg_proc where oid=to_regprocedure(r.signature)) is distinct from r.expected_md5 then
