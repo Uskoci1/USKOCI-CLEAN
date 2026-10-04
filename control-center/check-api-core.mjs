@@ -17,7 +17,8 @@ const api=createControlApi({
  rpc:async(name,args,ctx)=>{calls.push({name,args,ctx});return structuredClone(fixtures[name])},
  audit:async e=>audits.push(e)
 });
-let r=await api(new Request('https://control.invalid/api/control/overview'));
+let r=await api(new Request('https://control.invalid/api/control/session'));assert.equal(r.status,200);let sessionBody=await r.json();assert.equal(sessionBody.runtime,'PRIVATE_API_CONNECTED');assert.equal(sessionBody.role,'OWNER');assert.ok(r.headers.get('x-control-request-id'));
+r=await api(new Request('https://control.invalid/api/control/overview'));
 assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'private, no-store, max-age=0');assert.ok(r.headers.get('x-control-request-id'));assert.equal(calls.at(-1).name,'rpc_control_overview_v1');
 r=await api(new Request('https://control.invalid/api/control/search?q=mil&limit=99'));assert.equal(r.status,200);assert.deepEqual(calls.at(-1).args,{p_query:'mil',p_limit:20});assert.equal(audits.at(-1).queryLength,3);assert.equal('p_query' in audits.at(-1),false);
 r=await api(new Request('https://control.invalid/api/control/users/'+id));assert.equal(r.status,200);assert.equal(calls.at(-1).name,'rpc_control_user_v1');
@@ -30,6 +31,8 @@ r=await api(new Request('https://control.invalid/api/control/matching/'+id+'/'+i
 assert.equal((await api(new Request('https://control.invalid/api/control/overview',{method:'POST'}))).status,405);
 assert.equal((await api(new Request('https://control.invalid/api/control/users/nope'))).status,400);
 assert.equal((await api(new Request('https://control.invalid/api/control/search?q=x'))).status,400);
+assert.equal((await api(new Request('https://control.invalid/api/control/search?q=owner%40example.invalid'))).status,400);
+assert.equal((await api(new Request('https://control.invalid/api/control/search?q=%2B381641234567'))).status,400);
 const denied=createControlApi({authorize:async()=>({authenticated:true,role:'SUPPORT',userId:id}),rpc:async()=>{throw new Error('MUST_NOT_CALL')}});
 assert.equal((await denied(new Request('https://control.invalid/api/control/overview'))).status,403);
 const unauth=createControlApi({authorize:async()=>({authenticated:false}),rpc:async()=>{throw new Error('MUST_NOT_CALL')}});
