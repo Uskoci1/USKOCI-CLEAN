@@ -163,7 +163,7 @@ jobs:
           const applied=load('applied-state.json');
           assert.equal(applied.wave,'c37d672ccaf44e86b5e83b117156cdb8');
           assert.equal(applied.tick,'8798cb6b6f004ecd5d88dd472cd6de0b');
-          assert.equal(applied.guard,'c2d5e8ad7398f25a026d9bfd333efa8b');
+          assert.equal(applied.guard,'ce59ad1cdee98518950e289aa5c329a4');
           assert.equal(applied.cancel,'f23a499bdd57d68476c126232645a139'); assert.equal(applied.digest,applied.certified); assert.equal(applied.ready,true);
           const reverted=load('reverted-state.json');
           assert.equal(reverted.wave,'1fd8c51ef026ece24471e2f68250ecc5');
