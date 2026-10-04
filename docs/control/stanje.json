@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-03T20:35:53Z",
+  "osvezeno": "2026-10-04T13:22:41Z",
   "grana": "HEAD",
-  "head": "4e227476",
-  "head_poruka": "docs: confirm emulator brand and worker return checkpoint",
+  "head": "d7b5fbe7",
+  "head_poruka": "docs(control): record ambiguous location region regression proof",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -2307,7 +2307,7 @@
    },
    "telefon_dokaz": "",
    "problem": "",
-   "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json Završni krug09: pregled svih privatnih potvrđenih tačaka pre objave; dopuna napomene zadržava pin, a odbacivanje izmene vraća poslednju potvrđenu tačku. Tipovi i 5 ciljanih grupa/173 testa prolaze. Telefon, provajder i glas nisu ponovo provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md Završni krug10: potvrđena mapa ostaje u AI razgovoru, svaka tačka se može ispraviti; nacrt poruke ostaje sačuvan dok se rešava mesto. Stari pregled ne može prepisati novu lokaciju. Tipovi i 4 ciljane grupe / 270 testova prolaze; novi APK, telefon i AI provajder nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md",
+   "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json Završni krug09: pregled svih privatnih potvrđenih tačaka pre objave; dopuna napomene zadržava pin, a odbacivanje izmene vraća poslednju potvrđenu tačku. Tipovi i 5 ciljanih grupa/173 testa prolaze. Telefon, provajder i glas nisu ponovo provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md Završni krug10: potvrđena mapa ostaje u AI razgovoru, svaka tačka se može ispraviti; nacrt poruke ostaje sačuvan dok se rešava mesto. Stari pregled ne može prepisati novu lokaciju. Tipovi i 4 ciljane grupe / 270 testova prolaze; novi APK, telefon i AI provajder nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md 04.10: ambiguity fix a349907 — kada geokoder vrati više kandidata, conversation mapa odmah kadrira njihov region umesto world-view; nijedan kandidat nije automatski izabran niti potvrđen. Exact CI run 37205004366: TypeScript PASS, focused 34/34 suites 700/700 tests, full regression 428/428 suites 9387/9387 tests, 6/6 snapshots. Novi native/telefon dokaz još ne postoji.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -2362,6 +2362,13 @@
      "checks": "CI37092200238 at generated-only successor4549a912:426 suites/9321 tests/6 snapshots PASS. Next idle-only AI welcome source7 focused PASS and TypeScript PASS.",
      "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+    },
+    "location_ambiguous_region_20261004": {
+     "source": "a349907570e6d99313241061e67331dfb3295df0",
+     "change": "Ambiguous LocationIQ results remain unresolved but immediately frame their candidate region in the conversation map; no auto-selection or confirmation.",
+     "ci": "run 37205004366: TypeScript PASS; focused 34/34 suites, 700/700 tests; full 428/428 suites, 9387/9387 tests; 6/6 snapshots.",
+     "boundary": "SOURCE/CI only. No DEV/Edge/data mutation, no provider probe, no native/phone acceptance.",
+     "next": "Native check on the next coherent Android build together with remaining city-fallback/search work."
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
