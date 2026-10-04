@@ -37,3 +37,8 @@ test('candidate is schema neutral and reuses the existing close-command ledger w
   assert.match(c,/private\.remaining_search_close_commands/);
   assert.match(c,/'reopen:'\|\|v_request_id/);
 });
+
+test('shared-ledger reopen key leaves room for the reopen namespace',()=>{
+  assert.match(c,/char_length\(v_request_id\) not between 8 and 193/);
+  assert.match(c,/'reopen:'\|\|v_request_id/);
+});
