@@ -70,6 +70,10 @@ export function createControlApi({authorize,rpc,audit}){
    return json({error:'OWNER_REQUIRED',requestId:rid},403,baseHeaders);
   }
   const url=new URL(request.url),p=url.pathname;
+  if(p==='/api/control/session'){
+   await auditSafe(audit,{requestId:rid,outcome:'SESSION_OK',actorId:auth.userId});
+   return json({schemaVersion:'CONTROL_SESSION_V1',authenticated:true,role:'OWNER',runtime:'PRIVATE_API_CONNECTED',requestId:rid},200,{...baseHeaders,'x-control-schema':'CONTROL_SESSION_V1'});
+  }
   let name,args={},auditMeta={};
   try{
    if(p==='/api/control/overview'){name='rpc_control_overview_v1'}
@@ -77,6 +81,9 @@ export function createControlApi({authorize,rpc,audit}){
     const q=(url.searchParams.get('q')||'').trim();
     const limit=Math.min(Math.max(Number(url.searchParams.get('limit')||20)||20,1),20);
     if(q.length<2||q.length>160)return json({error:'SEARCH_QUERY_INVALID',requestId:rid},400,baseHeaders);
+    const digits=q.replace(/[^0-9]+/g,'');
+    const uuidQuery=UUID.test(q);
+    if(q.includes('@')||(!uuidQuery&&digits.length>=6))return json({error:'PRIVATE_IDENTITY_SEARCH_REQUIRES_ELEVATED_MODE',requestId:rid},400,baseHeaders);
     name='rpc_control_search_v1';args={p_query:q,p_limit:limit};auditMeta={queryLength:q.length,limit};
    }else if(p.startsWith('/api/control/users/')){name='rpc_control_user_v1';args={p_account_id:idFrom(p,'/api/control/users/')}}
    else if(p.startsWith('/api/control/tasks/')){name='rpc_control_task_v1';args={p_need_id:idFrom(p,'/api/control/tasks/')}}
