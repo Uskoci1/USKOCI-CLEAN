@@ -18,7 +18,7 @@ begin
     select * from (values
       ('private.dispatch_next_wave(uuid)', 'c37d672ccaf44e86b5e83b117156cdb8'),
       ('private.dispatch_tick(integer,timestamptz)', '8798cb6b6f004ecd5d88dd472cd6de0b'),
-      ('public.rpc_cancel_agreement(uuid,text)', 'f23a499bdd57d68476c126232645a139')
+      ('public.rpc_cancel_agreement(uuid,text)', '478ce82cafaf93f8e2b7f2d8ad0f3bbb')
     ) x(signature, expected_md5)
   loop
     if (select md5(replace(prosrc,E'\r','')) from pg_proc where oid=to_regprocedure(r.signature)) is distinct from r.expected_md5 then
@@ -84,6 +84,10 @@ $replacement$  if v_covered < v_need.required_slots
     if v_need.remaining_search_closed_at is null
        and private.need_search_time_admitted_v1(v_need.id, statement_timestamp()) then
       perform private.enqueue_dispatch(v_need.id, statement_timestamp());
+    else
+      -- The existing Need status trigger blindly enqueues ACTIVE -> SELECTION.
+      -- Remove that stale queue row when search/time authority says matching is closed.
+      delete from private.dispatch_schedule where need_id = v_need.id;
     end if;
   end if;
 $replacement$,
