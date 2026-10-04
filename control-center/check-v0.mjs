@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+const alertRules = JSON.parse(fs.readFileSync(new URL('./spec/ALERT_RULES.json', import.meta.url), 'utf8'));
 const failures = [];
 
 const requireText = (needle, label) => {
@@ -35,6 +36,15 @@ requireText("Control snapshot zaostaje", 'stale-state warning');
 requireText("nije direktna live DEV veza", 'snapshot/live distinction');
 requireText("Nacrt", 'evidence ladder');
 requireText("Telefon", 'phone evidence level');
+requireText('data-tab="alertsPanel"', 'alerts navigation');
+requireText('ALERT CENTER', 'typed Alert Center');
+requireText('DEVELOPMENT INSPECTOR', 'commit/CI inspector');
+requireText('RISK RADAR', 'risk radar');
+requireText('HEAD_CI_FAILURE', 'current-head CI failure rule');
+if (!Array.isArray(alertRules.rules) || alertRules.rules.length < 9) failures.push('alert rules contract incomplete');
+for (const code of ['HEAD_CI_FAILURE','CONTROL_SNAPSHOT_STALE','PHONE_EVIDENCE_GAP','RELEASE_NOT_READY']) {
+  if (!alertRules.rules.some(r => r.code === code)) failures.push('missing alert rule: ' + code);
+}
 
 const intervals = [...html.matchAll(/setInterval\([^,]+,(\d+)\)/g)].map(m => Number(m[1]));
 if (!intervals.length) failures.push('missing refresh interval');
