@@ -239,7 +239,7 @@ begin
   if p_need_id is null or p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'NEED_ID_REVISION_REQUIRED' using errcode='22023';
   end if;
-  if char_length(v_request_id) not between 8 and 200 then
+  if char_length(v_request_id) not between 8 and 193 then
     raise exception 'CLIENT_REQUEST_ID_INVALID' using errcode='22023';
   end if;
 
