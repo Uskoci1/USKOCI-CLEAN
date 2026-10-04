@@ -1,0 +1,105 @@
+{
+  "version": "0.3",
+  "semantics": "Signals explain evidence/risk. They do not imply whole-product runtime failure unless the source itself proves that scope.",
+  "rules": [
+    {
+      "code": "HEAD_CI_FAILURE",
+      "severity": "critical",
+      "source": "github_actions",
+      "condition": "one_or_more_runs_for_current_head_completed_non_success",
+      "meaning": "A concrete proof workflow failed on current HEAD.",
+      "notMeaning": "The entire USKOCI runtime is down."
+    },
+    {
+      "code": "HEAD_CI_RUNNING",
+      "severity": "info",
+      "source": "github_actions",
+      "condition": "one_or_more_runs_for_current_head_not_completed",
+      "meaning": "Evidence for current HEAD is still incomplete.",
+      "notMeaning": "Failure."
+    },
+    {
+      "code": "CONTROL_SNAPSHOT_STALE",
+      "severity": "warning",
+      "source": "stanje.json+branch_head",
+      "condition": "snapshot_head_not_prefix_of_current_head",
+      "meaning": "The control projection predates canonical HEAD.",
+      "notMeaning": "Runtime regression."
+    },
+    {
+      "code": "DEV_SNAPSHOT_STALE",
+      "severity": "warning",
+      "source": "dev_snapshot.json",
+      "condition": "captured_at_older_than_15_minutes",
+      "meaning": "DEV metadata is not fresh enough to call live.",
+      "notMeaning": "DEV is unhealthy."
+    },
+    {
+      "code": "CONTROL_OPEN_PROBLEMS",
+      "severity": "warning",
+      "source": "62_row_registry",
+      "condition": "PROBLEM_count_gt_0",
+      "meaning": "Canonical tracker has unresolved product/control rows.",
+      "notMeaning": "Count of active user-facing incidents."
+    },
+    {
+      "code": "PHONE_EVIDENCE_GAP",
+      "severity": "warning",
+      "source": "62_row_registry",
+      "condition": "phone_light_not_green",
+      "meaning": "Exact current device proof is incomplete.",
+      "notMeaning": "Feature definitely fails on phone."
+    },
+    {
+      "code": "SERVER_EVIDENCE_GAP",
+      "severity": "warning",
+      "source": "62_row_registry",
+      "condition": "server_light_not_green",
+      "meaning": "Server proof/coverage is incomplete for one or more flows.",
+      "notMeaning": "All backend traffic is failing."
+    },
+    {
+      "code": "TEST_EVIDENCE_GAP",
+      "severity": "info",
+      "source": "62_row_registry",
+      "condition": "test_light_not_green",
+      "meaning": "Automated evidence is incomplete.",
+      "notMeaning": "Known functional failure."
+    },
+    {
+      "code": "RELEASE_NOT_READY",
+      "severity": "warning",
+      "source": "master_plan_live_state",
+      "condition": "release_status_contains_NOT_READY",
+      "meaning": "Canonical release gates remain open.",
+      "notMeaning": "Development must stop."
+    }
+  ],
+  "futureRuntimeRules": [
+    {
+      "code": "PUSH_FAILURE_SPIKE",
+      "status": "DESIGN_ONLY",
+      "requires": "canonical read-model baseline + threshold"
+    },
+    {
+      "code": "QUEUE_BACKLOG",
+      "status": "DESIGN_ONLY",
+      "requires": "canonical notification queue read-model"
+    },
+    {
+      "code": "LIFECYCLE_INVARIANT",
+      "status": "DESIGN_ONLY",
+      "requires": "canonical task/agreement read-model"
+    },
+    {
+      "code": "AI_PROVIDER_DEGRADATION",
+      "status": "DESIGN_ONLY",
+      "requires": "provider metadata read-model"
+    },
+    {
+      "code": "USAGE_SPIKE",
+      "status": "DESIGN_ONLY",
+      "requires": "authoritative usage source"
+    }
+  ]
+}
