@@ -120,7 +120,17 @@ try{
     const beforeDeliveries=deliveries(t.needId);
     const w=wave(t.needId);assert.equal(w.status,'STOPPED');assert.equal(w.reason,'REMAINING_SEARCH_CLOSED');assert.equal(Number(w.inserted),0);
     assert.equal(deliveries(t.needId),beforeDeliveries);
-    return {coverage:Number(after.covered_slots),closed:true,queued:false,waveReason:w.reason,newDeliveries:0,spares:[b.id,c.id],needId:t.needId,owner:o,t};
+
+    // F10 recovery fallback: even if a stale/recovery queue row exists, the tick must stop terminally, never ERROR/retry.
+    sql(`select private.enqueue_dispatch(${q(t.needId)}::uuid,statement_timestamp())`);
+    assert.ok(schedule(t.needId),'labelled stale queue fixture must exist');
+    const tick=fx.runTick(null,25);
+    assert.equal(Number(tick.failed),0);assert.ok(Number(tick.stopped)>=1);assert.equal(schedule(t.needId),null);
+    const repeat=fx.runTick(null,25);assert.equal(Number(repeat.failed),0);assert.equal(schedule(t.needId),null);
+    assert.equal(deliveries(t.needId),beforeDeliveries);
+
+    return {coverage:Number(after.covered_slots),closed:true,queued:false,waveReason:w.reason,newDeliveries:0,
+      staleQueueRecovery:{first:tick,repeat,scheduleGone:true},spares:[b.id,c.id],needId:t.needId,owner:o,t};
   });
 
   await scoped('CLOSED + missing -> canonical reopen -> only missing capacity',async()=>{
