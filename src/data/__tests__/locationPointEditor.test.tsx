@@ -464,16 +464,18 @@ it('retires unresolved camera context on disable and rejects the retained map ac
     origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
   const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
   await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place' });
-  await press('Označi na mapi');
+  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
   const oldChoose = map().props.onChoose;
+  expect(map().props.position).toBeNull();
   expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
   await update({ disabled: true });
   expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
   await act(async () => oldChoose(other.position));
   expect(props.onConfirm).not.toHaveBeenCalled(); expect(props.onInvalidate).not.toHaveBeenCalled();
   await update({ disabled: false });
-  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
-  await press('Označi na mapi');
+  // Re-enabling starts a fresh automatic lookup. Its ambiguous result frames the region again
+  // without reviving the retired map action or selecting a point.
+  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
   expect(map().props.position).toBeNull();
   expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
   expect(resolver.search).toHaveBeenCalledTimes(2);
