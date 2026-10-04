@@ -10,8 +10,7 @@ do $pre$
 declare r record;
 begin
   if to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)') is null
-     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is null
-     or to_regclass('private.remaining_search_reopen_commands') is null then
+     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is null then
     raise exception 'EX06E_REVERT_PACKAGE_NOT_PRESENT';
   end if;
 
@@ -115,7 +114,6 @@ end
 $restore$;
 
 drop function public.rpc_reopen_remaining_search(uuid,integer,text,text);
-drop table private.remaining_search_reopen_commands;
 drop function private.need_search_time_admitted_v1(uuid,timestamptz);
 
 do $post$
@@ -139,8 +137,7 @@ begin
   end loop;
 
   if to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)') is not null
-     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is not null
-     or to_regclass('private.remaining_search_reopen_commands') is not null then
+     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is not null then
     raise exception 'EX06E_REVERT_NEW_OBJECT_REMAINS';
   end if;
 
