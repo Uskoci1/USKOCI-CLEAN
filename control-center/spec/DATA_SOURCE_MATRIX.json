@@ -1,0 +1,124 @@
+{
+  "version": "0.1",
+  "generatedFrom": "canonical repository source audit",
+  "runtimeTruth": "NOT_LIVE_CONNECTED",
+  "canonicalDevRef": "leqcwgzvjsxugfgzdmth",
+  "freshnessPolicy": {
+    "LIVE": "direct canonical read",
+    "FRESH_SNAPSHOT": "<=15m",
+    "STALE_SNAPSHOT": ">15m",
+    "SOURCE_ONLY": "repo/schema evidence only",
+    "UNKNOWN": "unavailable"
+  },
+  "domains": [
+    {
+      "id": "overview",
+      "sources": [
+        "app_accounts",
+        "app_profiles",
+        "needs",
+        "marketplace_responses",
+        "agreements",
+        "agreement_reviews"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "aggregates"
+    },
+    {
+      "id": "users",
+      "sources": [
+        "app_accounts",
+        "app_profiles",
+        "worker_match_preferences",
+        "profile_availability_rules",
+        "profile_availability_windows"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "safe summary"
+    },
+    {
+      "id": "tasks",
+      "sources": [
+        "needs",
+        "need_sensitive",
+        "marketplace_responses",
+        "need_selections",
+        "agreements"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "bounded inspector; mask private geography"
+    },
+    {
+      "id": "agreements",
+      "sources": [
+        "agreements",
+        "agreement_execution",
+        "agreement_reviews"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "bounded inspector"
+    },
+    {
+      "id": "messages",
+      "sources": [
+        "agreement_messages",
+        "group messages"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "metadata only by default"
+    },
+    {
+      "id": "matching",
+      "sources": [
+        "needs",
+        "app_profiles",
+        "worker_match_preferences",
+        "profile_availability_rules",
+        "profile_availability_windows",
+        "dispatch/opportunity projections"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "authoritative reason/count projection"
+    },
+    {
+      "id": "notifications",
+      "sources": [
+        "user_activity_events",
+        "notification_deliveries",
+        "notification_preferences"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "event/delivery inspector"
+    },
+    {
+      "id": "push",
+      "sources": [
+        "notification_push_devices",
+        "notification_push_attempts"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "never return raw token"
+    },
+    {
+      "id": "ai",
+      "sources": [
+        "ai_conversations",
+        "ai_messages",
+        "ai_structured_facts"
+      ],
+      "status": "SOURCE_ONLY",
+      "exposure": "metadata/fact status; body hidden"
+    },
+    {
+      "id": "development",
+      "sources": [
+        "GitHub branch HEAD",
+        "docs/control/stanje.json",
+        "docs/control/dev_snapshot.json",
+        "GitHub Actions"
+      ],
+      "status": "IMPLEMENTED_V0_2",
+      "exposure": "public repo evidence"
+    }
+  ]
+}
