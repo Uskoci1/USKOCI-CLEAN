@@ -1,5 +1,5 @@
 const RPCS=new Set([
- 'rpc_control_overview_v1','rpc_control_search_v1','rpc_control_user_v1','rpc_control_task_v1','rpc_control_agreement_v1','rpc_control_notification_v1','rpc_control_ai_v1','rpc_control_matching_v1'
+ 'rpc_control_overview_v1','rpc_control_search_v1','rpc_control_user_v1','rpc_control_task_v1','rpc_control_agreement_v1','rpc_control_notification_v1','rpc_control_ai_v1','rpc_control_matching_v1','rpc_control_application_v1'
 ]);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_RAW_BYTES=192*1024;
