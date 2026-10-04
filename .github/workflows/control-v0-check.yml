@@ -34,3 +34,5 @@ jobs:
       - run: node control-center/check-api-core.mjs
       - run: node control-center/check-supabase-adapter.mjs
       - run: node control-center/check-business-metrics.mjs
+      - run: node control-center/check-notification-ai-candidate.mjs
+      - run: node control-center/check-notification-ai-contracts.mjs
