@@ -59,7 +59,7 @@ export function parseControlOverview(raw){
     },
     needs:bucket(r.needs,'NEEDS'),
     responses:{byStatus:bucket(responses.byStatus||{},'RESPONSES'),created24h:finiteNonNegative(responses.created24h,'RESPONSES_24H')},
-    agreements:{byStatus:bucket(agreements.byStatus||{},'AGREEMENTS'),created24h:finiteNonNegative(agreements.created24h,'AGREEMENTS_24H')},
+    agreements:{byStatus:bucket(agreements.byStatus||{},'AGREEMENTS'),created24h:finiteNonNegative(agreements.created24h,'AGREEMENTS_24H'),completed24h:finiteNonNegative(agreements.completed24h,'AGREEMENTS_COMPLETED_24H')},
     reviews:{total:finiteNonNegative(reviews.total,'REVIEWS_TOTAL'),created24h:finiteNonNegative(reviews.created24h,'REVIEWS_24H')},
     push:{
       deliveries24hByState:bucket(push.deliveries24hByState||{},'PUSH_DELIVERIES'),
