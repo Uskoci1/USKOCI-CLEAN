@@ -296,24 +296,24 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
   });
 
-  it('keeps ambiguous results unresolved, offers conversation correction, and confirms only an explicitly placed pin', async () => {
+  it('keeps ambiguous results unresolved but immediately frames their region, then confirms only an explicitly placed pin', async () => {
     const other = { ...candidate, label: 'Another actual result', position: { latitude: 45, longitude: 19 },
       origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
     const resolver = configured({ ...proposals, candidates: [candidate, other] } as ConfiguredLocationResolution);
     const correct = jest.fn();
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Place', onCorrectInConversation: correct });
-    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
+    expect(map().props.position).toBeNull();
+    expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
     expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
+    expect(button('Označi na mapi')).toBeUndefined();
     expect(text()).toContain('Gde tačno je početak? Dopuni opis ili označi tačku na mapi.');
-    expect(props.onInvalidate).not.toHaveBeenCalled(); // An automatic ambiguous lookup is not a manual edit.
+    expect(props.onInvalidate).not.toHaveBeenCalled(); // Framing candidates is context, not a user edit.
     await press('Dopuni mesto u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled();
-    await press('Označi na mapi'); expect(map().props.position).toBeNull();
-    expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
-    expect(props.onInvalidate).not.toHaveBeenCalled();
     await act(async () => map().props.onChoose(other.position));
     expect(map().props.position).toEqual(other.position); expect(props.onConfirm).not.toHaveBeenCalled();
     expect(map().props.cameraHint).toBeUndefined();
@@ -419,15 +419,20 @@ describe('inert compact location gallery', () => {
     mockGalleryParams = { scene }; await mount();
     expect(tree.root.findByType(LocationPointEditor).props.presentation).toBe('conversation');
     expect(text()).toContain('lokalni primer, bez čuvanja');
-    if (scene === 'unavailable' || scene === 'ambiguous') {
+    if (scene === 'unavailable') {
       expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
       expect(button('Potvrdi tačku: Mesto rada')).toBeUndefined();
-      if (scene === 'unavailable') expect(text()).toContain('Pretraga mesta nije uspela.');
-      else {
-        expect(text()).toContain('Gde tačno je mesto rada? Dopuni opis ili označi tačku na mapi.');
-        expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
-      }
+      expect(text()).toContain('Pretraga mesta nije uspela.');
       await press('Označi na mapi'); expect(map().props.position).toBeNull();
+      await act(async () => map().props.onChoose({ latitude: 45.25, longitude: 19.85 }));
+      expect(map().props.position).toEqual({ latitude: 45.25, longitude: 19.85 });
+    } else if (scene === 'ambiguous') {
+      expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
+      expect(map().props.position).toBeNull();
+      expect(button('Potvrdi tačku: Mesto rada')).toBeUndefined();
+      expect(button('Označi na mapi')).toBeUndefined();
+      expect(text()).toContain('Gde tačno je mesto rada? Dopuni opis ili označi tačku na mapi.');
+      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
       await act(async () => map().props.onChoose({ latitude: 45.25, longitude: 19.85 }));
       expect(map().props.position).toEqual({ latitude: 45.25, longitude: 19.85 });
     } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });
