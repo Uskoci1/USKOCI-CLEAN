@@ -30,8 +30,7 @@ do $pre$
 declare r record;
 begin
   if to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)') is not null
-     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is not null
-     or to_regclass('private.remaining_search_reopen_commands') is not null then
+     or to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is not null then
     raise exception 'EX06E_ALREADY_OR_PARTIALLY_APPLIED';
   end if;
 
@@ -66,24 +65,6 @@ begin
   insert into ex06e_closure values(private.closure_source_digest_v5());
 end
 $pre$;
-
-create table private.remaining_search_reopen_commands (
-  requester_account_id uuid not null references auth.users(id) on delete restrict,
-  client_request_id text not null,
-  request_hash text not null,
-  need_id uuid not null references public.needs(id) on delete restrict,
-  need_revision integer not null,
-  result jsonb not null,
-  created_at timestamptz not null default statement_timestamp(),
-  primary key(requester_account_id,client_request_id),
-  constraint remaining_search_reopen_request_id_length check(char_length(btrim(client_request_id)) between 8 and 200),
-  constraint remaining_search_reopen_hash_hex check(request_hash ~ '^[0-9a-f]{64}$'),
-  constraint remaining_search_reopen_revision_positive check(need_revision >= 1),
-  constraint remaining_search_reopen_result_object check(jsonb_typeof(result)='object')
-);
-alter table private.remaining_search_reopen_commands enable row level security;
-alter table private.remaining_search_reopen_commands force row level security;
-revoke all on table private.remaining_search_reopen_commands from public,anon,authenticated,service_role;
 
 create function private.need_search_time_admitted_v1(
   p_need_id uuid,
@@ -247,7 +228,7 @@ declare
   v_request_id text := btrim(coalesce(p_client_request_id,''));
   v_reason text := left(btrim(coalesce(p_reason,'')),500);
   v_request_hash text;
-  v_existing private.remaining_search_reopen_commands%rowtype;
+  v_existing private.remaining_search_close_commands%rowtype;
   v_need public.needs%rowtype;
   v_selected_slots integer := 0;
   v_remaining integer := 0;
@@ -271,8 +252,8 @@ begin
   perform pg_advisory_xact_lock(hashtextextended(v_actor::text || E'\\n' || v_request_id, 4411));
 
   select * into v_existing
-  from private.remaining_search_reopen_commands c
-  where c.requester_account_id=v_actor and c.client_request_id=v_request_id
+  from private.remaining_search_close_commands c
+  where c.requester_account_id=v_actor and c.client_request_id='reopen:'||v_request_id
   for update;
   if found then
     if v_existing.request_hash <> v_request_hash then
@@ -339,9 +320,9 @@ begin
     'authoritative',true
   );
 
-  insert into private.remaining_search_reopen_commands(
+  insert into private.remaining_search_close_commands(
     requester_account_id,client_request_id,request_hash,need_id,need_revision,result
-  ) values(v_actor,v_request_id,v_request_hash,v_need.id,v_need.revision,v_result);
+  ) values(v_actor,'reopen:'||v_request_id,v_request_hash,v_need.id,v_need.revision,v_result);
 
   return v_result;
 end
