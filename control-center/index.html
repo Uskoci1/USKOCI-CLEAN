@@ -72,6 +72,9 @@ function renderPrivateInspector(kind,data){
  }else if(kind==='TASK'){
   let t=data.task||{},c=data.coverage||{};
   box.innerHTML='<div class="ey">TASK INSPECTOR</div><h2>'+esc(t.title||t.id||'Zadatak')+'</h2><p class="muted">'+esc(t.status||'')+' · '+esc(t.city||'')+'</p><div class="grid">'+card('Coverage',val(c.coveredSlots)+' / '+val(c.requiredSlots),c.state||'—')+card('Prijave',Object.values(data.applicationsByStatus||{}).reduce((x,y)=>x+Number(y||0),0),'svi statusi')+card('Dogovori',(data.agreements||[]).length,'vezani Dogovori')+card('Search authority',data.searchAuthority?.state||'UNKNOWN',data.searchAuthority?.reason||'')+'</div>';
+ }else if(kind==='APPLICATION'){
+  let a=data.application||{},t=data.currentTerms||{};
+  box.innerHTML='<div class="ey">APPLICATION / OFFER INSPECTOR</div><h2>'+esc(data.task?.title||a.responseId||'Prijava')+'</h2><p class="muted">'+esc(a.kind||'')+' · '+esc(a.status||'')+(a.staleAgainstCurrentNeed?' · STALE':'')+'</p><div class="grid">'+card('Radnik',data.worker?.displayName||'—',data.worker?.city||'')+card('Cena',t.priceRsd??'—','RSD')+card('Ljudi',t.coveredSlots??'—','covered slots')+card('Need revizija',a.submittedAgainstNeedRevision??'—','trenutna '+(data.task?.currentRevision??'—'))+card('Izbor',data.selection?.status||'—',data.selection?'selection postoji':'nije izabran')+card('Dogovor',data.agreement?.status||'—',data.agreement?.agreementId||'nije nastao')+'</div>';
  }else if(kind==='AGREEMENT'){
   let a=data.agreement||{},e=data.execution||{};
   box.innerHTML='<div class="ey">AGREEMENT INSPECTOR</div><h2>'+esc(data.task?.title||a.id||'Dogovor')+'</h2><p class="muted">'+esc(a.status||'')+' · v'+esc(a.currentVersion??'—')+'</p><div class="grid">'+card('Naručilac',data.requester?.displayName||'—',data.requester?.city||'')+card('Radnik',data.worker?.displayName||'—',data.worker?.city||'')+card('Execution',e?.state||'—',e?.mode||'')+card('Poruke',data.messages?.count??0,'samo metadata')+card('Ocene',data.reviews?.count??0,'bez privatnog sadržaja')+'</div>';
@@ -89,7 +92,7 @@ function drawPrivateSearch(items){
    if(kind==='USER')data=await PRIVATE.client.user(btn.dataset.id);
    else if(kind==='TASK')data=await PRIVATE.client.task(btn.dataset.id);
    else if(kind==='AGREEMENT')data=await PRIVATE.client.agreement(btn.dataset.id);
-   else if(kind==='APPLICATION'&&btn.dataset.need){kind='TASK';data=await PRIVATE.client.task(btn.dataset.need)}
+   else if(kind==='APPLICATION')data=await PRIVATE.client.application(btn.dataset.id)
    else throw new Error('INSPECTOR_NOT_AVAILABLE');
    renderPrivateInspector(kind,data);
   }catch(e){$('privateInspector').style.display='block';$('privateInspector').innerHTML='<div class="ey">INSPECTOR</div><h2>Čitanje nije uspelo</h2><p class="muted">'+esc(e.message)+'</p>'}
