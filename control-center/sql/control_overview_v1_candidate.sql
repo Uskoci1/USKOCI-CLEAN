@@ -63,19 +63,22 @@ review_counts as (
   from private.agreement_reviews
 ),
 push_delivery_counts as (
-  select
-    jsonb_object_agg(state, n order by state) as by_state,
-    count(*) filter (
-      where state in ('CREATED','QUEUED','FAILED_RETRYABLE')
-        and created_at < statement_timestamp() - interval '15 minutes'
-        and (expires_at is null or expires_at > statement_timestamp())
-    )::bigint as overdue_backlog
+  select jsonb_object_agg(state, n order by state) as by_state
   from (
-    select state, count(*)::bigint n, created_at, expires_at
+    select state, count(*)::bigint n
     from public.notification_deliveries
     where channel='PUSH'
       and created_at >= statement_timestamp() - interval '24 hours'
+    group by state
   ) d
+),
+push_backlog as (
+  select count(*)::bigint as overdue_backlog
+  from public.notification_deliveries
+  where channel='PUSH'
+    and state in ('CREATED','QUEUED','FAILED_RETRYABLE')
+    and created_at < statement_timestamp() - interval '15 minutes'
+    and (expires_at is null or expires_at > statement_timestamp())
 ),
 push_attempt_counts as (
   select jsonb_object_agg(outcome, n order by outcome) as by_outcome
@@ -126,7 +129,7 @@ select jsonb_build_object(
   'push',jsonb_build_object(
     'deliveries24hByState',coalesce((select by_state from push_delivery_counts),'{}'::jsonb),
     'attempts24hByOutcome',coalesce((select by_outcome from push_attempt_counts),'{}'::jsonb),
-    'overdueBacklog',coalesce((select overdue_backlog from push_delivery_counts),0)
+    'overdueBacklog',coalesce((select overdue_backlog from push_backlog),0)
   ),
   'ai',jsonb_build_object(
     'conversations24h',coalesce((select by_purpose_status from ai_counts),'{}'::jsonb)
