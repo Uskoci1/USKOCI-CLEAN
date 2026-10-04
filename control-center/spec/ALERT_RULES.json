@@ -1,7 +1,23 @@
 {
-  "version": "0.3",
+  "version": "0.4",
   "semantics": "Signals explain evidence/risk. They do not imply whole-product runtime failure unless the source itself proves that scope.",
   "rules": [
+    {
+      "code": "CONTROL_SELF_GUARD_RUNNING",
+      "severity": "info",
+      "source": "control_github_actions",
+      "condition": "one_or_more_runs_for_current_control_head_not_completed",
+      "meaning": "The newest Control commit is not yet self-verified.",
+      "notMeaning": "Failure of the USKOCI app."
+    },
+    {
+      "code": "CONTROL_SELF_GUARD_FAILURE",
+      "severity": "critical",
+      "source": "control_github_actions",
+      "condition": "one_or_more_runs_for_current_control_head_completed_non_success",
+      "meaning": "The monitor's own security/static guard failed.",
+      "notMeaning": "The USKOCI app runtime is down."
+    },
     {
       "code": "HEAD_CI_FAILURE",
       "severity": "critical",
