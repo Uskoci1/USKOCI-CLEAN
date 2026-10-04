@@ -29,6 +29,7 @@ jobs:
       - run: node control-center/check-overview-preflight.mjs
       - run: node control-center/check-runtime-contract.mjs
       - run: node control-center/check-inspectors-candidate.mjs
+      - run: node control-center/check-inspectors-preflight.mjs
       - run: node control-center/check-inspector-contracts.mjs
       - run: node control-center/check-api-core.mjs
       - run: node control-center/check-supabase-adapter.mjs
