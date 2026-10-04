@@ -10,7 +10,7 @@ create or replace function public.rpc_control_overview_v1()
 returns jsonb
 language sql
 stable
-security invoker
+security definer
 set search_path = pg_catalog
 as $function$
 with
@@ -148,6 +148,6 @@ revoke all on function public.rpc_control_overview_v1() from public, anon, authe
 grant execute on function public.rpc_control_overview_v1() to service_role;
 
 comment on function public.rpc_control_overview_v1() is
-  'USKOCI CONTROL source-only candidate. Aggregate read only. Browser must never receive service_role. Requires live preflight/security/performance proof before DEV application.';
+  'USKOCI CONTROL source-only candidate. Aggregate read only. SECURITY DEFINER is required only because canonical review/push internals deny raw service-role table access; EXECUTE stays service-only and browser never receives the privileged key. Requires live preflight/security/performance proof before DEV application.';
 
 rollback;
