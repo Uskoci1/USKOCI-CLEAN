@@ -1,6 +1,6 @@
--- USKOČI CONTROL v0.4 — SOURCE-ONLY candidate.
--- DO NOT APPLY from this file. Canonical DEV readback + EXPLAIN/security proof is required first.
--- Purpose: one small owner/server-only aggregate for the Overview screen.
+-- USKOČI CONTROL v0.10 — SOURCE-ONLY candidate.
+-- DO NOT APPLY. Requires owner approval, service-only execution proof and measured scale budget.
+-- Read-only DEV comparison proved status/deadline alone overcounts human-closed search.
 begin;
 set local lock_timeout = '3s';
 set local statement_timeout = '5s';
@@ -32,7 +32,9 @@ need_counts as (
        from (select status,count(*)::bigint n from public.needs group by status) s) as by_status,
     count(*) filter (where status in ('PUBLISHED','SELECTION','ACTIVE'))::bigint as active_count,
     count(*) filter (where status in ('PUBLISHED','SELECTION')
-      and (response_deadline is null or response_deadline>statement_timestamp()))::bigint as open_for_applications_count,
+      and remaining_search_closed_at is null
+      and (response_deadline is null or response_deadline>statement_timestamp())
+      and public.fn_need_covered_slots(id)<required_slots)::bigint as open_for_applications_count,
     count(*) filter (where created_at>=statement_timestamp()-interval '24 hours')::bigint as created_24h,
     count(*) filter (where published_at>=statement_timestamp()-interval '24 hours')::bigint as published_24h
   from public.needs
@@ -144,7 +146,8 @@ select jsonb_build_object(
   ),
   'reviews',jsonb_build_object(
     'total',(select total from review_counts),
-    'created24h',(select created_24h from review_counts)
+    'created24h',(select created_24h from review_counts),
+    'scope','DATABASE_ROWS'
   ),
   'push',jsonb_build_object(
     'deliveries24hByState',coalesce((select by_state from push_delivery_counts),'{}'::jsonb),
