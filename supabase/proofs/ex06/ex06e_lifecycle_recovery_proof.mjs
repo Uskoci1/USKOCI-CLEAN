@@ -145,7 +145,7 @@ try{
     return {receipt:{remaining:Number(receipt.reopenedRemainingSlots),replay:replay.idempotentReplay},coverage:Number(opened.covered_slots),remaining:Number(w.remainingSlots),inserted:Number(w.inserted),spares:[b.id,c.id]};
   });
 
-  await scoped('time guard: expired accepted window +24h does not revive matching',async()=>{
+  await scoped('time guard: expired execution window does not revive matching',async()=>{
     const o=await requester('time-expired-r'),a=await worker('time-expired-a'),b=await worker('time-expired-b');
     const t=await task(o,'time-expired');
     await fx.setCapacity(a,2);
@@ -169,16 +169,21 @@ try{
     const t=await task(o,'time-open');
     await fx.setCapacity(a,2);
     const app=await apply(a,t,2);const agreementId=await select(o,t,app);
+    const startsAt=new Date(Date.now()+5*60_000).toISOString();
+    const endsAt=new Date(Date.now()+55*60_000).toISOString();
+    await fx.setAvailability(b,{timezone:'Europe/Belgrade',availableNow:true,rules:[],windows:[
+      {id:randomUUID(),startsAt,endsAt,state:'AVAILABLE',label:'EX06E replacement window'}
+    ]});
     sql(`begin;set local session_replication_role=replica;
-      update public.needs set schedule_kind='FIXED_WINDOW',starts_at=statement_timestamp()-interval '3 hours',ends_at=statement_timestamp()-interval '2 hours' where id=${q(t.needId)}::uuid;
-      update public.agreement_versions set terms=jsonb_set(jsonb_set(terms,'{proposed_start_at}',to_jsonb((statement_timestamp()-interval '3 hours')::text),true),
-        '{proposed_end_at}',to_jsonb((statement_timestamp()-interval '2 hours')::text),true)
+      update public.needs set schedule_kind='FIXED_WINDOW',starts_at=${q(startsAt)}::timestamptz,ends_at=${q(endsAt)}::timestamptz where id=${q(t.needId)}::uuid;
+      update public.agreement_versions set terms=jsonb_set(jsonb_set(terms,'{proposed_start_at}',to_jsonb(${q(startsAt)}::text),true),
+        '{proposed_end_at}',to_jsonb(${q(endsAt)}::text),true)
       where agreement_id=${q(agreementId)}::uuid and version=(select current_version from public.agreements where id=${q(agreementId)}::uuid);
       commit;`);
     await cancel(a,agreementId);
     assert.equal(timeAllowed(t.needId),true);assert.ok(schedule(t.needId));
-    const w=wave(t.needId);assert.equal(w.status,'SENT');assert.equal(Number(w.remainingSlots),2);assert.ok(Number(w.inserted)>0);
-    return {timeAdmitted:true,queued:true,remaining:Number(w.remainingSlots),spare:b.id};
+    const w=wave(t.needId);assert.equal(w.status,'SENT',JSON.stringify(w));assert.equal(Number(w.remainingSlots),2);assert.ok(Number(w.inserted)>0);
+    return {timeAdmitted:true,queued:true,remaining:Number(w.remainingSlots),window:{startsAt,endsAt},spare:b.id};
   });
 
   await scoped('response_deadline remains a guard only, not a new V1 feature',async()=>{
