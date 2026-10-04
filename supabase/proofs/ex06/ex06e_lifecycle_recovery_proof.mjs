@@ -1,4 +1,4 @@
-// EX-06E bounded Lifecycle Recovery proof. Disposable loopback Auth/Postgres only; never canonical DEV.
+// EX-06E bounded Lifecycle Recovery proof. Disposable loopback Auth/Postgres only; never canonical DEV.\n// Harness note: live79 exports RU5_* through GITHUB_ENV; no sidecar env.sh is required.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import * as rt from '../pre_v3/closure_runtime.mjs';
