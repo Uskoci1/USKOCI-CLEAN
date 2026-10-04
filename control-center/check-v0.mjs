@@ -50,6 +50,9 @@ requireText('data-tab="alertsPanel"', 'alerts navigation');
 requireText('ALERT CENTER', 'typed Alert Center');
 requireText('DEVELOPMENT INSPECTOR', 'commit/CI inspector');
 requireText('RISK RADAR', 'risk radar');
+requireText('data-tab="runtime"', 'runtime readiness navigation');
+requireText('CONTROL_SELF_GUARD_FAILURE', 'Control self-monitoring alert');
+requireText("fc('control-center/spec/DATA_SOURCE_MATRIX.json')", 'runtime data-source matrix load');
 requireText('HEAD_CI_FAILURE', 'current-head CI failure rule');
 requireText('manifest.webmanifest', 'PWA manifest');
 requireText("serviceWorker.register('./sw.js')", 'service worker registration');
@@ -58,7 +61,7 @@ if (!Array.isArray(manifest.icons) || !manifest.icons.length) failures.push('PWA
 if (sw.includes('api.github.com')) failures.push('service worker must not cache GitHub API explicitly');
 if (!sw.includes("url.origin!==self.location.origin")) failures.push('service worker same-origin cache boundary missing');
 if (!Array.isArray(alertRules.rules) || alertRules.rules.length < 9) failures.push('alert rules contract incomplete');
-for (const code of ['HEAD_CI_FAILURE','CONTROL_SNAPSHOT_STALE','PHONE_EVIDENCE_GAP','RELEASE_NOT_READY']) {
+for (const code of ['CONTROL_SELF_GUARD_FAILURE','HEAD_CI_FAILURE','CONTROL_SNAPSHOT_STALE','PHONE_EVIDENCE_GAP','RELEASE_NOT_READY']) {
   if (!alertRules.rules.some(r => r.code === code)) failures.push('missing alert rule: ' + code);
 }
 
