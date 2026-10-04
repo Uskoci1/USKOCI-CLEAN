@@ -17,8 +17,9 @@ This package deliberately replaces the isolated F10 promotion path. F5 stays out
 Existing function bodies:
 1. `private.dispatch_next_wave(uuid)`
 2. `private.dispatch_tick(integer,timestamptz)`
-3. `private.guard_remaining_search_close_fields()`
-4. `public.rpc_cancel_agreement(uuid,text)`
+3. `public.rpc_cancel_agreement(uuid,text)`
+
+The existing certified trigger `private.guard_remaining_search_close_fields()` is deliberately unchanged; reopen uses its existing server-owned `CLOSE_REMAINING_SEARCH` mutation gate.
 
 New private objects:
 - `private.need_search_time_admitted_v1(uuid,timestamptz)`
