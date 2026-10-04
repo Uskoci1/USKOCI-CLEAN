@@ -19,7 +19,7 @@ permissions:
   contents: read
 concurrency:
   group: ex06e-lifecycle-recovery-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   disposable-proof:
     runs-on: ubuntu-latest
