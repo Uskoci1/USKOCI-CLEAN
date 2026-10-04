@@ -25,3 +25,4 @@ jobs:
         with:
           node-version: '20'
       - run: node control-center/check-v0.mjs
+      - run: node control-center/check-overview-candidate.mjs
