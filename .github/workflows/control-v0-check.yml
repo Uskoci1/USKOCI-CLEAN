@@ -41,3 +41,4 @@ jobs:
       - run: node control-center/check-private-client.mjs
       - run: node control-center/check-application-candidate.mjs
       - run: node control-center/check-application-contract.mjs
+      - run: node control-center/check-extended-inspectors-preflight.mjs
