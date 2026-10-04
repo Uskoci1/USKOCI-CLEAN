@@ -5,6 +5,14 @@ const alertRules = JSON.parse(fs.readFileSync(new URL('./spec/ALERT_RULES.json',
 const manifest = JSON.parse(fs.readFileSync(new URL('./manifest.webmanifest', import.meta.url), 'utf8'));
 const sw = fs.readFileSync(new URL('./sw.js', import.meta.url), 'utf8');
 const failures = [];
+const scriptStart = html.indexOf('<script>');
+const scriptEnd = html.lastIndexOf('</script>');
+if (scriptStart < 0 || scriptEnd <= scriptStart) {
+  failures.push('inline script missing');
+} else {
+  const scriptBody = html.slice(scriptStart + 8, scriptEnd);
+  try { new Function(scriptBody); } catch (error) { failures.push('browser JS syntax: ' + error.message); }
+}
 
 const requireText = (needle, label) => {
   if (!html.includes(needle)) failures.push('missing: ' + label);
