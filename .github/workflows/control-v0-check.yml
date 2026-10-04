@@ -39,3 +39,5 @@ jobs:
       - run: node control-center/check-matching-candidate.mjs
       - run: node control-center/check-matching-contract.mjs
       - run: node control-center/check-private-client.mjs
+      - run: node control-center/check-application-candidate.mjs
+      - run: node control-center/check-application-contract.mjs
