@@ -8,7 +8,7 @@ This package deliberately replaces the isolated F10 promotion path. F5 stays out
 
 - **Coverage** = `required_slots - SELECTED covered_slots`.
 - **Search authority** = requester-owned `remaining_search_closed_at`; Agreement cancellation never clears it.
-- **Time authority** = existing `response_deadline` when present, Need execution end for bounded schedules, and at most 24h after a cancelled Agreement's accepted end when that end exists.
+- **Time authority** = existing `response_deadline` when present plus the current executable Need window for bounded schedules. A historical replacement entitlement does not make a past task time executable again.
 - Unscheduled FLEXIBLE/REMOTE work gets no invented deadline.
 - No new Need status or execution FSM.
 
@@ -39,7 +39,7 @@ No new read RPC is required. Reuse the existing authoritative `remainingSearchSt
 - unknown outcome replays the same key;
 - owner detail shows `Preostala potraga je zatvorena · nedostaje N` plus `Ponovo traži ljude` only when server time authority admits it.
 
-Execution-time next action stays in the existing Dogovor completion/problem/cancel/change flow. EX06E does not add execution milestones.
+Execution-time next action stays in the existing Dogovor completion/problem/cancel/change flow. Once a bounded execution window is past, EX06E does not auto-dispatch against that past time; UI recovery must surface the existing completion/problem/cancel path and, where product authority later permits it, an explicit reschedule/republication action. EX06E does not add execution milestones or a parallel FSM.
 
 ## DEV boundary
 
