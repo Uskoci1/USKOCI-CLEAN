@@ -11,7 +11,7 @@ for(const required of [
 ]) if(!low.includes(required.toLowerCase()))fail.push('missing '+required);
 for(const forbidden of [
  "'email',a.email","'phone',a.phone","'exactAddress'","'exactLat'","'exactLng'",
- "'pushToken'","'body',","av.terms","select to_jsonb(s) from public.need_sensitive"
+ "'pushToken'","'body',","'terms',av.terms","'scopeNote'","av.terms->'scope_note'","select to_jsonb(s) from public.need_sensitive"
 ]) if(low.includes(forbidden.toLowerCase()))fail.push('forbidden return/exposure '+forbidden);
 if(!low.includes("lower(a.email)=q")||!low.includes("regexp_replace(a.phone"))fail.push('exact private identity search predicates missing');
 if(!low.includes("public.fn_need_covered_slots"))fail.push('canonical coverage helper missing');
