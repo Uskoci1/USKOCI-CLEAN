@@ -4,7 +4,7 @@ const id='11111111-1111-4111-8111-111111111111',id2='22222222-2222-4222-8222-222
 let calls=[];
 const fetchImpl=async(url,init)=>{calls.push({url,init});return new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json'}})};
 const c=createControlPrivateClient({origin:'https://control.example',fetchImpl});
-await c.session();await c.overview();await c.search('Milos',99);await c.user(id);await c.task(id);await c.agreement(id);await c.notification(id);await c.ai(id);await c.matching(id,id2);
+await c.session();await c.overview();await c.search('Milos',99);await c.user(id);await c.task(id);await c.agreement(id);await c.application(id);await c.notification(id);await c.ai(id);await c.matching(id,id2);
 assert.ok(calls.every(x=>x.init.method==='GET'));
 assert.ok(calls.every(x=>x.init.credentials==='same-origin'));
 assert.ok(calls.every(x=>x.init.cache==='no-store'));
