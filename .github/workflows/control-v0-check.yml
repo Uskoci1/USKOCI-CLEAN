@@ -42,3 +42,5 @@ jobs:
       - run: node control-center/check-application-candidate.mjs
       - run: node control-center/check-application-contract.mjs
       - run: node control-center/check-extended-inspectors-preflight.mjs
+      - run: node control-center/check-sw-boundary.mjs
+      - run: node control-center/check-overview-authority.mjs
