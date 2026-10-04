@@ -8,6 +8,8 @@ on:
       - 'supabase/candidates/ex06e_lifecycle_recovery_revert.sql'
       - 'supabase/proofs/ex06/ex06e_lifecycle_recovery_proof.mjs'
       - 'supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs'
+      - 'supabase/proofs/ex06/ex06e_mutation_verifier.mjs'
+      - 'supabase/proofs/ex06/ex06e_mutation_verifier.test.mjs'
       - 'supabase/proofs/ex06/lib/**'
       - 'supabase/candidates/ex06a_flexible_window.sql'
       - 'supabase/proofs/pre_v3/closure_runtime.mjs'
@@ -57,10 +59,11 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
           git rev-parse HEAD 'HEAD^{tree}' > "$EX06E_ARTIFACT_DIR/source-binding.txt"
-          sha256sum             supabase/candidates/ex06e_lifecycle_recovery.sql             supabase/candidates/ex06e_lifecycle_recovery_revert.sql             supabase/proofs/ex06/ex06e_lifecycle_recovery_proof.mjs             supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs             > "$EX06E_ARTIFACT_DIR/source-manifest-sha256.txt"
+          sha256sum supabase/candidates/ex06e_lifecycle_recovery.sql supabase/candidates/ex06e_lifecycle_recovery_revert.sql supabase/proofs/ex06/ex06e_lifecycle_recovery_proof.mjs supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs supabase/proofs/ex06/ex06e_mutation_verifier.mjs supabase/proofs/ex06/ex06e_mutation_verifier.test.mjs .github/workflows/ex06e-lifecycle-recovery-proof.yml > "$EX06E_ARTIFACT_DIR/source-manifest-sha256.txt"
           node --check supabase/proofs/ex06/ex06e_lifecycle_recovery_proof.mjs
           node --check supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs
-          node --test supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs | tee "$EX06E_ARTIFACT_DIR/static-tests.txt"
+          node --check supabase/proofs/ex06/ex06e_mutation_verifier.mjs
+          node --test supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs supabase/proofs/ex06/ex06e_mutation_verifier.test.mjs | tee "$EX06E_ARTIFACT_DIR/static-tests.txt"
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/01-dependencies.log" 2>&1
           git diff --exit-code
 
@@ -70,7 +73,6 @@ jobs:
           umask 077
           setup_exit=0
           bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1 || setup_exit=$?
-
           printf '02-live79 exit=%s\n' "$setup_exit" | tee -a "$EX06E_ARTIFACT_DIR/stages.txt"
           exit "$setup_exit"
 
@@ -155,11 +157,20 @@ jobs:
           const root=process.env.EX06E_ARTIFACT_DIR;
           const load=n=>JSON.parse(fs.readFileSync(root+'/'+n,'utf8'));
           const report=load('ex06e-lifecycle-recovery-report.json');
+          assert.equal(report.sourceSha,process.env.GITHUB_SHA);
           assert.equal(report.result,'PASS');
           assert.equal(report.scenarios.length,9);
           assert.ok(report.scenarios.every(x=>x.status==='PASS'));
           assert.equal(report.certificate.unchanged,true);
           assert.equal(report.catalog.unchanged,true);
+          const denied=report.scenarios.find(x=>x.name==='remaining_search state stays server-owned');
+          assert.equal(denied.directMutationDenied,true);
+          assert.equal(denied.stateUnchanged,true);
+          assert.equal(denied.ownedReadbackConfirmed,true);
+          const reopened=report.scenarios.find(x=>x.name==='CLOSED + missing -> canonical reopen -> only missing capacity');
+          assert.equal(reopened.partialReopenRemaining,1);
+          assert.equal(reopened.afterCancelRemaining,2);
+          assert.equal(reopened.oldReplayDidNotReopen,true);
           const applied=load('applied-state.json');
           assert.equal(applied.wave,'c37d672ccaf44e86b5e83b117156cdb8');
           assert.equal(applied.tick,'8798cb6b6f004ecd5d88dd472cd6de0b');
@@ -203,6 +214,7 @@ jobs:
             /tmp/ex06e-artifacts/applied-state.json
             /tmp/ex06e-artifacts/ex06e-lifecycle-recovery-report.json
             /tmp/ex06e-artifacts/proof-console.txt
+            /tmp/ex06e-artifacts/revert.log
             /tmp/ex06e-artifacts/reverted-state.json
             /tmp/ex06e-artifacts/verdict.txt
             /tmp/ex06e-artifacts/teardown.txt
