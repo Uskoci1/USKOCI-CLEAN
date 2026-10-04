@@ -2,6 +2,8 @@ import fs from 'node:fs';
 
 const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const alertRules = JSON.parse(fs.readFileSync(new URL('./spec/ALERT_RULES.json', import.meta.url), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(new URL('./manifest.webmanifest', import.meta.url), 'utf8'));
+const sw = fs.readFileSync(new URL('./sw.js', import.meta.url), 'utf8');
 const failures = [];
 
 const requireText = (needle, label) => {
@@ -41,6 +43,12 @@ requireText('ALERT CENTER', 'typed Alert Center');
 requireText('DEVELOPMENT INSPECTOR', 'commit/CI inspector');
 requireText('RISK RADAR', 'risk radar');
 requireText('HEAD_CI_FAILURE', 'current-head CI failure rule');
+requireText('manifest.webmanifest', 'PWA manifest');
+requireText("serviceWorker.register('./sw.js')", 'service worker registration');
+if (manifest.display !== 'standalone') failures.push('PWA display must be standalone');
+if (!Array.isArray(manifest.icons) || !manifest.icons.length) failures.push('PWA icon missing');
+if (sw.includes('api.github.com')) failures.push('service worker must not cache GitHub API explicitly');
+if (!sw.includes("url.origin!==self.location.origin")) failures.push('service worker same-origin cache boundary missing');
 if (!Array.isArray(alertRules.rules) || alertRules.rules.length < 9) failures.push('alert rules contract incomplete');
 for (const code of ['HEAD_CI_FAILURE','CONTROL_SNAPSHOT_STALE','PHONE_EVIDENCE_GAP','RELEASE_NOT_READY']) {
   if (!alertRules.rules.some(r => r.code === code)) failures.push('missing alert rule: ' + code);
