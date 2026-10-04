@@ -4012,7 +4012,7 @@
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
       "problem": "Raniji stvarni Android push i otvaranje aplikacije su dokazani i vlasnik ih je ponovo potvrdio. Precizni noviji message→exact-message transport i store provider konfiguracija imaju svoj zaseban preostali opseg; to ne znači da push nije napravljen.",
-      "sledece": "Sačuvati postojeći uspešan push i nastaviti vizuelno završavanje. Ne ponavljati uređajski dokaz niti graditi novi push projekat. Eventualne server/provider promene ostaju konkretan imenovani paket. Krug03.10: Single-target CI37077621475/74cdca32:13 grupa+6 Edge provera prolazi u izolaciji. Disposable cert88→97 nije DEV99. Nema pravog provider/device dokaza ni DEV primene; priprema se tačan trenutni preflight. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. 03.10: current99 promotion wrapper prepared/reviewed; isolated exact predecessor proof pending. Push-capable edd20976 APK installed-r over existing preview with UID/session retained. No new registration/send yet. Nastavak03.10: preview telefon registrovan kroz stvarni UI, oba postojeća skupa enabled; delivery readiness nepoznat. CI37081147485 stao na strict AI-location predecessor pre novog push install-a; izolovana newline-dijagnostika pripremljena, bez DEV promene.",
+      "sledece": "Sačuvati postojeći uspešan push i nastaviti vizuelno završavanje. Ne ponavljati uređajski dokaz niti graditi novi push projekat. Eventualne server/provider promene ostaju konkretan imenovani paket. Krug03.10: Single-target CI37077621475/74cdca32:13 grupa+6 Edge provera prolazi u izolaciji. Disposable cert88→97 nije DEV99. Nema pravog provider/device dokaza ni DEV primene; priprema se tačan trenutni preflight. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. 03.10: current99 promotion wrapper prepared/reviewed; isolated exact predecessor proof pending. Push-capable edd20976 APK installed-r over existing preview with UID/session retained. No new registration/send yet. Nastavak03.10: preview telefon registrovan kroz stvarni UI, oba postojeća skupa enabled; delivery readiness nepoznat. CI37081147485 stao na strict AI-location predecessor pre novog push install-a; izolovana newline-dijagnostika pripremljena, bez DEV promene. 04.10 push scheduler read-only + disposable proof: EXPO_PUSH je live active=false; 4 actionable PUSH delivery reda + 1 stari TICKET_PENDING drže minutni worker budnim iako je transport gated/off. Source-only kandidat + strogi revert su dokazani run37205976592; inactive provider=0 push Edge poziva, active=tačno1, backlog netaknut, revert hash vraća f9485392…. NIJE PRIMENJENO NA DEV; čeka eksplicitno „primeni“.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -4059,6 +4059,18 @@
           "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
           "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
           "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
+        },
+        "push_scheduler_provider_gate_20261004": {
+          "status": "SOURCE + DISPOSABLE PROOF PASS / NOT APPLIED",
+          "live_read_only": "Canonical DEV has EXPO_PUSH provider inventory active=false; 4 actionable PUSH deliveries plus 1 TICKET_PENDING attempt keep edge_worker_tick_v5 has_work true and wake uskoci-push-transport while transport is gated/off. Suppressed PUSH_OFF rows are not actionable and are not counted.",
+          "candidate": "supabase/candidates/push_scheduler_provider_gate_20261004.sql",
+          "candidate_body_md5": "fb29dc0b7c39aa8305c0a728f33d07dc",
+          "predecessor_body_md5": "f9485392ceb2db1e06a982da7ee9b049",
+          "revert": "supabase/candidates/push_scheduler_provider_gate_20261004_revert.sql",
+          "proof": "supabase/proofs/notifications/push_scheduler_provider_gate_20261004.sql",
+          "ci_run": 37205976592,
+          "proven": "Inactive provider + CREATED => PUSH IDLE and zero Edge calls with backlog unchanged; active provider + same backlog => exactly one PUSH Edge call; inactive provider + TICKET_PENDING => IDLE; DATA_EXPORT and ACCOUNT_CLOSURE remain independent; strict revert restores predecessor hash and old scheduler semantics.",
+          "boundary": "No DEV/PROD data, function, cron, provider flag or Edge deployment changed. Application requires explicit owner 'primeni'. Backlog rows remain untouched."
         }
       }
     },
