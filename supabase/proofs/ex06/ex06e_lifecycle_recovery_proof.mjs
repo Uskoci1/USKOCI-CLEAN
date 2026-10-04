@@ -148,6 +148,7 @@ try{
   await scoped('time guard: expired accepted window +24h does not revive matching',async()=>{
     const o=await requester('time-expired-r'),a=await worker('time-expired-a'),b=await worker('time-expired-b');
     const t=await task(o,'time-expired');
+    await fx.setCapacity(a,2);
     const app=await apply(a,t,2);const agreementId=await select(o,t,app);
     // Labelled time fixture: no product writer can create a newly-published past window. Only clock facts are moved.
     sql(`begin;set local session_replication_role=replica;
@@ -166,6 +167,7 @@ try{
   await scoped('time guard: cancellation inside 24h replacement window may recover missing capacity',async()=>{
     const o=await requester('time-open-r'),a=await worker('time-open-a'),b=await worker('time-open-b');
     const t=await task(o,'time-open');
+    await fx.setCapacity(a,2);
     const app=await apply(a,t,2);const agreementId=await select(o,t,app);
     sql(`begin;set local session_replication_role=replica;
       update public.needs set schedule_kind='FIXED_WINDOW',starts_at=statement_timestamp()-interval '3 hours',ends_at=statement_timestamp()-interval '2 hours' where id=${q(t.needId)}::uuid;
