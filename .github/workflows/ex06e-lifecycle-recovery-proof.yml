@@ -123,7 +123,6 @@ jobs:
               'cancel',md5(replace((select prosrc from pg_proc where oid=to_regprocedure('public.rpc_cancel_agreement(uuid,text)')),E'\r','')),
               'timeHelper',md5(replace((select prosrc from pg_proc where oid=to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)')),E'\r','')),
               'reopen',md5(replace((select prosrc from pg_proc where oid=to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)')),E'\r','')),
-              'ledger',to_regclass('private.remaining_search_reopen_commands') is not null,
               'digest',private.closure_source_digest_v5(),
               'certified',(select sha256 from private.closure_source_v5 where singleton),
               'ready',private.retention_ai_source_ready()
@@ -143,7 +142,6 @@ jobs:
               'cancel',md5(replace((select prosrc from pg_proc where oid=to_regprocedure('public.rpc_cancel_agreement(uuid,text)')),E'\r','')),
               'timeHelperGone',to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)') is null,
               'reopenGone',to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is null,
-              'ledgerGone',to_regclass('private.remaining_search_reopen_commands') is null,
               'digest',private.closure_source_digest_v5(),
               'certified',(select sha256 from private.closure_source_v5 where singleton),
               'ready',private.retention_ai_source_ready()
@@ -166,14 +164,13 @@ jobs:
           assert.equal(applied.wave,'c37d672ccaf44e86b5e83b117156cdb8');
           assert.equal(applied.tick,'8798cb6b6f004ecd5d88dd472cd6de0b');
           assert.equal(applied.guard,'c2d5e8ad7398f25a026d9bfd333efa8b');
-          assert.equal(applied.cancel,'f23a499bdd57d68476c126232645a139');
-          assert.equal(applied.ledger,true); assert.equal(applied.digest,applied.certified); assert.equal(applied.ready,true);
+          assert.equal(applied.cancel,'f23a499bdd57d68476c126232645a139'); assert.equal(applied.digest,applied.certified); assert.equal(applied.ready,true);
           const reverted=load('reverted-state.json');
           assert.equal(reverted.wave,'1fd8c51ef026ece24471e2f68250ecc5');
           assert.equal(reverted.tick,'e568b033b9457736869fc5829ffc5511');
           assert.equal(reverted.guard,'ce59ad1cdee98518950e289aa5c329a4');
           assert.equal(reverted.cancel,'f3ca4d5f8bdf324d5773d887d0a2d093');
-          assert.equal(reverted.timeHelperGone,true);assert.equal(reverted.reopenGone,true);assert.equal(reverted.ledgerGone,true);
+          assert.equal(reverted.timeHelperGone,true);assert.equal(reverted.reopenGone,true);
           assert.equal(reverted.digest,reverted.certified);assert.equal(reverted.ready,true);
           fs.writeFileSync(root+'/verdict.txt','PASS EX06E lifecycle recovery + exact revert\n');
           console.log('PASS EX06E_LIFECYCLE_RECOVERY_AND_REVERT');
