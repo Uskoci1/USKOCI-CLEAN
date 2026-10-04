@@ -17,7 +17,7 @@ async function textBounded(response){
 }
 export function createSupabaseControlDependencies(env,{fetchImpl=fetch}={}){
  const baseRaw=need(env,'CONTROL_SUPABASE_URL',12),anonKey=need(env,'CONTROL_SUPABASE_PUBLIC_KEY',20);
- const serverKey=need(env,'CONTROL_SUPABASE_SERVER_KEY',20),ownerId=need(env,'CONTROL_OWNER_USER_ID',36);
+ const serverKey=need(env,'CONTROL_SUPABASE_SERVER_KEY',20),ownerId=need(env,'CONTROL_OWNER_USER_ID',1);
  if(!UUID.test(ownerId))throw new Error('CONTROL_OWNER_USER_ID_INVALID');
  const base=new URL(baseRaw);if(base.protocol!=='https:')throw new Error('CONTROL_SUPABASE_HTTPS_REQUIRED');
  const root=base.origin;
