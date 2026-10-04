@@ -22,9 +22,11 @@ if(phase==='replay'){
  const query=s=>execFileSync('psql',psqlArgs,{input:s,encoding:'utf8',timeout:30000}).trim();
  const catalog=()=>query("select md5(string_agg((to_jsonb(p)-'oid')::text,E'\\n' order by n.nspname,p.proname,pg_get_function_identity_arguments(p.oid))) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('private','public');");
  const state=()=>JSON.parse(query(`select jsonb_build_object('wave',md5((select replace(prosrc,E'\\r','') from pg_proc where oid=to_regprocedure('private.dispatch_next_wave(uuid)'))),'tick',md5((select replace(prosrc,E'\\r','') from pg_proc where oid=to_regprocedure('private.dispatch_tick(integer,timestamptz)'))),'cancel',md5((select replace(prosrc,E'\\r','') from pg_proc where oid=to_regprocedure('public.rpc_cancel_agreement(uuid,text)'))),'timeHelper',md5((select replace(prosrc,E'\\r','') from pg_proc where oid=to_regprocedure('private.need_search_time_admitted_v1(uuid,timestamptz)'))),'reopen',md5((select replace(prosrc,E'\\r','') from pg_proc where oid=to_regprocedure('${manifest.newReopenSignature}'))),'oldReopenAbsent',to_regprocedure('public.rpc_reopen_remaining_search(uuid,integer,text,text)') is null,'certificate',private.closure_source_digest_v5(),'certified',(select sha256 from private.closure_source_v5 where singleton),'ready',private.retention_ai_source_ready());`));
- const before=state(),catBefore=catalog();
- const write=(n,x)=>fs.writeFileSync(path.join(out,n),JSON.stringify(x,null,2)+'\n');write('before.json',before);
+ const write=(n,x)=>fs.writeFileSync(path.join(out,n),JSON.stringify(x,null,2)+'\n');
+ const dependencies=()=>JSON.parse(query(`select jsonb_agg(jsonb_build_object('signature',signature,'body',p.prosrc,'bodyMd5',md5(replace(p.prosrc,E'\\r','')),'definition',pg_get_functiondef(p.oid),'metadata',to_jsonb(p)-'prosrc') order by signature) from unnest(array['public.rpc_close_remaining_search(uuid,integer,text,text)','private.guard_remaining_search_close_fields()','private.relative_schedule_end_v5(text,timestamptz,text)']) signature left join pg_proc p on p.oid=to_regprocedure(signature);`));
+ const before=state(),catBefore=catalog();write('before.json',before);write('dependencies-before-baseline.json',dependencies());
  command('node',['supabase/proofs/ex06/r2/baseline.mjs','before'],path.join(out,'baseline-before.log'));
+ write('dependencies-after-baseline.json',dependencies());
  command('psql',[...psqlArgs,'-f',path.join(out,'candidate.sql')],path.join(out,'apply.log'),60000);
  const applied=state();write('applied.json',applied);
  for(const [key,value] of Object.entries(manifest.functions))assert.equal(applied[key],value);
