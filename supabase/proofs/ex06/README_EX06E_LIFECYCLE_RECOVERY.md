@@ -22,7 +22,7 @@ Existing function bodies:
 
 New private objects:
 - `private.need_search_time_admitted_v1(uuid,timestamptz)`
-- `private.remaining_search_reopen_commands`
+- existing `private.remaining_search_close_commands` is reused with a `reopen:` request-key namespace; no new table/schema delta.
 
 New authenticated command:
 - `public.rpc_reopen_remaining_search(uuid,integer,text,text)`
