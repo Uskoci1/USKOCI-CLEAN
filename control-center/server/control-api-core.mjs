@@ -2,6 +2,7 @@ import {parseControlOverview} from '../runtime/overview-contract.mjs';
 import {parseControlSearch,parseControlUser,parseControlTask,parseControlAgreement} from '../runtime/inspector-contracts.mjs';
 import {parseControlNotification,parseControlAi} from '../runtime/notification-ai-contracts.mjs';
 import {parseControlMatching} from '../runtime/matching-contract.mjs';
+import {parseControlApplication} from '../runtime/application-contract.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FORBIDDEN=new Set(['email','phone','exactAddress','exactLat','exactLng','exactCoordinates','pushToken','expoPushToken','chatBody','messageBody','scopeNote']);
@@ -14,7 +15,8 @@ const PARSER={
  rpc_control_agreement_v1:parseControlAgreement,
  rpc_control_notification_v1:parseControlNotification,
  rpc_control_ai_v1:parseControlAi,
- rpc_control_matching_v1:parseControlMatching
+ rpc_control_matching_v1:parseControlMatching,
+ rpc_control_application_v1:parseControlApplication
 };
 
 function requestId(){try{return crypto.randomUUID()}catch{return 'control-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)}}
@@ -90,6 +92,7 @@ export function createControlApi({authorize,rpc,audit}){
    else if(p.startsWith('/api/control/agreements/')){name='rpc_control_agreement_v1';args={p_agreement_id:idFrom(p,'/api/control/agreements/')}}
    else if(p.startsWith('/api/control/notifications/')){name='rpc_control_notification_v1';args={p_event_id:idFrom(p,'/api/control/notifications/')}}
    else if(p.startsWith('/api/control/ai/')){name='rpc_control_ai_v1';args={p_conversation_id:idFrom(p,'/api/control/ai/')}}
+   else if(p.startsWith('/api/control/applications/')){name='rpc_control_application_v1';args={p_response_id:idFrom(p,'/api/control/applications/')}}
    else if(p.startsWith('/api/control/matching/')){
     const rest=p.slice('/api/control/matching/'.length).split('/').filter(Boolean);
     if(rest.length<1||rest.length>2)throw new Error('INVALID_ID');
