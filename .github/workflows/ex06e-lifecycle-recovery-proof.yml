@@ -70,7 +70,7 @@ jobs:
           umask 077
           setup_exit=0
           bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1 || setup_exit=$?
-          cat /tmp/uskoci-ru5-device-ui/env.sh >> "$GITHUB_ENV"
+
           printf '02-live79 exit=%s\n' "$setup_exit" | tee -a "$EX06E_ARTIFACT_DIR/stages.txt"
           exit "$setup_exit"
 
