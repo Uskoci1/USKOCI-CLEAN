@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const sql=fs.readFileSync(new URL('./sql/control_overview_v1_candidate.sql',import.meta.url),'utf8');
+const part=sql.slice(sql.indexOf('count(*) filter (where status in (\'PUBLISHED\',\'SELECTION\')'),sql.indexOf('as open_for_applications_count'));
+assert.ok(part.length>0,'open-search count must exist');
+assert.match(part,/remaining_search_closed_at\s+is\s+null/i,'human closure must be respected');
+assert.match(part,/response_deadline\s+is\s+null\s+or\s+response_deadline\s*>\s*statement_timestamp\(\)/i,'deadline must be respected');
+assert.match(part,/public\.fn_need_covered_slots\(id\)\s*<\s*required_slots/i,'filled tasks must not be open');
+assert.match(sql,/rollback;\s*$/i,'source candidate must not commit on execution');
+assert.doesNotMatch(part,/rpc_(?:close|reopen|dispatch|cancel)/i,'observer must not mutate lifecycle');
+console.log('OVERVIEW SEARCH AUTHORITY: 6 static checks PASS. Not a deployed RPC proof.');
