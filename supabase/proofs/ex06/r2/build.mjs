@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 export const sha256=s=>createHash('sha256').update(s).digest('hex');
 export const md5=s=>createHash('md5').update(s).digest('hex');
-export function once(text,from,to){assert.equal(text.split(from).length-1,1,'SOURCE_ANCHOR_NOT_UNIQUE: '+from.slice(0,70));return text.replace(from,to);}
+export function once(text,from,to){assert.equal(text.split(from).length-1,1,'SOURCE_ANCHOR_NOT_UNIQUE: '+from.slice(0,70));return text.replace(from,()=>to);}
 export function replacements(text){return text.replace(/\$replacement\$([\s\S]*?)\$replacement\$/g,(_,body)=>'$replacement$'+body
  .replace(/need_search_time_admitted_v1\((n|v_need)\.id, statement_timestamp\(\)\)/g,'need_search_time_admitted_v1($1.id, clock_timestamp())')
  .replace('private.enqueue_dispatch(v_need.id, statement_timestamp())','private.enqueue_dispatch(v_need.id, clock_timestamp())')+'$replacement$');}
