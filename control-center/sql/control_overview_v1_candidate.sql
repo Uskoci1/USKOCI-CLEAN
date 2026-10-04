@@ -56,6 +56,13 @@ agreement_counts as (
     group by status
   ) s
 ),
+completion_counts as (
+  select count(*) filter (
+    where state='COMPLETED'
+      and completed_at >= statement_timestamp() - interval '24 hours'
+  )::bigint as completed_24h
+  from public.agreement_execution
+),
 review_counts as (
   select
     count(*)::bigint as total,
@@ -120,7 +127,8 @@ select jsonb_build_object(
   ),
   'agreements',jsonb_build_object(
     'byStatus',coalesce((select by_status from agreement_counts),'{}'::jsonb),
-    'created24h',coalesce((select created_24h from agreement_counts),0)
+    'created24h',coalesce((select created_24h from agreement_counts),0),
+    'completed24h',coalesce((select completed_24h from completion_counts),0)
   ),
   'reviews',jsonb_build_object(
     'total',(select total from review_counts),
