@@ -72,11 +72,19 @@ jobs:
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/01-dependencies.log" 2>&1
           git diff --exit-code
 
-      - name: Reconstruct disposable DEV-equivalent predecessor chain
+      - name: Reconstruct disposable historical live79
         run: |
           set -euo pipefail
           umask 077
-          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1
+          setup_exit=0
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1 || setup_exit=$?
+          printf '02-live79 exit=%s\n' "$setup_exit" | tee -a "$F10_ARTIFACT_DIR/stages.txt"
+          exit "$setup_exit"
+
+      - name: Guard loopback and replay DEV-equivalent predecessor chain
+        run: |
+          set -euo pipefail
+          umask 077
           node --input-type=module - <<'NODE'
           import {assertLocalDeviceProofTargets} from './supabase/proofs/ru5_device_ui_local_guard.mjs';
           assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL, process.env.RU5_DEVICE_DB_URL);
