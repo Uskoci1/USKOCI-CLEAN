@@ -78,9 +78,6 @@ as $fn$
 declare
   n public.needs%rowtype;
   execution_end timestamptz;
-  replacement_until timestamptz;
-  candidate_end timestamptz;
-  r record;
 begin
   if p_need_id is null or p_at is null then return false; end if;
 
@@ -99,40 +96,15 @@ begin
     else null
   end;
 
-  if execution_end is not null and p_at <= execution_end then
-    return true;
+  -- Automatic matching must point at a still-executable task window.
+  -- A historical replacement entitlement does not make a past FIXED/relative time executable again;
+  -- post-window recovery belongs to an explicit next-action/reschedule, not silent dispatch.
+  if execution_end is not null then
+    return p_at <= execution_end;
   end if;
-
-  -- Replacement is bounded by the accepted window of a cancelled Agreement when that window exists.
-  -- Malformed historical JSON never opens a window and never aborts cancellation.
-  for r in
-    select v.terms->>'proposed_end_at' raw_end
-    from public.agreements a
-    join public.agreement_versions v
-      on v.agreement_id=a.id and v.version=a.current_version
-    where a.need_id=n.id
-      and a.status='CANCELLED'
-      and jsonb_typeof(v.terms->'proposed_end_at')='string'
-  loop
-    begin
-      candidate_end := r.raw_end::timestamptz;
-    exception when others then
-      candidate_end := null;
-    end;
-    if candidate_end is not null then
-      replacement_until := greatest(
-        coalesce(replacement_until,candidate_end + interval '24 hours'),
-        candidate_end + interval '24 hours'
-      );
-    end if;
-  end loop;
 
   -- Unscheduled FLEXIBLE/REMOTE work has no bounded execution end to invent.
-  if execution_end is null and replacement_until is null then
-    return true;
-  end if;
-
-  return replacement_until is not null and p_at <= replacement_until;
+  return true;
 end
 $fn$;
 revoke all on function private.need_search_time_admitted_v1(uuid,timestamptz) from public,anon,authenticated,service_role;
