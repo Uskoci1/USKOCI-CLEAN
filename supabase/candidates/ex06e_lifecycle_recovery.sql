@@ -4,7 +4,7 @@
 --   * make remaining_search_closed_at a hard dispatch stop;
 --   * keep Agreement cancellation from silently reopening a requester-closed search;
 --   * stop cancellation/replacement matching after the admitted execution/replacement time window;
---   * add one canonical requester-owned reopen command with replay-safe receipt semantics.
+--   * add one canonical requester-owned reopen command with replay-safe receipt semantics using the existing remaining-search mutation gate.
 -- No new Need status, no event vocabulary change, no response-deadline product expansion, no parallel execution FSM.
 
 begin;
@@ -38,7 +38,6 @@ begin
     select * from (values
       ('private.dispatch_next_wave(uuid)', '1fd8c51ef026ece24471e2f68250ecc5'),
       ('private.dispatch_tick(integer,timestamptz)', 'e568b033b9457736869fc5829ffc5511'),
-      ('private.guard_remaining_search_close_fields()', 'ce59ad1cdee98518950e289aa5c329a4'),
       ('public.rpc_cancel_agreement(uuid,text)', 'f3ca4d5f8bdf324d5773d887d0a2d093')
     ) x(signature, expected_md5)
   loop
@@ -164,17 +163,7 @@ $replacement$      elsif reason in ('SLOTS_FILLED','NEED_NOT_OPEN','WAVES_EXHAUS
                        'RESPONSE_TARGET_AND_COVERAGE_REACHED','REMAINING_SEARCH_CLOSED',
                        'SEARCH_WINDOW_CLOSED') then
 $replacement$),
-(3,'private.guard_remaining_search_close_fields()',
-$anchor$    if current_setting('uskoci.need_lifecycle', true) is distinct from 'CLOSE_REMAINING_SEARCH' then
-      raise exception 'REMAINING_SEARCH_STATE_IS_SERVER_OWNED' using errcode='42501';
-    end if;
-$anchor$,
-$replacement$    if current_setting('uskoci.need_lifecycle', true) is distinct from 'CLOSE_REMAINING_SEARCH'
-       and current_setting('uskoci.need_lifecycle', true) is distinct from 'REOPEN_REMAINING_SEARCH' then
-      raise exception 'REMAINING_SEARCH_STATE_IS_SERVER_OWNED' using errcode='42501';
-    end if;
-$replacement$),
-(4,'public.rpc_cancel_agreement(uuid,text)',
+(3,'public.rpc_cancel_agreement(uuid,text)',
 $anchor$  if v_covered < v_need.required_slots
      and v_need.status in ('ACTIVE','SELECTION')
      and not private.closure_account_restricted(v_need.requester_account_id) then
@@ -286,7 +275,7 @@ begin
     raise exception 'ACCOUNT_CLOSING' using errcode='P0001';
   end if;
 
-  perform set_config('uskoci.need_lifecycle','REOPEN_REMAINING_SEARCH',true);
+  perform set_config('uskoci.need_lifecycle','CLOSE_REMAINING_SEARCH',true);
   update public.needs
      set remaining_search_closed_at=null,
          remaining_search_closed_by_account_id=null,
@@ -337,7 +326,6 @@ begin
   for r in select * from (values
     ('private.dispatch_next_wave(uuid)', 'c37d672ccaf44e86b5e83b117156cdb8'),
     ('private.dispatch_tick(integer,timestamptz)', '8798cb6b6f004ecd5d88dd472cd6de0b'),
-    ('private.guard_remaining_search_close_fields()', 'c2d5e8ad7398f25a026d9bfd333efa8b'),
     ('public.rpc_cancel_agreement(uuid,text)', 'f23a499bdd57d68476c126232645a139')
   ) x(signature, expected_md5)
   loop
