@@ -27,6 +27,7 @@ export function createControlPrivateClient({origin,fetchImpl=fetch,timeoutMs=100
   user:accountId=>get('/api/control/users/'+id(accountId,'USER_ID')),
   task:needId=>get('/api/control/tasks/'+id(needId,'TASK_ID')),
   agreement:agreementId=>get('/api/control/agreements/'+id(agreementId,'AGREEMENT_ID')),
+  application:responseId=>get('/api/control/applications/'+id(responseId,'APPLICATION_ID')),
   notification:eventId=>get('/api/control/notifications/'+id(eventId,'EVENT_ID')),
   ai:conversationId=>get('/api/control/ai/'+id(conversationId,'AI_ID')),
   matching:(needId,workerProfileId=null)=>get('/api/control/matching/'+id(needId,'MATCH_NEED_ID')+(workerProfileId?'/'+id(workerProfileId,'MATCH_PROFILE_ID'):''))
