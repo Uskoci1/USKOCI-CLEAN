@@ -177,3 +177,38 @@ end $$;
 select md5(prosrc) as candidate_body_md5,prosecdef,proconfig
 from pg_proc
 where oid=to_regprocedure('private.edge_worker_tick_v5(timestamp with time zone)');
+
+do $$
+declare h text;
+begin
+ select md5(prosrc) into h
+ from pg_proc where oid=to_regprocedure('private.edge_worker_tick_v5(timestamp with time zone)');
+ if h <> 'fb29dc0b7c39aa8305c0a728f33d07dc' then
+   raise exception 'CANDIDATE_HASH_MISMATCH:%',h;
+ end if;
+end $$;
+
+-- A revert must be exact and restore the old scheduler semantics, while still
+-- leaving every queued row untouched.
+update private.test_worker_flags set enabled=false;
+update private.processor_provider_inventory set active=false where code='EXPO_PUSH';
+truncate public.notification_deliveries, public.notification_push_attempts, private.http_calls;
+insert into public.notification_deliveries values ('PUSH',null,'CREATED');
+
+\ir ../../candidates/push_scheduler_provider_gate_20261004_revert.sql
+
+do $$
+declare r jsonb; before_count bigint;
+begin
+ select count(*) into before_count from public.notification_deliveries;
+ r:=private.edge_worker_tick_v5();
+ if jsonb_typeof(r#>'{workers,PUSH}') <> 'object' then raise exception 'REVERT_DID_NOT_RESTORE_PUSH_CALL:%',r; end if;
+ if (select count(*) from private.http_calls where url like '%/functions/v1/uskoci-push-transport')<>1 then
+   raise exception 'REVERT_PUSH_CALL_COUNT';
+ end if;
+ if (select count(*) from public.notification_deliveries)<>before_count then raise exception 'REVERT_MUTATED_BACKLOG'; end if;
+end $$;
+
+select md5(prosrc) as reverted_body_md5,prosecdef,proconfig
+from pg_proc
+where oid=to_regprocedure('private.edge_worker_tick_v5(timestamp with time zone)');
