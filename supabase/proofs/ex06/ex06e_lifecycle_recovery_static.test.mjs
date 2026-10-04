@@ -11,18 +11,18 @@ test('candidate keeps coverage, search authority and time authority separate',()
   assert.match(c,/REMAINING_SEARCH_CLOSED/);
   assert.match(c,/SEARCH_WINDOW_CLOSED/);
   assert.match(c,/rpc_reopen_remaining_search/);
-  assert.match(c,/REOPEN_REMAINING_SEARCH/);
+  assert.match(c,/set_config\('uskoci\.need_lifecycle','CLOSE_REMAINING_SEARCH',true\)/);
   assert.match(c,/reopenedRemainingSlots/);
   assert.match(c,/response_deadline is not null and n\.response_deadline <= p_at/);
   assert.match(c,/interval '24 hours'/);
   assert.doesNotMatch(c,/create\s+type|alter\s+type|new\s+status/i);
 });
-test('remaining-search guard remains fail closed for a null token',()=>{
-  assert.match(c,/is distinct from 'CLOSE_REMAINING_SEARCH'[\s\S]*is distinct from 'REOPEN_REMAINING_SEARCH'/);
-  assert.doesNotMatch(c,/not in \('CLOSE_REMAINING_SEARCH'/i);
+test('candidate leaves the certified remaining-search trigger body untouched',()=>{
+  assert.doesNotMatch(c,/create or replace function private\.guard_remaining_search_close_fields/i);
+  assert.doesNotMatch(c,/REOPEN_REMAINING_SEARCH/);
 });
-test('revert restores all four predecessor hashes and removes only EX06E functions',()=>{
-  for(const hash of ['1fd8c51ef026ece24471e2f68250ecc5','e568b033b9457736869fc5829ffc5511','ce59ad1cdee98518950e289aa5c329a4','f3ca4d5f8bdf324d5773d887d0a2d093']) assert.ok(r.includes(hash));
+test('revert restores all three predecessor hashes and removes only EX06E functions',()=>{
+  for(const hash of ['1fd8c51ef026ece24471e2f68250ecc5','e568b033b9457736869fc5829ffc5511','f3ca4d5f8bdf324d5773d887d0a2d093']) assert.ok(r.includes(hash));
   assert.match(r,/drop function public\.rpc_reopen_remaining_search/);
   assert.match(r,/drop function private\.need_search_time_admitted_v1/);
 });
