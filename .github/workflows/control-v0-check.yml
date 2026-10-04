@@ -27,3 +27,4 @@ jobs:
       - run: node control-center/check-v0.mjs
       - run: node control-center/check-overview-candidate.mjs
       - run: node control-center/check-overview-preflight.mjs
+      - run: node control-center/check-runtime-contract.mjs
