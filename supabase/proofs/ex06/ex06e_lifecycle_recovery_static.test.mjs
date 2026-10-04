@@ -14,7 +14,7 @@ test('candidate keeps coverage, search authority and time authority separate',()
   assert.match(c,/set_config\('uskoci\.need_lifecycle','CLOSE_REMAINING_SEARCH',true\)/);
   assert.match(c,/reopenedRemainingSlots/);
   assert.match(c,/response_deadline is not null and n\.response_deadline <= p_at/);
-  assert.match(c,/interval '24 hours'/);
+  assert.doesNotMatch(c,/interval '24 hours'/);
   assert.doesNotMatch(c,/create\s+type|alter\s+type|new\s+status/i);
 });
 test('candidate leaves the certified remaining-search trigger body untouched',()=>{
@@ -29,7 +29,7 @@ test('revert restores all three predecessor hashes and removes only EX06E functi
 test('behavioral proof names every owner-required scenario',()=>{
   for(const phrase of ['2->1 OPEN searches missing 1','2->1 OPEN cancel searches missing 2','2->2 one cancel searches missing 1',
     '2->1 CLOSED cancel keeps human authority and ZERO automatic matching','CLOSED + missing -> canonical reopen -> only missing capacity',
-    'expired accepted window +24h does not revive matching']) assert.ok(p.includes(phrase),phrase);
+    'expired execution window does not revive matching']) assert.ok(p.includes(phrase),phrase);
 });
 
 test('candidate is schema neutral and reuses the existing close-command ledger with a reopen namespace',()=>{
