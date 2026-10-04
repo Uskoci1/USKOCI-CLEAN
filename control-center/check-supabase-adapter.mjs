@@ -17,7 +17,7 @@ const data=await d.rpc('rpc_control_overview_v1',{});
 assert.equal(data.schemaVersion,'CONTROL_OVERVIEW_V1');
 assert.equal(calls[1].init.headers.apikey,env.CONTROL_SUPABASE_SERVER_KEY);
 assert.equal(calls[1].init.headers.authorization,'Bearer '+env.CONTROL_SUPABASE_SERVER_KEY);
-assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_user_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_notification_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_ai_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_matching_v1'));
+assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_user_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_notification_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_ai_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_matching_v1'));assert.ok(CONTROL_ALLOWED_RPCS.includes('rpc_control_application_v1'));
 await assert.rejects(()=>d.rpc('rpc_delete_everything',{}),/NOT_ALLOWED/);
 assert.ok(CONTROL_SUPABASE_MAX_RAW_BYTES<=192*1024);
 
