@@ -33,7 +33,8 @@ export function compile(candidate,revert,timeBody,extraScenarios,proof){
  c=once(c,"'needId',p_need_id,'expectedRevision',p_expected_revision,'reason',v_reason",`'command','REOPEN_REMAINING_SEARCH_V1',
       'needId',p_need_id,'expectedRevision',p_expected_revision,'reason',v_reason,
       'expectedClosedAtEpoch',extract(epoch from p_expected_closed_at)`);
- c=once(c,String.raw`perform pg_advisory_xact_lock(hashtextextended(v_actor::text || E'\\n' || v_request_id, 4411));`,String.raw`perform pg_advisory_xact_lock(hashtextextended(v_actor::text || E'\\n' || ('reopen:'||v_request_id), 4410));`);
+ // The inspected close body uses SQL E'\n' (one source backslash), not a literal backslash-n separator.
+ c=once(c,String.raw`perform pg_advisory_xact_lock(hashtextextended(v_actor::text || E'\\n' || v_request_id, 4411));`,String.raw`perform pg_advisory_xact_lock(hashtextextended(v_actor::text || E'\n' || ('reopen:'||v_request_id), 4410));`);
  c=once(c,"    if v_existing.request_hash <> v_request_hash then\n      raise exception 'IDEMPOTENCY_KEY_REUSED' using errcode='22023';",`    if v_existing.request_hash is distinct from v_request_hash
        or v_existing.result->>'command' is distinct from 'REOPEN_REMAINING_SEARCH_V1'
        or v_existing.result->>'needId' is distinct from p_need_id::text
@@ -51,7 +52,6 @@ export function compile(candidate,revert,timeBody,extraScenarios,proof){
     'command','REOPEN_REMAINING_SEARCH_V1',
     'observedClosedAt',p_expected_closed_at,
     'needId',v_need.id,`);
- // Pin dependencies whose behaviour is reused, without altering certified triggers or old close.
  c=once(c,'  insert into ex06e_closure values(private.closure_source_digest_v5());',`  if (select md5(replace(prosrc,E'\\r','')) from pg_proc where oid=to_regprocedure('public.rpc_close_remaining_search(uuid,integer,text,text)')) is distinct from '39fa830132d714a1cc61d3bba73d5cec'
      or (select md5(replace(prosrc,E'\\r','')) from pg_proc where oid=to_regprocedure('private.guard_remaining_search_close_fields()')) is distinct from 'ce59ad1cdee98518950e289aa5c329a4'
      or (select md5(replace(prosrc,E'\\r','')) from pg_proc where oid=to_regprocedure('private.relative_schedule_end_v5(text,timestamptz,text)')) is distinct from '7164c2ba0d23a0387376fec67f7154b9' then

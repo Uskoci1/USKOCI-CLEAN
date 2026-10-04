@@ -54,6 +54,7 @@ jobs:
           sha256sum supabase/proofs/ex06/r2/* .github/workflows/ex06e-r2-hardening-proof.yml > "$EX06E_R2_DIR/source-manifest.txt"
           node --check supabase/proofs/ex06/r2/run.mjs
           node --check supabase/proofs/ex06/r2/baseline.mjs
+          node --check supabase/proofs/ex06/r2/align.mjs
           node --test supabase/proofs/ex06/ex06e_lifecycle_recovery_static.test.mjs supabase/proofs/ex06/ex06e_mutation_verifier.test.mjs supabase/proofs/ex06/r2/build.test.mjs | tee "$EX06E_R2_DIR/offline-tests.txt"
           node supabase/proofs/ex06/r2/build.mjs
           node --check supabase/proofs/ex06/ex06e_r2_generated_proof.mjs
@@ -64,7 +65,10 @@ jobs:
           set -euo pipefail
           bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/live79.log" 2>&1
       - name: Replay existing predecessor chain
-        run: node supabase/proofs/ex06/r2/run.mjs replay
+        run: |
+          set -euo pipefail
+          node supabase/proofs/ex06/r2/run.mjs replay
+          node supabase/proofs/ex06/r2/align.mjs
       - name: Prove before after drift refusal revert and reapply
         run: node supabase/proofs/ex06/r2/run.mjs prove
       - name: Always discard disposable database
