@@ -9,6 +9,8 @@ on:
       - 'src/ui/location/ConversationPointAsk.tsx'
       - 'src/data/__tests__/conversation-point-ask.test.tsx'
       - 'src/ui/location/LocationPointEditor.tsx'
+      - 'src/ui/location/ResolvedPinMap.tsx'
+      - 'src/ui/location/ResolvedPinMap.types.ts'
       - 'src/data/__tests__/locationPointEditor.test.tsx'
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - '.github/workflows/location-route-seed-proof.yml'
