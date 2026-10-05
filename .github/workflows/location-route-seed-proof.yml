@@ -32,6 +32,8 @@ jobs:
         run: npx jest src/data/__tests__/conversation-point-ask.test.tsx src/data/__tests__/locationPointEditor.test.tsx --runInBand
       - name: TypeScript
         run: npx tsc --noEmit
+      - name: Full regression
+        run: npm test -- --runInBand
       - name: Pin privacy-safe route instruction
         run: |
           node <<'NODE'
