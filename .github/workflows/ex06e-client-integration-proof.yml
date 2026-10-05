@@ -19,6 +19,10 @@ on:
       - 'src/data/__tests__/pkg004-lifecycle-wiring.test.ts'
       - 'src/data/__tests__/pkg004-remaining-search.test.ts'
       - 'src/data/__tests__/pkg004-close-attempt.test.ts'
+      - 'src/data/__tests__/publication-screen.test.tsx'
+      - 'src/data/__tests__/own-task-menu-screen.test.tsx'
+      - 'src/data/__tests__/p5-matching-field-contract.test.ts'
+      - 'src/ui/system/__tests__/plural-has-one-spelling.test.ts'
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,6 +64,10 @@ jobs:
           src/data/__tests__/pkg004-remaining-search.test.ts
           src/data/__tests__/pkg004-close-attempt.test.ts
           src/data/__tests__/pkg011-slice4-presentation.test.tsx
+          src/data/__tests__/publication-screen.test.tsx
+          src/data/__tests__/own-task-menu-screen.test.tsx
+          src/data/__tests__/p5-matching-field-contract.test.ts
+          src/ui/system/__tests__/plural-has-one-spelling.test.ts
       - name: Full regression
         run: npm test -- --runInBand
       - name: Receipt
