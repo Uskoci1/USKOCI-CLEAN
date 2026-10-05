@@ -44,9 +44,13 @@ const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string =>
     : slot === 'end' ? geography?.end
       : slot === 'serviceArea' ? geography?.serviceArea
         : geography?.waypoints?.[Number(slot.slice('waypoints/'.length))];
-  // A street alone can resolve in another city. Keep the already-known locality
-  // with the start's private address; never copy that address into another slot.
-  const parts = [slot === 'start' ? value.exactAddress : null, place?.label, place?.area, place?.city]
+  // A single private exactAddress belongs only to a stationary work point. Route endpoints
+  // have independent meaning: using that one private value as the route start can move the wrong
+  // endpoint (for example a destination house number was rendered as the pickup point). Route
+  // camera seeds therefore come only from that slot's privacy-safe geography; every exact route
+  // point is still chosen/confirmed by the person on the map.
+  const stationaryAddress = geography?.mode === 'STATIONARY' && slot === 'start' ? value.exactAddress : null;
+  const parts = [stationaryAddress, place?.label, place?.area, place?.city]
     .flatMap(part => typeof part === 'string' ? part.split(',') : []).map(part => part.trim()).filter(Boolean);
   return parts.filter((part, index) => parts.findIndex(other => other.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(', ');
 };
