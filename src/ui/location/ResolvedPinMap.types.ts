@@ -13,6 +13,8 @@ export type ResolvedPinMapProps = Readonly<{
   coarse?: boolean;
   /** The frame's height; a read-only map on a detail screen is a glance, not the picker's 320. */
   height?: number;
+  /** Conversation-only density: keeps legal attribution but lets the parent own the explanatory copy. */
+  compact?: boolean;
 }>;
 
 // Public style configuration reused from the reviewed PR67 renderer. No address,
