@@ -16,6 +16,9 @@ on:
       - 'src/data/__tests__/need-search-recovery-contract.test.ts'
       - 'src/data/__tests__/need-search-recovery-controller.test.ts'
       - 'src/data/__tests__/pkg011-slice4-presentation.test.tsx'
+      - 'src/data/__tests__/pkg004-lifecycle-wiring.test.ts'
+      - 'src/data/__tests__/pkg004-remaining-search.test.ts'
+      - 'src/data/__tests__/pkg004-close-attempt.test.ts'
   workflow_dispatch:
 permissions:
   contents: read
