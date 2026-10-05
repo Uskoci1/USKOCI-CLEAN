@@ -326,7 +326,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         question: phase === 'PROPOSAL' ? pointQuestion : phase === 'AMBIGUOUS' ? clarificationQuestion : `Gde je ${title.toLocaleLowerCase()}?`,
         query: searchText.slice(0, 1000),
         proposal: position ? { id: proposalId, label: promptLabel.slice(0, 1000) } : null,
-        alternatives: promptAlternatives.map((candidate, index) => ({ id: `${promptToken}:${promptPage * 3 + index}`, label: candidate.label.slice(0, 1000) })) },
+        alternatives: promptAlternatives.map((candidate, index) => ({ id: `${promptToken}:${index}`, label: candidate.label.slice(0, 1000) })) },
       acquire,
     } : null);
   });
