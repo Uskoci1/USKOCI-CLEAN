@@ -3,7 +3,6 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/projections';
-import type { NeedSearchState } from '../../../../contracts/needSearchRecovery';
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
@@ -28,7 +27,7 @@ import { useConfirmSheet } from '../../../../ui/system/ConfirmSheet';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
-type Snapshot = { need: PotrebaProjekcija; search: NeedSearchState };
+type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
 const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
 
 export default function PregledPotrebe() {
@@ -89,17 +88,10 @@ function OwnedNeed({ id }: { id: string }) {
       if (!need || !sameId(need.id, id) || !positiveInteger(need.revizija) || !STANJA_POTREBE.includes(need.stanje)) {
         return failure('NEED_UNAVAILABLE', 'Zadatak nije pronađen ili više nije dostupan.');
       }
-      if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
-      const search = await needSearchRecoveryClientService.read(id, { accountId, accountRevision });
+      const search = await ru4Production.remainingSearchState(id);
       if (!current()) return changed();
-      if (!search.ok) return search;
-      if (search.podatak.revision !== need.revizija
-        || search.podatak.requiredSlots !== need.pokrivenost.ukupno
-        || search.podatak.coveredSlots !== need.pokrivenost.popunjeno
-        || search.podatak.missingSlots !== need.pokrivenost.preostalo) {
-        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje.');
-      }
-      return { ok: true, podatak: { need, search: search.podatak } };
+      if (!search || typeof search.closed !== 'boolean') return failure('NEED_INVALID_RESPONSE', 'Pregled Zadatka nije potvrđen.');
+      return { ok: true, podatak: { need, remainingClosed: search.closed } };
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -118,7 +110,7 @@ function OwnedNeed({ id }: { id: string }) {
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
   // guess. Read-only: it reports, and the server decides again when publishing is attempted.
   const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
-  const preostalaPotragaZatvorena = editor.data?.search.searchAuthority === 'CLOSED';
+  const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
   const recoveryBusy = recoveryView.phase === 'SENDING' || (recoveryView.phase === 'LOADING' && !!recoveryView.command);
   const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain || recoveryBusy;
   const renderedFocus = focus.current, renderedLife = life.current;
@@ -213,8 +205,8 @@ function OwnedNeed({ id }: { id: string }) {
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;
-        if (after.podatak.search.searchAuthority === 'CLOSED') closeAttempt.current = null;
-        return after.podatak.search.searchAuthority === 'CLOSED' ? after
+        if (after.podatak.remainingClosed) closeAttempt.current = null;
+        return after.podatak.remainingClosed ? after
           : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Zatvaranje preostale potrage nije potvrđeno. Učitaj trenutno stanje.');
       });
         if (current()) await recoveryController.current?.check();
@@ -243,10 +235,10 @@ function OwnedNeed({ id }: { id: string }) {
     ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
       'Nastavi', 'default', async () => openOwnedReview('/nova'));
   };
-  const effectiveRecoveryView = !recoveryView.command && !recoveryView.snapshot && editor.data?.search
-    ? { ...recoveryView, phase: 'READY' as const, snapshot: editor.data.search, error: null }
-    : recoveryView;
-  const recoveryCopy = editor.data || recoveryView.command ? needSearchRecoveryCopy(effectiveRecoveryView) : null;
+  const effectiveRecoveryView = recoveryView;
+  // R3 recovery is additive authority: a temporary read failure must never make the whole owned task unreadable.
+  // Until the owner-only R3 state is confirmed (or an immutable command journal exists), the legacy task surface remains unchanged.
+  const recoveryCopy = recoveryView.snapshot || recoveryView.command ? needSearchRecoveryCopy(effectiveRecoveryView) : null;
   const routineClosed = effectiveRecoveryView.phase === 'READY' && effectiveRecoveryView.snapshot?.canReopen
     && recoveryCopy?.primary?.action === 'REOPEN';
   const recoveryPrimaryReady = !!recoveryView.snapshot || !!recoveryView.command;
@@ -273,7 +265,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct()) return;
     const command = controller.prepare();
     if (!command) return;
-    const missing = controller.snapshot().snapshot?.missingSlots ?? editor.data?.search.missingSlots ?? 0;
+    const missing = controller.snapshot().snapshot?.missingSlots ?? potreba?.pokrivenost.preostalo ?? 0;
     ask('Ponovo traži ljude?', missing === 1
       ? 'Nedostaje još jedna osoba. Ponovo ćemo otvoriti potragu za tim mestom; postojeći Dogovori ostaju nepromenjeni.'
       : 'Nedostaje još ' + missing + ' ljudi. Ponovo ćemo otvoriti potragu samo za tim mestima; postojeći Dogovori ostaju nepromenjeni.',
