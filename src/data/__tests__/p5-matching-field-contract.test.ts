@@ -60,6 +60,10 @@ const X6 = 'supabase/candidates/ex06a_flexible_window.sql';
 const X6R = 'supabase/candidates/ex06a_flexible_window_revert.sql';
 const X7 = 'supabase/candidates/ex06b_alias_registry.sql';
 const X7R = 'supabase/candidates/ex06b_alias_registry_revert.sql';
+// Source-only F5 candidate/revert are inventoried because this test scans every SQL file.
+// They are NOT part of the effective DEV chain until separately owner-approved and applied.
+const X8 = 'supabase/candidates/ex06d_f5_already_applied_admission.sql';
+const X8R = 'supabase/candidates/ex06d_f5_already_applied_admission_revert.sql';
 // Frozen WPP01 forward/disposable/revert bodies retain the existing preference
 // readers; they remove license/team gates, without adding preference writers.
 const WPP01 = ['candidate.in-transaction.sql', 'candidate.sql', 'revert.sql']
@@ -167,7 +171,7 @@ describe('EX-06 S05 field-to-consumer map: effective matcher chain and gate clas
       X7, X7R, // EX-06 ex06b: only pins the callers match_detail_without_calendar and dispatch_cheap_candidate_admitted by md5 (it changes private.work_kinds_v5 and adds configuration rows), NOT APPLIED to DEV, and its exact inverse
       W2C, W2I, W2A, ...WPP01, WPP01_POSTFLIGHT].sort());
     // ex06a also pins the pre-image of dispatch_cheap_candidate_admitted (md5 row only; it changes neither this function nor the prefilter)
-    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R, ...WPP01, WPP01_POSTFLIGHT].sort());
+    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R, X8, X8R, ...WPP01, WPP01_POSTFLIGHT].sort());
     const wrappers = mentioning(migrationSql(), /create or replace function private\.match_detail\(/);
     expect(wrappers[wrappers.length - 1]).toBe(W2F);
     const waves = mentioning(migrationSql(), /create or replace function private\.dispatch_next_wave\(/);
