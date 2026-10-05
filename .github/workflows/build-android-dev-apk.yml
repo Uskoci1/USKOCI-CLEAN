@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Intentional sideload checkpoint trigger: safe canonical SVG renderer for native Home/Auth entry.
+# Intentional sideload checkpoint trigger: EX-06E lifecycle PHONE/ARM64 acceptance build; runtime source unchanged.
 on:
   workflow_dispatch:
     inputs:
