@@ -280,13 +280,13 @@ describe('compact conversation proposal', () => {
     expect(props.onInvalidate).not.toHaveBeenCalled(); expect(resolver.search).not.toHaveBeenCalled();
   });
 
-  it('places the single validated proposal, hides the form, and confirms only on the explicit action', async () => {
+  it('places a single specific proposal, uses a compact map, and confirms only on the explicit action', async () => {
     const resolver = configured();
-    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Known place',
-      conversationSummary: { title: 'Početak', description: 'Known place' } });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: candidate.label,
+      conversationSummary: { title: 'Početak', description: candidate.label } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(props.onInvalidate).not.toHaveBeenCalled();
-    expect(map().props).toMatchObject({ position: candidate.position, height: 220 });
+    expect(map().props).toMatchObject({ position: candidate.position, height: 132, compact: true });
     expect(text()).toContain('Da li je ovo početak?'); expect(text()).toContain(candidate.label);
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
@@ -294,6 +294,28 @@ describe('compact conversation proposal', () => {
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin, address: candidate.label });
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
+  });
+
+  it('does not turn a city fallback into a street-address pin', async () => {
+    const city = { ...candidate, label: 'Novi Sad, South Backa, Serbia',
+      position: { latitude: 45.2671, longitude: 19.8335 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true,
+      initialQuery: 'Lenke Dunđerski 10, Novi Sad',
+      conversationSummary: { title: 'Početak', description: 'Lenke Dunđerski 10, Novi Sad' } });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 132, compact: true });
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+    expect(text()).toContain('Nismo našli dovoljno preciznu tačku');
+    expect(text()).toContain('Mapa je samo orijentir');
+    expect(props.onInvalidate).not.toHaveBeenCalled();
+    await act(async () => map().props.onChoose({ latitude: 45.2512, longitude: 19.8244 }));
+    expect(map().props.position).toEqual({ latitude: 45.2512, longitude: 19.8244 });
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({
+      slot: 'start', latitudeE6: 45251200, longitudeE6: 19824400, origin: { kind: 'MANUAL_PIN' },
+    }));
   });
 
   it('keeps ambiguous results unresolved but immediately frames their region, then confirms only an explicitly placed pin', async () => {
