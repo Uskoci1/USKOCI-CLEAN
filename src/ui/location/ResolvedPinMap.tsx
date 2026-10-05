@@ -222,7 +222,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         at 320 dp and with large text, without reducing the map's usable area. */}
     {status === 'ready' ? <View style={styles.creditBand}>
         {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0}
-          style={[styles.creditLink, compact && styles.compactCreditLink]}
+          style={styles.creditLink}
           onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}>
           <T variant="label" tone="muted" style={styles.credit}>{credit.text}</T>
         </Press>)}
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
     gap: sys.space.md, backgroundColor: sys.color.surface },
   creditBand: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
   creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
-  compactCreditLink: { minHeight: 36 },
   credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
   area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge,
