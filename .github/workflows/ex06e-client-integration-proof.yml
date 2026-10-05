@@ -1,4 +1,5 @@
 name: EX-06E client lifecycle integration proof
+# Exact current-branch source proof; no DEV, provider or phone mutation.
 on:
   push:
     branches: [work/uskoci-ui-unification-20260924]
