@@ -40,6 +40,8 @@ export type NeedPresentationProps = {
   lifecycleActions?: ReactNode;
   /** The lifecycle's own ways in (cancel, delete a draft, the Dogovori), for the "···" beside the edits. */
   lifecycleMenu?: readonly SheetAction[];
+  /** One contextual footer action may temporarily outrank applications/Dogovori; it never adds a second primary button. */
+  primaryOverride?: { label: string; accessibilityLabel?: string; disabled?: boolean; arrow?: boolean; onPress: () => void };
   qaAction?: ReactNode;
 };
 
@@ -132,10 +134,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const agreementsNext = hasAgreements && !draft && (remainingClosed || need?.stanje === 'POPUNJENA'
     || need?.stanje === 'ZATVORENA' || need?.brojPrijavaZaIzbor === 0);
   const applications = need && !working && !blocked && !draft && !agreementsNext ? applicationsAction(need) : null;
+  const primaryOverride = props.primaryOverride;
   const primaryLabel = working ? 'Radnja je u toku…'
-    : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu'
-      : agreementsNext ? 'Otvori moje Dogovore' : 'Pregledaj prijave';
-  const primaryAction = blocked ? props.onEdit : draft ? props.onReview
+    : primaryOverride ? primaryOverride.label
+      : blocked ? 'Otvori razgovor i dopuni' : draft ? 'Pregledaj za objavu'
+        : agreementsNext ? 'Otvori moje Dogovore' : 'Pregledaj prijave';
+  const primaryAction = primaryOverride ? primaryOverride.onPress : blocked ? props.onEdit : draft ? props.onReview
     : agreementsNext ? props.onAgreements! : props.onCandidates;
   const remote = need?.detalji?.geografija?.mode === 'REMOTE';
   // The owner's own task shows the same price a stranger sees, totals included; only the line under an
@@ -249,9 +253,11 @@ export function NeedPresentation(props: NeedPresentationProps) {
       </ScrollView>}
     {/* Once there is nobody left to choose, the existing Agreements list becomes the next step.
         The applications row remains available for the full application history. */}
-    {need && (draft || blocked || working || agreementsNext || need.brojPrijava > 0) ? <View style={s.footer}>
-      <ProductFooterAction label={primaryLabel} count={applications?.count} accessibilityLabel={applications?.spoken}
-        disabled={busy || !usable} arrow={!working} onPress={primaryAction} />
+    {primaryOverride || (need && (draft || blocked || working || agreementsNext || need.brojPrijava > 0)) ? <View style={s.footer}>
+      <ProductFooterAction label={primaryLabel} count={primaryOverride ? undefined : applications?.count}
+        accessibilityLabel={working ? undefined : primaryOverride?.accessibilityLabel ?? (primaryOverride ? primaryOverride.label : applications?.spoken)}
+        disabled={busy || !!primaryOverride?.disabled || (!primaryOverride && !usable)}
+        arrow={!working && (primaryOverride?.arrow ?? true)} onPress={primaryAction} />
     </View> : null}
     {menu.sheet}
   </SafeAreaView>;

@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/projections';
+import type { NeedSearchState } from '../../../../contracts/needSearchRecovery';
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
 import { knownRemainingSearchRefusal, ru4Production } from '../../../../data/ru4Production';
+import { knownSearchRecoveryRefusal, needSearchRecoveryClientService } from '../../../../data/needSearchRecoveryClientService';
 import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } from '../../../../data/remainingSearchCloseAttempt';
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
@@ -14,6 +17,9 @@ import { UrgentActivationActions, useUrgentActivationActions } from '../../../..
 import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
 import { NeedLifecycleActions, needLifecycleEntries, type NeedLifecycleMenu } from '../../../../ui/needs/NeedLifecycleActions';
+import { NeedSearchRecoveryController, initialSearchRecoveryView } from '../../../../ui/needs/NeedSearchRecoveryController';
+import { NeedSearchRecoverySection } from '../../../../ui/needs/NeedSearchRecoverySection';
+import { needSearchRecoveryCopy, type SearchRecoveryAction } from '../../../../ui/needs/needSearchRecoveryCopy';
 import type { SheetAction } from '../../../../ui/system/ActionSheet';
 import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
 import { noviZahtevId } from '../../../../lib/idempotencija';
@@ -22,7 +28,7 @@ import { useConfirmSheet } from '../../../../ui/system/ConfirmSheet';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
-type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
+type Snapshot = { need: PotrebaProjekcija; search: NeedSearchState };
 const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
 
 export default function PregledPotrebe() {
@@ -44,6 +50,9 @@ function OwnedNeed({ id }: { id: string }) {
   // An unconfirmed close keeps its command identity for the explicit retry; the
   // owner remounts on id/account, so the attempt never outlives them.
   const closeAttempt = useRef<RemainingSearchCloseAttempt | null>(null);
+  const recoveryController = useRef<NeedSearchRecoveryController | null>(null);
+  const [recoveryView, setRecoveryView] = useState(initialSearchRecoveryView);
+  const lifecycleMenu = useRef<NeedLifecycleMenu | null>(null);
   const [terminalActive, setTerminalActive] = useState(false);
   const terminalActiveRef = useRef(false);
   const [urgentActive, setUrgentActive] = useState(false);
@@ -55,6 +64,7 @@ function OwnedNeed({ id }: { id: string }) {
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; life.current++; navigating.current = false;
     foreground.current = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+    void recoveryController.current?.check();
     const subscription = AppState.addEventListener('change', state => {
       const active = state === 'active';
       if (active === foreground.current) return;
@@ -79,10 +89,17 @@ function OwnedNeed({ id }: { id: string }) {
       if (!need || !sameId(need.id, id) || !positiveInteger(need.revizija) || !STANJA_POTREBE.includes(need.stanje)) {
         return failure('NEED_UNAVAILABLE', 'Zadatak nije pronađen ili više nije dostupan.');
       }
-      const search = await ru4Production.remainingSearchState(id);
+      if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
+      const search = await needSearchRecoveryClientService.read(id, { accountId, accountRevision });
       if (!current()) return changed();
-      if (!search || typeof search.closed !== 'boolean') return failure('NEED_INVALID_RESPONSE', 'Pregled Zadatka nije potvrđen.');
-      return { ok: true, podatak: { need, remainingClosed: search.closed } };
+      if (!search.ok) return search;
+      if (search.podatak.revision !== need.revizija
+        || search.podatak.requiredSlots !== need.pokrivenost.ukupno
+        || search.podatak.coveredSlots !== need.pokrivenost.popunjeno
+        || search.podatak.missingSlots !== need.pokrivenost.preostalo) {
+        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje.');
+      }
+      return { ok: true, podatak: { need, search: search.podatak } };
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -101,13 +118,47 @@ function OwnedNeed({ id }: { id: string }) {
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
   // guess. Read-only: it reports, and the server decides again when publishing is attempted.
   const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
-  const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
-  const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain;
+  const preostalaPotragaZatvorena = editor.data?.search.searchAuthority === 'CLOSED';
+  const recoveryBusy = recoveryView.phase === 'SENDING' || (recoveryView.phase === 'LOADING' && !!recoveryView.command);
+  const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain || recoveryBusy;
   const renderedFocus = focus.current, renderedLife = life.current;
   const latestData = useRef(editor.data); latestData.current = editor.data;
   const current = () => focus.current !== null && focus.current === renderedFocus && foreground.current
     && life.current === renderedLife && latestIdentity.current === identity && latestData.current === editor.data
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+
+  useEffect(() => {
+    recoveryController.current?.dispose();
+    recoveryController.current = null;
+    setRecoveryView(initialSearchRecoveryView());
+    if (!accountId || !uuid(id)) return;
+    const account = { accountId, accountRevision };
+    const controller = new NeedSearchRecoveryController({
+      needId: id,
+      accountId,
+      storage: AsyncStorage,
+      newKey: () => noviZahtevId('ponovo-trazi-ljude'),
+      current: () => focus.current !== null && foreground.current && latestIdentity.current === identity
+        && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision,
+      services: {
+        read: () => needSearchRecoveryClientService.read(id, account),
+        readReceipt: command => needSearchRecoveryClientService.readReceipt(command, account),
+        reopen: command => needSearchRecoveryClientService.reopen(command, account),
+        knownRefusal: knownSearchRecoveryRefusal,
+      },
+    });
+    recoveryController.current = controller;
+    const sync = () => setRecoveryView(controller.snapshot());
+    const unsubscribe = controller.subscribe(sync);
+    sync();
+    void controller.load();
+    return () => {
+      unsubscribe();
+      controller.dispose();
+      if (recoveryController.current === controller) recoveryController.current = null;
+    };
+  }, [id, identity, accountId, accountRevision]);
+
   useEffect(() => {
     setReadiness(null);
     // Gated on the app's mode, this once never ran for an owner standing in the other mode, so his own draft answered
@@ -126,20 +177,22 @@ function OwnedNeed({ id }: { id: string }) {
   }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle]);
   // This screen shows a Zadatak returned by the owner-only read, so whoever sees it owns it; the
   // server checks that again on every command. No app-wide mode stands in for that any more.
-  const canAct = () => current() && !terminalActiveRef.current && !urgentActiveRef.current && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!editor.data;
+  const canAct = () => current() && !terminalActiveRef.current && !urgentActiveRef.current && !navigating.current
+    && !editor.loading && !editor.busy && !editor.uncertain && !recoveryBusy && !!editor.data;
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; retireConfirmation(); navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null; retireConfirmation();
-    void editor.refresh(); };
+    void editor.refresh(); void recoveryController.current?.check(); };
   const urgent = useUrgentActivationActions({
     needId: id, need: potreba, disabled: akcijaUToku || ucitava || !!greska || terminalActive,
     onActiveChange: setUrgent, onRefresh: refresh,
   });
   // `danger` for a question whose confirm cannot be undone (closing the search), drawn like izvoz's withdrawals.
-  const ask = (title: string, description: string, label: string, tone: 'default' | 'danger', command: () => Promise<void>) => {
+  const ask = (title: string, description: string, label: string, tone: 'default' | 'danger', command: () => Promise<void>,
+    onCancel?: () => void) => {
     if (!canAct() || dialog.current) return;
     const confirmation = {}; dialog.current = confirmation;
-    const cancel = () => { if (dialog.current === confirmation) dialog.current = null; };
+    const cancel = () => { if (dialog.current === confirmation) dialog.current = null; onCancel?.(); };
     // The sheet waits on the command it started (a busy confirm; Back returns after a few seconds without cancelling it)
     // and shows no outcome of its own.
     confirmSheet.ask({ title, message: description, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label, tone,
@@ -160,10 +213,12 @@ function OwnedNeed({ id }: { id: string }) {
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;
-        if (after.podatak.remainingClosed) closeAttempt.current = null;
-        return after.podatak.remainingClosed ? after
+        if (after.podatak.search.searchAuthority === 'CLOSED') closeAttempt.current = null;
+        return after.podatak.search.searchAuthority === 'CLOSED' ? after
           : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Zatvaranje preostale potrage nije potvrđeno. Učitaj trenutno stanje.');
-      }); });
+      });
+        if (current()) await recoveryController.current?.check();
+      });
   };
   const openOwnedReview = async (destination: '/nova' | '/pregled-zadatka') => {
     if (!canAct() || !potreba || potreba.pokrivenost.popunjeno !== 0 || preostalaPotragaZatvorena || potreba.stanje === 'ZATVORENA') return;
@@ -188,10 +243,49 @@ function OwnedNeed({ id }: { id: string }) {
     ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
       'Nastavi', 'default', async () => openOwnedReview('/nova'));
   };
+  const effectiveRecoveryView = !recoveryView.command && !recoveryView.snapshot && editor.data?.search
+    ? { ...recoveryView, phase: 'READY' as const, snapshot: editor.data.search, error: null }
+    : recoveryView;
+  const recoveryCopy = editor.data || recoveryView.command ? needSearchRecoveryCopy(effectiveRecoveryView) : null;
+  const routineClosed = effectiveRecoveryView.phase === 'READY' && effectiveRecoveryView.snapshot?.canReopen
+    && recoveryCopy?.primary?.action === 'REOPEN';
+  const recoveryPrimaryReady = !!recoveryView.snapshot || !!recoveryView.command;
+
+  const handleRecoveryAction = (action: SearchRecoveryAction) => {
+    const controller = recoveryController.current;
+    if (!controller) return;
+    if (action === 'AGREEMENTS') {
+      if (canAct()) lifecycleMenu.current?.openAgreements();
+      return;
+    }
+    if (action === 'CHECK') {
+      void controller.check().then(() => { if (current()) void editor.refresh(); });
+      return;
+    }
+    if (action === 'RETRY') {
+      void controller.retry().then(() => { if (current()) void editor.refresh(); });
+      return;
+    }
+    if (action === 'ACK') {
+      void controller.acknowledge().then(() => { if (current()) void editor.refresh(); });
+      return;
+    }
+    if (!canAct()) return;
+    const command = controller.prepare();
+    if (!command) return;
+    const missing = controller.snapshot().snapshot?.missingSlots ?? editor.data?.search.missingSlots ?? 0;
+    ask('Ponovo traži ljude?', missing === 1
+      ? 'Nedostaje još jedna osoba. Ponovo ćemo otvoriti potragu za tim mestom; postojeći Dogovori ostaju nepromenjeni.'
+      : 'Nedostaje još ' + missing + ' ljudi. Ponovo ćemo otvoriti potragu samo za tim mestima; postojeći Dogovori ostaju nepromenjeni.',
+      'Nastavi potragu', 'default', async () => {
+        await controller.submit(command);
+        if (current()) await editor.refresh();
+      }, () => controller.cancelReview());
+  };
+
   // Cancelling and deleting sit behind the screen's "···" (owner step 5b, 2026-09-24). The menu only knocks: each press
   // passes this screen's fence and then the lifecycle's own guards, and the lifecycle asks, sends, persists and recovers
   // exactly as it did inline.
-  const lifecycleMenu = useRef<NeedLifecycleMenu | null>(null);
   const entries = needLifecycleEntries(potreba);
   const lifecycleMenuActions: SheetAction[] = [
     ...(urgent.entry ? [urgent.entry] : []),
@@ -217,8 +311,16 @@ function OwnedNeed({ id }: { id: string }) {
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}
         disabled={akcijaUToku || ucitava || !!greska || urgentActive} onActiveChange={setTerminal} onRefresh={refresh} />
+      {recoveryCopy && !routineClosed ? <NeedSearchRecoverySection copy={recoveryCopy}
+        disabled={akcijaUToku || terminalActive || urgentActive} onAction={handleRecoveryAction} /> : null}
     </> : undefined}
     lifecycleMenu={lifecycleMenuActions}
+    primaryOverride={recoveryCopy?.primary ? {
+      label: recoveryCopy.primary.label,
+      disabled: !!recoveryCopy.primary.disabled || !recoveryPrimaryReady || recoveryBusy,
+      arrow: recoveryCopy.primary.action === 'REOPEN' || recoveryCopy.primary.action === 'AGREEMENTS',
+      onPress: () => handleRecoveryAction(recoveryCopy.primary!.action),
+    } : undefined}
     error={greska} busy={akcijaUToku || terminalActive || urgentActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
     onAgreements={entries.agreements ? () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } : undefined}

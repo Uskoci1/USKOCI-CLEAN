@@ -128,6 +128,19 @@ test('the footer leads somewhere with an arrow; while an action runs it says so,
   expect(footer.props.disabled).toBe(true);
   expect(footer.findAllByType(ArrowRight)).toHaveLength(0);
 });
+test('a server-authoritative recovery action replaces only the one footer CTA and keeps the existing task reading surface', async () => {
+  const onReopen = jest.fn();
+  const partial = need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+  await act(async () => { tree = create(<NeedPresentation need={partial} loading={false} error={null} busy={false} remainingClosed
+    onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} onAgreements={noop}
+    primaryOverride={{ label: 'Ponovo traži ljude', onPress: onReopen }} />); });
+  expect(texts()).toContain('preostala potraga je zatvorena');
+  expect(labels()).toContain('Moji dogovori');
+  expect(brand()).toEqual(['Ponovo traži ljude']);
+  await act(async () => byLabel('Ponovo traži ljude').props.onPress());
+  expect(onReopen).toHaveBeenCalledTimes(1);
+});
+
 test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
   // The state is one line under the title; the footer is the next step, so no card describes it as well.
