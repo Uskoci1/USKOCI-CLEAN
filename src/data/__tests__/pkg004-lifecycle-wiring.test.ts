@@ -26,9 +26,11 @@ describe('PKG-004 owner lifecycle wiring invariants', () => {
     expect(secondRecovery).toBeGreaterThan(unavailable);
   });
 
-  it('requires post-command server readback to report the remaining search closed', () => {
+  it('requires the R3 authoritative readback to report the remaining search closed', () => {
     expect(route).toContain('const after = await read()');
-    expect(route).toContain('after.podatak.remainingClosed ? after');
+    expect(route).toContain("after.podatak.search.searchAuthority === 'CLOSED' ? after");
+    expect(route).toContain('needSearchRecoveryClientService.read');
+    expect(route).not.toContain('ru4Production.remainingSearchState');
     expect(route).toContain('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED');
   });
 
