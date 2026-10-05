@@ -33,7 +33,7 @@ const AREA = 64;
 
 /** MapLibre rendering and lifetime pattern adapted from PR67; no provider or save authority. */
 function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; retry: () => void }) {
-  const { position, coarse = false, disabled = false } = props;
+  const { position, coarse = false, disabled = false, compact = false } = props;
   const pin = displayedPinPosition(position, coarse);
   // The public approximate view (a Task's place before a Dogovor) draws an area; every editable map and the exact
   // private point keep the pin.
@@ -222,7 +222,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         at 320 dp and with large text, without reducing the map's usable area. */}
     {status === 'ready' ? <View style={styles.creditBand}>
         {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0}
-          style={styles.creditLink}
+          style={[styles.creditLink, compact && styles.compactCreditLink]}
           onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}>
           <T variant="label" tone="muted" style={styles.credit}>{credit.text}</T>
         </Press>)}
@@ -230,13 +230,13 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     </View>
     {/* One usable instruction, not a coordinate readout. The precise point remains available
         to assistive technology and the parent still owns explicit confirmation. */}
-    {pin && !disabled ?
+    {!compact ? (pin && !disabled ?
       <T accessible accessibilityRole="text" accessibilityLiveRegion="polite"
         accessibilityLabel={`${coarse ? 'Približna tačka na mapi' : 'Predložena tačka na mapi'}. ${coordinateText}`}
         variant="meta" tone="muted">{centeredToken === token && imageToken === token && status === 'ready' && !offset
           ? 'Tačka je na sredini mape. Pomeri oznaku ako treba.'
           : 'Dodirni mapu ili prevuci oznaku do pravog mesta.'}</T>
-      : !disabled ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađi područje i dodirni mapu.</T> : null}
+      : !disabled ? <T variant="meta" tone="muted">Tačka nije izabrana. Pronađi područje i dodirni mapu.</T> : null) : null}
   </View>;
 }
 
@@ -267,6 +267,7 @@ const styles = StyleSheet.create({
     gap: sys.space.md, backgroundColor: sys.color.surface },
   creditBand: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
   creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
+  compactCreditLink: { minHeight: 36 },
   credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
   area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge,
