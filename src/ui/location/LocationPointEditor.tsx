@@ -37,6 +37,8 @@ const candidateFitsSeed = (query: string, label: string): boolean => {
   if (numbers.some(token => !offered.has(token))) return false;
   const words = wanted.filter(token => !/^\d+$/.test(token));
   if (!words.length) return numbers.length > 0;
+  // A bare city/short locality is a camera hint, not an exact private point.
+  if (!numbers.length && words.length <= 2) return false;
   const matched = words.filter(token => offered.has(token)).length;
   const required = words.length <= 2 ? words.length : Math.ceil(words.length * 0.75);
   return matched >= required;
