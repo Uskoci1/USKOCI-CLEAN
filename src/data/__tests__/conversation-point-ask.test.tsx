@@ -355,7 +355,7 @@ describe('the conversation point ask', () => {
   it('shows each actual route point separately with one active map and allows choosing the destination first', async () => {
     await mount();
     expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
-      'Polazište, Lenke Dunđerski 11, Novi Sad, Lenke Dunđerski, Nije potvrđeno',
+      'Polazište, Lenke Dunđerski, Novi Sad, Nije potvrđeno',
       'Odredište, Petrovaradinska tvrđava, Petrovaradin, Nije potvrđeno',
     ]);
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(1);
@@ -467,10 +467,10 @@ describe('the conversation point ask', () => {
     expect(mockRead).toHaveBeenCalledWith(CONVERSATION);
   });
 
-  it('asks for the first missing point and seeds it with the address already known', async () => {
+  it('asks for the first missing route point from that slot only, never from the single private exact address', async () => {
     await mount();
     expect(editor().props.slot).toBe('start');
-    expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad, Lenke Dunđerski');
+    expect(editor().props.initialQuery).toBe('Lenke Dunđerski, Novi Sad');
     expect(editor().props.autoLocate).toBe(true);
   });
 
@@ -484,15 +484,13 @@ describe('the conversation point ask', () => {
     expect(editor().props.resolver).toBe(resolverDouble);
   });
 
-  it.each([
-    ['Ulica 11', 'Ulica 11, Centar, Novi Sad'],
-    ['Ulica 11, Novi Sad', 'Ulica 11, Novi Sad, Centar'],
-  ])('keeps known city/area and deduplicates explicit locality for %s', async (exactAddress, expected) => {
+  it.each(['Pavla Jurišića Šturma 22', 'Pavla Jurišića Šturma 22, Beograd'])
+  ('keeps a route private exact address out of the pickup seed and deduplicates that slot locality for %s', async exactAddress => {
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
       exactAddress, geography: { ...route,
         start: { label: 'Centar', area: 'Centar', city: 'Novi Sad' } } } } });
     await mount();
-    expect(editor().props.initialQuery).toBe(expected);
+    expect(editor().props.initialQuery).toBe('Centar, Novi Sad');
     await choose('Odredište');
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
     expect(mockSave).not.toHaveBeenCalled();
