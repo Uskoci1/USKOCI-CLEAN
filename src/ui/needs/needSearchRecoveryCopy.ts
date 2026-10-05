@@ -1,3 +1,4 @@
+import { osoba } from '../system/plural';
 import type { SearchRecoveryView } from './NeedSearchRecoveryController';
 
 export type SearchRecoveryAction = 'REOPEN' | 'CHECK' | 'RETRY' | 'ACK' | 'AGREEMENTS';
@@ -10,11 +11,8 @@ export type SearchRecoveryCopy = {
   secondary?: { label: string; action: SearchRecoveryAction };
 };
 
-const missing = (count: number) => {
-  if (count === 1) return 'Nedostaje još jedna osoba.';
-  const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
-  return (few ? 'Nedostaju' : 'Nedostaje') + ' još ' + count + ' ' + (few ? 'osobe' : 'osoba') + '.';
-};
+const missing = (count: number) =>
+  count === 1 ? 'Nedostaje još jedna osoba.' : 'Nedostaje još ' + osoba(count) + '.';
 
 export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecoveryCopy | null {
   if (view.phase === 'LOADING') return view.command
