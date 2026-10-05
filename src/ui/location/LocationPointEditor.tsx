@@ -23,6 +23,25 @@ export type PointPrompt = {
   acquire: () => PointPromptLease | null;
 };
 
+const searchTokens = (value: string): readonly string[] => {
+  const normalized = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd');
+  return [...new Set(normalized.split(/[^a-z0-9\u0400-\u04ff]+/g).filter(token => token.length > 1 || /^\d+$/.test(token)))];
+};
+
+/** A single provider result is only an automatic pin when it still describes what the person asked for.
+ * City/region fallbacks are useful camera context, but must never masquerade as a street/house point. */
+const candidateFitsSeed = (query: string, label: string): boolean => {
+  const wanted = searchTokens(query), offered = new Set(searchTokens(label));
+  if (!wanted.length || !offered.size) return false;
+  const numbers = wanted.filter(token => /^\d+$/.test(token));
+  if (numbers.some(token => !offered.has(token))) return false;
+  const words = wanted.filter(token => !/^\d+$/.test(token));
+  if (!words.length) return numbers.length > 0;
+  const matched = words.filter(token => offered.has(token)).length;
+  const required = words.length <= 2 ? words.length : Math.ceil(words.length * 0.75);
+  return matched >= required;
+};
+
 type Props = {
   slot: LocationSlot; title: string; point?: ConfirmedLocationPoint; scopeKey: string; disabled: boolean;
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
@@ -173,9 +192,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // The full form retains its separate explicit candidate selection.
       if (conversation && result.status === 'PROPOSALS' && result.candidates.length === 1) {
         const candidate = result.candidates[0];
-        setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label);
-        setAddress(candidate.label);
-        setCorrectionOpen(false);
+        if (candidateFitsSeed(searchText, candidate.label)) {
+          setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label);
+          setAddress(candidate.label);
+          setCorrectionOpen(false);
+        }
       }
     } catch {
       if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
@@ -263,13 +284,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     renderEpoch.current++; setCorrectionOpen(true); return true;
   };
   const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
+  const weakSingleProposal = !position && lookupMode === 'search' && alternatives.length === 1
+    && !candidateFitsSeed(searchText, alternatives[0].label);
   const promptLabel = address.trim() || selectedLabel || point?.address || 'Tačka izabrana na mapi';
   const phase: DialogueContext['phase'] = position ? 'PROPOSAL'
     : lookupMode === 'search' && alternatives.length > 1 ? 'AMBIGUOUS' : 'UNRESOLVED';
   const pointQuestion = `Da li je ovo ${title.toLocaleLowerCase()}?`;
   const clarificationQuestion = `Gde tačno je ${title.toLocaleLowerCase()}? Dopuni opis ili označi tačku na mapi.`;
-  const promptPage = phase === 'AMBIGUOUS' ? 0 : candidatePage;
-  const promptAlternatives = alternatives.slice(promptPage * 3, promptPage * 3 + 3);
+  const promptAlternatives = phase === 'AMBIGUOUS' ? alternatives.slice(0, 3) : [];
   // Incarnations, not coordinate equality: A→B→A cannot revive a reply to an older pin.
   const promptToken = useMemo(noviUuidZahtevId, [scopeKey, position, origin, address, notes, searchText, lookup, candidatePage]);
   const proposalId = useMemo(noviUuidZahtevId, [scopeKey, position, origin, address, notes]);
@@ -317,17 +339,18 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       ? address.trim() || 'Tačka izabrana na mapi' : selectedLabel || point?.address || 'Tačka potvrđena na mapi';
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const ambiguous = !position && lookupMode === 'search' && alternatives.length > 1;
-    // More than one geocoder result is unresolved, but it is still useful map context.
-    // Show that region immediately instead of dropping the person back onto the world view.
-    // This does NOT select or confirm a candidate: the only writer remains an explicit map
-    // choice / confirmation, and every candidate coordinate stays draft-only.
-    const ambiguousCameraHint = ambiguous ? alternatives.map(candidate => ({ ...candidate.position })) : undefined;
-    const shownCameraHint = position ? undefined : cameraHint ?? ambiguousCameraHint;
+    const contextOnly = weakSingleProposal;
+    // Ambiguous results and a weak single fallback are camera context only. They may center the
+    // city/region, but draw no pin and carry no confirmation capability until the person chooses.
+    const providerCameraHint = ambiguous || contextOnly ? alternatives.map(candidate => ({ ...candidate.position })) : undefined;
+    const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
     const mapExplainsNextStep = !!conversationSummary && !position && placeByHand && !loading && !ambiguous
       && !controlDisabled && focused;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
-    const lookupMessage = lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
+    const lookupMessage = contextOnly
+      ? 'Nismo našli dovoljno preciznu tačku za opis iz razgovora. Mapa je samo orijentir — dodirni tačno mesto ili ispravi opis.'
+      : lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
       : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili probaj kasnije.'
         : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
           : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
@@ -342,7 +365,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {mapExplainsNextStep ? null : <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
           ? pointQuestion
           : loading ? 'Tražimo mesto iz razgovora…' : ambiguous
-            ? clarificationQuestion : 'Dopuni opis mesta ili ga označi na mapi.'}</T>}
+            ? clarificationQuestion : contextOnly
+              ? 'Tačna tačka nije pronađena. Dodirni pravo mesto na mapi ili ispravi opis.'
+              : 'Dopuni opis mesta ili ga označi na mapi.'}</T>}
         {(manualProposal || !position) && initialQuery && conversationSummary?.description !== initialQuery
           ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View>
@@ -351,15 +376,15 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       </T> : null}
       {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="secondary"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
-      {!position && !placeByHand && !loading && !ambiguous ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
+      {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => {
           if (!owns()) return;
           const context = lookupMode === 'search' && lookup.status === 'PROPOSALS'
             ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
           retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
-      {position || placeByHand || ambiguous ? <ResolvedPinMap position={position} cameraHint={shownCameraHint} onChoose={choose} scopeKey={scopeKey}
-        disabled={controlDisabled || !focused} height={220} /> : null}
+      {position || placeByHand || ambiguous || contextOnly ? <ResolvedPinMap position={position} cameraHint={shownCameraHint} onChoose={choose} scopeKey={scopeKey}
+        disabled={controlDisabled || !focused} height={132} compact /> : null}
       {position && (manualProposal || correctionOpen) ? <>
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
         {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
