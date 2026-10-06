@@ -57,7 +57,7 @@ export function taskPlace(item: Pick<MarketplaceItem, 'detalji' | 'podrucjeTekst
   }
   return { remote: false, text: item.podrucjeTekst };
 }
-const publicName = (point: NeedTaskGeographyPoint | undefined) => point?.area?.trim() || point?.city?.trim() || null;
+const publicName = (point: NeedTaskGeographyPoint | undefined) => point?.label?.trim() || point?.area?.trim() || point?.city?.trim() || null;
 
 /**
  * The one requirement a worker decides on, from the task's own conditions, then its vehicles, then its tools. Skills
