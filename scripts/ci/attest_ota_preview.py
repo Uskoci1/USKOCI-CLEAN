@@ -163,5 +163,16 @@ if __name__ == "__main__":
         Path(sys.argv[2]).write_text(output, encoding="utf-8")
         print(output)
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError, zipfile.BadZipFile, ET.ParseError) as error:
+        failure = {
+            "status": "APK_ATTESTATION_FAILED",
+            "error": str(error),
+            "sourceSha": os.environ.get("GITHUB_SHA"),
+            "githubRunId": os.environ.get("GITHUB_RUN_ID"),
+            "physicalPhone": "NOT_TESTED",
+            "otaPreview": "NOT_VERIFIED",
+            "production": "NOT_BUILT_OR_DEPLOYED",
+        }
+        if len(sys.argv) >= 3:
+            Path(sys.argv[2]).write_text(json.dumps(failure, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"OTA_APK_ATTESTATION_FAILED: {error}", file=sys.stderr)
         sys.exit(1)
