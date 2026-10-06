@@ -46,13 +46,14 @@ export const VALUE_WORDS = { offers: 'Tražim ponude', unpriced: 'Cena nije nave
 export const valueSpoken = (value: TaskValue) => value.kind === 'amount'
   ? value.basis ? `${value.amount} ${value.basis}` : value.amount : VALUE_WORDS[value.kind];
 
-/** Where the task happens, from public data only: a route reads "start → end" from area or city, never the private label. */
+/** Where the task starts, from public data only. Route cards show the pickup/start area only;
+ * the full A→B route belongs on detail/map, not in a dense discovery card. */
 export function taskPlace(item: Pick<MarketplaceItem, 'detalji' | 'podrucjeTekst'>): { remote: boolean; text: string } {
   if (item.detalji?.rezimLokacije === 'REMOTE') return { remote: true, text: 'Na daljinu' };
   const geography = item.detalji?.geografija;
-  if (geography?.mode === 'POINT_TO_POINT') {
-    const from = publicName(geography.start), to = publicName(geography.end);
-    if (from && to && from !== to) return { remote: false, text: `${from} → ${to}` };
+  if (geography?.mode === 'POINT_TO_POINT' || geography?.mode === 'MULTI_STOP') {
+    const from = publicName(geography.start);
+    if (from) return { remote: false, text: from };
   }
   return { remote: false, text: item.podrucjeTekst };
 }
