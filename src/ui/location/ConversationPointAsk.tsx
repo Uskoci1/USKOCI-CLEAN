@@ -37,6 +37,42 @@ const title = (slot: LocationSlot, geography: NeedTaskGeography | null): string 
   return `Stanica ${Number(slot.slice('waypoints/'.length)) + 1}`;
 };
 
+const normalizedPlaceText = (value: string): string => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim();
+
+const exactAddressForSlot = (slot: LocationSlot, value: NeedLocationReview['value']): string | null => {
+  const geography = value.geography, exact = value.exactAddress?.trim();
+  if (!geography || !exact) return null;
+  if (geography.mode === 'STATIONARY' && slot === 'start') return exact;
+  const place = slot === 'start' ? geography.start
+    : slot === 'end' ? geography.end
+      : slot === 'serviceArea' ? geography.serviceArea
+        : geography.waypoints?.[Number(slot.slice('waypoints/'.length))];
+  if (!place) return null;
+  // A route has one legacy private exact-address fact, so bind it only when the street/POI
+  // text itself matches this slot. City is deliberately excluded: both ends often share it.
+  const exactNormalized = normalizedPlaceText(exact);
+  const identities = [place.label, place.area].filter((part): part is string => typeof part === 'string')
+    .map(part => normalizedPlaceText(part)).filter(part => part.length >= 4);
+  return identities.some(identity => exactNormalized.includes(identity)) ? exact : null;
+};
+
+const uniqueSeedParts = (parts: readonly (string | null | undefined)[]): string[] => {
+  const result: string[] = [];
+  for (const raw of parts) {
+    if (typeof raw !== 'string') continue;
+    for (const piece of raw.split(',').map(part => part.trim()).filter(Boolean)) {
+      const normalized = normalizedPlaceText(piece);
+      if (!normalized || result.some(existing => {
+        const other = normalizedPlaceText(existing);
+        return other === normalized || other.includes(normalized) || normalized.includes(other);
+      })) continue;
+      result.push(piece);
+    }
+  }
+  return result;
+};
+
 /** The most precise thing already known for this slot, used only as a search seed. */
 const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string => {
   const geography = value.geography;
@@ -44,15 +80,10 @@ const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string =>
     : slot === 'end' ? geography?.end
       : slot === 'serviceArea' ? geography?.serviceArea
         : geography?.waypoints?.[Number(slot.slice('waypoints/'.length))];
-  // A single private exactAddress belongs only to a stationary work point. Route endpoints
-  // have independent meaning: using that one private value as the route start can move the wrong
-  // endpoint (for example a destination house number was rendered as the pickup point). Route
-  // camera seeds therefore come only from that slot's privacy-safe geography; every exact route
-  // point is still chosen/confirmed by the person on the map.
-  const stationaryAddress = geography?.mode === 'STATIONARY' && slot === 'start' ? value.exactAddress : null;
-  const parts = [stationaryAddress, place?.label, place?.area, place?.city]
-    .flatMap(part => typeof part === 'string' ? part.split(',') : []).map(part => part.trim()).filter(Boolean);
-  return parts.filter((part, index) => parts.findIndex(other => other.toLocaleLowerCase() === part.toLocaleLowerCase()) === index).join(', ');
+  // Use the private house/street string only when it can be bound to this slot by the slot's
+  // own street/POI identity. That gives the geocoder the exact spoken address without ever
+  // copying one endpoint's private address onto another endpoint.
+  return uniqueSeedParts([exactAddressForSlot(slot, value), place?.label, place?.area, place?.city]).join(', ');
 };
 
 /** A manually confirmed coordinate is not a resolved address; the conversation seed stays separate. */
@@ -362,8 +393,9 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   </View>;
 
   if (!editing && completeSummary) {
-    const summaryText = summaryPoints.map(point =>
-      `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`).join(' · ');
+    const routeSummary = geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP';
+    const summaryText = routeSummary ? 'Ruta je potvrđena.'
+      : summaryPoints.map(point => `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`).join(' · ');
     return <View style={{ gap: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -396,8 +428,10 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
   </View>;
 
+  const editingSavedRoute = slots.length > 1 && baseline.current.length === slots.length;
+
   return <View style={{ gap: 14 }}>
-    {slots.length > 1 ? <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    {editingSavedRoute ? <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {slots.map(slot => {
         const pending = pendingSlot === slot;
         const status = pending ? 'Čeka potvrdu' : placed.has(slot) ? 'Potvrđeno' : 'Nije potvrđeno';
