@@ -31,6 +31,16 @@ class PreviewBoundary(unittest.TestCase):
     def test_literal_runtime(self):
         self.assertEqual(validate_manifest(MANIFEST.replace("@string/expo_runtime_version", RUNTIME), lambda _: "unused")["runtimeVersion"], RUNTIME)
 
+    def test_numeric_runtime_ref_resolves_canonical_resource(self):
+        seen = []
+        receipt = validate_manifest(MANIFEST.replace("@string/expo_runtime_version", "@ref/0x7f1300b9"), lambda name: (seen.append(name), RUNTIME)[1])
+        self.assertEqual(receipt["runtimeVersion"], RUNTIME)
+        self.assertEqual(seen, ["expo_runtime_version"])
+
+    def test_numeric_runtime_ref_still_rejects_wrong_resource_value(self):
+        with self.assertRaisesRegex(ValueError, "APK_RUNTIME_MISMATCH"):
+            validate_manifest(MANIFEST.replace("@string/expo_runtime_version", "@ref/0x7f1300b9"), lambda _: "uskoci-v1-preview-r2")
+
     def test_production_package_rejected(self):
         with self.assertRaisesRegex(ValueError, "APK_NOT_PREVIEW_PACKAGE"):
             validate_manifest(MANIFEST.replace('package="rs.uskoci.preview"', 'package="rs.uskoci"'), lambda _: RUNTIME)
