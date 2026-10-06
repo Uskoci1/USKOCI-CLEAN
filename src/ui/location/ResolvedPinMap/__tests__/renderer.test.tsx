@@ -462,6 +462,22 @@ it('frames all real candidates as camera context without selecting a winner or c
   expect(cameraHint).toEqual([{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }]);
 });
 
+it('uses a closer street zoom for a compact chat pin without changing ordinary map zoom', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.84 }, compact: true }); await ready();
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState)
+    .toEqual({ center: [19.84, 45.25], zoom: 17 });
+  expect(mockJump).toHaveBeenCalledWith({ center: [19.84, 45.25], zoom: 17 });
+});
+
+it('can zoom one passive resolver hint to a street while keeping it unselected', async () => {
+  const hint = [{ latitude: 45.2512, longitude: 19.8244 }];
+  await render({ cameraHint: hint, cameraHintZoom: 16.5, compact: true }); await ready();
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState)
+    .toEqual({ center: [19.8244, 45.2512], zoom: 16.5 });
+  expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
 it('keeps a real point authoritative over a camera hint and never carries a hint across scope changes', async () => {
   const cameraHint = [{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }];
   await render({ position: { latitude: 44, longitude: 20 }, cameraHint }); await ready();
