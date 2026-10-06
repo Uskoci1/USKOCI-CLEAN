@@ -12,6 +12,9 @@ on:
       - 'src/ui/location/ResolvedPinMap.tsx'
       - 'src/ui/location/ResolvedPinMap.types.ts'
       - 'src/data/__tests__/locationPointEditor.test.tsx'
+      - 'src/ui/location/ResolvedPinMap/__tests__/renderer.test.tsx'
+      - 'src/ui/v2/TaskFace.tsx'
+      - 'src/data/__tests__/task-face-location.test.ts'
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - '.github/workflows/location-route-seed-proof.yml'
 
@@ -31,7 +34,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Route location regression
-        run: npx jest src/data/__tests__/conversation-point-ask.test.tsx src/data/__tests__/locationPointEditor.test.tsx --runInBand
+        run: npx jest src/data/__tests__/conversation-point-ask.test.tsx src/data/__tests__/locationPointEditor.test.tsx src/ui/location/ResolvedPinMap/__tests__/renderer.test.tsx src/data/__tests__/task-face-location.test.ts --runInBand
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Full regression
