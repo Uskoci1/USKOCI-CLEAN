@@ -54,13 +54,13 @@ def _manifest_fields(xml: str) -> tuple[dict[str, str], dict[str, str]]:
         }
         return manifest, metadata
     except ET.ParseError:
-        manifest_tag = re.search(r"<manifest\\b.*?>", xml, re.DOTALL)
-        application_tag = re.search(r"<application\\b.*?>", xml, re.DOTALL)
+        manifest_tag = re.search(r"<manifest\b.*?>", xml, re.DOTALL)
+        application_tag = re.search(r"<application\b.*?>", xml, re.DOTALL)
         require(manifest_tag is not None, "APK_MANIFEST_MISSING")
         require(application_tag is not None, "APK_APPLICATION_MISSING")
 
         def attr(tag: str, name: str, default: str = "") -> str:
-            match = re.search(rf"(?:android:)?{re.escape(name)}=\\\"([^\\\"]*)\\\"", tag)
+            match = re.search(rf'(?:android:)?{re.escape(name)}="([^"]*)"', tag)
             return html.unescape(match.group(1)) if match else default
 
         manifest = {
@@ -70,7 +70,7 @@ def _manifest_fields(xml: str) -> tuple[dict[str, str], dict[str, str]]:
             "debuggable": attr(application_tag.group(0), "debuggable", "false"),
         }
         metadata: dict[str, str] = {}
-        for tag_match in re.finditer(r"<meta-data\\b.*?/>", xml, re.DOTALL):
+        for tag_match in re.finditer(r"<meta-data\b.*?/>", xml, re.DOTALL):
             tag = tag_match.group(0)
             name_match = re.search(r'android:name="([^"]+)"', tag)
             if not name_match:
@@ -78,7 +78,7 @@ def _manifest_fields(xml: str) -> tuple[dict[str, str], dict[str, str]]:
             # Expo's generated meta-data uses android:value as the final
             # attribute. Greedy capture is intentional so raw JSON quotes in
             # the value do not truncate the channel header.
-            value_match = re.search(r'android:value="(.*)"\\s*/>', tag, re.DOTALL)
+            value_match = re.search(r'android:value="(.*)"\s*/>', tag, re.DOTALL)
             metadata[html.unescape(name_match.group(1))] = html.unescape(value_match.group(1)) if value_match else ""
         return manifest, metadata
 
