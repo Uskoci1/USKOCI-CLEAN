@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Updates from 'expo-updates';
 import { readBuildIdentity } from '../data/buildIdentity';
 import { sys } from './system/tokens';
 
@@ -12,6 +13,9 @@ const targets = {
 export function BuildIdentity() {
   const [expanded, setExpanded] = useState(false);
   const build = readBuildIdentity();
+  const runtime = Updates.runtimeVersion ?? build.runtimeVersion;
+  const channel = Updates.channel ?? build.updateChannel;
+  const update = Updates.updateId ? Updates.updateId.slice(0, 8) : Updates.isEmbeddedLaunch ? 'ugrađena verzija' : 'nije zabeležen';
   return <View style={styles.root}>
     <Pressable accessibilityRole="button" accessibilityLabel="Podaci o verziji"
       accessibilityState={{ expanded }} onPress={() => setExpanded(value => !value)} style={styles.button}>
@@ -22,6 +26,9 @@ export function BuildIdentity() {
       <Text style={styles.copy}>{build.sourceDirty === true ? 'Radna verzija sa lokalnim izmenama.'
         : build.sourceDirty === false ? 'Izgrađeno iz čistog radnog stabla.' : 'Čistoća radnog stabla nije potvrđena.'}</Text>
       <Text style={styles.copy}>{targets[build.backendTarget]}</Text>
+      <Text selectable style={styles.copy}>OTA runtime: {runtime ?? 'nije zabeležen'}</Text>
+      <Text style={styles.copy}>OTA kanal: {channel ?? 'nije zabeležen'}</Text>
+      <Text selectable style={styles.copy}>OTA sadržaj: {update}</Text>
       <Text style={styles.copy}>Verzija usluge i aktivne mogućnosti proveravaju se zasebno.</Text>
     </View> : null}
   </View>;
