@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Owner-approved OTA Preview native baseline (2026-10-06). This is a deliberate APK checkpoint, not an APK trigger for ordinary JS/UI changes.
+# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry includes tolerant compiled-manifest attestation.
 on:
   workflow_dispatch:
     inputs:
