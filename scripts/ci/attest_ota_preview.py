@@ -6,6 +6,7 @@ A passing receipt proves the APK boundary only, never a physical-phone OTA updat
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 from pathlib import Path
@@ -29,15 +30,64 @@ def require(ok: bool, reason: str) -> None:
         raise ValueError(reason)
 
 
+def _manifest_fields(xml: str) -> tuple[dict[str, str], dict[str, str]]:
+    """Read only the manifest fields needed by the attestor.
+
+    apkanalyzer normally emits XML, but some SDK versions print raw JSON quotes
+    inside android:value attributes. That text is useful but not strict XML, so
+    keep strict parsing first and use a narrow tag/attribute fallback only when
+    ElementTree rejects the analyzer output.
+    """
+    try:
+        root = ET.fromstring(xml)
+        app = root.find("application")
+        require(app is not None, "APK_APPLICATION_MISSING")
+        manifest = {
+            "package": root.attrib.get("package", ""),
+            "versionName": root.attrib.get(ANDROID + "versionName", ""),
+            "versionCode": root.attrib.get(ANDROID + "versionCode", ""),
+            "debuggable": app.attrib.get(ANDROID + "debuggable", "false"),
+        }
+        metadata = {
+            node.attrib.get(ANDROID + "name", ""): node.attrib.get(ANDROID + "value", "")
+            for node in app.findall("meta-data")
+        }
+        return manifest, metadata
+    except ET.ParseError:
+        manifest_tag = re.search(r"<manifest\\b.*?>", xml, re.DOTALL)
+        application_tag = re.search(r"<application\\b.*?>", xml, re.DOTALL)
+        require(manifest_tag is not None, "APK_MANIFEST_MISSING")
+        require(application_tag is not None, "APK_APPLICATION_MISSING")
+
+        def attr(tag: str, name: str, default: str = "") -> str:
+            match = re.search(rf"(?:android:)?{re.escape(name)}=\\\"([^\\\"]*)\\\"", tag)
+            return html.unescape(match.group(1)) if match else default
+
+        manifest = {
+            "package": attr(manifest_tag.group(0), "package"),
+            "versionName": attr(manifest_tag.group(0), "versionName"),
+            "versionCode": attr(manifest_tag.group(0), "versionCode"),
+            "debuggable": attr(application_tag.group(0), "debuggable", "false"),
+        }
+        metadata: dict[str, str] = {}
+        for tag_match in re.finditer(r"<meta-data\\b.*?/>", xml, re.DOTALL):
+            tag = tag_match.group(0)
+            name_match = re.search(r'android:name="([^"]+)"', tag)
+            if not name_match:
+                continue
+            # Expo's generated meta-data uses android:value as the final
+            # attribute. Greedy capture is intentional so raw JSON quotes in
+            # the value do not truncate the channel header.
+            value_match = re.search(r'android:value="(.*)"\\s*/>', tag, re.DOTALL)
+            metadata[html.unescape(name_match.group(1))] = html.unescape(value_match.group(1)) if value_match else ""
+        return manifest, metadata
+
+
 def validate_manifest(xml: str, read_string: Callable[[str], str]) -> dict:
-    root = ET.fromstring(xml)
-    app = root.find("application")
-    require(app is not None, "APK_APPLICATION_MISSING")
-    package = root.attrib.get("package")
+    manifest, metadata = _manifest_fields(xml)
+    package = manifest["package"]
     require(package == "rs.uskoci.preview", "APK_NOT_PREVIEW_PACKAGE")
-    require(app.attrib.get(ANDROID + "debuggable", "false") == "false", "APK_DEBUGGABLE")
-    entries = app.findall("meta-data")
-    metadata = {node.attrib.get(ANDROID + "name"): node.attrib.get(ANDROID + "value") for node in entries}
+    require(manifest["debuggable"] == "false", "APK_DEBUGGABLE")
     require(metadata.get(PREFIX + "ENABLED") == "true", "APK_UPDATES_DISABLED")
     runtime = metadata.get(PREFIX + "EXPO_RUNTIME_VERSION", "") or ""
     if runtime.startswith("@string/"):
@@ -52,8 +102,9 @@ def validate_manifest(xml: str, read_string: Callable[[str], str]) -> dict:
     require(metadata.get(PREFIX + "EXPO_UPDATES_CHECK_ON_LAUNCH") == "ALWAYS", "APK_NOT_ON_LOAD")
     require(metadata.get(PREFIX + "EXPO_UPDATES_LAUNCH_WAIT_MS") == "0", "APK_FALLBACK_NOT_ZERO")
     require(metadata.get(PREFIX + "DISABLE_ANTI_BRICKING_MEASURES", "false") == "false", "APK_ANTI_BRICKING_DISABLED")
-    return {"androidPackage": package, "version": root.attrib.get(ANDROID + "versionName"),
-            "versionCode": int(root.attrib[ANDROID + "versionCode"]), "runtimeVersion": runtime,
+    require(manifest["versionCode"].isdigit(), "APK_VERSION_CODE_MISSING")
+    return {"androidPackage": package, "version": manifest["versionName"],
+            "versionCode": int(manifest["versionCode"]), "runtimeVersion": runtime,
             "channel": headers["expo-channel-name"], "projectId": PROJECT, "updateUrl": URL,
             "updatesEnabled": True, "checkOnLaunch": "ALWAYS", "fallbackToCacheTimeout": 0,
             "debuggable": False}
