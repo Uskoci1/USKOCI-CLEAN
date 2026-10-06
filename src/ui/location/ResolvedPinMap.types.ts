@@ -5,6 +5,8 @@ export type ResolvedPinMapProps = Readonly<{
   /** Initial camera context from actual resolver results; never draws, selects or saves a point.
    *  Scope-owned and bounded to 20 positions. Ignored once a real position exists. */
   cameraHint?: readonly ResolvedPinPosition[];
+  /** Optional street-level camera for one resolver hint. This changes only zoom, never selection/confirmation. */
+  cameraHintZoom?: number;
   onChoose: (position: ResolvedPinPosition) => void;
   disabled?: boolean;
   /** Account incarnation + reviewed point/input identity; never sent to the map SDK. */
