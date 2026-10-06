@@ -37,9 +37,15 @@ const candidateFitsSeed = (query: string, label: string): boolean => {
   if (numbers.some(token => !offered.has(token))) return false;
   const words = wanted.filter(token => !/^\d+$/.test(token));
   if (!words.length) return numbers.length > 0;
-  // A bare city/short locality is a camera hint, not an exact private point.
-  if (!numbers.length && words.length <= 2) return false;
   const matched = words.filter(token => offered.has(token)).length;
+  // A bare city/short locality is camera context only. A short explicit "street, locality"
+  // seed is different: the comma is inserted by our slot seed builder and both words must
+  // survive in the provider label. That may propose the street position for human adjustment,
+  // but it still never confirms or saves anything automatically.
+  if (!numbers.length && words.length <= 2) {
+    const explicitStreetAndLocality = query.includes(',') && words.length === 2 && matched === 2;
+    return explicitStreetAndLocality;
+  }
   const required = words.length <= 2 ? words.length : Math.ceil(words.length * 0.75);
   return matched >= required;
 };
