@@ -40,7 +40,7 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --include=dev
       - name: Static OTA boundary
         run: node scripts/ota-preview-guard.cjs
       - name: Focused OTA and EAS guards
