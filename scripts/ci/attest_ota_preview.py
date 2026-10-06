@@ -95,7 +95,7 @@ def validate_manifest(xml: str, read_string: Callable[[str], str]) -> dict:
         # apkanalyzer versions may quote string values.
         if runtime.startswith('"') and runtime.endswith('"'):
             runtime = json.loads(runtime)
-    require(runtime == RUNTIME, "APK_RUNTIME_MISMATCH")
+    require(runtime == RUNTIME, f"APK_RUNTIME_MISMATCH: expected={RUNTIME!r} actual={runtime!r}")
     require(metadata.get(PREFIX + "EXPO_UPDATE_URL") == URL, "APK_UPDATE_URL_MISMATCH")
     headers = json.loads(metadata.get(PREFIX + "UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY") or "{}")
     require(headers.get("expo-channel-name") == "preview", "APK_CHANNEL_MISMATCH")
@@ -127,7 +127,7 @@ def sdk_tool(name: str) -> str:
 def attest(apk: Path, target: str) -> dict:
     analyzer = sdk_tool("apkanalyzer")
     manifest = run(analyzer, "manifest", "print", str(apk))
-    identity = validate_manifest(manifest, lambda name: run(analyzer, "resources", "value", "--config", "default", "--name", name, "--type", "string", str(apk)))
+    identity = validate_manifest(manifest, lambda name: run(analyzer, "resources", "value", "--config", "default", "--name", name, "--type", "string", "--package", "rs.uskoci.preview", str(apk)))
     require(target in ("phone", "emulator"), "APK_TARGET_UNKNOWN")
     expected_abi = "arm64-v8a" if target == "phone" else "x86_64"
     with zipfile.ZipFile(apk) as archive:
