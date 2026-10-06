@@ -251,21 +251,26 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     if (!ownsAccount()) return false;
     if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return false; }
     const saved = result.podatak.review, confirmed = savedPoints(saved.value);
-    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setEditing(false); setSummaryMapOpen(false);
-    setState({ kind: 'SAVED', review: saved });
+    const savedSlots = saved.value.geography ? locationSlots(saved.value.geography) : [];
+    const complete = savedSlots.length > 0 && savedSlots.every(slot => confirmed.some(point => point.slot === slot));
+    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setSummaryMapOpen(false);
+    setEditing(!complete); setEditorEpoch(value => value + 1);
+    setState(complete ? { kind: 'SAVED', review: saved } : { kind: 'READY', review: saved });
+    // Every explicit point confirmation is durable immediately. Parent readback receives the new
+    // revision even for a partial route, while publication readiness still requires every slot.
     if (focus.current && focusEpoch.current === visit) props.onSaved();
     return true;
   }, [props, ownsAccount]);
 
-  // Each point is confirmed by hand. The last one commits, because a confirmation the person
-  // then has to remember to save is a confirmation that gets lost.
+  // Each point is confirmed by hand and persisted immediately. A route may remain incomplete,
+  // but a confirmed START must survive leaving the screen while END is collected later.
   const confirm = (point: ConfirmedLocationPoint) => {
     if (!canAct() || !editing || state.kind !== 'READY' || !review?.editable || point.slot !== activeSlot || !slots.includes(point.slot)) return;
     view.current = null;
     const all = [...points.filter(existing => existing.slot !== point.slot), point];
     const complete = slots.every(slot => all.some(existing => existing.slot === slot));
     setPoints(all); setPendingSlot(null); setSelected(complete ? point.slot : null);
-    if (complete) committedPoint.current = commit(all, review);
+    committedPoint.current = commit(all, review);
   };
 
   const select = (slot: LocationSlot) => {
@@ -298,10 +303,11 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     }
     const one = dirtyPoints.length === 1;
     confirmation.ask({ title: one ? 'Potvrđena tačka nije sačuvana' : 'Potvrđene tačke nisu sačuvane',
-      // One voice without grammatical gender (owner, 2026-09-23): the point is confirmed, not "potvrdio si".
+      // This path now exists only for an unsaved in-memory edit/failure. Successful point confirmations
+      // are persisted immediately, even while the rest of a route is still missing.
       message: one
-        ? 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.'
-        : 'Tačke su potvrđene, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ove tačke se gube.',
+        ? 'Ova potvrđena izmena još nije sačuvana. Ako sad izađeš, odbaciće se.'
+        : 'Ove potvrđene izmene još nisu sačuvane. Ako sad izađeš, odbaciće se.',
       cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: close });
   };
 
