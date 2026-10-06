@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 3 pins resource-package runtime attestation and preserves failed post-build APKs.
+# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 4 preserves the unconditional RNR artifact contract and enforces OTA identity after upload.
 on:
   workflow_dispatch:
     inputs:
@@ -211,18 +211,39 @@ jobs:
           cp USKOCI-DEV.apk USKOCI-PREVIEW.apk
           sha256sum USKOCI-PREVIEW.apk > USKOCI-PREVIEW.apk.sha256
 
+      # Record the compiled OTA verdict but do not fail before the artifact upload.
+      # The enforcement step below runs only after the APK + receipts have been preserved.
       - name: Attest compiled OTA Preview identity and signing
         env:
           USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
         run: |
-          set -euo pipefail
-          python3 scripts/ci/attest_ota_preview.py USKOCI-PREVIEW.apk USKOCI-OTA-PREVIEW-receipt.json
+          set -uo pipefail
+          attest_rc=0
+          python3 scripts/ci/attest_ota_preview.py USKOCI-PREVIEW.apk USKOCI-OTA-PREVIEW-receipt.json || attest_rc=$?
+          if [ ! -f USKOCI-OTA-PREVIEW-receipt.json ]; then
+            node <<'NODE'
+          const fs = require('fs');
+          fs.writeFileSync('USKOCI-OTA-PREVIEW-receipt.json', JSON.stringify({
+            status: 'APK_ATTESTATION_FAILED',
+            error: 'attestor exited without writing a receipt',
+            sourceSha: process.env.GITHUB_SHA || null,
+            githubRunId: process.env.GITHUB_RUN_ID || null,
+            physicalPhone: 'NOT_TESTED',
+            otaPreview: 'NOT_VERIFIED',
+            production: 'NOT_BUILT_OR_DEPLOYED'
+          }, null, 2) + '\n');
+          NODE
+          fi
           {
             echo '### OTA Preview APK boundary receipt — not phone verification'
             echo '```json'
             cat USKOCI-OTA-PREVIEW-receipt.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$attest_rc" -ne 0 ]; then
+            echo "::warning::Compiled OTA Preview attestation recorded a failure; the APK and receipt will be uploaded before enforcement."
+          fi
+          true
 
       - name: Attest the recovery redirect is compiled into the artifact
         run: |
@@ -300,7 +321,6 @@ jobs:
           cat USKOCI-DEV-reanimated-patch-attestation.json
 
       - name: Upload workflow artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: USKOCI-OTA-PREVIEW-APK${{ inputs.reanimated_patch == 'skip' && '-unpatched' || '' }}
@@ -321,6 +341,19 @@ jobs:
         run: |
           echo "::error::The Reanimated patch attestation failed: ${RNR01_REASON}. The APK and the receipt are in the workflow artifact for inspection. Nothing was published."
           exit 1
+
+      - name: Enforce compiled OTA Preview identity and signing
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+          receipt = json.loads(Path('USKOCI-OTA-PREVIEW-receipt.json').read_text(encoding='utf-8'))
+          if receipt.get('status') != 'APK_ATTESTED_NOT_PHONE_VERIFIED':
+              print('::error::Compiled OTA Preview attestation failed after artifact upload: ' + str(receipt.get('error') or receipt), file=sys.stderr)
+              raise SystemExit(1)
+          print('Compiled OTA Preview APK identity/signing attestation passed.')
+          PY
 
       # A proof run from a working branch must not delete and recreate the published
       # dev-latest release. Publishing stays bound to the canonical branch; the APK and
