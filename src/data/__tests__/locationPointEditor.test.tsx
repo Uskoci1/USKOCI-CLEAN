@@ -267,10 +267,9 @@ describe('compact conversation proposal', () => {
       conversationSummary: { title: 'Početak', description: 'Place' } });
     const headings = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.children.join('') === 'Početak');
     expect(headings()).toHaveLength(0); expect(text()).not.toContain('Opis iz razgovora:');
-    expect(text()).toContain('Lokacija nije određena');
+    expect(text()).toContain('Dopuni opis mesta ili ga označi na mapi.');
     await press('Označi na mapi');
-    expect(map().props.position).toBeNull(); expect(text()).not.toContain('Dopuni opis mesta ili ga označi na mapi.');
-    expect(text()).toContain('Svi vide približno područje.');
+    expect(map().props.position).toBeNull(); expect(text()).not.toContain('Svi vide približno područje.');
     await update({ conversationSummary: { title: 'Početak', description: 'Place ' } });
     expect(text()).toContain('Opis iz razgovora:'); expect(text()).toContain('Place');
     await update({ conversationSummary: undefined });
@@ -286,8 +285,10 @@ describe('compact conversation proposal', () => {
       conversationSummary: { title: 'Početak', description: candidate.label } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(props.onInvalidate).not.toHaveBeenCalled();
-    expect(map().props).toMatchObject({ position: candidate.position, height: 132, compact: true });
+    expect(map().props).toMatchObject({ position: candidate.position, height: 124, compact: true });
     expect(text()).toContain('Da li je ovo početak?'); expect(text()).toContain(candidate.label);
+    expect(text()).not.toContain('Svi vide približno područje.');
+    expect(button('Potvrdi tačku: Početak').props.label).toBe('Da, ovo je početak');
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
@@ -303,7 +304,7 @@ describe('compact conversation proposal', () => {
     await render({ resolver, presentation: 'conversation', autoLocate: true,
       initialQuery: 'Novi Sad',
       conversationSummary: { title: 'Početak', description: 'Novi Sad' } });
-    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 132, compact: true });
+    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 124, compact: true });
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(props.onInvalidate).not.toHaveBeenCalled();
   });
@@ -316,7 +317,7 @@ describe('compact conversation proposal', () => {
       initialQuery: 'Lenke Dunđerski 10, Novi Sad',
       conversationSummary: { title: 'Početak', description: 'Lenke Dunđerski 10, Novi Sad' } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
-    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 132, compact: true });
+    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 124, compact: true });
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(text()).toContain('Nismo našli dovoljno preciznu tačku');
     expect(text()).toContain('Mapa je samo orijentir');
