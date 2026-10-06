@@ -57,9 +57,15 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   // Initial context fits every real resolver candidate, without choosing any of them.
   // Keep it initial-only: ordinary rerenders must not undo the person's pan/zoom.
   const hintBounds = cameraHintBounds(props.cameraHint, coarse);
-  const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: coarse ? 10 : 15 }
-    : hintBounds ? { bounds: hintBounds, padding: { top: 24, bottom: 24, left: 24, right: 24 } }
-      : { center: [0, 0] as [number, number], zoom: 1 });
+  const detailZoom = coarse ? 10 : compact ? 17 : 15;
+  const singleHint = props.cameraHint?.length === 1 ? displayedPinPosition(props.cameraHint[0], coarse) : null;
+  const requestedHintZoom = typeof props.cameraHintZoom === 'number' && Number.isFinite(props.cameraHintZoom)
+    ? Math.max(0, Math.min(coarse ? 13 : 18, props.cameraHintZoom)) : null;
+  const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: detailZoom }
+    : singleHint && requestedHintZoom !== null
+      ? { center: [singleHint.longitude, singleHint.latitude] as [number, number], zoom: requestedHintZoom }
+      : hintBounds ? { bounds: hintBounds, padding: { top: 24, bottom: 24, left: 24, right: 24 } }
+        : { center: [0, 0] as [number, number], zoom: 1 });
   const owns = () => active.current && props.owns() && latest.current.token === token;
   const cancelDrag = () => {
     if (drag.current) { clearTimeout(drag.current.timeout); drag.current.stop(); }
@@ -84,7 +90,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   useEffect(() => () => cancelDrag(), [token]);
   useEffect(() => {
     if (pin && status === 'ready' && owns()) {
-      camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: coarse ? 10 : 15 });
+      camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: detailZoom });
     }
   }, [pin?.latitude, pin?.longitude, coarse, disabled, status]);
   const observeCenter = (value: unknown) => {
@@ -96,7 +102,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       && state.zoom >= 0 && state.zoom <= (coarse ? 13 : 18) ? token : null;
     setIdleToken(idle.current);
     const centered = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
-      && Math.abs(state.zoom - (coarse ? 10 : 15)) < 0.01
+      && Math.abs(state.zoom - detailZoom) < 0.01
       && Math.abs(center.latitude - pin.latitude) < 0.00001 && Math.abs(center.longitude - pin.longitude) < 0.00001;
     setCenteredToken(centered ? token : null);
   };
