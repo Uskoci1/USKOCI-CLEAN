@@ -62,6 +62,16 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updates": {
+      "url": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "preview"
+      }
     }
   }
 }
