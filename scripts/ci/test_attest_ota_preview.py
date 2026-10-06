@@ -20,6 +20,11 @@ class PreviewBoundary(unittest.TestCase):
         self.assertEqual(receipt["runtimeVersion"], RUNTIME)
         self.assertEqual(receipt["channel"], "preview")
 
+    def test_apkanalyzer_raw_json_attribute_is_tolerated(self):
+        raw = MANIFEST.replace('&quot;expo-channel-name&quot;:&quot;preview&quot;', '"expo-channel-name":"preview"')
+        receipt = validate_manifest(raw, lambda _: RUNTIME)
+        self.assertEqual(receipt["channel"], "preview")
+
     def test_quoted_runtime(self):
         self.assertEqual(validate_manifest(MANIFEST, lambda _: '"' + RUNTIME + '"')["runtimeVersion"], RUNTIME)
 
