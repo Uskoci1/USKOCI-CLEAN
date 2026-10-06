@@ -17,6 +17,8 @@ export type ResolvedPinMapProps = Readonly<{
   height?: number;
   /** Conversation-only density: keeps legal attribution but lets the parent own the explanatory copy. */
   compact?: boolean;
+  /** Full-screen editor: the native frame fills the available safe-area body without owning point state. */
+  fill?: boolean;
 }>;
 
 // Public style configuration reused from the reviewed PR67 renderer. No address,
