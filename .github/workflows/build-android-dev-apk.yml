@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 4 preserves the unconditional RNR artifact contract and enforces OTA identity after upload.
+# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 5 resolves numeric compiled runtime resource refs before enforcement.
 on:
   workflow_dispatch:
     inputs:
