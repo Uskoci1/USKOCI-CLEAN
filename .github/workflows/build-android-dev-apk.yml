@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry includes tolerant compiled-manifest attestation.
+# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 2 fixes fallback manifest regex escaping.
 on:
   workflow_dispatch:
     inputs:
