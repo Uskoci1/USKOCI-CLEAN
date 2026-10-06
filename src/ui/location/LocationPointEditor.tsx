@@ -44,6 +44,18 @@ const candidateFitsSeed = (query: string, label: string): boolean => {
   return matched >= required;
 };
 
+/** A weak provider result may still identify the right street even when it cannot prove the house number.
+ * That is enough to zoom the camera to the street, never enough to create or confirm a pin. */
+const candidateProvidesStreetContext = (query: string, label: string): boolean => {
+  const primary = query.split(',')[0]?.trim() ?? '';
+  const wanted = searchTokens(primary), offered = new Set(searchTokens(label));
+  const words = wanted.filter(token => !/^\d+$/.test(token));
+  const hasNumber = wanted.some(token => /^\d+$/.test(token));
+  if (words.length < 2 || (!query.includes(',') && !hasNumber && words.length <= 2)) return false;
+  const matched = words.filter(token => offered.has(token)).length;
+  return matched >= Math.max(2, Math.ceil(words.length * 0.75));
+};
+
 type Props = {
   slot: LocationSlot; title: string; point?: ConfirmedLocationPoint; scopeKey: string; disabled: boolean;
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
@@ -338,8 +350,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const ambiguous = !position && lookupMode === 'search' && alternatives.length > 1;
     const contextOnly = weakSingleProposal;
-    // Ambiguous results and a weak single fallback are camera context only. They may center the
-    // city/region, but draw no pin and carry no confirmation capability until the person chooses.
+    const streetContextOnly = contextOnly && alternatives.length === 1
+      && candidateProvidesStreetContext(searchText, alternatives[0].label);
+    // Ambiguous results and a weak single fallback are camera context only. A street-level
+    // fallback may zoom close enough to read the street name, but still draws no pin and grants
+    // no confirmation until the person touches/moves the point.
     const providerCameraHint = ambiguous || contextOnly ? alternatives.map(candidate => ({ ...candidate.position })) : undefined;
     const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
@@ -362,7 +377,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {initialQuery && conversationSummary?.description !== initialQuery
           ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View> : null}
-      {!position && !loading && !ambiguous && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
+      {!position && !loading && !ambiguous && !contextOnly && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}
       {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="secondary"
@@ -374,8 +389,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
           retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
-      {position || placeByHand || ambiguous || contextOnly ? <ResolvedPinMap position={position} cameraHint={shownCameraHint} onChoose={choose} scopeKey={scopeKey}
-        disabled={controlDisabled || !focused} height={124} compact /> : null}
+      {position || placeByHand || ambiguous || contextOnly ? <ResolvedPinMap position={position} cameraHint={shownCameraHint}
+        cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={scopeKey}
+        disabled={controlDisabled || !focused} height={156} compact /> : null}
       {position ? <>
         <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
