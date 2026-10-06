@@ -31,7 +31,7 @@ import { sys } from '../system/tokens';
  */
 
 const title = (slot: LocationSlot, geography: NeedTaskGeography | null): string => {
-  if (slot === 'start') return geography?.mode === 'STATIONARY' ? 'Mesto rada' : 'Polazište';
+  if (slot === 'start') return geography?.mode === 'STATIONARY' ? 'Mesto zadatka' : 'Polazište';
   if (slot === 'end') return 'Odredište';
   if (slot === 'serviceArea') return 'Područje rada';
   return `Stanica ${Number(slot.slice('waypoints/'.length)) + 1}`;
