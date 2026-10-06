@@ -298,6 +298,19 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
   });
 
+  it('places a movable proposal pin for a short street plus locality seed while keeping bare city unresolved', async () => {
+    const street = { ...candidate, label: 'Synthetic Street, Synthetic Locality, Serbia',
+      position: { latitude: 45.2524, longitude: 19.8621 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [street], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true,
+      initialQuery: 'Synthetic Street, Synthetic Locality',
+      conversationSummary: { title: 'Polazište', description: 'Synthetic Street, Synthetic Locality' } });
+    expect(map().props).toMatchObject({ position: street.position, height: 156, compact: true });
+    expect(text()).toContain('Da li je ovo početak?');
+    expect(button('Potvrdi tačku: Početak')).toBeDefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
   it('keeps a city-only result as camera context instead of inventing an exact point', async () => {
     const city = { ...candidate, label: 'Novi Sad, South Backa, Serbia',
       position: { latitude: 45.2671, longitude: 19.8335 } };
