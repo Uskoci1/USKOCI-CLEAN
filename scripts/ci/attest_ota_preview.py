@@ -92,9 +92,15 @@ def validate_manifest(xml: str, read_string: Callable[[str], str]) -> dict:
     runtime = metadata.get(PREFIX + "EXPO_RUNTIME_VERSION", "") or ""
     if runtime.startswith("@string/"):
         runtime = read_string(runtime[len("@string/"):]).strip()
-        # apkanalyzer versions may quote string values.
-        if runtime.startswith('"') and runtime.endswith('"'):
-            runtime = json.loads(runtime)
+    elif runtime.startswith("@ref/"):
+        # Newer apkanalyzer versions may render the compiled binary XML value
+        # as a numeric resource reference (for example @ref/0x7f1300b9)
+        # instead of preserving @string/expo_runtime_version. Resolve the
+        # canonical Expo resource from the app package and validate its value.
+        runtime = read_string("expo_runtime_version").strip()
+    # apkanalyzer may quote string resource values.
+    if runtime.startswith('"') and runtime.endswith('"'):
+        runtime = json.loads(runtime)
     require(runtime == RUNTIME, f"APK_RUNTIME_MISMATCH: expected={RUNTIME!r} actual={runtime!r}")
     require(metadata.get(PREFIX + "EXPO_UPDATE_URL") == URL, "APK_UPDATE_URL_MISMATCH")
     headers = json.loads(metadata.get(PREFIX + "UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY") or "{}")
