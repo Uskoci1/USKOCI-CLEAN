@@ -308,7 +308,7 @@ describe('compact conversation proposal', () => {
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: candidate.label,
       conversationSummary: { title: 'Početak', description: candidate.label } });
     expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
-    await press('Uvećaj mapu');
+    await press('Uvećaj mapu za: Početak');
     let maps = tree.root.findAllByType('PinMap' as React.ElementType);
     expect(maps).toHaveLength(2);
     const expanded = maps.find(node => node.props.fill === true)!;
