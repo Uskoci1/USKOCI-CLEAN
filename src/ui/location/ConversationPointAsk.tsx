@@ -401,7 +401,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   </View>;
 
   return <View style={{ gap: 14 }}>
-    {slots.length > 1 ? <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+    {slots.length > 1 ? <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {slots.map(slot => {
         const pending = pendingSlot === slot;
         const status = pending ? 'Čeka potvrdu' : placed.has(slot) ? 'Potvrđeno' : 'Nije potvrđeno';
@@ -409,14 +409,12 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
         return <Press key={slot} accessibilityRole="radio" accessibilityLabel={`${label}${place ? `, ${place}` : ''}, ${status}`}
           accessibilityState={{ selected: slot === activeSlot, disabled: state.kind === 'SAVING' || inactive }}
           disabled={state.kind === 'SAVING' || inactive} onPress={() => select(slot)} haptic="select"
-          style={{ minHeight: 56, padding: 12, gap: 4, borderRadius: sys.radius.control, borderWidth: 1,
-            borderColor: slot === activeSlot ? sys.color.green : sys.color.line,
-            backgroundColor: slot === activeSlot ? sys.color.greenSoft : sys.color.surface }}>
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <T variant="bodyStrong" style={{ flex: 1 }}>{label}</T>
-            <T variant="note" style={{ flexShrink: 1 }} tone={placed.has(slot) && !pending ? 'success' : 'muted'}>{status}</T>
-          </View>
-          {place ? <T variant="note" tone="muted">{place}</T> : null}
+          style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.pill, borderWidth: 1,
+            borderColor: slot === activeSlot ? sys.color.green : sys.color.line, backgroundColor: sys.color.surface,
+            flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <T variant="note" style={{ color: slot === activeSlot ? sys.color.ink : sys.color.muted, fontWeight: '600' }}>
+            {placed.has(slot) && !pending ? '✓ ' : ''}{label}
+          </T>
         </Press>;
       })}
     </View> : null}
