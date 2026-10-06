@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Intentional sideload checkpoint trigger: P1 location false-precision + compact chat map PHONE/ARM64 acceptance build; runtime source unchanged.
+# Intentional sideload checkpoint trigger: P1 location sequential-route + exact-pin PHONE/ARM64 acceptance build; runtime source unchanged.
 on:
   workflow_dispatch:
     inputs:
