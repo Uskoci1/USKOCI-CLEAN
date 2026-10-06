@@ -334,8 +334,8 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 156, compact: true });
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
-    expect(text()).toContain('Nismo našli dovoljno preciznu tačku');
-    expect(text()).toContain('Mapa je samo orijentir');
+    expect(text()).toContain('Tačna tačka nije pronađena. Dodirni pravo mesto na mapi ili ispravi opis.');
+    expect(text()).not.toContain('Mapa je samo orijentir');
     expect(props.onInvalidate).not.toHaveBeenCalled();
     await act(async () => map().props.onChoose({ latitude: 45.2512, longitude: 19.8244 }));
     expect(map().props.position).toEqual({ latitude: 45.2512, longitude: 19.8244 });
