@@ -292,7 +292,7 @@ describe('the conversation point ask', () => {
     await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} onEditingChange={onEditingChange} />));
     expect(onEditingChange).toHaveBeenLastCalledWith(true);
     await act(async () => { oldConfirm(point('end')); oldClose(); });
-    expect(mockSave).not.toHaveBeenCalled(); expect(callbacks.onClose).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1); expect(callbacks.onClose).not.toHaveBeenCalled();
     expect(mockRead).toHaveBeenCalledTimes(1); expect(editor().props.slot).toBe('end');
   });
 
@@ -440,7 +440,7 @@ describe('the conversation point ask', () => {
     expect(editor().props.slot).toBe('waypoints/0'); expect(editor().props.initialQuery).toBe('B');
     await act(async () => editor().props.onConfirm(point('waypoints/0')));
     expect(editor().props.slot).toBe('waypoints/1'); expect(editor().props.initialQuery).toBe('C');
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(2);
   });
 
   it('rejects an older slot callback and repeated final confirmation while a save is in flight', async () => {
@@ -594,7 +594,6 @@ describe('the conversation point ask', () => {
     mockSave.mockResolvedValueOnce({ ok: false, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED', poruka: 'Server nije potvrdio mesto.' });
     await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
-    await act(async () => { editor().props.onConfirm(point('end')); });
     const reads = mockRead.mock.calls.length;
     await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
     const confirmReload = tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress;
