@@ -286,7 +286,8 @@ describe('compact conversation proposal', () => {
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(props.onInvalidate).not.toHaveBeenCalled();
     expect(map().props).toMatchObject({ position: candidate.position, height: 124, compact: true });
-    expect(text()).toContain('Da li je ovo početak?'); expect(text()).toContain(candidate.label);
+    expect(text()).toContain('Da li je ovo početak?');
+    expect(text()).not.toContain(candidate.label);
     expect(text()).not.toContain('Svi vide približno područje.');
     expect(button('Potvrdi tačku: Početak').props.label).toBe('Da, ovo je početak');
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
