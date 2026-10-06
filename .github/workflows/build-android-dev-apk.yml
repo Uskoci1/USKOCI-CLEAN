@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 2 fixes fallback manifest regex escaping.
+# Owner-approved OTA Preview native baseline (2026-10-06). Deliberate checkpoint; retry 3 pins resource-package runtime attestation and preserves failed post-build APKs.
 on:
   workflow_dispatch:
     inputs:
@@ -300,6 +300,7 @@ jobs:
           cat USKOCI-DEV-reanimated-patch-attestation.json
 
       - name: Upload workflow artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: USKOCI-OTA-PREVIEW-APK${{ inputs.reanimated_patch == 'skip' && '-unpatched' || '' }}
