@@ -144,7 +144,7 @@ describe('the conversation point ask', () => {
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     await press('Prikaži mapu');
     expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: false,
-      points: [{ id: 'start', label: 'Mesto rada: Tačka potvrđena na mapi' }] });
+      points: [{ id: 'start', label: 'Mesto zadatka: Tačka potvrđena na mapi' }] });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
   });
 
@@ -371,7 +371,7 @@ describe('the conversation point ask', () => {
     await mount();
     expect(slots()).toHaveLength(0);
     expect(editor().props.presentation).toBe('conversation');
-    expect(editor().props.title).toBe('Mesto rada');
+    expect(editor().props.title).toBe('Mesto zadatka');
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
   });
 
