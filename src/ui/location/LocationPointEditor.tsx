@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Linking, View } from 'react-native';
+import { Linking, Modal, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '../../contracts/location';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
@@ -115,6 +116,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [expandedMap, setExpandedMap] = useState(false);
   const [candidatePage, setCandidatePage] = useState(0);
   const [focused, setFocused] = useState(false);
   const [replyLocked, setReplyLocked] = useState(false);
@@ -137,7 +139,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
       // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
       setCameraHint(undefined); if (conversation) setPlaceByHand(false);
-      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchText(initialQuery); located.current = false; setError(false);
+      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setExpandedMap(false); setSearchText(initialQuery); located.current = false; setError(false);
       setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
       setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });setAddress(saved?.address ?? '');setNotes(saved?.accessNotes ?? '');
     };
@@ -145,7 +147,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   useEffect(() => {
     if (!disabled) return;
     replyLease.current = null; setReplyLocked(false);
-    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false);
+    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setExpandedMap(false);
     setCameraHint(undefined); if (conversation) setPlaceByHand(false);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
@@ -365,6 +367,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
+    const expandedPlace = address.trim() || selectedLabel || initialQuery.trim() || 'Tačka na mapi';
     const lookupMessage = contextOnly
       ? 'Nismo našli dovoljno preciznu tačku za opis iz razgovora. Mapa je samo orijentir — dodirni tačno mesto ili ispravi opis.'
       : lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
@@ -395,9 +398,43 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
           retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
-      {position || placeByHand || ambiguous || contextOnly ? <ResolvedPinMap position={position} cameraHint={shownCameraHint}
-        cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={scopeKey}
-        disabled={controlDisabled || !focused} height={156} compact /> : null}
+      {position || placeByHand || ambiguous || contextOnly ? <>
+        <ResolvedPinMap position={position} cameraHint={shownCameraHint}
+          cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={scopeKey}
+          disabled={controlDisabled || !focused} height={156} compact />
+        <Button tone="neutral" label="Uvećaj mapu" accessibilityLabel={`Uvećaj mapu za: ${title}`} kind="quiet"
+          disabled={controlDisabled || !focused} onPress={() => { if (owns()) setExpandedMap(true); }} />
+        <Modal visible={expandedMap} animationType="slide" onRequestClose={() => { if (owns()) setExpandedMap(false); }}>
+          <SafeAreaView style={editorStyles.fullScreen} edges={['top', 'bottom']} accessibilityViewIsModal>
+            <View style={editorStyles.fullHeader}>
+              <View style={editorStyles.fullHeaderCopy}>
+                <T variant="meta" tone="muted">{title}</T>
+                <T accessibilityRole="header" variant="title" style={editorStyles.fullTitle}>Podesi tačno mesto</T>
+              </View>
+              <Button tone="neutral" label="Zatvori" kind="quiet" onPress={() => { if (owns()) setExpandedMap(false); }} />
+            </View>
+            <View style={editorStyles.fullMap}>
+              <ResolvedPinMap position={position} cameraHint={shownCameraHint}
+                cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
+                disabled={controlDisabled || !focused} compact fill />
+            </View>
+            <View style={editorStyles.fullFooter}>
+              {position ? <>
+                <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
+                <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
+                  ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
+                <T variant="note" tone="muted">Dodirni mapu ili prevuci pin ako želiš preciznije mesto.</T>
+                <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
+                  kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
+                  onPress={() => { if (confirm()) setExpandedMap(false); }} />
+              </> : <>
+                <T variant="bodyStrong" style={editorStyles.fullTitle}>Označi tačno mesto</T>
+                <T variant="note" tone="muted">Uvećaj ulicu po potrebi i dodirni mesto na mapi. Pin ostaje privatan dok ga ne potvrdiš.</T>
+              </>}
+            </View>
+          </SafeAreaView>
+        </Modal>
+      </> : null}
       {position ? <>
         <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
@@ -413,7 +450,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
           <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
-            disabled={controlDisabled || !focused} onPress={() => { if (correctionOpen) { if (owns()) setCorrectionOpen(false); } else correct(); }} />
+            disabled={controlDisabled || !focused} onPress={() => {
+              if (correctionOpen) { if (owns()) setCorrectionOpen(false); }
+              else if (correct()) setExpandedMap(true);
+            }} />
         </View>
       </> : null}
       {correctionOpen ? <>
@@ -501,3 +541,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     <Button label={`Potvrdi tačku: ${title}`} kind="secondary" style={confirmAsPrimary ? brandAction : undefined} disabled={controlDisabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;
 }
+
+const editorStyles = StyleSheet.create({
+  fullScreen: { flex: 1, backgroundColor: sys.color.surface },
+  fullHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg,
+    paddingVertical: sys.space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  fullHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
+  fullTitle: { color: sys.color.ink },
+  fullMap: { flex: 1, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm },
+  fullFooter: { gap: sys.space.sm, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.base,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+});
