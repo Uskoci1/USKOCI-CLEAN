@@ -378,9 +378,6 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         disabled={controlDisabled || !focused} height={124} compact /> : null}
       {position ? <>
         <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
-        {!correctionOpen && (address.trim() || selectedLabel) ? <T variant="note" tone="muted" numberOfLines={1}>
-          {address.trim() || selectedLabel}
-        </T> : null}
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
         {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
           && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
