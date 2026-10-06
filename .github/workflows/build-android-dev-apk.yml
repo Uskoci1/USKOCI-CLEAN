@@ -1,6 +1,6 @@
 name: Build Android development APK
 
-# Intentional sideload checkpoint trigger: P1 location numbered-address + street/locality pin PHONE/ARM64 acceptance build; runtime source unchanged.
+# Owner-approved OTA Preview native baseline (2026-10-06). This is a deliberate APK checkpoint, not an APK trigger for ordinary JS/UI changes.
 on:
   workflow_dispatch:
     inputs:
@@ -71,6 +71,8 @@ jobs:
     steps:
       - name: Checkout canonical branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -85,7 +87,7 @@ jobs:
           java-version: '17'
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --include=dev
 
       # RNR-01 / B22: `npm ci` has already run patch-package (postinstall: --error-on-fail --error-on-warn) and the verifier. This step proves
       # again, before any native code is generated or compiled, that node_modules holds exactly the reviewed patched Reanimated file;
@@ -120,19 +122,57 @@ jobs:
           console.log(`[entry-reference] Android asset contract OK: ${asset}, ${bytes.length} bytes`);
           NODE
 
-      - name: Inject development-only Android package id
+      - name: Verify canonical OTA Preview source and Location ancestry
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
         run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/work/uskoci-ui-unification-20260924'
+          test "$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)" = "$GITHUB_SHA"
+          for required in \
+            ace26143288d83fc8c806eab2fc425a2638d0d34 \
+            efd8f658708350d6f5100e435ec051878926028b \
+            105bcae8ff741ea4a9540c6f29259852dcbf0edc \
+            707d60ef653db46d094400e6bd30d0e1654a61e8 \
+            d67afe76766573192af921211cb3803fe255ac76; do
+            git merge-base --is-ancestor "$required" HEAD
+            echo "Included ancestor: $required"
+          done
+          node scripts/ota-preview-guard.cjs
           node <<'NODE'
           const fs = require('fs');
-          const path = 'app.json';
-          const app = JSON.parse(fs.readFileSync(path, 'utf8'));
-          app.expo.android = app.expo.android || {};
-          app.expo.android.package = 'rs.uskoci.dev';
-          app.expo.name = 'USKOČI DEV';
-          fs.writeFileSync(path, JSON.stringify(app, null, 2) + '\n');
+          const config = require('./app.config.js')({ config: JSON.parse(fs.readFileSync('app.json', 'utf8')).expo });
+          if (config.android.package !== 'rs.uskoci.preview') throw new Error('APK_NOT_PREVIEW_PACKAGE');
+          if (config.runtimeVersion !== 'uskoci-v1-preview-r1') throw new Error('APK_RUNTIME_DRIFT');
+          if (config.updates.requestHeaders['expo-channel-name'] !== 'preview') throw new Error('APK_CHANNEL_DRIFT');
+          if (!config.updates.enabled) throw new Error('APK_UPDATES_DISABLED');
+          console.log(JSON.stringify({package: config.android.package, version: config.version,
+            versionCode: config.android.versionCode, runtimeVersion: config.runtimeVersion,
+            channel: config.updates.requestHeaders['expo-channel-name'], updateUrl: config.updates.url}));
           NODE
 
+      - name: Verify compiled APK attestor boundaries offline
+        run: python3 -m unittest discover -s scripts/ci -p 'test_attest_ota_preview.py' -v
+
+      - name: OTA source guards, TypeScript and full regression before native build
+        env:
+          NODE_ENV: test
+        run: |
+          set -euo pipefail
+          # Match the proven source-test environment; these shell-only unsets do not alter the APK build flags.
+          unset EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL EXPO_PUBLIC_P6_DISCOVERY_READER
+          unset EXPO_PUBLIC_EX04_OWN_TASKS_PAGED EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED EXPO_PUBLIC_EX04_CANDIDATES_PAGED
+          unset EXPO_PUBLIC_VOICE_MESSAGES EXPO_PUBLIC_AI_LOCATION_DIALOGUE EXPO_PUBLIC_CONVERSATION_INBOX
+          npx jest scripts/__tests__/eas-preview-guard.test.ts scripts/__tests__/ota-preview-guard.test.ts src/data/__tests__/build-identity.test.tsx --runInBand
+          npx tsc --noEmit
+          npm test -- --runInBand
+
       - name: Generate native Android project
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          USKOCI_PUSH_PROOF_BUILD: '0'
         run: npx expo prebuild --platform android --clean
 
       - name: Tune Gradle for CI APK
@@ -158,12 +198,31 @@ jobs:
 
       - name: Build standalone release APK
         working-directory: android
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          USKOCI_PUSH_PROOF_BUILD: '0'
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
 
       - name: Prepare APK
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk USKOCI-DEV.apk
           sha256sum USKOCI-DEV.apk > USKOCI-DEV.apk.sha256
+          cp USKOCI-DEV.apk USKOCI-PREVIEW.apk
+          sha256sum USKOCI-PREVIEW.apk > USKOCI-PREVIEW.apk.sha256
+
+      - name: Attest compiled OTA Preview identity and signing
+        env:
+          USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/attest_ota_preview.py USKOCI-PREVIEW.apk USKOCI-OTA-PREVIEW-receipt.json
+          {
+            echo '### OTA Preview APK boundary receipt — not phone verification'
+            echo '```json'
+            cat USKOCI-OTA-PREVIEW-receipt.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Attest the recovery redirect is compiled into the artifact
         run: |
@@ -243,10 +302,11 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: USKOCI-DEV-APK${{ inputs.reanimated_patch == 'skip' && '-unpatched' || '' }}
+          name: USKOCI-OTA-PREVIEW-APK${{ inputs.reanimated_patch == 'skip' && '-unpatched' || '' }}
           path: |
-            USKOCI-DEV.apk
-            USKOCI-DEV.apk.sha256
+            USKOCI-PREVIEW.apk
+            USKOCI-PREVIEW.apk.sha256
+            USKOCI-OTA-PREVIEW-receipt.json
             USKOCI-DEV-recovery-attestation.json
             USKOCI-DEV-icon-attestation.json
             USKOCI-DEV-reanimated-patch-attestation.json

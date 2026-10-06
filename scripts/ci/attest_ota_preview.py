@@ -1,0 +1,116 @@
+"""Attest the compiled Preview APK, not merely its source Expo configuration.
+
+Uses Android SDK apkanalyzer/apksigner. Never reads or emits signing private keys.
+A passing receipt proves the APK boundary only, never a physical-phone OTA update.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+from typing import Callable
+import xml.etree.ElementTree as ET
+import zipfile
+
+ANDROID = "{http://schemas.android.com/apk/res/android}"
+PROJECT = "1e6cc490-9851-4741-9226-128612122db6"
+RUNTIME = "uskoci-v1-preview-r1"
+URL = f"https://u.expo.dev/{PROJECT}"
+PREFIX = "expo.modules.updates."
+
+
+def require(ok: bool, reason: str) -> None:
+    if not ok:
+        raise ValueError(reason)
+
+
+def validate_manifest(xml: str, read_string: Callable[[str], str]) -> dict:
+    root = ET.fromstring(xml)
+    app = root.find("application")
+    require(app is not None, "APK_APPLICATION_MISSING")
+    package = root.attrib.get("package")
+    require(package == "rs.uskoci.preview", "APK_NOT_PREVIEW_PACKAGE")
+    require(app.attrib.get(ANDROID + "debuggable", "false") == "false", "APK_DEBUGGABLE")
+    entries = app.findall("meta-data")
+    metadata = {node.attrib.get(ANDROID + "name"): node.attrib.get(ANDROID + "value") for node in entries}
+    require(metadata.get(PREFIX + "ENABLED") == "true", "APK_UPDATES_DISABLED")
+    runtime = metadata.get(PREFIX + "EXPO_RUNTIME_VERSION", "") or ""
+    if runtime.startswith("@string/"):
+        runtime = read_string(runtime[len("@string/"):]).strip()
+        # apkanalyzer versions may quote string values.
+        if runtime.startswith('"') and runtime.endswith('"'):
+            runtime = json.loads(runtime)
+    require(runtime == RUNTIME, "APK_RUNTIME_MISMATCH")
+    require(metadata.get(PREFIX + "EXPO_UPDATE_URL") == URL, "APK_UPDATE_URL_MISMATCH")
+    headers = json.loads(metadata.get(PREFIX + "UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY") or "{}")
+    require(headers.get("expo-channel-name") == "preview", "APK_CHANNEL_MISMATCH")
+    require(metadata.get(PREFIX + "EXPO_UPDATES_CHECK_ON_LAUNCH") == "ALWAYS", "APK_NOT_ON_LOAD")
+    require(metadata.get(PREFIX + "EXPO_UPDATES_LAUNCH_WAIT_MS") == "0", "APK_FALLBACK_NOT_ZERO")
+    require(metadata.get(PREFIX + "DISABLE_ANTI_BRICKING_MEASURES", "false") == "false", "APK_ANTI_BRICKING_DISABLED")
+    return {"androidPackage": package, "version": root.attrib.get(ANDROID + "versionName"),
+            "versionCode": int(root.attrib[ANDROID + "versionCode"]), "runtimeVersion": runtime,
+            "channel": headers["expo-channel-name"], "projectId": PROJECT, "updateUrl": URL,
+            "updatesEnabled": True, "checkOnLaunch": "ALWAYS", "fallbackToCacheTimeout": 0,
+            "debuggable": False}
+
+
+def run(*args: str) -> str:
+    return subprocess.check_output(args, text=True, stderr=subprocess.PIPE).strip()
+
+
+def sdk_tool(name: str) -> str:
+    found = shutil.which(name)
+    if found:
+        return found
+    sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or "/usr/local/lib/android/sdk")
+    candidates = list(sdk.glob(f"cmdline-tools/*/bin/{name}")) + list(sdk.glob(f"build-tools/*/{name}"))
+    require(bool(candidates), f"ANDROID_SDK_TOOL_MISSING:{name}")
+    return str(sorted(candidates)[-1])
+
+
+def attest(apk: Path, target: str) -> dict:
+    analyzer = sdk_tool("apkanalyzer")
+    manifest = run(analyzer, "manifest", "print", str(apk))
+    identity = validate_manifest(manifest, lambda name: run(analyzer, "resources", "value", "--config", "default", "--name", name, "--type", "string", str(apk)))
+    require(target in ("phone", "emulator"), "APK_TARGET_UNKNOWN")
+    expected_abi = "arm64-v8a" if target == "phone" else "x86_64"
+    with zipfile.ZipFile(apk) as archive:
+        names = archive.namelist()
+        abis = sorted({name.split("/")[1] for name in names if name.startswith("lib/") and name.endswith(".so")})
+        require(abis == [expected_abi], "APK_ABI_MISMATCH")
+        require(any(b"expo/modules/updates/" in archive.read(name) for name in names if re.fullmatch(r"classes\d*\.dex", name)), "APK_UPDATES_NATIVE_CODE_MISSING")
+    signer = run(sdk_tool("apksigner"), "verify", "--print-certs", str(apk))
+    fingerprints = re.findall(r"Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})", signer)
+    require(bool(fingerprints), "APK_SIGNING_FINGERPRINT_MISSING")
+    digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+    config = json.loads(Path("app.json").read_text(encoding="utf-8"))["expo"]
+    require(identity["version"] == config["version"], "APK_VERSION_DRIFT")
+    require(identity["versionCode"] == config["android"]["versionCode"], "APK_VERSION_CODE_DRIFT")
+    source_sha = run("git", "rev-parse", "HEAD")
+    require(source_sha == os.environ.get("GITHUB_SHA", source_sha), "APK_SOURCE_SHA_DRIFT")
+    flags = {key: value for key, value in sorted(os.environ.items()) if key.startswith("EXPO_PUBLIC_") and "KEY" not in key and "TOKEN" not in key and "SECRET" not in key}
+    return {"status": "APK_ATTESTED_NOT_PHONE_VERIFIED", **identity, "sourceSha": source_sha,
+            "nativeBaselineSha": source_sha, "sourceTree": run("git", "rev-parse", "HEAD^{tree}"),
+            "githubRunId": os.environ.get("GITHUB_RUN_ID"), "githubRunAttempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+            "githubRunUrl": f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', 'Uskoci1/USKOCI-CLEAN')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
+            "apkFile": apk.name, "apkSizeBytes": apk.stat().st_size, "apkSha256": digest,
+            "architectures": abis, "signingCertificateSha256": [value.lower() for value in fingerprints],
+            "publicBuildFlags": flags, "physicalPhone": "NOT_TESTED", "otaPreview": "NOT_VERIFIED",
+            "production": "NOT_BUILT_OR_DEPLOYED"}
+
+
+if __name__ == "__main__":
+    try:
+        require(len(sys.argv) == 3, "USAGE: attest_ota_preview.py APK RECEIPT_JSON")
+        receipt = attest(Path(sys.argv[1]), os.environ.get("USKOCI_ANDROID_BUILD_TARGET", "phone"))
+        output = json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+        Path(sys.argv[2]).write_text(output, encoding="utf-8")
+        print(output)
+    except (ValueError, KeyError, OSError, subprocess.CalledProcessError, zipfile.BadZipFile, ET.ParseError) as error:
+        print(f"OTA_APK_ATTESTATION_FAILED: {error}", file=sys.stderr)
+        sys.exit(1)
