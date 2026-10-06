@@ -335,10 +335,6 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   useEffect(() => () => { replyLease.current = null; promptChanged.current?.(null); }, []);
   if (conversation) {
     const loading = lookup.status === 'LOADING';
-    // A moved pin keeps the conversation description separate from its new address.
-    const manualProposal = !!position && pending && origin.kind === 'MANUAL_PIN';
-    const label = !position ? 'Lokacija nije određena' : pending
-      ? address.trim() || 'Tačka izabrana na mapi' : selectedLabel || point?.address || 'Tačka potvrđena na mapi';
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const ambiguous = !position && lookupMode === 'search' && alternatives.length > 1;
     const contextOnly = weakSingleProposal;
@@ -346,8 +342,6 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     // city/region, but draw no pin and carry no confirmation capability until the person chooses.
     const providerCameraHint = ambiguous || contextOnly ? alternatives.map(candidate => ({ ...candidate.position })) : undefined;
     const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
-    const mapExplainsNextStep = !!conversationSummary && !position && placeByHand && !loading && !ambiguous
-      && !controlDisabled && focused;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
     const lookupMessage = contextOnly
