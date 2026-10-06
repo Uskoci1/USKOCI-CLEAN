@@ -357,22 +357,17 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
           : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
             : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
-    return <View style={{ gap: sys.space.md }}>
-      <View style={{ gap: sys.space.xs }}>
+    return <View style={{ gap: sys.space.sm }}>
+      {!position ? <View style={{ gap: sys.space.xs }}>
         {conversationSummary?.title === title ? null : <T variant="meta" tone="muted">{title}</T>}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm }}>
-          <FactArt kind="pin" size={24} cut="art" role="location" />
-          <T variant="bodyStrong" style={{ flex: 1, minWidth: 0, fontSize: 18, lineHeight: 24, color: sys.color.ink }}>{label || 'Mesto još nije izabrano'}</T>
-        </View>
-        {mapExplainsNextStep ? null : <T variant="note" tone="muted" accessibilityLiveRegion="polite">{position
-          ? pointQuestion
-          : loading ? 'Tražimo mesto iz razgovora…' : ambiguous
+        <T variant="note" tone="muted" accessibilityLiveRegion="polite">{loading
+          ? 'Tražimo mesto iz razgovora…' : ambiguous
             ? clarificationQuestion : contextOnly
               ? 'Tačna tačka nije pronađena. Dodirni pravo mesto na mapi ili ispravi opis.'
-              : 'Dopuni opis mesta ili ga označi na mapi.'}</T>}
-        {(manualProposal || !position) && initialQuery && conversationSummary?.description !== initialQuery
+              : 'Dopuni opis mesta ili ga označi na mapi.'}</T>
+        {initialQuery && conversationSummary?.description !== initialQuery
           ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
-      </View>
+      </View> : null}
       {!position && !loading && !ambiguous && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}
@@ -386,28 +381,30 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
       {position || placeByHand || ambiguous || contextOnly ? <ResolvedPinMap position={position} cameraHint={shownCameraHint} onChoose={choose} scopeKey={scopeKey}
-        disabled={controlDisabled || !focused} height={132} compact /> : null}
-      {position && (manualProposal || correctionOpen) ? <>
+        disabled={controlDisabled || !focused} height={124} compact /> : null}
+      {position ? <>
+        <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
+        {!correctionOpen && (address.trim() || selectedLabel) ? <T variant="note" tone="muted" numberOfLines={1}>
+          {address.trim() || selectedLabel}
+        </T> : null}
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
         {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
-          && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <>
-          <T variant="note" tone="muted" accessibilityLiveRegion="polite">Adresa nije određena. Tačka je ostala tamo gde je izabrana. Upiši adresu ili pokušaj ponovo.</T>
-          <Button tone="neutral" label="Ponovo pronađi adresu" kind="quiet" disabled={controlDisabled || !focused} onPress={reverse} />
-        </> : null}
-        <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
+          && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
+          Adresa nije određena. Tačka je ostala tamo gde je izabrana.
+        </T> : null}
+        {correctionOpen ? <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
           editable={!controlDisabled && focused} onChangeText={value => {
             if (owns()) { retireSearch(); setAddress(value); invalidate(); }
-          }} />
-      </> : null}
-      <T variant="meta" tone="muted">Svi vide približno područje. Tačno mesto vidi samo osoba s kojom se dogovoriš.</T>
-      {position ? <>
-        <Button tone="neutral" label="Potvrdi mesto" accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
-          style={confirmAsPrimary ? brandAction : undefined} disabled={controlDisabled || !focused || loading} onPress={confirm} />
-        <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
-          disabled={controlDisabled || !focused} onPress={() => { if (correctionOpen) { if (owns()) setCorrectionOpen(false); } else correct(); }} />
+          }} /> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
+          <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
+            style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
+          <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
+            disabled={controlDisabled || !focused} onPress={() => { if (correctionOpen) { if (owns()) setCorrectionOpen(false); } else correct(); }} />
+        </View>
       </> : null}
       {correctionOpen ? <>
-        <T variant="note" tone="muted">Prevuci pin ili dodirni tačno mesto na mapi, pa potvrdi izmenu.</T>
+        <T variant="note" tone="muted">Pomeri pin ili dodirni tačno mesto, pa potvrdi.</T>
         {alternatives.length > 1 ? visibleCandidates.map((candidate, index) => <Button tone="neutral"
           key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`} label={candidate.label}
           accessibilityLabel={`Izaberi predlog: ${candidate.label}`} kind="secondary"
