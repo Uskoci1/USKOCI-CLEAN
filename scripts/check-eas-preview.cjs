@@ -7,6 +7,9 @@ const path = require('node:path');
 
 const PROJECT_ID = '1e6cc490-9851-4741-9226-128612122db6';
 const SUPABASE_REF = 'leqcwgzvjsxugfgzdmth';
+const UPDATE_URL = `https://u.expo.dev/${PROJECT_ID}`;
+const PREVIEW_RUNTIME = 'uskoci-v1-preview-r1';
+const PRODUCTION_RUNTIME = 'uskoci-v1-production-r1';
 
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
@@ -47,9 +50,9 @@ function validateFirebase(firebase) {
  */
 const REVIEWED_PROFILES = {
   preview: profile => profile?.autoIncrement === true && profile?.distribution === 'internal' && profile?.environment === 'preview' &&
-    profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'apk',
+    profile?.channel === 'preview' && profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'apk',
   production: profile => profile?.autoIncrement === true && profile?.distribution === 'store' && profile?.environment === 'production' &&
-    profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'app-bundle',
+    profile?.channel === 'production' && profile?.credentialsSource === 'remote' && profile?.android?.buildType === 'app-bundle',
 };
 
 function validatePreview({ app, eas, env, firebase }) {
@@ -60,6 +63,13 @@ function validatePreview({ app, eas, env, firebase }) {
   requireCondition(expo?.owner === 'sljivas-team' && expo?.slug === 'uskoci' &&
     expo?.extra?.eas?.projectId === PROJECT_ID, 'Expected the existing @sljivas-team/uskoci EAS project.');
   const store = name === 'production';
+  const channel = store ? 'production' : 'preview';
+  const runtime = store ? PRODUCTION_RUNTIME : PREVIEW_RUNTIME;
+  requireCondition(expo?.runtimeVersion === runtime && expo?.updates?.url === UPDATE_URL
+    && expo?.updates?.requestHeaders?.['expo-channel-name'] === channel,
+    'Expected the reviewed OTA runtime, URL and channel for this build profile.');
+  requireCondition(env.USKOCI_OTA_TARGET === channel,
+    'USKOCI_OTA_TARGET must match the reviewed build channel.');
   requireCondition(expo?.android?.package === (store ? 'rs.uskoci' : 'rs.uskoci.preview'),
     store ? 'Expected the Google Play package rs.uskoci for the store bundle.' : 'Expected the existing Android preview package.');
   requireCondition(Number.isSafeInteger(expo?.android?.versionCode) && expo.android.versionCode >= 35,
