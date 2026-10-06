@@ -361,39 +361,35 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
   </View>;
 
-  if (!editing && completeSummary) return <View style={{ gap: 12 }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <FactArt kind="check" size={24} cut="art" role="confirmed" />
+  if (!editing && completeSummary) {
+    const summaryText = summaryPoints.map(point =>
+      `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`).join(' · ');
+    return <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <FactArt kind="check" size={20} cut="art" role="confirmed" />
+        </View>
+        <T accessibilityRole={state.kind === 'SAVED' ? 'alert' : 'header'} variant="bodyStrong" style={{ flex: 1 }}>
+          Mesto je potvrđeno
+        </T>
       </View>
-      <T accessibilityRole={state.kind === 'SAVED' ? 'alert' : 'header'} variant="bodyStrong" style={{ flex: 1 }}>
-        {state.kind === 'SAVED' ? 'Mesto je sačuvano.' : 'Mesto na mapi je potvrđeno.'}
-      </T>
-    </View>
-    {summaryPoints.map(point => {
-      const description = point.origin.kind === 'MANUAL_PIN' && !point.address ? seed(point.slot, review.value) : '';
-      return <View key={point.slot} style={{ gap: 4 }}>
-        {slots.length > 1 ? <T variant="bodyStrong">{title(point.slot, geography)}</T> : null}
-        <T variant="note" tone="muted">{confirmedPointLabel(point, review.value)}</T>
-        {description ? <T variant="note" tone="muted">Opis iz razgovora: {description}</T> : null}
-      </View>;
-    })}
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-      <Button tone="neutral" kind="quiet" compact style={{ minHeight: 48, flexShrink: 1 }}
-        label={summaryMapOpen ? 'Sakrij mapu' : 'Prikaži mapu'} disabled={inactive} onPress={() => {
-          if (!canAct()) return;
-          view.current = null; setSummaryMapOpen(open => !open);
-        }} />
-      {review.editable ? <Button tone="neutral" kind="quiet" compact style={{ minHeight: 48, flexShrink: 1 }}
-        label="Izmeni" accessibilityLabel="Nije tu? Izmeni mesto" disabled={inactive} onPress={editSaved} /> : null}
-    </View>
-    {summaryMapOpen && !inactive ? <LocationMapPreview scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}`}
-      points={summaryPoints.map(point => ({ id: point.slot,
-        label: `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`,
-        latitude: point.latitudeE6 / 1_000_000, longitude: point.longitudeE6 / 1_000_000 }))}
-      route={geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP'} /> : null}
-    {summaryMapOpen ? <Button tone="neutral" kind="quiet" label="Zatvori pregled mesta" disabled={inactive} onPress={leave} /> : null}
-  </View>;
+      <T variant="note" tone="muted" numberOfLines={2}>{summaryText}</T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <Button tone="neutral" kind="quiet" compact style={{ minHeight: 44, flexShrink: 1 }}
+          label={summaryMapOpen ? 'Sakrij mapu' : 'Mapa'} accessibilityLabel={summaryMapOpen ? 'Sakrij mapu mesta' : 'Prikaži mapu mesta'} disabled={inactive} onPress={() => {
+            if (!canAct()) return;
+            view.current = null; setSummaryMapOpen(open => !open);
+          }} />
+        {review.editable ? <Button tone="neutral" kind="quiet" compact style={{ minHeight: 44, flexShrink: 1 }}
+          label="Izmeni" accessibilityLabel="Nije tu? Izmeni mesto" disabled={inactive} onPress={editSaved} /> : null}
+      </View>
+      {summaryMapOpen && !inactive ? <LocationMapPreview scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}`}
+        points={summaryPoints.map(point => ({ id: point.slot,
+          label: `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`,
+          latitude: point.latitudeE6 / 1_000_000, longitude: point.longitudeE6 / 1_000_000 }))}
+        route={geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP'} /> : null}
+    </View>;
+  }
 
   if (!review.editable) return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="muted">Ovaj razgovor je već sačuvan. Otvori njegov zadatak da izmeniš mesto.</T>
