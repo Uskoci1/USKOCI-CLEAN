@@ -6,11 +6,22 @@ const { buildIdentity } = require('./scripts/build-identity.cjs');
 // The Google Play identity (owner, 2026-09-23: "rs.uskoci"). Only the EAS production profile, the store app bundle,
 // takes it; the preview APK and every CI build keep the package they are given. A package is permanent in Play Console.
 const STORE_PACKAGE = 'rs.uskoci';
+const PREVIEW_RUNTIME = 'uskoci-v1-preview-r1';
+const PRODUCTION_RUNTIME = 'uskoci-v1-production-r1';
+const UPDATE_URL = 'https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6';
 const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada pritisneš „U blizini”, da prikaže mapu zadataka oko tebe.';
 
 module.exports = ({ config }) => {
+  const profile = process.env.EAS_BUILD_PROFILE;
+  const otaTarget = process.env.USKOCI_OTA_TARGET;
+  if (profile && otaTarget && ((profile === 'production') !== (otaTarget === 'production'))) {
+    throw new Error('USKOCI_OTA_TARGET_PROFILE_MISMATCH');
+  }
+  const production = profile === 'production' || otaTarget === 'production';
+  const channel = production ? 'production' : 'preview';
+  const runtimeVersion = production ? PRODUCTION_RUNTIME : PREVIEW_RUNTIME;
   const android = { ...config.android };
-  if (process.env.EAS_BUILD_PROFILE === 'production') android.package = STORE_PACKAGE;
+  if (production) android.package = STORE_PACKAGE;
   android.permissions = [...new Set([...(android.permissions ?? []),
     'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION'])];
   const ios = { ...config.ios, infoPlist: { ...config.ios?.infoPlist,
@@ -68,7 +79,11 @@ module.exports = ({ config }) => {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;
   }
-  return { ...config, android, ios, plugins, extra: { ...config.extra,
-    uskociBuild: buildIdentity({ root: __dirname, version: config.version }),
+  const updates = { ...config.updates, url: UPDATE_URL, enabled: true, checkAutomatically: 'ON_LOAD', fallbackToCacheTimeout: 0,
+    requestHeaders: { ...(config.updates?.requestHeaders ?? {}), 'expo-channel-name': channel } };
+  return { ...config, android, ios, plugins, runtimeVersion, updates, extra: { ...config.extra,
+    uskociBuild: { ...buildIdentity({ root: __dirname, version: config.version }), runtimeVersion, updateChannel: channel },
   } };
 };
+
+module.exports.otaConfig = { PREVIEW_RUNTIME, PRODUCTION_RUNTIME, UPDATE_URL };
