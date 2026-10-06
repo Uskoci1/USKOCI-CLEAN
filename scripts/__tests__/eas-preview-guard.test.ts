@@ -18,6 +18,7 @@ function fixture() {
     env: {
       EAS_BUILD_PROFILE: 'preview', EAS_BUILD_PLATFORM: 'android',
       EAS_BUILD_PROJECT_ID: '1e6cc490-9851-4741-9226-128612122db6',
+      USKOCI_OTA_TARGET: 'preview',
       EXPO_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: jwt(), NODE_ENV: 'production',
     } as NodeJS.ProcessEnv,
@@ -61,9 +62,10 @@ describe('actual EAS preview pre-install guard', () => {
     expect(() => validatePreview(input)).toThrow(/fake or test/);
   });
 
-  it.each(['distribution', 'credentialsSource', 'buildType', 'versionSource', 'profile', 'platform'])('rejects a changed build boundary: %s', (field) => {
+  it.each(['distribution', 'credentialsSource', 'buildType', 'versionSource', 'profile', 'platform', 'channel'])('rejects a changed build boundary: %s', (field) => {
     const input = fixture();
     if (field === 'buildType') input.eas.build.preview.android.buildType = 'app-bundle';
+    else if (field === 'channel') input.eas.build.preview.channel = 'production';
     else if (field === 'versionSource') input.eas.cli.appVersionSource = 'local';
     else if (field === 'profile') input.env.EAS_BUILD_PROFILE = 'development';
     else if (field === 'platform') input.env.EAS_BUILD_PLATFORM = 'ios';
@@ -74,7 +76,7 @@ describe('actual EAS preview pre-install guard', () => {
   // Store build, owner 2026-09-23: the production profile is the Google Play app bundle rs.uskoci and keeps every other
   // boundary; it carries no Firebase client, because the reviewed one belongs to the preview package.
   function storeFixture() {
-    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production';
+    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production'; input.env.USKOCI_OTA_TARGET = 'production';
     const before = process.env.EAS_BUILD_PROFILE; process.env.EAS_BUILD_PROFILE = 'production';
     try { input.app = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) }; }
     finally { if (before === undefined) delete process.env.EAS_BUILD_PROFILE; else process.env.EAS_BUILD_PROFILE = before; }
@@ -98,10 +100,11 @@ describe('actual EAS preview pre-install guard', () => {
     expect(env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toMatch(/^sb_publishable_[A-Za-z0-9_-]+$/);
   });
 
-  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement'])('rejects production store profile drift: %s', (field) => {
+  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement', 'channel'])('rejects production store profile drift: %s', (field) => {
     const input = storeFixture();
     const production = input.eas.build.production;
     if (field === 'buildType') production.android.buildType = 'apk';
+    else if (field === 'channel') production.channel = 'preview';
     else if (field === 'autoIncrement') production.autoIncrement = false;
     else production[field] = 'other';
     expect(() => validatePreview(input)).toThrow(/production store app bundle/);
