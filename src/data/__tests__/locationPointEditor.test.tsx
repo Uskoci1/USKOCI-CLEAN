@@ -20,9 +20,14 @@ jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'Locatio
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
 jest.mock('../nativeCurrentLocation', () => ({ captureCurrentLocation: jest.fn() }));
 jest.mock('react-native', () => {
-  const native = jest.requireActual('react-native');
-  return new Proxy(native, { get(target, key) { return key === 'View' ? 'View' : Reflect.get(target, key); } });
+  const native = jest.requireActual('react-native'), React = require('react');
+  return new Proxy(native, { get(target, key) {
+    if (key === 'View') return 'View';
+    if (key === 'Modal') return ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
+    return Reflect.get(target, key);
+  } });
 });
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 
 type Props = React.ComponentProps<typeof LocationPointEditor>;
 let tree: ReactTestRenderer;
@@ -296,6 +301,38 @@ describe('compact conversation proposal', () => {
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin, address: candidate.label });
     expect(resolver.search).toHaveBeenCalledTimes(1); expect(resolver.reverse).not.toHaveBeenCalled();
+  });
+
+  it('expands the same chat pin full-screen, reverse-geocodes a moved point and returns without losing it', async () => {
+    const resolver = configured();
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: candidate.label,
+      conversationSummary: { title: 'Početak', description: candidate.label } });
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
+    await press('Uvećaj mapu');
+    let maps = tree.root.findAllByType('PinMap' as React.ElementType);
+    expect(maps).toHaveLength(2);
+    const expanded = maps.find(node => node.props.fill === true)!;
+    expect(expanded.props).toMatchObject({ position: candidate.position, compact: true, fill: true });
+    const moved = { latitude: 45.251234, longitude: 19.831234 };
+    await act(async () => { expanded.props.onChoose(moved); });
+    expect(resolver.reverse).toHaveBeenCalledWith({ position: moved, countryCode: 'RS', scopeKey: props.scopeKey });
+    maps = tree.root.findAllByType('PinMap' as React.ElementType);
+    expect(maps.every(node => node.props.position.latitude === moved.latitude && node.props.position.longitude === moved.longitude)).toBe(true);
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Zatvori');
+    maps = tree.root.findAllByType('PinMap' as React.ElementType);
+    expect(maps).toHaveLength(1); expect(maps[0].props.position).toEqual(moved);
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234,
+      origin: { kind: 'MANUAL_PIN' }, address: candidate.label });
+  });
+
+  it('opens the large map from Nije tu instead of forcing precise correction inside 156 px', async () => {
+    await render({ resolver: configured(), presentation: 'conversation', autoLocate: true, initialQuery: candidate.label });
+    await press('Nije tu');
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(2);
+    expect(tree.root.findAllByType('PinMap' as React.ElementType).some(node => node.props.fill === true)).toBe(true);
+    expect(props.onConfirm).not.toHaveBeenCalled();
   });
 
   it('places a movable proposal pin for a short street plus locality seed while keeping bare city unresolved', async () => {
