@@ -124,13 +124,13 @@ describe('the conversation point ask', () => {
     const { onClose } = await mount(undefined, undefined, { onEditingChange });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Prikaži mapu mesta');
+    await press('Mapa');
     expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: true, points: [
       { id: 'start', label: 'Polazište: Sačuvano polazište', latitude: 45.255, longitude: 19.845 },
       { id: 'end', label: 'Odredište: Sačuvano odredište', latitude: 45.250111, longitude: 19.845 },
     ] });
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
-    await press('Sakrij mapu mesta');
+    await press('Sakrij mapu');
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     expect(onClose).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
@@ -143,7 +143,7 @@ describe('the conversation point ask', () => {
       resolvedLocation: { ...value.resolvedLocation!, binding: { ...value.resolvedLocation!.binding, geography } } } } });
     await mount();
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Prikaži mapu mesta');
+    await press('Mapa');
     expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: false,
       points: [{ id: 'start', label: 'Mesto zadatka: Tačka potvrđena na mapi' }] });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
@@ -247,7 +247,7 @@ describe('the conversation point ask', () => {
     expect(mockSave).toHaveBeenCalledTimes(1); expect(onSaved).toHaveBeenCalledTimes(1);
     expect(mockSave.mock.calls[0][0].expectedRevision).toBe(initial.revision);
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Prikaži mapu mesta');
+    await press('Mapa');
     expect(tree!.root.findByType(LocationMapPreview).props.points[0]).toMatchObject({ latitude: 45.26 });
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
     await press('Izmeni');
