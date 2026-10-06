@@ -64,8 +64,9 @@ const uniqueSeedParts = (parts: readonly (string | null | undefined)[]): string[
     for (const piece of raw.split(',').map(part => part.trim()).filter(Boolean)) {
       const normalized = normalizedPlaceText(piece);
       if (!normalized || result.some(existing => {
-        const other = normalizedPlaceText(existing);
-        return other === normalized || other.includes(normalized) || normalized.includes(other);
+        const existingTokens = new Set(normalizedPlaceText(existing).split(' ').filter(Boolean));
+        const candidateTokens = normalized.split(' ').filter(Boolean);
+        return candidateTokens.length > 0 && candidateTokens.every(token => existingTokens.has(token));
       })) continue;
       result.push(piece);
     }
