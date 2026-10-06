@@ -219,18 +219,20 @@ describe('the conversation point ask', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('distinguishes a loaded partial baseline from newly confirmed changes', async () => {
+  it('distinguishes a loaded partial baseline from a new edit on the active next point', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start')]) });
     const { onClose } = await mount();
+    expect(editor().props.slot).toBe('end');
     await press('Kasnije');
     expect(onClose).toHaveBeenCalledTimes(1); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-    // A fresh visit owns its own baseline; merely loading a partial set did not make it dirty.
+    // A fresh visit owns its own baseline; merely loading the saved start did not make it dirty.
     await act(async () => tree!.unmount()); tree = undefined;
     await mount();
-    await act(async () => editor().props.onConfirm({ ...point('start'), latitudeE6: 45_260_000 }));
+    expect(editor().props.slot).toBe('end');
+    await act(async () => editor().props.onInvalidate());
     await press('Kasnije');
-    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Izmene mesta nisu sačuvane',
-      message: 'Ako sad izađeš, izmene koje još nisu sačuvane se odbacuju. Sačuvane tačke ostaju.' });
+    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Izmena tačke nije potvrđena',
+      message: 'Ako sad izađeš, nepotvrđena izmena se odbacuje. Sačuvane tačke ostaju.' });
     expect(mockSave).not.toHaveBeenCalled();
   });
 
