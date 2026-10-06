@@ -14,8 +14,8 @@ import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
  * `need.resolved_location` is the one fact publishing cannot do without and the AI may neither
  * be required nor permitted to produce, so before this the only bridge was a long form that
  * three real drafts never completed. These tests pin the two things that make the new route
- * trustworthy: the ask appears exactly when a point is missing, and nothing is written until
- * every required point has been confirmed by hand.
+ * trustworthy: the ask appears exactly when a point is missing, and every point becomes durable
+ * only after that point has been explicitly confirmed by hand.
  */
 
 const CONVERSATION = '22222222-2222-4222-8222-222222222222';
@@ -97,7 +97,12 @@ describe('the conversation point ask', () => {
     mockRead.mockReset(); mockSave.mockReset();
     mockFocused = true; mockSession = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
     mockRead.mockResolvedValue({ ok: true, podatak: review() });
-    mockSave.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, review: review([point('start'), point('end')]) } });
+    mockSave.mockImplementation(async (command: any) => {
+      const points = command.value.resolvedLocation?.points ?? [];
+      const revision = (mockSave.mock.calls.length <= 1 ? 'b' : 'c').repeat(64);
+      return { ok: true, podatak: { saved: true, idempotentReplay: false,
+        review: { ...review(points), confirmed: true, revision, value: command.value } } };
+    });
   });
   afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.restoreAllMocks(); });
 
@@ -364,7 +369,8 @@ describe('the conversation point ask', () => {
     await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.slot).toBe('end');
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([point('start')]);
   });
 
   it('opens the compact work-place editor without a redundant single-slot selector', async () => {
@@ -390,7 +396,7 @@ describe('the conversation point ask', () => {
     expect(editor().props.initialQuery).toBe('Park, Novi Sad');
     await act(async () => editor().props.onConfirm(point('waypoints/1')));
     expect(editor().props.initialQuery).toBe('Muzej');
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(3);
   });
 
   it('keeps a confirmed start while the conversation advances to the destination', async () => {
@@ -398,11 +404,13 @@ describe('the conversation point ask', () => {
     const moved = { ...point('start'), latitudeE6: 45_260_000 };
     await act(async () => editor().props.onConfirm(moved));
     expect(slots()).toHaveLength(0);
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([moved]);
     expect(editor().props.slot).toBe('end');
     await act(async () => editor().props.onConfirm(point('end')));
-    expect(mockSave).toHaveBeenCalledTimes(1);
-    expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([moved, point('end')]);
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockSave.mock.calls[1][0].value.resolvedLocation.points).toEqual([moved, point('end')]);
+    expect(mockSave.mock.calls[1][0].expectedRevision).toBe('b'.repeat(64));
   });
 
   it('asks before switching away from an unconfirmed edit on an explicitly reopened saved route', async () => {
@@ -495,43 +503,43 @@ describe('the conversation point ask', () => {
     expect(editor().props.initialQuery).toBe('Centar, Novi Sad');
     await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
   });
 
-  it('returns correction to the composer through the existing unsaved decision and preserves confirmed points until leave', async () => {
+  it('returns to the composer immediately after a durable confirmed start', async () => {
     const { onClose } = await mount();
     await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.slot).toBe('end');
+    expect(mockSave).toHaveBeenCalledTimes(1);
     await act(async () => editor().props.onCorrectInConversation());
-    expect(onClose).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
-    await answer('confirm-sheet-cancel');
-    expect(editor().props.slot).toBe('end');
-    await act(async () => editor().props.onCorrectInConversation());
-    await answer('confirm-sheet-confirm');
-    expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
-  it('writes nothing until every required point is confirmed', async () => {
-    await mount();
+  it('persists the confirmed start immediately while keeping publication location incomplete', async () => {
+    const { onSaved } = await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([point('start')]);
+    expect(onSaved).toHaveBeenCalledTimes(1);
     // The second slot is now the one being asked for, seeded from its own public place.
     expect(editor().props.slot).toBe('end');
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
   });
 
-  it('saves both points as one explicitly confirmed value and reports back', async () => {
+  it('persists each route point with revision fencing and completes on the final point', async () => {
     const { onSaved } = await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
     await act(async () => { editor().props.onConfirm(point('end')); });
-    expect(mockSave).toHaveBeenCalledTimes(1);
-    const command = mockSave.mock.calls[0][0];
-    expect(command).toMatchObject({ conversationId: CONVERSATION, expectedRevision: 'a'.repeat(64), confirmed: true });
-    expect(command.value.resolvedLocation.points.map((item: ConfirmedLocationPoint) => item.slot)).toEqual(['start', 'end']);
-    // The binding carries the topology the points were resolved against, not a new one.
-    expect(command.value.resolvedLocation.binding).toEqual({ taskCountryCode: 'RS', geography: route,
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    const first = mockSave.mock.calls[0][0], second = mockSave.mock.calls[1][0];
+    expect(first).toMatchObject({ conversationId: CONVERSATION, expectedRevision: 'a'.repeat(64), confirmed: true });
+    expect(first.value.resolvedLocation.points.map((item: ConfirmedLocationPoint) => item.slot)).toEqual(['start']);
+    expect(second.expectedRevision).toBe('b'.repeat(64));
+    expect(second.value.resolvedLocation.points.map((item: ConfirmedLocationPoint) => item.slot)).toEqual(['start', 'end']);
+    expect(second.value.resolvedLocation.binding).toEqual({ taskCountryCode: 'RS', geography: route,
       exactAddress: 'Lenke Dunđerski 11, Novi Sad' });
-    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(2);
   });
 
   it('starts from the point already confirmed and asks only for the rest', async () => {
@@ -549,11 +557,10 @@ describe('the conversation point ask', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('reports a failed save instead of claiming the place was kept', async () => {
+  it('reports a failed point save immediately instead of claiming the place was kept', async () => {
     mockSave.mockResolvedValue({ ok: false, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED', poruka: 'Server nije potvrdio mesto.' });
     const { onSaved } = await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
-    await act(async () => { editor().props.onConfirm(point('end')); });
     expect(onSaved).not.toHaveBeenCalled();
     const text = tree!.root.findAll(node => String(node.type) === 'T')
       .flatMap(node => node.children.filter((child): child is string => typeof child === 'string')).join(' ');
@@ -569,7 +576,6 @@ describe('the conversation point ask', () => {
       await act(async () => { tree!.root.findByType(ConfirmSheet).findByProps({ testID }).props.onPress(); }); };
     await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
-    await act(async () => { editor().props.onConfirm(point('end')); });
     const reads = mockRead.mock.calls.length;
     await act(async () => { tree!.root.findByProps({ label: 'Učitaj sačuvano mesto' }).props.onPress(); });
     expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Učitaj sačuvano mesto?', confirmLabel: 'Učitaj', cancelLabel: 'Odustani', tone: 'danger',
@@ -596,33 +602,25 @@ describe('the conversation point ask', () => {
     expect(mockRead).toHaveBeenCalledTimes(reads + 1); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
-  it('leaving with a confirmed but unsaved point asks first, and only the confirm leaves', async () => {
+  it('leaves cleanly after a confirmed partial route because that point is already durable', async () => {
     const { onClose } = await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
     await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
-    const leave = tree!.root.findByType(ConfirmSheet);
-    expect(leave.props).toMatchObject({ title: 'Potvrđena tačka nije sačuvana', cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger',
-      // One voice without grammatical gender (owner rule): no "Potvrdio si".
-      message: 'Tačka je potvrđena, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ova tačka se gubi.' });
-    await act(async () => { leave.findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
-    expect(onClose).not.toHaveBeenCalled(); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-    await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
-    await act(async () => { tree!.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress(); });
-    expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
-  // Round 2c (verifier vs, nit): a route with a stop can hold two confirmed points when the person leaves, and the
-  // question said "ova tačka" about both.
-  it('leaving with several confirmed points speaks of them in the plural', async () => {
+  it('keeps several partial route confirmations durable before the final destination', async () => {
     const stops = { mode: 'MULTI_STOP' as const, start: { city: 'Novi Sad' }, waypoints: [{ city: 'Sremski Karlovci' }], end: { city: 'Beočin' } };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value, geography: stops } } });
     await mount();
     await act(async () => { editor().props.onConfirm(point('start')); });
     expect(editor().props.slot).toBe('waypoints/0');
     await act(async () => { editor().props.onConfirm({ ...point('start'), slot: 'waypoints/0' }); });
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockSave.mock.calls[1][0].value.resolvedLocation.points.map((item: ConfirmedLocationPoint) => item.slot)).toEqual(['start', 'waypoints/0']);
     await act(async () => { tree!.root.findByProps({ label: 'Kasnije' }).props.onPress(); });
-    expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Potvrđene tačke nisu sačuvane',
-      message: 'Tačke su potvrđene, ali mesto se čuva tek kad potvrdiš sve tačke. Ako sad izađeš, ove tačke se gube.' });
-    expect(mockSave).not.toHaveBeenCalled();
+    expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 });
