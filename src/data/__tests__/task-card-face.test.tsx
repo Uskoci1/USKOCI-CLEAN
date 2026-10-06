@@ -231,11 +231,13 @@ describe('the places and the person', () => {
     expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0); expect(texts()).not.toContain('4,8 (12)');
   });
 
-  it('read a route as start → end from the public area or city, never the private label', async () => {
+  it('shows only the public route start on the discovery card, never the private street labels', async () => {
     const geografija = { mode: 'POINT_TO_POINT', start: { label: 'Bulevar oslobođenja 12', area: 'Liman', city: 'Novi Sad' },
       end: { label: 'Kisačka 5', city: 'Novi Sad' } };
     await render(<TaskCard item={task({ detalji: detail({ geografija, rezimLokacije: 'POINT_TO_POINT' } as Partial<NeedDetailProjection>) })} onOpen={jest.fn()} />);
-    expect(texts()).toContain('Liman → Novi Sad');
+    expect(texts()).toContain('Liman');
+    expect(texts()).not.toContain('Novi Sad');
+    expect(texts().join(' ')).not.toContain('→');
     expect(JSON.stringify(tree.toJSON())).not.toMatch(/Bulevar|Kisačka/);
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({ rezimLokacije: 'REMOTE' }) })} onOpen={jest.fn()} />));
     expect(texts()).toContain('Na daljinu'); expect(facts()).toContain('remote');
