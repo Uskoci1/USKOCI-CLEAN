@@ -15,6 +15,16 @@ describe('taskPlace route list copy', () => {
     expect(taskPlace(item)).toEqual({ remote: false, text: 'Lenke Dunđerski' });
   });
 
+  it('prefers the privacy-safe public street label over locality and never uses the route destination', () => {
+    const item = {
+      podrucjeTekst: 'Petrovaradin, Novi Sad',
+      detalji: { geografija: { mode: 'POINT_TO_POINT',
+        start: { label: 'Beogradska', area: 'Petrovaradin', city: 'Novi Sad' },
+        end: { label: 'Bulevar oslobođenja', area: 'Centar', city: 'Novi Sad' } } },
+    } as any;
+    expect(taskPlace(item)).toEqual({ remote: false, text: 'Beogradska' });
+  });
+
   it('shows the first public stop for a multi-stop task card and keeps stationary fallback unchanged', () => {
     const route = {
       podrucjeTekst: 'Novi Sad',
