@@ -1,7 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { ComponentProps } from 'react';
 import { BackHandler } from 'react-native';
-import type { ConfirmedLocationPoint, NeedLocationReview } from '../../contracts/location';
+import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
 import { pointsMissing } from '../../lib/location';
 import { ConversationPointAsk } from '../../ui/location/ConversationPointAsk';
 import { LocationPointEditor } from '../../ui/location/LocationPointEditor';
@@ -87,7 +87,7 @@ const review = (points: ConfirmedLocationPoint[] = []): NeedLocationReview => ({
     accessNotes: null, ...(points.length ? { resolvedLocation: { version: 1, points,
       binding: { taskCountryCode: 'RS', geography: route, exactAddress: 'Lenke Dunđerski 11, Novi Sad' } } } : {}) },
 });
-const point = (slot: 'start' | 'end'): ConfirmedLocationPoint => ({
+const point = (slot: LocationSlot): ConfirmedLocationPoint => ({
   slot, latitudeE6: 45_255_000, longitudeE6: 19_845_000, origin: { kind: 'MANUAL_PIN' },
 });
 
@@ -226,7 +226,7 @@ describe('the conversation point ask', () => {
     expect(onClose).toHaveBeenCalledTimes(1); expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
     // A fresh visit owns its own baseline; merely loading a partial set did not make it dirty.
     await act(async () => tree!.unmount()); tree = undefined;
-    await mount(); await choose('Polazište');
+    await mount();
     await act(async () => editor().props.onConfirm({ ...point('start'), latitudeE6: 45_260_000 }));
     await press('Kasnije');
     expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Izmene mesta nisu sačuvane',
@@ -353,14 +353,13 @@ describe('the conversation point ask', () => {
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0); expect(callbacks.onClose).not.toHaveBeenCalled();
   });
 
-  it('shows each actual route point separately with one active map and allows choosing the destination first', async () => {
+  it('shows one route point at a time and advances naturally through the conversation', async () => {
     await mount();
-    expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
-      'Polazište, Lenke Dunđerski, Novi Sad, Nije potvrđeno',
-      'Odredište, Petrovaradinska tvrđava, Petrovaradin, Nije potvrđeno',
-    ]);
+    expect(slots()).toHaveLength(0);
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(1);
-    await choose('Odredište');
+    expect(editor().props.slot).toBe('start');
+    expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad');
+    await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.slot).toBe('end');
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
     expect(mockSave).not.toHaveBeenCalled();
@@ -376,30 +375,27 @@ describe('the conversation point ask', () => {
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('seeds label-only places and each actual waypoint without repeating identical label and area text', async () => {
+  it('seeds label-only places and advances through waypoints one at a time', async () => {
     const geography = { mode: 'MULTI_STOP' as const, start: { label: 'Glavna stanica' },
       waypoints: [{ label: 'Botanička bašta' }, { label: 'Park', area: 'Park', city: 'Novi Sad' }], end: { label: 'Muzej' } };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value, geography, exactAddress: null } } });
     await mount();
+    expect(slots()).toHaveLength(0);
     expect(editor().props.initialQuery).toBe('Glavna stanica');
-    await choose('Stanica 1'); expect(editor().props.initialQuery).toBe('Botanička bašta');
-    await choose('Stanica 2'); expect(editor().props.initialQuery).toBe('Park, Novi Sad');
-    await choose('Odredište'); expect(editor().props.initialQuery).toBe('Muzej');
+    await act(async () => editor().props.onConfirm(point('start')));
+    expect(editor().props.initialQuery).toBe('Botanička bašta');
+    await act(async () => editor().props.onConfirm(point('waypoints/0')));
+    expect(editor().props.initialQuery).toBe('Park, Novi Sad');
+    await act(async () => editor().props.onConfirm(point('waypoints/1')));
+    expect(editor().props.initialQuery).toBe('Muzej');
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('reopens a confirmed point without changing it and saves its moved replacement only after explicit confirmation', async () => {
+  it('keeps a confirmed start while the conversation advances to the destination', async () => {
     await mount();
-    await act(async () => editor().props.onConfirm(point('start')));
-    await choose('Polazište');
-    expect(editor().props.point).toEqual(point('start'));
-    expect(slots()[0].props.accessibilityLabel).toContain('Potvrđeno');
-    expect(mockSave).not.toHaveBeenCalled();
-    await act(async () => editor().props.onInvalidate());
-    expect(editor().props.point).toEqual(point('start'));
-    expect(slots()[0].props.accessibilityLabel).toContain('Čeka potvrdu');
     const moved = { ...point('start'), latitudeE6: 45_260_000 };
     await act(async () => editor().props.onConfirm(moved));
+    expect(slots()).toHaveLength(0);
     expect(mockSave).not.toHaveBeenCalled();
     expect(editor().props.slot).toBe('end');
     await act(async () => editor().props.onConfirm(point('end')));
@@ -407,10 +403,10 @@ describe('the conversation point ask', () => {
     expect(mockSave.mock.calls[0][0].value.resolvedLocation.points).toEqual([moved, point('end')]);
   });
 
-  it('asks before switching away from an unconfirmed edit and retains the previous confirmed point when discarded', async () => {
+  it('asks before switching away from an unconfirmed edit on an explicitly reopened saved route', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     await mount();
-    await act(async () => editor().props.onConfirm(point('start')));
-    await choose('Polazište');
+    await press('Izmeni');
     await act(async () => editor().props.onInvalidate());
     await choose('Odredište');
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
@@ -424,14 +420,16 @@ describe('the conversation point ask', () => {
     expect(slots()[0].props.accessibilityLabel).toContain('Potvrđeno');
   });
 
-  it('keeps multi-stop slot order and seeds each stop from its own server geography', async () => {
+  it('keeps multi-stop slot order while showing only the active stop', async () => {
     const stops = { mode: 'MULTI_STOP' as const, start: { city: 'A' }, waypoints: [{ city: 'B' }, { city: 'C' }], end: { city: 'D' } };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value, geography: stops, exactAddress: null } } });
     await mount();
-    expect(slots().map(node => node.props.accessibilityLabel)).toEqual([
-      'Polazište, A, Nije potvrđeno', 'Stanica 1, B, Nije potvrđeno', 'Stanica 2, C, Nije potvrđeno', 'Odredište, D, Nije potvrđeno',
-    ]);
-    await choose('Stanica 2'); expect(editor().props.slot).toBe('waypoints/1'); expect(editor().props.initialQuery).toBe('C');
+    expect(slots()).toHaveLength(0);
+    expect(editor().props.slot).toBe('start'); expect(editor().props.initialQuery).toBe('A');
+    await act(async () => editor().props.onConfirm(point('start')));
+    expect(editor().props.slot).toBe('waypoints/0'); expect(editor().props.initialQuery).toBe('B');
+    await act(async () => editor().props.onConfirm(point('waypoints/0')));
+    expect(editor().props.slot).toBe('waypoints/1'); expect(editor().props.initialQuery).toBe('C');
     expect(mockSave).not.toHaveBeenCalled();
   });
 
@@ -439,9 +437,10 @@ describe('the conversation point ask', () => {
     let settle!: (value: unknown) => void;
     mockSave.mockReturnValueOnce(new Promise(resolve => { settle = resolve; }));
     await mount(); const old = editor().props.onConfirm;
-    await choose('Odredište');
-    await act(async () => old(point('start')));
+    await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.slot).toBe('end'); expect(editor().props.point).toBeUndefined();
+    await act(async () => old(point('start')));
+    expect(editor().props.slot).toBe('end');
     await act(async () => editor().props.onConfirm(point('end')));
     const final = editor().props.onConfirm;
     await act(async () => { final(point('start')); final(point('start')); });
@@ -468,10 +467,10 @@ describe('the conversation point ask', () => {
     expect(mockRead).toHaveBeenCalledWith(CONVERSATION);
   });
 
-  it('asks for the first missing route point from that slot only, never from the single private exact address', async () => {
+  it('uses the exact spoken address only when it safely matches the active route point', async () => {
     await mount();
     expect(editor().props.slot).toBe('start');
-    expect(editor().props.initialQuery).toBe('Lenke Dunđerski, Novi Sad');
+    expect(editor().props.initialQuery).toBe('Lenke Dunđerski 11, Novi Sad');
     expect(editor().props.autoLocate).toBe(true);
   });
 
@@ -492,7 +491,7 @@ describe('the conversation point ask', () => {
         start: { label: 'Centar', area: 'Centar', city: 'Novi Sad' } } } } });
     await mount();
     expect(editor().props.initialQuery).toBe('Centar, Novi Sad');
-    await choose('Odredište');
+    await act(async () => editor().props.onConfirm(point('start')));
     expect(editor().props.initialQuery).toBe('Petrovaradinska tvrđava, Petrovaradin');
     expect(mockSave).not.toHaveBeenCalled();
   });
@@ -504,7 +503,7 @@ describe('the conversation point ask', () => {
     await act(async () => editor().props.onCorrectInConversation());
     expect(onClose).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
     await answer('confirm-sheet-cancel');
-    await choose('Polazište'); expect(editor().props.point).toEqual(point('start'));
+    expect(editor().props.slot).toBe('end');
     await act(async () => editor().props.onCorrectInConversation());
     await answer('confirm-sheet-confirm');
     expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
