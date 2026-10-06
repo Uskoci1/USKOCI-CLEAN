@@ -169,10 +169,10 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const spokenByFrame = disabled && !!pin;
   const mapName = area ? 'Mapa približnog područja' : disabled ? 'Mapa prikazane tačke'
     : coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije';
-  return <View style={styles.container}>
+  return <View style={[styles.container, props.fill && styles.fill]}>
     {/* Credits stay outside the accessible frame and do not cover the map on narrow screens. */}
-    <View>
-    <View style={[styles.frame, props.height ? { height: props.height } : null]}
+    <View style={props.fill ? styles.fill : undefined}>
+    <View style={[styles.frame, props.fill ? styles.fillFrame : props.height ? { height: props.height } : null]}
       accessible={spokenByFrame} accessibilityRole={spokenByFrame ? 'image' : undefined}
       accessibilityLabel={spokenByFrame ? `${area ? 'Približno područje na mapi' : 'Tačka na mapi'}. ${coordinateText}` : undefined}
       onLayout={event => {
@@ -259,7 +259,7 @@ export function ResolvedPinMap(props: ResolvedPinMapProps) {
     return () => { session.active = false; if (current.current === session) current.current = null; setOwner(null); };
   }, [props.scopeKey]));
   const valid = owner?.active && owner.key === props.scopeKey && current.current === owner;
-  if (!valid) return <View style={styles.container}><T variant="meta" tone="muted">Mapa je dostupna dok je ovaj unos otvoren.</T></View>;
+  if (!valid) return <View style={[styles.container, props.fill && styles.fill]}><T variant="meta" tone="muted">Mapa je dostupna dok je ovaj unos otvoren.</T></View>;
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
   return <NativePinSession key={`${owner.epoch}:${attempt}`} {...props} owns={owns}
     retry={() => { if (owns()) setAttempt(value => value + 1); }} />;
@@ -267,6 +267,8 @@ export function ResolvedPinMap(props: ResolvedPinMapProps) {
 
 const styles = StyleSheet.create({
   container: { gap: sys.space.sm },
+  fill: { flex: 1 },
+  fillFrame: { flex: 1, minHeight: 280 },
   frame: { height: 320, borderRadius: sys.radius.card, overflow: 'hidden', backgroundColor: sys.color.greenSoft },
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
